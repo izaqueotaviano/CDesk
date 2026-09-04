@@ -1,0 +1,410 @@
+"""Chat v2 — módulo reconstruído do zero (pedido do Izaque).
+
+Princípios que mudaram em relação ao chat antigo:
+
+- **Fila única, sem equipe.** Todo agente vê todo chat que entra; quem pega
+  primeiro leva (lock atômico no serviço). Equipe só volta a existir no
+  momento da conversão em ticket — o agente escolhe na manual, e a
+  automática (timeout) cai na equipe padrão do `ChatConfig`.
+- **Um chat aberto por LOGIN**, não por empresa: dois funcionários da mesma
+  empresa conversam em paralelo. A invariante é do banco (constraint
+  parcial), não de um `if`.
+- **Independente de tickets.** Métrica, configuração e dado próprios. Os
+  DOIS únicos pontos de acoplamento são as conversões (manual e por
+  timeout) — `Ticket.origin_chat` aponta pra cá, e mais nada.
+- **Avaliação é motor, não enfeite:** chat fechado sem nota bloqueia o
+  cliente de abrir um novo (regra em `chat_service`); a pendência é
+  derivável daqui — CLOSED + sem `rating` + sem ticket gerado.
+
+O banco continua sendo a fonte da verdade e o WebSocket só transporte:
+mensagem persiste antes do group_send, reconectar é recarregar por REST.
+"""
+
+from django.core.cache import cache
+from django.db import models
+from django.utils import timezone
+
+from apps.core.models import TimeStampedModel
+from apps.tickets.models import TicketPriority
+
+
+class ChatStatus(models.TextChoices):
+    QUEUED = "queued", "Na fila"
+    ACTIVE = "active", "Em atendimento"
+    CLOSED = "closed", "Fechado"
+
+
+class Chat(TimeStampedModel):
+    """Uma conversa. Nasce na fila, um agente pega, fecha — e pode reabrir.
+
+    Os campos de atendimento (nome interno, categoria, urgência, responsável,
+    etiquetas) existem AQUI, não só no ticket: a macro preenche durante a
+    conversa, e a conversão os copia. O nome interno só chega ao cliente se
+    o chat virar ticket (vira o assunto).
+    """
+
+    company = models.ForeignKey(
+        "customers.Company", on_delete=models.PROTECT, related_name="chats"
+    )
+    client = models.ForeignKey(
+        "accounts.User", on_delete=models.PROTECT, related_name="chats"
+    )
+    agent = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="chats_atendidos",
+    )
+    status = models.CharField(
+        max_length=10, choices=ChatStatus.choices,
+        default=ChatStatus.QUEUED, db_index=True,
+    )
+
+    # nome interno dado pelo agente ("o cliente escreve qualquer coisa na
+    # primeira mensagem") — vira o assunto do ticket na conversão
+    name = models.CharField(max_length=200, blank=True)
+
+    # --- campos de atendimento (mesma tipagem do ticket; a macro preenche) ---
+    category = models.ForeignKey(
+        "tickets.TicketCategory",
+        on_delete=models.SET_NULL, null=True, blank=True, related_name="chats",
+    )
+    priority = models.CharField(
+        max_length=10, choices=TicketPriority.choices, default=TicketPriority.NORMAL
+    )
+    assignee = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="chats_designados",
+        help_text="Responsável que o ticket recebe na conversão. Vazio = o próprio agente.",
+    )
+    tags = models.ManyToManyField("tickets.TicketTag", blank=True, related_name="chats")
+
+    # --- linha do tempo ---
+    # `default` e não `auto_now_add`: reabrir devolve o chat à fila e ZERA o
+    # relógio de espera — o timeout de fila conta a partir da reabertura.
+    queued_at = models.DateTimeField(default=timezone.now, db_index=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    closed_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="chats_encerrados",
+    )
+    reopen_count = models.PositiveSmallIntegerField(default=0)
+
+    # nota do AGENTE sobre o atendimento (0–10) — interna, o cliente nunca vê
+    agent_score = models.PositiveSmallIntegerField(null=True, blank=True)
+
+    # timeout de fila: ninguém pegou e o sistema converteu sozinho
+    timeout_converted = models.BooleanField(default=False)
+
+    # O ticket gerado é acessível por `self.generated_ticket` (OneToOne em
+    # tickets.Ticket.origin_chat — a FK mora lá para evitar ciclo de import).
+
+    class Meta:
+        verbose_name = "chat"
+        verbose_name_plural = "chats"
+        constraints = [
+            # um chat vivo por LOGIN — invariante de negócio mora no banco;
+            # o check-then-create do serviço tem janela de corrida (duas
+            # abas), a constraint parcial é o que a fecha de verdade
+            models.UniqueConstraint(
+                fields=["client"],
+                condition=models.Q(status__in=["queued", "active"]),
+                name="uniq_chat_aberto_por_login",
+            )
+        ]
+
+    def __str__(self):
+        return f"Chat #{self.pk} — {self.client} ({self.get_status_display()})"
+
+    @property
+    def rating_pending(self) -> bool:
+        """Fechou sem nota do cliente → pendência que bloqueia chat novo.
+
+        Chat convertido em ticket não cobra avaliação: a conversa continua
+        no ticket (que tem a própria pesquisa de satisfação) — essa é a
+        única exceção. Fechado sem nunca ter sido atendido (o cliente
+        desistiu da fila) COBRA nota também: é sinal válido de que a fila
+        falhou com o cliente, não "nada para avaliar".
+        """
+        if self.status != ChatStatus.CLOSED:
+            return False
+        if getattr(self, "generated_ticket", None) is not None:
+            return False
+        return not hasattr(self, "rating")
+
+
+class ChatMessage(models.Model):
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
+    author = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="chat_messages",  # null = mensagem de sistema/boas-vindas
+    )
+    body = models.TextField()
+    is_system = models.BooleanField(default=False)
+    sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    # Mesmo par que TicketMessage já usa — edited_at é o que a tela mostra
+    # como "editada"; o texto anterior não fica registrado aqui de propósito
+    # (o chat não tem uma trilha de auditoria própria como o ticket tem).
+    edited_at = models.DateTimeField(null=True, blank=True)
+    edited_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="edited_chat_messages",
+    )
+    # Apagar é MARCAR, nunca sumir a linha — mesmo motivo do ticket: a
+    # ordem da conversa contínua (chat/timeline/) e o WebSocket dos dois
+    # lados dependem de a linha continuar existindo. O corpo some, a linha
+    # fica como "Esta mensagem foi apagada."
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="deleted_chat_messages",
+    )
+
+    class Meta:
+        verbose_name = "mensagem de chat"
+        verbose_name_plural = "mensagens de chat"
+        indexes = [models.Index(fields=["chat", "sent_at"])]
+        # ordenação canônica é o id (BigAutoField), não o relógio do cliente
+        ordering = ["id"]
+
+    def __str__(self):
+        return f"Msg #{self.pk} (chat {self.chat_id})"
+
+
+class ChatScanStatus(models.TextChoices):
+    """Varredura antivírus do anexo — mesmo vocabulário de `tickets.ScanStatus`
+    (D19), duplicado de propósito: o chat não depende do modelo de ticket."""
+
+    PENDING = "pending", "Em verificação"
+    CLEAN = "clean", "Limpo"
+    INFECTED = "infected", "Infectado"
+    ERROR = "error", "Falha na verificação"
+    SKIPPED = "skipped", "Não verificado"
+
+
+class ChatFile(models.Model):
+    """D13/D19 aplicados ao chat: nunca servido por URL pública (a view de
+    download reavalia participação a cada pedido) e em quarentena até a
+    varredura antivírus liberar — a mesma política dos anexos de ticket."""
+
+    message = models.ForeignKey(
+        ChatMessage, on_delete=models.CASCADE, related_name="files"
+    )
+    file = models.FileField(upload_to="chat/%Y/%m/")
+    filename = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=120)
+    size_bytes = models.PositiveIntegerField()
+    checksum = models.CharField(max_length=64, blank=True)  # sha256
+    uploaded_by = models.ForeignKey(
+        "accounts.User",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="chat_files",
+    )
+
+    scan_status = models.CharField(
+        max_length=10, choices=ChatScanStatus.choices,
+        default=ChatScanStatus.PENDING, db_index=True,
+    )
+    scan_signature = models.CharField(max_length=200, blank=True)
+    scan_error = models.CharField(max_length=250, blank=True)
+    scan_attempts = models.PositiveSmallIntegerField(default=0)
+    scanned_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "anexo de chat"
+        verbose_name_plural = "anexos de chat"
+
+    def __str__(self):
+        return self.filename
+
+    @property
+    def is_downloadable(self) -> bool:
+        """Quarentena: só sai do servidor o que a varredura liberou. `ERROR`
+        segue o fail-closed global (`ATTACHMENT_BLOCK_ON_SCAN_ERROR`)."""
+        from django.conf import settings
+
+        if self.scan_status in (ChatScanStatus.CLEAN, ChatScanStatus.SKIPPED):
+            return True
+        if self.scan_status == ChatScanStatus.ERROR:
+            return not settings.ATTACHMENT_BLOCK_ON_SCAN_ERROR
+        return False
+
+
+class ChatRating(models.Model):
+    """A avaliação do cliente ao fim do chat — DUAS notas de propósito.
+
+    Atendimento e resolução são perguntas diferentes: o agente pode tratar
+    bem e não ter como resolver. Justificativa é obrigatória quando qualquer
+    nota fica abaixo do gatilho do `ChatConfig` (validação no serializer —
+    o gatilho é editável, o banco não pode congelar o número).
+    """
+
+    chat = models.OneToOneField(Chat, on_delete=models.CASCADE, related_name="rating")
+    service_score = models.PositiveSmallIntegerField("nota de atendimento")
+    resolution_score = models.PositiveSmallIntegerField("nota de resolução")
+    justification = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "avaliação de chat"
+        verbose_name_plural = "avaliações de chat"
+
+    def __str__(self):
+        return (
+            f"Chat #{self.chat_id}: atendimento {self.service_score}, "
+            f"resolução {self.resolution_score}"
+        )
+
+
+class ChatConfig(TimeStampedModel):
+    """Configuração do módulo, em linha única (singleton) — tudo que o admin
+    edita sem deploy: mensagem de boas-vindas, timeout, limites e a escala
+    de nota. Mesmo padrão do `SystemConfig` do core."""
+
+    CACHE_KEY = "chat:config"
+
+    welcome_message = models.TextField(
+        default="Olá {{nome_do_cliente}}, como podemos ajudar?",
+        help_text="Enviada assim que o chat abre, antes de qualquer agente. "
+                  "Variável disponível: {{nome_do_cliente}}.",
+    )
+    queue_timeout_minutes = models.PositiveSmallIntegerField(
+        default=10,
+        help_text="Ninguém pegou nesse tempo → vira o ticket “Chat não atendido”.",
+    )
+    max_chats_per_agent = models.PositiveSmallIntegerField(
+        default=3,
+        help_text="No limite, o agente para de receber o aviso de chat novo.",
+    )
+    score_min = models.PositiveSmallIntegerField(default=0)
+    score_max = models.PositiveSmallIntegerField(default=10)
+    low_score_threshold = models.PositiveSmallIntegerField(
+        default=5,
+        help_text="Nota ABAIXO disso exige justificativa do cliente.",
+    )
+    default_team = models.ForeignKey(
+        "accounts.Team",
+        on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="+",
+        help_text="Equipe que recebe o ticket da conversão automática (timeout).",
+    )
+
+    class Meta:
+        verbose_name = "configuração do chat"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # singleton — nunca existe uma segunda linha para divergir
+        if self._state.adding:
+            existente = type(self).objects.filter(pk=1).values("created_at").first()
+            if existente is not None:
+                self._state.adding = False
+                self.created_at = existente["created_at"]
+        super().save(*args, **kwargs)
+        cache.delete(self.CACHE_KEY)
+
+    @classmethod
+    def load(cls) -> "ChatConfig":
+        config = cache.get(cls.CACHE_KEY)
+        if config is None:
+            config, _ = cls.objects.get_or_create(pk=1)
+            cache.set(cls.CACHE_KEY, config, 300)
+        return config
+
+
+class ClientQuickReply(models.Model):
+    """Frase pronta que o CLIENTE envia para começar uma conversa.
+
+    Não é `TicketMacro`. A macro é do agente e carrega decisão de operação
+    (responsável, prioridade, categoria, tags); isto aqui é só um texto que
+    a pessoa do outro lado clica em vez de digitar. Juntar os dois no mesmo
+    cadastro exporia campos internos numa tela de cliente e obrigaria toda
+    macro a decidir se "aparece para o cliente" — um sim/não a mais em cada
+    linha do catálogo do agente, para servir outro público.
+
+    Serve o começo da conversa, que é onde a pessoa trava: `rotulo` é o que
+    aparece no chip ("Problema com um pedido") e `texto` é o que vai para o
+    compositor, editável antes de enviar — a frase é um atalho, não um
+    formulário fechado.
+
+    `contexto` separa DOIS catálogos que não se misturam. No chat a pessoa
+    ABRE a conversa ("Problema com um pedido"); no chamado ela RESPONDE a
+    quem já perguntou ("Ainda estou com o problema"). Oferecer o atalho de
+    abertura como resposta a uma pergunta do atendimento seria o cliente
+    mandar um não-sequitur, e o admin não teria como impedir. Um sim/não
+    por linha resolve, e nada precisa de tabela nova.
+    """
+
+    class Contexto(models.TextChoices):
+        CHAT = "chat", "chat"
+        TICKET = "ticket", "chamado"
+
+    contexto = models.CharField(
+        max_length=8, choices=Contexto.choices, default=Contexto.CHAT,
+        verbose_name="onde aparece",
+        help_text="No chat (frases que ABREM a conversa) ou no chamado "
+                  "(frases que RESPONDEM ao atendimento).",
+    )
+    rotulo = models.CharField(
+        max_length=40, verbose_name="rótulo do atalho",
+        help_text="O que aparece no chip. Curto: cabe em uma linha no telefone.",
+    )
+    texto = models.TextField(
+        verbose_name="texto enviado",
+        help_text="Vai para o campo de mensagem; o cliente ainda pode editar antes de enviar.",
+    )
+    is_active = models.BooleanField(default=True, verbose_name="ativo")
+    order = models.PositiveSmallIntegerField(default=0, verbose_name="ordem")
+
+    class Meta:
+        ordering = ["order", "rotulo"]
+        verbose_name = "atalho de mensagem do cliente"
+        verbose_name_plural = "atalhos de mensagem do cliente"
+        # A unicidade é POR CONTEXTO, não global: "Ainda estou com o
+        # problema" pode existir nos dois catálogos sem que um bloqueie o
+        # cadastro do outro.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["contexto", "rotulo"], name="atalho_unico_por_contexto"
+            ),
+        ]
+
+    def __str__(self):
+        return self.rotulo
+
+
+class BannedWord(models.Model):
+    """Lista de moderação: a palavra vira `****` na EXIBIÇÃO, pros dois lados.
+
+    A censura acontece na serialização, não na gravação — o texto original
+    fica no banco. É o que faz a lista valer retroativamente (palavra
+    adicionada hoje censura mensagem de ontem) e um falso positivo removido
+    da lista devolver o texto intacto.
+    """
+
+    word = models.CharField(max_length=60, unique=True)
+
+    class Meta:
+        verbose_name = "palavra filtrada"
+        verbose_name_plural = "palavras filtradas"
+
+    def __str__(self):
+        return self.word
+
+    def save(self, *args, **kwargs):
+        self.word = self.word.strip().lower()
+        super().save(*args, **kwargs)
+        cache.delete("chat:banned-words")
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        cache.delete("chat:banned-words")

@@ -1,0 +1,66 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.app-shell {
+  min-height: 100vh;
+  background-color: $surface;
+  // `color` também precisa estar aqui, não só em global.scss::body — o
+  // reset global não assume mais essa responsabilidade (ver comentário em
+  // global.scss), então quem entra na árvore do cvz por qualquer rota
+  // precisa herdar o texto certo a partir daqui.
+  color: $text;
+
+  &__body {
+    margin-left: $sidebar-w;
+    height: 100vh;
+    height: 100dvh;   // barra do navegador móvel não corta o rodapé
+    display: flex;
+    flex-direction: column;
+
+    @include mobile {
+      margin-left: 0;
+    }
+  }
+
+  // Véu da gaveta de navegação — só existe no mobile.
+  &__scrim {
+    @include button-reset;
+    position: fixed;
+    inset: 0;
+    z-index: calc(#{$z-sidebar} - 1);
+    background-color: $overlay;
+    animation: scrim-in $dur $ease;
+
+    @include desktop { display: none; }
+  }
+}
+
+.surface {
+  flex: 1 1 auto;
+  min-height: 0;
+  background-color: $surface;
+
+  &--dashboard {
+    padding: $sp-5;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+
+    @include below-desktop { padding: $sp-4; }
+    @include mobile { padding: $sp-3; }
+  }
+
+  // Três colunas no desktop; no tablet a lista some e vira navegação por volta;
+  // no mobile só a coluna principal permanece.
+  &--flush {
+    display: flex;
+    padding: 0;
+    overflow: hidden;
+
+    @include mobile { flex-direction: column; overflow-y: auto; }
+  }
+}
+
+@keyframes scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

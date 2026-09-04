@@ -1,0 +1,92 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.btn {
+  @include button-reset;
+  @include focus-ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: $field-h;
+  padding: 0 $sp-3;
+  border: $stroke-w solid transparent;
+  border-radius: $radius;
+  font-size: $fs-ui;
+  font-weight: $w-medium;
+  white-space: nowrap;
+  transition: background-color $dur $ease, border-color $dur $ease,
+    color $dur $ease;
+
+  &__icon {
+    @include stroke-icon(15px);
+  }
+
+  &--block { width: 100%; }
+
+  // --- variantes ---
+  &--primary {
+    background-color: $blue;
+    color: $text-on-accent;
+
+    &:hover { background-color: $blue-hover; }
+    &:active { background-color: $blue-active; }
+  }
+
+  &--secondary {
+    background-color: $text;
+    color: $text-on-dark;
+
+    &:hover { background-color: $text-hover; }
+  }
+
+  &--tertiary {
+    background-color: $raised;
+    border-color: $stroke;
+    color: $text;
+
+    &:hover { background-color: $chrome; border-color: $text-muted; }
+  }
+
+  &--ghost {
+    background-color: transparent;
+    color: $text-secondary;
+
+    &:hover { background-color: $chrome; color: $text; }
+  }
+
+  &--danger {
+    background-color: $danger;
+    color: $text-on-dark;
+
+    &:hover { background-color: $danger-hover; }
+  }
+
+  &:disabled {
+    @include disabled-control;
+    border-color: transparent;
+  }
+
+  // --- tamanhos ---
+  &--sm { height: $control-h-sm; padding: 0 $sp-2; font-size: $fs-meta; }
+  &--lg { height: $control-h-lg; padding: 0 $sp-4; }
+}
+
+.icon-btn {
+  // Mesma altura do Button md: os dois convivem em toda toolbar.
+  @include icon-target($control-h);
+  @include focus-ring;
+  border: $border;
+  background-color: $raised;
+
+  &__icon { @include stroke-icon($icon); }
+
+  &--sm { width: $control-h-sm; height: $control-h-sm; }
+
+  &--bare {
+    border-color: transparent;
+    background-color: transparent;
+  }
+
+  &:disabled { @include disabled-control; }
+}

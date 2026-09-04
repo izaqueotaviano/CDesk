@@ -1,0 +1,54 @@
+/* tokens.css primeiro — regra do próprio design system ("Importe antes de
+   qualquer outro estilo"; PROMPT-IMPLEMENTACAO.md). */
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--canvas);
+    color: var(--tinta);
+    font-family: var(--f-ui);
+    font-size: var(--fs-corpo);
+    line-height: var(--lh-normal);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Referência de ticket, horário e valor numérico — DESIGN_SYSTEM.md §2. */
+  .fonte-mono {
+    font-family: var(--f-mono);
+  }
+}
+
+@layer components {
+  /*
+   * A cor de etapa/etiqueta vem do BANCO (injetada via `style` em --etapa /
+   * --etiqueta), não do design system — é a única parte da paleta fora do
+   * controle do design system, e onde estão as piores falhas de contraste
+   * (DESIGN_SYSTEM.md §1.6). A correção é a fórmula literal de
+   * PROMPT-IMPLEMENTACAO.md: mantida em CSS puro (não em classe utilitária)
+   * porque `oklch(from var(--x) L c h)` não tem equivalente arbitrário
+   * legível no Tailwind.
+   *
+   * Navegador sem suporte a `oklch(from ...)` (Relative Color Syntax): o
+   * fallback é calcular a cor no SERVIDOR ao serializar — não inventar um
+   * segundo cálculo aqui (PROMPT-IMPLEMENTACAO.md).
+   */
+  .pilula--etapa,
+  .etiqueta {
+    color: oklch(from var(--etapa, var(--acento)) 45% c h);
+  }
+  [data-tema='escuro'] .pilula--etapa,
+  [data-tema='escuro'] .etiqueta {
+    color: oklch(from var(--etapa, var(--acento)) 85% c h);
+  }
+}

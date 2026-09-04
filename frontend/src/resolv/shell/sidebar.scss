@@ -1,0 +1,135 @@
+// Sidebar Rail — 56px, só ícones + tooltip CSS. Portada da referência.
+.sidebar-rail {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 56px;
+  background: var(--surface-alt);
+  border-right: 0.7px solid var(--stroke);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  z-index: 100;
+  gap: 4px;
+
+  &__logo {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    cursor: pointer;
+    border-radius: 2px;
+
+    &-mark {
+      width: 22px;
+      height: auto;
+      color: var(--text-primary);
+      transition: color 0.15s ease;
+    }
+    &:hover &-mark {
+      color: var(--accent);
+    }
+  }
+
+  &__sep {
+    width: 24px;
+    height: 0.7px;
+    background: var(--stroke);
+    margin: 8px 0;
+    flex-shrink: 0;
+  }
+
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex: 1;
+  }
+
+  &__item {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    background: transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    color: var(--text-secondary);
+
+    i {
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    &:hover {
+      background: var(--stroke);
+      color: var(--text-primary);
+    }
+    &--ativo {
+      background: var(--stroke);
+      color: var(--text-primary);
+      &:hover {
+        background: var(--stroke-subtle);
+      }
+    }
+    &--inerte {
+      opacity: 0.55;
+      cursor: default;
+      &:hover {
+        background: transparent;
+        color: var(--text-secondary);
+      }
+    }
+
+    // tooltip CSS puro
+    &::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      left: calc(100% + 10px);
+      top: 50%;
+      background: var(--text-primary);
+      color: #fff;
+      font-family: var(--f-ui);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1;
+      padding: 6px 10px;
+      border-radius: 2px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(-50%) translateX(-4px);
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      z-index: 200;
+    }
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(100% + 5px);
+      top: 50%;
+      transform: translateY(-50%);
+      border: 5px solid transparent;
+      border-right-color: var(--text-primary);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      z-index: 200;
+    }
+    &:hover::after,
+    &:hover::before {
+      opacity: 1;
+    }
+    &:hover::after {
+      transform: translateY(-50%) translateX(0);
+    }
+  }
+}

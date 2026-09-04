@@ -1,0 +1,79 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.form-section {
+  & + & {
+    margin-top: $sp-6;
+    padding-top: $sp-5;
+    border-top: $border;
+  }
+
+  &__head { margin-bottom: $sp-4; }
+
+  &__title { @include type($fs-title, $w-semibold); }
+
+  &__description {
+    margin: $sp-1 0 0;
+    max-width: 60ch;
+    @include type($fs-meta, $w-light);
+    color: $text-secondary;
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    max-width: 720px;
+  }
+}
+
+.form-row {
+  display: grid;
+  gap: $sp-3;
+  align-items: start;
+
+  &--1 { grid-template-columns: 1fr; }
+  &--2 { grid-template-columns: 1fr 1fr; }
+  &--3 { grid-template-columns: 1fr 1fr 1fr; }
+  &--2-1 { grid-template-columns: 2fr 1fr; }
+  &--1-2 { grid-template-columns: 1fr 2fr; }
+
+  // Tablet: três colunas já ficam apertadas para rótulo + campo.
+  @include tablet {
+    &--3 { grid-template-columns: 1fr 1fr; }
+  }
+
+  @include mobile {
+    &--2,
+    &--3,
+    &--2-1,
+    &--1-2 { grid-template-columns: 1fr; }
+  }
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-2;
+  margin-top: $sp-5;
+  padding-top: $sp-4;
+  border-top: $border;
+
+  &--sticky {
+    position: sticky;
+    bottom: 0;
+    margin-top: auto;
+    padding: $sp-3 0;
+    background-color: $surface;
+  }
+
+  // No mobile as ações viram blocos de largura cheia, na ordem inversa: a
+  // primária fica embaixo, sob o polegar.
+  @include mobile {
+    flex-direction: column-reverse;
+    align-items: stretch;
+
+    > * { width: 100%; }
+  }
+}

@@ -1,0 +1,10 @@
+# pg_hba.conf — quem conecta, de onde, como.
+# A ordem importa: a primeira linha que casa decide.
+#
+# TYPE     DATABASE   USER              ADDRESS          METHOD
+local      all        postgres                           peer            # só root/postgres no próprio host
+hostssl    resolv    resolv_app       10.0.0.0/24      scram-sha-256   # web/worker, TLS obrigatório
+hostssl    resolv    resolv_owner     10.0.0.0/24      scram-sha-256   # migrate, TLS obrigatório
+hostssl    resolv    resolv_leitura   10.0.0.0/24      scram-sha-256
+hostssl    all        all               all              reject          # qualquer outra coisa por TLS: não
+host       all        all               all              reject          # e sem TLS, nunca

@@ -1,0 +1,220 @@
+/* ============================================================
+   resolv — tokens
+   Extraído dos 5 protótipos por renderização (Chromium, computed
+   styles, 2 temas × 5 larguras) e normalizado. Ver DESIGN_SYSTEM.md.
+
+   O tema continua no atributo data-tema do <html> ("claro" | "escuro"),
+   como nos arquivos originais. O bloco prefers-color-scheme é novo:
+   os protótipos não tinham nenhum.
+   ============================================================ */
+
+:root {
+  /* ---------- primitivos: rampa neutra quente ---------- */
+  --neutro-0:   #ffffff;
+  --neutro-25:  #fffbf8;
+  --neutro-50:  #f8f4f1;
+  --neutro-100: #f1ece8;
+  --neutro-200: #e8e2dd;
+  --neutro-300: #c9c0ba;
+  --neutro-400: #a79e97;
+  --neutro-500: #9a918a;
+  --neutro-600: #79706a;
+  --neutro-700: #635c57;
+  --neutro-800: #3b3532;
+  --neutro-850: #332e2b;
+  --neutro-875: #2c2825;
+  --neutro-900: #262220;
+  --neutro-950: #211e1c;
+  --neutro-975: #1b1917;
+
+  /* ---------- primitivos: acento e estado ---------- */
+  --acento-escuro: #0b63ce;
+  --acento-claro:  #a8c7fa;
+  --acento-tinta-sobre-claro: #0a2a52;
+  --perigo-claro: #b3261e;  --perigo-escuro: #f2b8b5;
+  --alerta-claro: #8a5d0f;  --alerta-escuro: #e8c26a;
+  --ok-claro:     #1d7a4c;  --ok-escuro:     #84d6a8;
+
+  /* ---------- primitivos: avatar (idêntico nos dois temas) ---------- */
+  --avatar-c1: #3f6dd6; --avatar-c2: #8a5cd4; --avatar-c3: #127f60;
+  --avatar-c4: #b4531f; --avatar-c5: #9a2f52; --avatar-c6: #2f6f86;
+
+  /* ---------- tipografia ---------- */
+  --f-ui: "Segoe UI Variable Text", "Segoe UI", Inter, -apple-system, system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+
+  --fs-micro:     9.75px;
+  --fs-legenda:   11px;
+  --fs-pequeno:   12.5px;
+  --fs-corpo:     14px;
+  --fs-corpo-lg:  15.75px;
+  --fs-titulo-sm: 17.75px;
+  --fs-titulo:    20px;
+  --fs-titulo-lg: 22.5px;
+  --fs-display:   25.25px;
+
+  --lh-nenhuma: 1;
+  --lh-justa:   1.25;
+  --lh-normal:  1.45;
+  --lh-solta:   1.6;
+
+  --ls-titulo:  -0.015em;
+  --ls-display: -0.03em;
+  --ls-nenhum:  0em;
+  --ls-rotulo:  0.05em;
+
+  --fw-normal: 400;
+  --fw-medio:  500;
+  --fw-forte:  600;
+
+  /* ---------- espaço: grade de 4px com meio-degrau ---------- */
+  --sp-0: 0px;   --sp-px: 1px;
+  --sp-1: 4px;   --sp-1-5: 6px;
+  --sp-2: 8px;   --sp-2-5: 10px;
+  --sp-3: 12px;  --sp-3-5: 14px;
+  --sp-4: 16px;  --sp-5: 20px;
+  --sp-6: 24px;  --sp-8: 32px;
+  --sp-10: 40px; --sp-11: 44px; --sp-16: 64px;
+
+  /* ---------- forma ---------- */
+  --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 12px; --r-total: 999px;
+  --borda-fina: 1px;
+
+  /* ---------- ícone ---------- */
+  --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
+  --icone-traco: 1.6px;
+
+  /* ---------- movimento ---------- */
+  --dur: 180ms;
+  --ease: cubic-bezier(.33, 0, .67, 1);
+
+  /* ---------- camada ---------- */
+  --z-suspenso: 100; --z-fixo: 200; --z-cortina: 300;
+  --z-modal: 400;    --z-popover: 500; --z-toast: 600;
+
+  /* ---------- layout ---------- */
+  --sidebar-larga: 256px;
+  --sidebar-recolhida: 56px;
+  --alvo-minimo: 24px;
+  --altura-controle: 32px;
+}
+
+/* ============================================================
+   Semântica — tema claro (padrão)
+   ============================================================ */
+:root,
+[data-tema="claro"] {
+  --canvas:             var(--neutro-50);
+  --superficie:         var(--neutro-0);
+  --superficie-sutil:   var(--neutro-25);
+  --superficie-elevada: var(--neutro-0);
+  --navegacao:          var(--neutro-100);
+
+  --divisoria:      var(--neutro-200);
+  --borda-controle: var(--neutro-500);
+
+  --tinta:            var(--neutro-900);
+  --tinta-secundaria: var(--neutro-700);
+  --tinta-terciaria:  var(--neutro-700);  /* alias de --tinta-secundaria: os dois
+                                             níveis colapsaram no tema claro (ΔE 2,97) */
+
+  --acento:       var(--acento-escuro);
+  --acento-tinta: var(--acento-escuro);
+  --acento-sobre: var(--neutro-0);
+  --acento-suave: rgba(11, 99, 206, .10);
+
+  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .09);
+  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .11);
+  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .11);
+
+  --hover: rgba(39, 35, 32, .045);
+  --ativo: rgba(39, 35, 32, .08);
+
+  --elevacao-1: 0 1px 2px rgba(39, 35, 32, .05);
+  --elevacao-3: 0 12px 32px rgba(39, 35, 32, .12), 0 0 0 1px rgba(39, 35, 32, .06);
+  --esqueleto: linear-gradient(90deg, rgba(39,35,32,.05), rgba(39,35,32,.09), rgba(39,35,32,.05));
+
+  --esquema: light;
+  color-scheme: light;
+}
+
+/* ============================================================
+   Semântica — tema escuro
+   ============================================================ */
+[data-tema="escuro"] {
+  --canvas:             var(--neutro-975);
+  --superficie:         var(--neutro-900);
+  --superficie-sutil:   var(--neutro-875);
+  --superficie-elevada: var(--neutro-850);
+  --navegacao:          var(--neutro-950);
+
+  --divisoria:      var(--neutro-800);
+  --borda-controle: var(--neutro-600);
+
+  --tinta:            #ede6e1;
+  --tinta-secundaria: var(--neutro-300);
+  --tinta-terciaria:  var(--neutro-400);  /* NÃO usar sobre --superficie-elevada:
+                                             cai para 5,09:1 e falha em popover/toast.
+                                             Ali, use --tinta-secundaria. */
+
+  --acento:       var(--acento-claro);
+  --acento-tinta: var(--acento-claro);
+  --acento-sobre: var(--acento-tinta-sobre-claro);
+  --acento-suave: rgba(168, 199, 250, .16);
+
+  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(242, 184, 181, .15);
+  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(232, 194, 106, .14);
+  --ok:     var(--ok-escuro);      --ok-suave:     rgba(132, 214, 168, .15);
+
+  --hover: rgba(237, 230, 225, .055);
+  --ativo: rgba(237, 230, 225, .10);
+
+  --elevacao-1: 0 1px 2px rgba(0, 0, 0, .35);
+  --elevacao-3: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px rgba(237, 230, 225, .07);
+  --esqueleto: linear-gradient(90deg, rgba(237,230,225,.06), rgba(237,230,225,.12), rgba(237,230,225,.06));
+
+  --esquema: dark;
+  color-scheme: dark;
+}
+
+/* Respeita a preferência do sistema quando o autor não fixou o tema.
+   NOVO — os protótipos não tinham prefers-color-scheme. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) {
+    --canvas: var(--neutro-975);          --superficie: var(--neutro-900);
+    --superficie-sutil: var(--neutro-875); --superficie-elevada: var(--neutro-850);
+    --navegacao: var(--neutro-950);
+    --divisoria: var(--neutro-800);        --borda-controle: var(--neutro-600);
+    --tinta: #ede6e1;                      --tinta-secundaria: var(--neutro-300);
+    --tinta-terciaria: var(--neutro-400);
+    --acento: var(--acento-claro);         --acento-tinta: var(--acento-claro);
+    --acento-sobre: var(--acento-tinta-sobre-claro);
+    --acento-suave: rgba(168, 199, 250, .16);
+    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(242, 184, 181, .15);
+    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(232, 194, 106, .14);
+    --ok: var(--ok-escuro);          --ok-suave: rgba(132, 214, 168, .15);
+    --hover: rgba(237, 230, 225, .055);    --ativo: rgba(237, 230, 225, .10);
+    --elevacao-1: 0 1px 2px rgba(0, 0, 0, .35);
+    --elevacao-3: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px rgba(237, 230, 225, .07);
+    --esqueleto: linear-gradient(90deg, rgba(237,230,225,.06), rgba(237,230,225,.12), rgba(237,230,225,.06));
+    --esquema: dark;
+    color-scheme: dark;
+  }
+}
+
+/* Foco visível — regra única, herdada dos protótipos. */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* NOVO — ausente nos protótipos. WCAG 2.3.3 / boa prática. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

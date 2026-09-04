@@ -1,0 +1,70 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-2 $cell-px;
+  border-top: $border;
+  @include type($fs-meta, $w-regular);
+  color: $text-secondary;
+
+  &__range { font-family: $f-mono; }
+
+  &__size {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    margin-right: $sp-3;
+
+    select {
+      height: $control-h-sm;
+      padding: 0 $sp-1;
+      border: $border;
+      border-radius: $radius;
+      background-color: $raised;
+      font-family: $f-mono;
+      font-size: $fs-meta;
+      color: $text;
+      cursor: pointer;
+    }
+  }
+
+  &__pages {
+    display: flex;
+    align-items: center;
+    gap: $sp-1;
+
+    button {
+      @include button-reset;
+      @include focus-ring;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: $control-h-sm;
+      height: $control-h-sm;
+      padding: 0 6px;
+      border-radius: $radius;
+      @include type($fs-meta, $w-medium, $lh-none);
+      color: $text-secondary;
+      transition: background-color $dur $ease;
+
+      &:hover { background-color: $chrome; color: $text; }
+      &:disabled { color: $disabled-text; cursor: not-allowed; background: none; }
+    }
+  }
+
+  &__page--current {
+    background-color: $blue;
+    color: $text-on-accent !important;
+
+    &:hover { background-color: $blue-hover; }
+  }
+
+  &__icon { @include stroke-icon(14px); }
+
+  &__gap { color: $text-muted; padding: 0 2px; }
+}

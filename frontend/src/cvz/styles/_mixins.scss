@@ -1,0 +1,212 @@
+// =============================================================================
+// cvzdesk · mixins
+//
+// RECONSTRUÍDO — o MCP cvzdesk expõe tokens, tema e o código de cada
+// componente, mas NÃO o `styles/mixins.scss` de onde eles importam (`@use
+// '../../styles/mixins' as *`). Todo componente portado aqui depende dele, e
+// sem esse arquivo nenhum dos .scss compila.
+//
+// Cada mixin abaixo foi inferido do CONTRATO documentado no DESIGN.md (que
+// descreve o que cada um faz e, para type()/breakpoints, dá a tabela exata de
+// valores) e do uso observado em cada componente já portado. Onde a fonte real
+// existir um dia, troque isto por ela — até lá, é a melhor reconstrução fiel
+// ao comportamento descrito, não um palpite solto.
+// =============================================================================
+@use 'tokens' as *;
+@use 'sass:map';
+
+// --- reset de botão ----------------------------------------------------------
+@mixin button-reset {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+// --- foco visível --------------------------------------------------------
+// "$focus-w: 2px — espessura do anel de foco" (_tokens.scss).
+@mixin focus-ring {
+  &:focus-visible {
+    outline: $focus-w solid $blue;
+    outline-offset: 2px;
+  }
+}
+
+// --- alvo de toque ---------------------------------------------------------
+// "garante 44px de alvo só onde o ponteiro é grosso" — não muda o tamanho
+// visual do controle, só a área que responde ao toque.
+@mixin touch-target {
+  @media (pointer: coarse) {
+    position: relative;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: max(100%, 44px);
+      height: max(100%, 44px);
+      transform: translate(-50%, -50%);
+    }
+  }
+}
+
+// --- botão quadrado de ícone -------------------------------------------------
+// Base de .sidebar__item, .topbar__action, .icon-btn — um quadrado de $size
+// que centraliza o filho (ícone) e reage a hover no chrome.
+@mixin icon-target($size) {
+  @include button-reset;
+  display: grid;
+  place-items: center;
+  width: $size;
+  height: $size;
+  border-radius: $radius;
+  color: $text-secondary;
+  transition: background-color $dur $ease, color $dur $ease;
+
+  &:hover {
+    background-color: $chrome;
+    color: $text;
+  }
+}
+
+// --- ícone SVG ---------------------------------------------------------------
+// Todo ícone é stroke-only, currentColor, traço consistente — nunca fill.
+@mixin stroke-icon($size) {
+  width: $size;
+  height: $size;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+// --- tipografia --------------------------------------------------------------
+// Mapa EXATO da tabela do DESIGN.md §1 (Tipografia) — tamanho → line-height.
+// "O type() já escolhe o certo pelo tamanho — passe o terceiro argumento só
+// quando o layout exigir."
+$_type-lh-map: (
+  $fs-micro:    $lh-snug,
+  $fs-caption:  $lh-snug,
+  $fs-label:    $lh-snug,
+  $fs-meta:     $lh-snug,
+  $fs-ui:       $lh-normal,
+  $fs-body:     $lh-normal,
+  $fs-title:    $lh-tight,
+  $fs-subhead:  $lh-tight,
+  $fs-heading:  $lh-tight,
+  $fs-display:  $lh-tight,
+);
+
+@mixin type($size, $weight: $w-regular, $lh: null) {
+  font-family: $f-ui;
+  font-size: $size;
+  font-weight: $weight;
+  line-height: if($lh != null, $lh, map.get($_type-lh-map, $size) or $lh-normal);
+}
+
+// --- truncamento de uma linha -------------------------------------------------
+@mixin truncate($max-width: null) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  @if $max-width {
+    max-width: $max-width;
+  }
+}
+
+// --- caixa de controle (input/select/textarea) --------------------------------
+// Base de `.control` em Field.scss — todo campo de formulário sai daqui.
+@mixin field {
+  @include type($fs-ui);
+  height: $control-h;
+  padding: 0 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+  color: $text;
+  transition: border-color $dur $ease, box-shadow $dur $ease;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $blue;
+    box-shadow: 0 0 0 $focus-w $blue-tint;
+  }
+}
+
+// --- superfície flutuante ------------------------------------------------
+// "@include popover — já traz posição, camada, borda, raio e sombra."
+// Popover fica ABAIXO da sidebar de propósito ($z-popover < $z-sidebar).
+@mixin popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: $z-popover;
+  min-width: 200px;
+  padding: $sp-1;
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+  box-shadow: $shadow-md;
+}
+
+// --- estado desabilitado -------------------------------------------------
+// Controle simples: SEM opacidade — texto cinza legível vence texto preto
+// desbotado.
+@mixin disabled-control {
+  background-color: $disabled-bg;
+  color: $disabled-text;
+  border-color: $disabled-border;
+  cursor: not-allowed;
+}
+
+// Bloco composto (card, linha, grupo de campos).
+@mixin disabled-block {
+  opacity: $disabled-opacity;
+  pointer-events: none;
+}
+
+// =============================================================================
+// Breakpoints — SEMPRE via mixin, nunca `@media` cru.
+//
+// "O produto nasce desktop e degrada" — os três primeiros são max-width;
+// `tablet` é a faixa fechada entre md e lg (não empilha sobre mobile: um
+// componente que estiliza mobile E tablet não vê a regra de tablet vazar
+// para dentro do mobile). `desktop` aqui é "não-mobile" (>= md) — é o que
+// AppShell usa para esconder o véu da gaveta de navegação em qualquer tela
+// que não seja a gaveta mobile, tablet incluído.
+// =============================================================================
+@mixin mobile {
+  @media (max-width: $bp-md - 1px) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: $bp-md) and (max-width: $bp-lg - 1px) {
+    @content;
+  }
+}
+
+@mixin below-desktop {
+  @media (max-width: $bp-lg - 1px) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: $bp-md) {
+    @content;
+  }
+}

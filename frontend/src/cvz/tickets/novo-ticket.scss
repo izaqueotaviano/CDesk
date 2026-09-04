@@ -1,0 +1,330 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+// =============================================================================
+// Abrir chamado — duas colunas
+//
+// Segue a forma do "Detalhe de ticket" do DESIGN.md (surface `flush`, colunas
+// com divisor em $border, cada uma com rolagem própria), com duas colunas em
+// vez de três: aqui não existe a fila lateral, porque o chamado ainda não
+// existe para aparecer numa lista.
+//
+// Propriedades à ESQUERDA e redação à DIREITA — é a ordem da tela que o time
+// já usa hoje. A largura da coluna de propriedades é maior que $col-props
+// (288px, pensada para o painel do detalhe) porque aqui ela não é um painel de
+// apoio: é metade do trabalho, com campos de digitação, não só leitura.
+// =============================================================================
+
+$props-w: 380px;
+
+.novo-ticket {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+
+  // --- barra de identificação ------------------------------------------------
+  &__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    flex: 0 0 auto;
+    padding: $sp-3 $sp-4;
+    border-bottom: $border;
+    background-color: $raised;
+  }
+
+  &__ident {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    min-width: 0;
+    @include type($fs-ui, $w-medium);
+    color: $text-secondary;
+  }
+
+  &__ident-icon {
+    @include stroke-icon($icon);
+    color: $text-muted;
+    flex: 0 0 auto;
+  }
+
+  &__bar-right {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex: 0 0 auto;
+  }
+
+  // --- corpo em duas colunas -------------------------------------------------
+  &__body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  &__props {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    flex: 0 0 $props-w;
+    width: $props-w;
+    padding: $sp-4;
+    border-right: $border;
+    overflow-y: auto;
+  }
+
+  // Duas propriedades curtas lado a lado (Categoria + Urgência) — como na
+  // referência. Cada `.field` interno já tem seu próprio espaçamento vertical;
+  // aqui só divide a largura em duas.
+  &__par {
+    display: flex;
+    gap: $sp-3;
+
+    > * {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  &__compose {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    flex: 1;
+    min-width: $col-thread-min;
+    padding: $sp-4;
+    overflow-y: auto;
+  }
+
+  // Assunto é o campo mais importante da tela: sobe de tamanho para ficar
+  // claro que é o título do chamado, não mais um campo qualquer.
+  &__assunto input {
+    @include type($fs-title, $w-medium);
+    height: $control-h-lg;
+  }
+
+  // "Atribuir para mim": atalho, não um segundo campo. Fica colado embaixo do
+  // combobox de responsável, alinhado à direita como na tela de referência.
+  &__link {
+    @include button-reset;
+    @include focus-ring;
+    display: block;
+    margin: 4px 0 0 auto;
+    border-radius: $radius;
+    @include type($fs-meta, $w-medium);
+    color: $blue-active;
+
+    &:hover { text-decoration: underline; }
+
+    // Dentro do texto de um aviso o link acompanha a linha, sem empurrar
+    // nada para a direita.
+    &--inline {
+      display: inline;
+      margin: 0;
+    }
+  }
+
+  // --- composer: card com friso azul no topo, mesma moldura do ReplyEditor
+  // do cvzdesk (sem o seletor de modo dele — a criação é sempre pública). ---
+  &__composer {
+    display: flex;
+    flex-direction: column;
+    border: $border;
+    border-top: $marker-w solid $blue;
+    border-radius: $radius;
+    background-color: $raised;
+  }
+
+  &__composer-modo {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    padding: $sp-2 $sp-3;
+    border-bottom: $border;
+  }
+
+  &__composer-tab {
+    @include button-reset;
+    display: inline-flex;
+    align-items: center;
+    height: $control-h-sm;
+    padding: 0 $sp-2;
+    border-radius: $radius;
+    @include type($fs-ui, $w-semibold);
+    color: $text;
+
+    // Ativa: sublinhado azul embaixo, igual à aba de detalhe de ticket.
+    &--ativa {
+      box-shadow: inset 0 -2px 0 $blue;
+      color: $blue-active;
+    }
+
+    // Inerte: visível (a pessoa vendo a tela precisa saber que a opção
+    // existe no produto), mas sem cor de ação — o Tooltip que envolve este
+    // botão explica por que ela não faz nada aqui.
+    &--inerte {
+      color: $text-muted;
+      cursor: default;
+    }
+  }
+
+  &__composer-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: $sp-2 $sp-3;
+
+    button {
+      @include button-reset;
+      @include focus-ring;
+      display: grid;
+      place-items: center;
+      width: $control-h-sm;
+      height: $control-h-sm;
+      border-radius: $radius;
+      color: $text-secondary;
+
+      svg { @include stroke-icon(15px); }
+
+      &:hover { background-color: $chrome; color: $text; }
+      &.is-ativo { background-color: $blue-tint; color: $blue-active; }
+    }
+  }
+
+  &__composer-sep {
+    width: $stroke-w;
+    height: 18px;
+    margin: 0 4px;
+    background-color: $stroke;
+  }
+
+  &__composer-anexos {
+    padding: 0 $sp-3 $sp-2;
+  }
+
+  &__composer-textarea {
+    min-height: 220px;
+    margin: 0 $sp-3;
+    padding: $sp-2 0;
+    border: 0;
+    background: none;
+    outline: none;
+    resize: vertical;
+    @include type($fs-ui, $w-light, $lh-normal);
+    color: $text;
+
+    &::placeholder { color: $text-muted; }
+  }
+
+  // O Field que envolve o textarea (só para carregar o `error`) não deve
+  // herdar o respiro/borda padrão de campo — o composer já desenha a moldura.
+  &__composer .field {
+    margin: 0;
+  }
+
+  &__composer-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    padding: $sp-2 $sp-3;
+    border-top: $border;
+  }
+
+  &__composer-contagem {
+    @include type($fs-caption, $w-regular);
+    color: $text-muted;
+  }
+
+  &__helper-descricao {
+    margin: 0;
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+  }
+
+  // Prévia da assinatura: mostra exatamente o que vai junto da mensagem, em
+  // vez de o texto aparecer só depois de enviado. `pre` porque a assinatura é
+  // texto livre com quebras de linha próprias.
+  &__assinatura-previa {
+    margin: 0;
+    padding: $sp-2 $sp-3;
+    // $border (0,7px), não $marker-w (2px) — esse token é reservado a
+    // marcador de ESTADO (aba ativa, linha selecionada, modo do ReplyEditor);
+    // isto aqui é só uma citação visual, não um indicador.
+    border-left: $border;
+    @include type($fs-meta, $w-light, $lh-normal);
+    color: $text-muted;
+    white-space: pre-wrap;
+    font-family: inherit;
+  }
+
+  &__macros {
+    display: flex;
+    flex-direction: column;
+    width: 220px;
+    margin: -#{$sp-3};
+    padding: $sp-1;
+    max-height: 260px;
+    overflow-y: auto;
+
+    button {
+      @include button-reset;
+      padding: 7px $sp-2;
+      border-radius: $radius;
+      text-align: left;
+      @include type($fs-ui, $w-regular);
+      color: $text;
+
+      &:hover { background-color: $chrome; }
+    }
+  }
+
+  &__macros-cap {
+    padding: 6px $sp-2 4px;
+    @include type($fs-caption, $w-medium);
+    color: $text-muted;
+  }
+
+  // --- rodapé fixo -----------------------------------------------------------
+  &__foot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $sp-2;
+    flex: 0 0 auto;
+    padding: $sp-3 $sp-4;
+    border-top: $border;
+    background-color: $raised;
+  }
+
+  &__foot-aviso {
+    margin-right: auto;
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+  }
+
+  // Abaixo de 1024px as duas colunas viram uma só: com a coluna de
+  // propriedades fixa em 380px, a redação passaria de $col-thread-min e o
+  // editor ficaria estreito demais para escrever.
+  @include below-desktop {
+    &__body {
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    &__props,
+    &__compose {
+      flex: 0 0 auto;
+      width: auto;
+      min-width: 0;
+      overflow-y: visible;
+    }
+
+    &__props {
+      border-right: 0;
+      border-bottom: $border;
+    }
+  }
+}

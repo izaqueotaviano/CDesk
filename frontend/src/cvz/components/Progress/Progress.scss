@@ -1,0 +1,71 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.progress {
+  &__head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $sp-2;
+    margin-bottom: 6px;
+    @include type($fs-label, $w-medium);
+    color: $text-secondary;
+
+    b {
+      font-family: $f-mono;
+      font-weight: $w-medium;
+      color: $text;
+    }
+  }
+
+  &__track {
+    position: relative;
+    height: 4px;
+    overflow: hidden;
+    border-radius: $radius-pill;
+    background-color: $chrome;
+
+    &--blue .progress__bar { background-color: $blue; }
+    &--success .progress__bar { background-color: $success; }
+    &--away .progress__bar { background-color: $away; }
+    &--danger .progress__bar { background-color: $danger; }
+
+    &--indeterminate .progress__bar {
+      width: 40%;
+      animation: progress-slide 1.1s infinite $ease;
+    }
+  }
+
+  &__bar {
+    display: block;
+    height: 100%;
+    border-radius: $radius-pill;
+    transition: width $dur $ease;
+  }
+}
+
+@keyframes progress-slide {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+.skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton {
+  display: block;
+  height: 11px;
+  border-radius: $radius;
+  background-color: $chrome;
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+
+  &--circle { border-radius: 50%; }
+}
+
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}

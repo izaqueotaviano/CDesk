@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+*.local
+.vite.log
+
+# `tsc -b` (project references) — cache incremental e o .d.ts do próprio
+# vite.config.ts, gerados a cada typecheck/build
+*.tsbuildinfo
+vite.config.d.ts
+
+# gerado a partir de resolv-openapi.yaml (npm run generate:api) — versionar
+# o gerado é o mesmo erro que versionar build; a fonte é o .yaml na raiz.
+src/api/schema.d.ts
+
+.env

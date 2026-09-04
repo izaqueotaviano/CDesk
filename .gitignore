@@ -1,0 +1,41 @@
+__pycache__/
+*.py[cod]
+.Python
+.venv/
+venv/
+*.egg-info/
+.env
+.env.*
+!.env.example
+db.sqlite3
+media/
+staticfiles/
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+dist/
+# cache incremental do tsc: muda a cada build e não pertence ao histórico
+tsconfig.tsbuildinfo
+.DS_Store
+.idea/
+.vscode/
+dump.rdb
+
+# logs dos processos que o ./resolv sobe em segundo plano no modo nativo
+.api.log
+.worker.log
+.beat.log
+
+# cache em disco do MCP do Material 3 (flat-cache grava na pasta de onde o
+# servidor é iniciado, que é a raiz do projeto)
+.cache/
+
+# o exemplo de produção é documentação, não segredo
+!.env.production.example
+
+# clone do plugin superpowers (repo de terceiro, com .git próprio) — mora
+# aqui só por conveniência de desenvolvimento, não faz parte do produto
+superpowers/

@@ -1,0 +1,54 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: $sp-1;
+  padding: $sp-7 $sp-4;
+
+  &__icon {
+    @include stroke-icon(28px);
+    margin-bottom: $sp-2;
+    color: $text-muted;
+  }
+
+  &--error &__icon { color: $away; }
+  &--forbidden &__icon { color: $text-muted; }
+
+  &__title {
+    margin: 0;
+    @include type($fs-title, $w-semibold);
+    color: $text;
+  }
+
+  &__description {
+    margin: 0;
+    max-width: 42ch;
+    @include type($fs-ui, $w-light);
+    color: $text-secondary;
+  }
+
+  &__action {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    margin-top: $sp-2;
+  }
+
+  &__retry {
+    @include button-reset;
+    @include focus-ring;
+    height: $control-h-sm;
+    padding: 0 $sp-3;
+    border: $border;
+    border-radius: $radius;
+    background-color: $raised;
+    @include type($fs-meta, $w-medium);
+    color: $text;
+
+    &:hover { background-color: $chrome; }
+  }
+}

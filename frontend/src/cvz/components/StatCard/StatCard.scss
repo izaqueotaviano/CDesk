@@ -1,0 +1,37 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.stat-card {
+  padding: $sp-4;
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-2;
+  }
+
+  &__label { @include type($fs-label, $w-medium); color: $text-secondary; }
+
+  &__icon { @include stroke-icon($icon); color: $text-muted; }
+
+  &__value {
+    margin-top: 6px;
+    font-family: $f-mono;
+    @include type($fs-display, $w-medium, $lh-tight);
+    color: $text;
+  }
+
+  &__delta {
+    display: inline-block;
+    margin-top: 4px;
+    @include type($fs-caption, $w-regular);
+    color: $text-muted;
+
+    &--positive { color: $success; }
+    &--negative { color: $danger; }
+  }
+}

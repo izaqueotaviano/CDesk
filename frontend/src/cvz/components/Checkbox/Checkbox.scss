@@ -1,0 +1,175 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.cbx {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: $sp-2;
+  cursor: pointer;
+  user-select: none;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+  }
+
+  &__box {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    margin-top: 2px;
+    border: $stroke-w solid $text;
+    border-radius: $radius;
+    background-color: $raised;
+    transition: background-color $dur $ease, border-color $dur $ease;
+  }
+
+  &__check {
+    width: 11px;
+    height: 11px;
+    fill: none;
+    stroke: $text-on-dark;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+
+  &:hover &__box { background-color: $chrome; }
+
+  input:checked + &__box {
+    background-color: $blue;
+    border-color: $blue;
+
+    .cbx__check { opacity: 1; }
+  }
+
+  input:indeterminate + &__box {
+    background-color: $blue;
+    border-color: $blue;
+
+    .cbx__check { opacity: 0; }
+
+    &::after {
+      content: '';
+      position: absolute;
+      width: 8px;
+      height: 1.6px;
+      background-color: $text-on-dark;
+    }
+  }
+
+  input:focus-visible + &__box {
+    outline: $focus-w solid $blue;
+    outline-offset: 2px;
+  }
+
+  &__text {
+    font-size: $fs-ui;
+    font-weight: $w-regular;
+    line-height: $lh-snug;
+
+    small {
+      display: block;
+      font-size: $fs-label;
+      color: $text-muted;
+    }
+  }
+
+  &--invalid &__box { border-color: $danger; }
+
+  &--disabled {
+    cursor: not-allowed;
+
+    .cbx__box { border-color: $disabled-border; background-color: $disabled-bg; }
+    .cbx__text { color: $disabled-text; }
+  }
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  cursor: pointer;
+  font-size: $fs-ui;
+  font-weight: $w-regular;
+
+  input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+  &__dot {
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    flex: 0 0 auto;
+    border: $stroke-w solid $text;
+    border-radius: 50%;
+    background-color: $raised;
+  }
+
+  input:checked + &__dot {
+    border-color: $blue;
+
+    &::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: $blue;
+    }
+  }
+
+  input:focus-visible + &__dot {
+    outline: $focus-w solid $blue;
+    outline-offset: 2px;
+  }
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  cursor: pointer;
+  font-size: $fs-ui;
+  font-weight: $w-regular;
+
+  input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+
+  &__track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex: 0 0 auto;
+    border-radius: $radius-pill;
+    background-color: $text-muted;
+    transition: background-color $dur $ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background-color: $raised;
+      transition: transform $dur $ease;
+    }
+  }
+
+  input:checked + &__track {
+    background-color: $blue;
+
+    &::after { transform: translateX(16px); }
+  }
+
+  input:focus-visible + &__track {
+    outline: $focus-w solid $blue;
+    outline-offset: 2px;
+  }
+}

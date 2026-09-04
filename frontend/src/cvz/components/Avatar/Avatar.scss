@@ -1,0 +1,52 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background-color: $avatar-bg;
+  color: $text-on-dark;
+  @include type($fs-label, $w-semibold, $lh-none);
+
+  &--sm { width: 22px; height: 22px; font-size: $fs-caption; }
+  &--md { width: $avatar; height: $avatar; }
+  &--lg { width: $control-h-lg; height: $control-h-lg; font-size: $fs-meta; }
+
+  // O anel de presença precisa de um recorte na cor da superfície de trás.
+  &--available { color: $success; }
+  &--away { color: $away; }
+  &--offline { color: $offline; }
+
+  &--available,
+  &--away,
+  &--offline {
+    > span[aria-hidden] { color: $text-on-dark; }
+  }
+
+  &--on-chrome#{&}--available,
+  &--on-chrome#{&}--away,
+  &--on-chrome#{&}--offline { box-shadow: 0 0 0 $marker-w $chrome, 0 0 0 4px currentColor; }
+
+  &--on-surface#{&}--available,
+  &--on-surface#{&}--away,
+  &--on-surface#{&}--offline { box-shadow: 0 0 0 $marker-w $surface, 0 0 0 4px currentColor; }
+
+  &--on-raised#{&}--available,
+  &--on-raised#{&}--away,
+  &--on-raised#{&}--offline { box-shadow: 0 0 0 $marker-w $raised, 0 0 0 4px currentColor; }
+
+  &__presence {
+    position: absolute;
+    right: -2px;
+    bottom: -2px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: currentColor;
+  }
+
+  &--sm &__presence { width: 8px; height: 8px; }
+}

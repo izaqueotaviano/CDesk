@@ -1,0 +1,83 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.page-header {
+  margin-bottom: $sp-5;
+
+  &__crumbs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: $sp-2;
+    @include type($fs-meta, $w-regular);
+  }
+
+  &__crumb-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    a {
+      color: $blue-active;
+      text-decoration: none;
+
+      &:hover { text-decoration: underline; }
+    }
+
+    span[aria-current] { color: $text-secondary; }
+  }
+
+  &__crumb-sep {
+    @include stroke-icon(12px);
+    margin: 0 2px;
+    color: $text-muted;
+  }
+
+  &__row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: $sp-4;
+  }
+
+  &__heading { min-width: 0; }
+
+  &__eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    @include type($fs-label, $w-medium);
+    color: $text-secondary;
+  }
+
+  &__title-line {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    @include type($fs-heading, $w-semibold);
+    color: $text;
+  }
+
+  &__description {
+    margin: $sp-1 0 0;
+    max-width: 64ch;
+    @include type($fs-ui, $w-light);
+    color: $text-secondary;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex: 0 0 auto;
+  }
+
+  @include mobile {
+    &__row { flex-direction: column; align-items: stretch; }
+    &__actions { flex-wrap: wrap; }
+    &__actions > * { flex: 1; min-width: 0; }
+  }
+}

@@ -1,0 +1,145 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.combobox {
+  position: relative;
+
+  &__control {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-height: $control-h;
+    padding: 4px 32px 4px 10px;
+    border: $stroke-w solid $stroke;
+    border-bottom-color: $text-muted;
+    border-radius: $radius;
+    background-color: $raised;
+    cursor: text;
+    transition: border-color $dur $ease;
+  }
+
+  &--open &__control {
+    border-color: $blue;
+    box-shadow: 0 0 0 2px $blue-tint;
+  }
+
+  &--disabled &__control {
+    @include disabled-control;
+    cursor: not-allowed;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 22px;
+    padding: 0 4px 0 8px;
+    border-radius: $radius;
+    background-color: $chrome;
+    @include type($fs-meta, $w-regular);
+
+    button {
+      @include button-reset;
+      display: grid;
+      place-items: center;
+      width: 16px;
+      height: 16px;
+      border-radius: $radius;
+      color: $text-secondary;
+
+      svg { @include stroke-icon(11px); }
+
+      &:hover { background-color: $hover; color: $danger; }
+    }
+  }
+
+  &__single-value {
+    @include type($fs-ui, $w-regular);
+    color: $text;
+    margin-right: 4px;
+  }
+
+  &__search-icon {
+    @include stroke-icon(14px);
+    color: $text-muted;
+    flex: 0 0 auto;
+  }
+
+  &__input {
+    flex: 1;
+    min-width: 60px;
+    height: $inline-input-h;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    outline: none;
+    @include type($fs-ui, $w-regular);
+    color: $text;
+
+    &::placeholder { color: $text-muted; }
+    &:disabled { cursor: not-allowed; }
+  }
+
+  &__caret {
+    @include stroke-icon(14px);
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    color: $text-secondary;
+    pointer-events: none;
+  }
+
+  &__list {
+    @include popover;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: $z-popover;
+    max-height: 260px;
+    margin: 0;
+    padding: $sp-1;
+    list-style: none;
+    overflow-y: auto;
+  }
+
+  &__empty {
+    padding: $sp-3 $sp-2;
+    text-align: center;
+    @include type($fs-meta, $w-light);
+    color: $text-muted;
+  }
+
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    padding: 7px $sp-2;
+    border-radius: $radius;
+    cursor: pointer;
+    @include type($fs-ui, $w-regular);
+    color: $text;
+
+    &--active { background-color: $chrome; }
+    &--selected { font-weight: $w-medium; }
+
+    &-text {
+      flex: 1;
+      min-width: 0;
+      @include truncate;
+
+      small {
+        display: block;
+        @include type($fs-caption, $w-regular);
+        color: $text-muted;
+      }
+    }
+
+    &-check {
+      @include stroke-icon(14px);
+      color: $blue;
+      flex: 0 0 auto;
+    }
+  }
+}
