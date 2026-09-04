@@ -51,7 +51,11 @@ class NotificationViewSet(viewsets.GenericViewSet):
 
 
 DEFAULT_IN_APP = {kind: True for kind, _ in NotificationKind.choices}
-DEFAULT_EMAIL = {kind: False for kind, _ in NotificationKind.choices}
+# Precisa bater com o default de `quer_email()` em services/__init__.py — os
+# dois já divergiram uma vez (aqui `False`, lá `True`): a tela mostrava
+# "e-mail desligado" para quem nunca configurou nada, e o serviço mandava o
+# e-mail do mesmo jeito. `TestPreferenciaPadrao` trava essa paridade.
+DEFAULT_EMAIL = {kind: True for kind, _ in NotificationKind.choices}
 
 
 class NotificationPreferenceSerializer(serializers.Serializer):

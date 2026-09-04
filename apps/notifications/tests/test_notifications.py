@@ -6,7 +6,13 @@ import pytest
 from django.core import mail
 from django.utils import timezone
 
-from apps.notifications.models import Notification, NotificationKind, OutboundEmail
+from apps.notifications.models import (
+    Notification,
+    NotificationKind,
+    NotificationPreference,
+    OutboundEmail,
+)
+from apps.notifications.services import quer_email, quer_in_app
 from apps.notifications.tasks import sla_scan
 from apps.tickets.models import Ticket, TicketStatus
 from apps.tickets.services import ticket_service
@@ -191,3 +197,41 @@ class TestNotificationApi:
         ticket = _ticket(ana, suporte)
         ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
         assert api(agente).get("/api/v1/notifications/").json()["count"] == 0
+
+
+@pytest.mark.django_db
+class TestPreferenciaPadrao:
+    """O default exibido em GET /notification-preferences/ precisa bater com
+    o default que `quer_in_app`/`quer_email` realmente aplicam para quem
+    nunca configurou nada — já divergiu uma vez (a tela mostrava e-mail
+    desligado, o serviço mandava o e-mail do mesmo jeito), sem nenhum teste
+    flagrando. Isto trava a paridade para os dois canais e todos os tipos."""
+
+    def test_get_bate_com_o_que_o_servico_realmente_aplica(self, agente, api):
+        assert not NotificationPreference.objects.filter(user=agente).exists()
+
+        resp = api(agente).get("/api/v1/notification-preferences/")
+        assert resp.status_code == 200
+        dados = resp.json()
+
+        for kind, _ in NotificationKind.choices:
+            assert dados["in_app"][kind] == quer_in_app(agente, kind), kind
+            assert dados["email"][kind] == quer_email(agente, kind), kind
+
+    def test_email_ligado_por_padrao(self, agente, api):
+        # Regressão específica do bug: a view chegou a devolver False aqui
+        # enquanto o serviço já mandava e-mail mesmo assim (default `True`).
+        resp = api(agente).get("/api/v1/notification-preferences/")
+        assert resp.json()["email"][NotificationKind.TICKET_REPLIED] is True
+        assert quer_email(agente, NotificationKind.TICKET_REPLIED) is True
+
+    def test_desligar_um_tipo_e_respeitado_e_nao_mexe_nos_outros(self, agente, api):
+        client = api(agente)
+        client.put(
+            "/api/v1/notification-preferences/",
+            {"email": {NotificationKind.TICKET_REPLIED: False}},
+            format="json",
+        )
+        assert quer_email(agente, NotificationKind.TICKET_REPLIED) is False
+        assert quer_email(agente, NotificationKind.SLA_BREACHED) is True
+        assert quer_in_app(agente, NotificationKind.TICKET_REPLIED) is True

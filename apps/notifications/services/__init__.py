@@ -32,7 +32,11 @@ def quer_in_app(user, kind) -> bool:
 def quer_email(user, kind) -> bool:
     """Idem para o canal de e-mail — consultado por quem monta o e-mail de
     notificação (e-mails operacionais, como código de login, não passam
-    por aqui: não são notificação, são o próprio serviço)."""
+    por aqui: não são notificação, são o próprio serviço).
+
+    Default `True` precisa bater com `DEFAULT_EMAIL` em `notifications/views.py`
+    — é o que a tela de preferências mostra marcado para quem nunca configurou
+    nada. Já divergiram uma vez (`TestPreferenciaPadrao` trava a paridade)."""
     pref = _preferencias(user)
     if pref is None:
         return True
