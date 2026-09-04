@@ -2,16 +2,19 @@
 a equipe) e automática (timeout de fila → "Chat não atendido")."""
 
 import datetime as dt
+import threading
+import time
 
 import pytest
+from django.db import connection
 from django.utils import timezone
 
 from apps.chat.models import Chat, ChatMessage, ChatStatus
 from apps.chat.services import chat_service
 from apps.chat.tasks import convert_unattended_chats
 from apps.notifications.models import Notification, NotificationKind, OutboundEmail
-from apps.tickets.models import TicketStatus
-from apps.tickets.services import ticket_service
+from apps.tickets.models import Ticket, TicketStatus
+from apps.tickets.services import sla, ticket_service
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -59,6 +62,58 @@ class TestConversaoManual:
         t1 = ticket_service.create_from_chat(chat=chat_da_ana, team=suporte, actor=agente)
         t2 = ticket_service.create_from_chat(chat=chat_da_ana, team=suporte, actor=agente)
         assert t1.pk == t2.pk
+
+    def test_idempotente_sob_corrida_de_verdade(
+        self, chat_da_ana, agente, agente2, suporte, monkeypatch,
+    ):
+        """`test_idempotente` acima é sequencial — a segunda chamada só
+        começa depois que a primeira já commitou, o que a checagem de
+        idempotência já resolvia mesmo sem lock nenhum. Este teste dispara
+        as DUAS chamadas ao mesmo tempo, em threads com conexão própria:
+        sem o `select_for_update` em `create_from_chat`, as duas passavam
+        pela checagem de "já existe ticket?" antes de qualquer uma commitar,
+        e a segunda estourava `IntegrityError` na constraint única de
+        `origin_chat` em vez de devolver o ticket da primeira."""
+        original_apply_sla = sla.apply_sla
+
+        def _apply_sla_devagar(ticket):
+            # segura a transação vencedora aberta um instante — tempo de
+            # sobra pro SELECT FOR UPDATE da segunda thread bloquear de
+            # verdade, em vez de só ter sorte no timing das duas threads
+            time.sleep(0.3)
+            return original_apply_sla(ticket)
+
+        monkeypatch.setattr(sla, "apply_sla", _apply_sla_devagar)
+
+        resultados: list[int] = []
+        erros: list[Exception] = []
+        largada = threading.Barrier(2)
+
+        def _converter(actor):
+            try:
+                largada.wait(timeout=5)
+                ticket = ticket_service.create_from_chat(
+                    chat=chat_da_ana, team=suporte, actor=actor,
+                )
+                resultados.append(ticket.pk)
+            except Exception as exc:  # noqa: BLE001 - a asserção abaixo cobra a causa exata
+                erros.append(exc)
+            finally:
+                connection.close()
+
+        threads = [
+            threading.Thread(target=_converter, args=(agente,)),
+            threading.Thread(target=_converter, args=(agente2,)),
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=10)
+
+        assert not erros, f"conversão concorrente não deveria estourar exceção: {erros!r}"
+        assert len(resultados) == 2
+        assert resultados[0] == resultados[1]  # as duas chamadas devolvem o MESMO ticket
+        assert Ticket.objects.filter(origin_chat=chat_da_ana).count() == 1
 
     def test_transcricao_sai_censurada(self, chat_da_ana, ana, agente, suporte):
         from apps.chat.models import BannedWord

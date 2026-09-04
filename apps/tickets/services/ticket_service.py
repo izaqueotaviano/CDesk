@@ -208,25 +208,32 @@ def create_from_chat(*, chat, team, actor=None, subject=None, auto=False):
     - Manual com agente: nasce OPEN atribuído; automática: nasce NEW, sem
       responsável — ninguém chegou a atender.
     """
+    from apps.chat.models import Chat as _Chat
     from apps.chat.models import ChatMessage as _ChatMsg
     from apps.chat.models import ChatStatus as _ChatStatus
     from apps.chat.services import chat_service as _chat_svc
 
-    # quem chama pode estar com uma instância velha (take/close re-buscam
-    # com lock por dentro) — a conversão parte SEMPRE do estado do banco
-    chat.refresh_from_db()
-    existing = getattr(chat, "generated_ticket", None)
-    if existing is not None:
-        return existing
-
-    # mesma regra da criação normal: equipe interna não recebe chamado de
-    # cliente — o ticket sumiria da visão do próprio solicitante
-    if team.internal_only:
-        raise TicketRuleViolation(
-            "Equipe interna não pode receber a conversão de um chat de cliente."
-        )
-
     with transaction.atomic():
+        # Lock a linha do chat: o timeout automático do beat rodando junto
+        # com um clique manual do agente (ou um retry/duplo clique) não pode
+        # deixar as duas chamadas passarem pela checagem de idempotência ao
+        # mesmo tempo. Sem o lock, as duas veem `generated_ticket` vazio e as
+        # duas tentam criar — a segunda estoura `IntegrityError` na
+        # constraint única de `origin_chat` em vez de devolver o ticket que a
+        # primeira já criou. Mesmo padrão de `select_for_update` que
+        # `chat_service.take_chat` usa para "pegar" um chat da fila.
+        chat = _Chat.objects.select_for_update().get(pk=chat.pk)
+        existing = getattr(chat, "generated_ticket", None)
+        if existing is not None:
+            return existing
+
+        # mesma regra da criação normal: equipe interna não recebe chamado de
+        # cliente — o ticket sumiria da visão do próprio solicitante
+        if team.internal_only:
+            raise TicketRuleViolation(
+                "Equipe interna não pode receber a conversão de um chat de cliente."
+            )
+
         if chat.status != _ChatStatus.CLOSED:
             chat.status = _ChatStatus.CLOSED
             chat.closed_at = timezone.now()
