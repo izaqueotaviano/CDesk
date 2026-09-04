@@ -141,10 +141,22 @@ atualizar_codigo() {
 }
 
 preparar_env() {
-  [ -f .env ] && return 0
-  passo "Criando .env a partir do exemplo"
-  cp .env.example .env
-  ok ".env criado."
+  if [ ! -f .env ]; then
+    passo "Criando .env a partir do exemplo"
+    cp .env.example .env
+    ok ".env criado."
+  fi
+
+  # DATABASE_URL/REDIS_URL do .env.example apontam para os nomes de serviço
+  # do Docker Compose ("db", "redis") — só resolvem dentro da rede que o
+  # próprio Compose cria. No modo nativo não existe essa rede: a API cairia
+  # em "failed to resolve host" na primeira migração. Reescreve para
+  # 127.0.0.1 sempre que ainda apontar para lá — inclusive num .env que já
+  # existia (self-heal de uma subida nativa anterior que rodou sem isto).
+  if [ "$MODO" = "nativo" ]; then
+    sed -i -E 's#^(DATABASE_URL=postgres://[^@]+@)db(:)#\1127.0.0.1\2#' .env
+    sed -i -E 's#^(REDIS_URL=redis://)redis(:)#\1127.0.0.1\2#' .env
+  fi
 }
 
 # Roda um comando do manage.py onde ele mora em cada modo: dentro do container
