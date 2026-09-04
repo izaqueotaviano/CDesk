@@ -179,3 +179,14 @@
     min-width: 140px;
   }
 }
+
+// Linha de estado do formulário de Sistema (AbaSistema), dentro do
+// `FormActions`: `margin-right: auto` empurra os botões pra direita e deixa o
+// texto onde o olho já está antes de clicar em Salvar. No mobile o
+// FormActions vira coluna e o `auto` perde o efeito — que é o certo: lá o
+// texto fica acima dos botões, na ordem de leitura.
+.cfg-sistema__meta {
+  margin-right: auto;
+  @include type($fs-meta, $w-regular);
+  color: $text-muted;
+}

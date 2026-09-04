@@ -6,21 +6,33 @@ import { AbaEquipes } from './AbaEquipes'
 import { AbaPapeis } from './AbaPapeis'
 import { AbaPlanos } from './AbaPlanos'
 import { AbaServicos } from './AbaServicos'
+import { AbaSistema } from './AbaSistema'
 import { AbaSla } from './AbaSla'
 import { AbaStatus } from './AbaStatus'
 import { AbaTags } from './AbaTags'
 import './configuracoes.scss'
 
-const ABAS = ['status', 'servicos', 'categorias', 'tags', 'sla', 'equipes', 'planos', 'papeis', 'calendarios'] as const
+const ABAS = [
+  'status',
+  'servicos',
+  'categorias',
+  'tags',
+  'sla',
+  'equipes',
+  'planos',
+  'papeis',
+  'calendarios',
+  'sistema',
+] as const
 const ABA_PADRAO = ABAS[0]
 
 /**
  * Fase 1 do plano aprovado — cadastros de ticket primeiro (Status, Serviços,
  * Categorias, Tags), porque são os quatro mais parecidos entre si e o que a
  * tela de abertura de chamado já consome hoje. SLA, Equipes, Planos, Papéis
- * e Expediente/Feriados vieram na sequência; falta só Sistema (singleton,
- * sem lista) pra fechar a fase — "Empresas"/"Usuários" não duplicam aqui:
- * já têm tela própria em /clientes.
+ * e Expediente/Feriados vieram na sequência, e Sistema (singleton, sem lista)
+ * fecha a fase — "Empresas"/"Usuários" não duplicam aqui: já têm tela própria
+ * em /clientes.
  */
 export function PaginaConfiguracoes() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -57,6 +69,9 @@ export function PaginaConfiguracoes() {
           // escopo por enquanto, sem model de eventos no backend). Aqui é
           // só horário comercial + feriados (BusinessCalendar/Holiday).
           { id: 'calendarios', label: 'Expediente', content: <AbaCalendarios /> },
+          // Última porque é a única que não é cadastro: são os parâmetros
+          // operacionais (linha única em banco) que valem para o sistema todo.
+          { id: 'sistema', label: 'Sistema', content: <AbaSistema /> },
         ]}
       />
     </>
