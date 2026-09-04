@@ -18,6 +18,7 @@ import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
 import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
+import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
 import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
@@ -85,6 +86,19 @@ export const router = createBrowserRouter([
           <RotaProtegida>
             <NovoShell>
               <PaginaDetalheTicketResolv />
+            </NovoShell>
+          </RotaProtegida>
+        ),
+      },
+
+      // ---- Quadro (Kanban) — vista computada sobre os mesmos tickets de
+      // /chamados, nunca uma lista própria (ver apps/kanban/services/board_view.py) ----
+      {
+        path: '/quadro',
+        element: (
+          <RotaProtegida>
+            <NovoShell>
+              <PaginaQuadroResolv />
             </NovoShell>
           </RotaProtegida>
         ),

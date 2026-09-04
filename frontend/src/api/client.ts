@@ -18,7 +18,11 @@
  *     (validação), às vezes com `code` legível.
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+// Exportada: campos como `avatar_url` chegam do backend como caminho relativo
+// (`/avatars/...`, `/media/...`) — quem for montar um <img src> a partir
+// deles precisa desta mesma base, senão o navegador resolve contra a origem
+// do Vite (5174) em vez da API (8000) e o avatar 404.
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
 
 export class ApiError extends Error {
   status: number

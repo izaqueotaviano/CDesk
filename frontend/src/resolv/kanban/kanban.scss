@@ -1,0 +1,401 @@
+// ============================================================================
+// Quadro (Kanban) — design system Resolv. Mesma densidade/ruído da lista de
+// tickets: borda 0.7px, radius 2px, mono nos números, accent único #0275DE.
+// ============================================================================
+
+.kb-pagina {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+  gap: 16px;
+
+  &--estado {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 13px;
+
+    i {
+      font-size: 24px;
+    }
+  }
+  &--erro button {
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    background: none;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-primary);
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  &__titulo {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  &__subtitulo {
+    margin-top: 4px;
+    max-width: 64ch;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  &__seletor-quadro {
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    background: var(--surface-card);
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text-primary);
+  }
+
+  &__colunas {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+}
+
+.kb-spin {
+  animation: kb-girar 0.8s linear infinite;
+}
+@keyframes kb-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.kb-coluna {
+  flex: 0 0 280px;
+  display: flex;
+  flex-direction: column;
+  max-height: 100%;
+  background: var(--surface-alt);
+  border: 0.7px solid var(--stroke);
+  border-radius: 2px;
+  transition: border-color 0.1s ease, background 0.1s ease;
+
+  &--sobre {
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface-alt));
+  }
+
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 0.7px solid var(--stroke);
+    flex-shrink: 0;
+  }
+  &__cor {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__contador {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  &__apagar {
+    display: flex;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+
+    &:hover {
+      color: var(--danger);
+    }
+  }
+
+  &__corpo {
+    flex: 1;
+    min-height: 80px;
+    overflow-y: auto;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  &__vazia {
+    text-align: center;
+    padding: 16px 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  &--nova {
+    background: none;
+    border-style: dashed;
+    justify-content: flex-start;
+  }
+  &__nova-botao {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+  &__form-nova {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    input {
+      border: 0.7px solid var(--stroke);
+      border-radius: 2px;
+      padding: 6px 8px;
+      font-size: 12px;
+    }
+  }
+  &__form-nova-acoes {
+    display: flex;
+    gap: 6px;
+
+    button {
+      flex: 1;
+      border: 0.7px solid var(--stroke);
+      border-radius: 2px;
+      background: var(--surface-card);
+      padding: 4px 8px;
+      font-size: 11px;
+      cursor: pointer;
+
+      &:first-child {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+    }
+  }
+}
+
+.kb-cartao {
+  background: var(--surface-card);
+  border: 0.7px solid var(--stroke);
+  border-radius: 2px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: grab;
+  touch-action: none; // sem isto o navegador rouba o gesto de toque pra rolar a página
+
+  &:hover {
+    border-color: var(--stroke-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  &--arrastando {
+    opacity: 0.4;
+  }
+  &--vencido {
+    border-left: 2px solid var(--danger);
+  }
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  &__ref {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  &__prioridade {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__assunto {
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  &__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  &__empresa {
+    color: var(--text-muted);
+  }
+
+  &__rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  &__badges {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  // Prazo interno do quadro — deliberadamente um selo NEUTRO (cinza), nunca
+  // as mesmas cores do SLA abaixo: são dois relógios diferentes, e usar a
+  // mesma paleta faria parecer o mesmo relógio com dois nomes.
+  &__prazo,
+  &__prazo-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    padding: 2px 6px;
+    background: none;
+    cursor: pointer;
+    font-family: var(--f-ui);
+  }
+  &__prazo--vencido {
+    color: var(--danger);
+    border-color: var(--danger);
+  }
+  &__prazo-input {
+    cursor: text;
+    border-color: var(--accent);
+  }
+
+  &__sla {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 2px;
+
+    &--ok,
+    &--met {
+      color: var(--ok);
+      background: color-mix(in srgb, var(--ok) 12%, transparent);
+    }
+    &--at_risk {
+      color: var(--away);
+      background: color-mix(in srgb, var(--away) 14%, transparent);
+    }
+    &--breached {
+      color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 12%, transparent);
+    }
+  }
+
+  &__contadores {
+    display: flex;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+  }
+
+  &__responsavel {
+    flex-shrink: 0;
+
+    img,
+    .kb-cartao__avatar-fallback {
+      display: block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    .kb-cartao__avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 600;
+    }
+  }
+}
+
+// -------------------------------------------------------------------- modal
+.kb-modal-fechar__intro {
+  font-size: 12px;
+  color: var(--text-secondary, #555);
+  margin-bottom: 8px;
+}
+.kb-modal-fechar__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  input {
+    border: 1px solid var(--stroke, #d9d9d9);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+}
+.kb-modal-fechar__erro {
+  font-size: 12px;
+  color: var(--danger, #b3261e);
+  margin-top: 2px;
+}
