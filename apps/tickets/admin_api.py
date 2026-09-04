@@ -14,6 +14,7 @@ from apps.core.permissions import IsInternalReadAdminWrite
 from apps.core.serializer_fields import slug_unico
 from apps.core.slugs import unique_slug
 from apps.tickets.models import (
+    COR_POR_CATEGORIA,
     Service,
     SLAPolicy,
     TicketCategory,
@@ -30,6 +31,12 @@ class TicketStageSerializer(serializers.ModelSerializer):
     category_label = serializers.CharField(
         source="get_category_display", read_only=True
     )
+    # Sem o `default` que o ModelSerializer geraria sozinho a partir do campo
+    # do model (o cinza fixo `#8A8A85`, plano para toda categoria): omitida
+    # do payload, `perform_create` precisa saber que o cliente NÃO escolheu
+    # cor nenhuma, para aplicar a paleta semântica da categoria em vez do
+    # cinza — se o model injetasse o default sozinho, essa distinção some.
+    color = serializers.CharField(max_length=7, required=False)
 
     class Meta:
         model = TicketStage
@@ -72,10 +79,18 @@ class TicketStageViewSet(viewsets.ModelViewSet):
         slug = serializer.validated_data.get("slug") or unique_slug(
             TicketStage, serializer.validated_data["name"], fallback="status"
         )
+        # Cor explícita do admin sempre vence; sem ela, a cor semântica da
+        # categoria escolhida — não o cinza fixo do model (ver comentário
+        # no campo `color` do serializer, acima).
+        color = serializer.validated_data.get("color") or COR_POR_CATEGORIA.get(
+            serializer.validated_data["category"],
+            TicketStage._meta.get_field("color").get_default(),
+        )
         # entra no fim da fila; reordenar é um PATCH de `order`
         ultimo = TicketStage.objects.order_by("-order").first()
         serializer.save(
             slug=slug,
+            color=color,
             order=serializer.validated_data.get(
                 "order", (ultimo.order + 1) if ultimo else 0
             ),

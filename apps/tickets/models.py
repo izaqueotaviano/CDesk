@@ -76,6 +76,20 @@ class TicketStatus(models.TextChoices):
     CLOSED = "closed", "Fechado"
 
 
+# Paleta semântica por categoria — os mesmos tons dos quatro status de
+# fábrica (migrations/0016_status_de_fabrica.py). Fonte única para o default
+# que `TicketStageViewSet.perform_create` aplica quando o status novo não
+# vem com cor explícita: sem isto, todo status customizado nascia cinza
+# (o default plano do campo `color` abaixo), sem relação nenhuma com a
+# categoria escolhida.
+COR_POR_CATEGORIA = {
+    TicketStatus.NEW: "#6C4E9C",
+    TicketStatus.OPEN: "#5A87B8",
+    TicketStatus.PENDING_CUSTOMER: "#E9A23B",
+    TicketStatus.CLOSED: "#8A8A85",
+}
+
+
 class TicketStage(models.Model):
     """A coluna do quadro — e o status que a pessoa lê na tela.
 
