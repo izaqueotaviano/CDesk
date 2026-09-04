@@ -22,7 +22,7 @@ const ABAS = [
   'planos',
   'papeis',
   'calendarios',
-  'sistema',
+  'operacao',
 ] as const
 const ABA_PADRAO = ABAS[0]
 
@@ -30,9 +30,10 @@ const ABA_PADRAO = ABAS[0]
  * Fase 1 do plano aprovado — cadastros de ticket primeiro (Status, Serviços,
  * Categorias, Tags), porque são os quatro mais parecidos entre si e o que a
  * tela de abertura de chamado já consome hoje. SLA, Equipes, Planos, Papéis
- * e Expediente/Feriados vieram na sequência, e Sistema (singleton, sem lista)
- * fecha a fase — "Empresas"/"Usuários" não duplicam aqui: já têm tela própria
- * em /clientes.
+ * e Expediente/Feriados vieram na sequência, e Operação (singleton, sem
+ * lista — rótulo "Configurações → Operação" do D22 em
+ * docs/04-decisoes-tomadas.md) fecha a fase — "Empresas"/"Usuários" não
+ * duplicam aqui: já têm tela própria em /clientes.
  */
 export function PaginaConfiguracoes() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -71,7 +72,7 @@ export function PaginaConfiguracoes() {
           { id: 'calendarios', label: 'Expediente', content: <AbaCalendarios /> },
           // Última porque é a única que não é cadastro: são os parâmetros
           // operacionais (linha única em banco) que valem para o sistema todo.
-          { id: 'sistema', label: 'Sistema', content: <AbaSistema /> },
+          { id: 'operacao', label: 'Operação', content: <AbaSistema /> },
         ]}
       />
     </>
