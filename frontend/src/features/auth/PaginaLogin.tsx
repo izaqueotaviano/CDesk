@@ -76,17 +76,6 @@ function destinoDepoisDoLogin(me: Me, de: string | undefined): string {
   return de && de.startsWith('/portal') ? de : '/portal'
 }
 
-function Marca({ nome, className }: { nome: string; className?: string }) {
-  return (
-    <div className={cn('flex items-center gap-3', className)}>
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-acento text-titulo-sm font-forte text-acento-sobre shadow-elevacao-1">
-        r
-      </span>
-      <span className="text-corpo-lg font-forte tracking-display text-tinta">{nome}</span>
-    </div>
-  )
-}
-
 /**
  * O painel da marca (desktop): azul da casa, ou a imagem que o admin enviou
  * com um degradê por baixo dos textos. Sem chamada nem destaques, a imagem
@@ -140,6 +129,35 @@ function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: LucideI
       </div>
       <p className="relative text-legenda text-white/70">Resolv · sistema de atendimento</p>
     </aside>
+  )
+}
+
+/**
+ * O painel no celular: um banner compacto no topo, com a mesma imagem (ou o
+ * mesmo azul), a marca e a chamada — os destaques ficam só no desktop, onde
+ * há espaço. Sangra até as bordas da tela; o formulário vem logo abaixo.
+ */
+function BannerCelular({ marca, nome }: { marca: Marca | null; nome: string }) {
+  const imagem = urlDaImagemDeMarca(marca?.image_url ?? null)
+  const chamada = marca?.headline ?? ''
+  return (
+    <header
+      className={cn(
+        '-mx-4 mb-6 flex flex-col justify-between gap-6 px-4 pb-6 pt-4 text-white sm:-mx-8 sm:px-8 lg:hidden',
+        chamada ? 'min-h-[196px]' : 'min-h-[104px]',
+        !imagem && 'bg-gradient-to-br from-[#1b63d6] to-[#0d3f96]',
+      )}
+      style={imagem ? { backgroundImage: `linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,.25) 55%, rgba(0,0,0,.2)), url("${imagem}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15 text-corpo-lg font-forte backdrop-blur">r</span>
+          <span className="truncate text-corpo-lg font-forte tracking-display">{nome}</span>
+        </div>
+        <AlternarTema className="text-white hover:bg-white/15 hover:text-white" />
+      </div>
+      {chamada && <h2 className="max-w-sm text-titulo font-forte leading-justa tracking-display">{chamada}</h2>}
+    </header>
   )
 }
 
@@ -245,13 +263,13 @@ export function PaginaLogin() {
         <PainelDaMarca marca={marca} icones={contexto.icones} />
 
         {/* ------------------------------------------------------ formulário */}
-        <main className="relative flex flex-col px-4 py-6 sm:px-8 lg:px-12 lg:py-10">
-          <div className="flex items-center justify-between">
-            <Marca nome={nomeDaMarca} className="lg:invisible" />
+        <main className="relative flex flex-col px-4 pb-6 sm:px-8 lg:px-12 lg:py-10">
+          <BannerCelular marca={marca} nome={nomeDaMarca} />
+          <div className="hidden items-center justify-end lg:flex">
             <AlternarTema />
           </div>
 
-          <div className="flex flex-1 items-center py-8">
+          <div className="flex flex-1 items-start py-2 lg:items-center lg:py-8">
             <div className="mx-auto w-full max-w-[420px]">
               {passo === 'credenciais' ? (
                 <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(enviarCredenciais)} noValidate aria-busy={login.isPending}>
