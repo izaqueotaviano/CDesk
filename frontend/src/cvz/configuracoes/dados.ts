@@ -524,3 +524,38 @@ export function useAtualizarSistemaCfg() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-sistema'] }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Moderação do chat (BannedWord) — a palavra vira **** na EXIBIÇÃO, para os
+// dois lados; o banco guarda o original, então a lista vale retroativamente
+// (apps/chat/models.py). Só lista/cria/apaga: não existe "editar" — corrigir
+// uma palavra é apagar e cadastrar de novo.
+// ---------------------------------------------------------------------------
+
+export interface PalavraBanida {
+  id: number
+  word: string
+}
+
+export function usePalavrasBanidas() {
+  return useQuery({
+    queryKey: ['cfg-moderacao'],
+    queryFn: () => api.get<Paginado<PalavraBanida> | PalavraBanida[]>('/api/v1/chat/banned-words/?limit=500'),
+    select: lista,
+    staleTime: 60_000,
+  })
+}
+export function useCriarPalavraBanida() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (word: string) => api.post<PalavraBanida>('/api/v1/chat/banned-words/', { word }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-moderacao'] }),
+  })
+}
+export function useExcluirPalavraBanida() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/api/v1/chat/banned-words/${id}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-moderacao'] }),
+  })
+}

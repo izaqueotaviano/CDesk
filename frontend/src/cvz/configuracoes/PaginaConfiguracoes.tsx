@@ -3,6 +3,7 @@ import { PageHeader, Tabs } from '@/cvz/components'
 import { AbaCalendarios } from './AbaCalendarios'
 import { AbaCategorias } from './AbaCategorias'
 import { AbaEquipes } from './AbaEquipes'
+import { AbaModeracao } from './AbaModeracao'
 import { AbaPapeis } from './AbaPapeis'
 import { AbaPlanos } from './AbaPlanos'
 import { AbaServicos } from './AbaServicos'
@@ -23,6 +24,7 @@ const ABAS = [
   'papeis',
   'calendarios',
   'operacao',
+  'moderacao',
 ] as const
 const ABA_PADRAO = ABAS[0]
 
@@ -73,6 +75,9 @@ export function PaginaConfiguracoes() {
           // Última porque é a única que não é cadastro: são os parâmetros
           // operacionais (linha única em banco) que valem para o sistema todo.
           { id: 'operacao', label: 'Operação', content: <AbaSistema /> },
+          // Lista de palavras censuradas no chat — a regra (censura na
+          // exibição, retroativa) é do backend; aqui é só a lista.
+          { id: 'moderacao', label: 'Moderação', content: <AbaModeracao /> },
         ]}
       />
     </>
