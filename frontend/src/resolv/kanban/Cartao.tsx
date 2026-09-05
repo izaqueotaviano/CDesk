@@ -120,14 +120,14 @@ export function Cartao({ cartao, onAbrir, onDefinirPrazo, arrastando }: Props) {
               }}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <i className="ri-timer-line" />
+              <i className="ti ti-hourglass" />
               {cartao.due_at ? formatarPrazo(cartao.due_at) : 'Prazo'}
             </button>
           )}
 
           {mostrarSla && (
             <span className={'kb-cartao__sla kb-cartao__sla--' + sla.state}>
-              <i className="ri-alarm-line" />
+              <i className="ti ti-alarm" />
               {sla.minutes_left! < 0 ? `-${Math.abs(sla.minutes_left!)}m` : `${sla.minutes_left}m`}
             </span>
           )}
@@ -136,12 +136,12 @@ export function Cartao({ cartao, onAbrir, onDefinirPrazo, arrastando }: Props) {
         <div className="kb-cartao__contadores">
           {cartao.message_count > 0 && (
             <span title={`${cartao.message_count} mensagem(ns)`}>
-              <i className="ri-chat-3-line" /> {cartao.message_count}
+              <i className="ti ti-message-circle-2" /> {cartao.message_count}
             </span>
           )}
           {cartao.attachment_count > 0 && (
             <span title={`${cartao.attachment_count} anexo(s)`}>
-              <i className="ri-attachment-2" /> {cartao.attachment_count}
+              <i className="ti ti-paperclip" /> {cartao.attachment_count}
             </span>
           )}
         </div>

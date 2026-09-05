@@ -41,10 +41,10 @@ export function ViewsPanel({
   return (
     <aside className="lista-tickets__views" aria-label="Visualizações">
       <div className="views-panel__busca">
-        <i className="ri-search-line" />
+        <i className="ti ti-search" />
         <input type="text" placeholder="Painel do agente" aria-label="Filtrar visualizações" />
         <button type="button" aria-label="Recolher painel" className="views-panel__recolher">
-          <i className="ri-arrow-left-s-line" />
+          <i className="ti ti-chevron-left" />
         </button>
       </div>
 

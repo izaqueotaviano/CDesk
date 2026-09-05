@@ -25,7 +25,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
       <div className="prop-panel__campo">
         <label className="prop-panel__label">Solicitante</label>
         <div className="prop-panel__valor-fixo">
-          <i className="ri-user-line" />
+          <i className="ti ti-user" />
           <span>{ticket.requester_display}</span>
         </div>
       </div>
@@ -48,7 +48,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
           )}
         </div>
         <div className="prop-panel__select">
-          <i className="ri-customer-service-line" />
+          <i className="ti ti-headset" />
           <select
             value={ticket.assignee_id ?? ''}
             onChange={(e) => atribuir.mutate(e.target.value ? Number(e.target.value) : null)}
@@ -64,7 +64,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
               </option>
             ))}
           </select>
-          <i className="ri-arrow-down-s-line prop-panel__seta" />
+          <i className="ti ti-chevron-down prop-panel__seta" />
         </div>
       </div>
 
@@ -72,7 +72,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
       <div className="prop-panel__campo">
         <label className="prop-panel__label">Dono técnico</label>
         <div className="prop-panel__select">
-          <i className="ri-tools-line" />
+          <i className="ti ti-tool" />
           <select
             value={ticket.owner_id ?? ''}
             onChange={(e) => definirDono.mutate(e.target.value ? Number(e.target.value) : null)}
@@ -88,7 +88,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
               </option>
             ))}
           </select>
-          <i className="ri-arrow-down-s-line prop-panel__seta" />
+          <i className="ti ti-chevron-down prop-panel__seta" />
         </div>
       </div>
 
@@ -151,7 +151,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
                 </option>
               ))}
             </select>
-            <i className="ri-arrow-down-s-line prop-panel__seta" />
+            <i className="ti ti-chevron-down prop-panel__seta" />
           </div>
         </div>
 
@@ -169,7 +169,7 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
                 </option>
               ))}
             </select>
-            <i className="ri-arrow-down-s-line prop-panel__seta" />
+            <i className="ti ti-chevron-down prop-panel__seta" />
           </div>
         </div>
       </div>

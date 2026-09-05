@@ -48,7 +48,7 @@ export function PainelCliente({ ticket }: { ticket: TicketDetalhe }) {
     <aside className="cliente-panel" aria-label="Cliente">
       <div className="cliente-panel__cabecalho">
         <span className="cliente-panel__avatar">
-          <i className="ri-user-line" />
+          <i className="ti ti-user" />
         </span>
         <div className="cliente-panel__id">
           <span className="cliente-panel__nome">{req?.name ?? ticket.requester_display}</span>
@@ -61,7 +61,7 @@ export function PainelCliente({ ticket }: { ticket: TicketDetalhe }) {
       <div className="cliente-panel__campos">
         <div className="cliente-panel__campo">
           <span className="cliente-panel__rotulo">
-            <i className="ri-mail-line" /> E-mail
+            <i className="ti ti-mail" /> E-mail
           </span>
           {req?.email ? (
             <a className="cliente-panel__valor cliente-panel__link" href={`mailto:${req.email}`}>
@@ -73,7 +73,7 @@ export function PainelCliente({ ticket }: { ticket: TicketDetalhe }) {
         </div>
         <div className="cliente-panel__campo">
           <span className="cliente-panel__rotulo">
-            <i className="ri-time-line" /> Hora local
+            <i className="ti ti-clock" /> Hora local
           </span>
           <span className={'cliente-panel__valor' + (hora ? '' : ' cliente-panel__valor--off')}>
             {hora ?? '—'}
@@ -81,7 +81,7 @@ export function PainelCliente({ ticket }: { ticket: TicketDetalhe }) {
         </div>
         <div className="cliente-panel__campo">
           <span className="cliente-panel__rotulo">
-            <i className="ri-translate-2" /> Idioma
+            <i className="ti ti-language" /> Idioma
           </span>
           <span className={'cliente-panel__valor' + (idioma ? '' : ' cliente-panel__valor--off')}>
             {idioma ?? '—'}

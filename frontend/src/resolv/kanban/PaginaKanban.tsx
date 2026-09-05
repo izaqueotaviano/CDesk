@@ -155,7 +155,7 @@ export function PaginaKanban() {
   if (carregandoQuadros || (quadroAtivo != null && isLoading)) {
     return (
       <div className="kb-pagina kb-pagina--estado">
-        <i className="ri-loader-4-line kb-spin" />
+        <i className="ti ti-loader-2 kb-spin" />
         <p>Carregando quadro…</p>
       </div>
     )
@@ -164,7 +164,7 @@ export function PaginaKanban() {
   if (!carregandoQuadros && quadros?.length === 0) {
     return (
       <div className="kb-pagina kb-pagina--estado">
-        <i className="ri-layout-grid-line" />
+        <i className="ti ti-layout-grid" />
         <p>Nenhum quadro cadastrado ainda.</p>
       </div>
     )
@@ -173,7 +173,7 @@ export function PaginaKanban() {
   if (isError || !quadro) {
     return (
       <div className="kb-pagina kb-pagina--estado kb-pagina--erro">
-        <i className="ri-error-warning-line" />
+        <i className="ti ti-alert-triangle" />
         <p>Não foi possível carregar o quadro.</p>
         <button type="button" onClick={() => refetch()}>
           Tentar de novo
@@ -261,7 +261,7 @@ export function PaginaKanban() {
               </div>
             ) : (
               <button type="button" className="kb-coluna__nova-botao" onClick={() => setNovaColuna(true)}>
-                <i className="ri-add-line" />
+                <i className="ti ti-plus" />
                 Nova coluna de organização
               </button>
             )}

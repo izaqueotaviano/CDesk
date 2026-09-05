@@ -31,14 +31,14 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
   if (!arquivo.is_downloadable) {
     return (
       <span className="cc-anexo cc-anexo--bloqueado" title={arquivo.scan_status}>
-        <i className="ri-shield-line" />
+        <i className="ti ti-shield" />
         {arquivo.filename} · {arquivo.scan_status === 'pending' ? 'em verificação' : 'bloqueado'}
       </span>
     )
   }
   return (
     <a className="cc-anexo" href={`${API_BASE_URL}${arquivo.url}`} target="_blank" rel="noreferrer">
-      <i className="ri-attachment-2" />
+      <i className="ti ti-paperclip" />
       {arquivo.filename} · {fileSize(arquivo.size_bytes)}
     </a>
   )
@@ -137,14 +137,14 @@ export function ConversaChat({ chatId, me }: Props) {
   if (isLoading) {
     return (
       <section className="cc-conversa cc-conversa--estado">
-        <i className="ri-loader-4-line cc-spin" />
+        <i className="ti ti-loader-2 cc-spin" />
       </section>
     )
   }
   if (isError || !chat) {
     return (
       <section className="cc-conversa cc-conversa--estado">
-        <i className="ri-error-warning-line" />
+        <i className="ti ti-alert-triangle" />
         <p>Não foi possível abrir esta conversa.</p>
       </section>
     )
@@ -216,7 +216,7 @@ export function ConversaChat({ chatId, me }: Props) {
           </p>
         </div>
         <span className={'cc-conversa__socket cc-conversa__socket--' + status} title={ROTULO_STATUS_SOCKET[status]}>
-          <i className="ri-checkbox-blank-circle-fill" />
+          <i className="ti ti-point" />
           {ROTULO_STATUS_SOCKET[status]}
         </span>
       </header>
@@ -336,7 +336,7 @@ export function ConversaChat({ chatId, me }: Props) {
               disabled={enviarArquivos.isPending}
               onClick={() => inputAnexo.current?.click()}
             >
-              <i className="ri-attachment-2" />
+              <i className="ti ti-paperclip" />
               {enviarArquivos.isPending ? 'Enviando…' : 'Anexar'}
             </button>
             <input

@@ -77,7 +77,7 @@ export function PaginaChat() {
         </>
       ) : (
         <section className="cc-conversa cc-conversa--estado">
-          <i className="ri-chat-3-line" />
+          <i className="ti ti-message-circle-2" />
           <p>
             {fila.isLoading || meus.isLoading
               ? 'Carregando…'

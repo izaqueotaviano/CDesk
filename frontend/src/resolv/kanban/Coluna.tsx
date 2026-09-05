@@ -34,7 +34,7 @@ export function Coluna({ coluna, cartoes, onAbrirTicket, onDefinirPrazo, onApaga
             aria-label={`Apagar coluna ${coluna.name}`}
             onClick={() => onApagarLane(coluna.lane!)}
           >
-            <i className="ri-delete-bin-line" />
+            <i className="ti ti-trash" />
           </button>
         )}
       </header>

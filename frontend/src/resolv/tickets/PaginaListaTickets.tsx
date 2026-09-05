@@ -103,7 +103,7 @@ export function PaginaListaTickets() {
               className="lista-tickets__novo"
               onClick={() => navigate('/chamados/novo')}
             >
-              <i className="ri-add-line" />
+              <i className="ti ti-plus" />
               Novo chamado
             </button>
             <button
@@ -112,14 +112,14 @@ export function PaginaListaTickets() {
               onClick={() => refetch()}
               aria-label="Atualizar"
             >
-              <i className="ri-refresh-line" />
+              <i className="ti ti-refresh" />
             </button>
             <button type="button" className="lista-tickets__opcoes">
-              <i className="ri-list-check" />
+              <i className="ti ti-list-check" />
               Opções
             </button>
             <div className="lista-tickets__search">
-              <i className="ri-search-line" />
+              <i className="ti ti-search" />
               <input
                 type="text"
                 placeholder="Pesquisar"
@@ -150,7 +150,7 @@ export function PaginaListaTickets() {
         {/* ---------- corpo ---------- */}
         {isError ? (
           <div className="lista-tickets__estado lista-tickets__estado--erro">
-            <i className="ri-error-warning-line" />
+            <i className="ti ti-alert-triangle" />
             <p>
               Não foi possível carregar os tickets
               {error instanceof ApiError ? ` (${error.status})` : ''}.
@@ -161,12 +161,12 @@ export function PaginaListaTickets() {
           </div>
         ) : isLoading ? (
           <div className="lista-tickets__estado">
-            <i className="ri-loader-4-line lista-tickets__spin" />
+            <i className="ti ti-loader-2 lista-tickets__spin" />
             <p>Carregando tickets…</p>
           </div>
         ) : linhas.length === 0 ? (
           <div className="lista-tickets__estado">
-            <i className="ri-inbox-line" />
+            <i className="ti ti-inbox" />
             <p>Nenhum ticket nesta visualização.</p>
           </div>
         ) : (
@@ -190,7 +190,7 @@ export function PaginaListaTickets() {
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - LIMITE))}
             >
-              <i className="ri-arrow-left-s-line" />
+              <i className="ti ti-chevron-left" />
               Anterior
             </button>
             <span>
@@ -202,7 +202,7 @@ export function PaginaListaTickets() {
               onClick={() => setOffset(offset + LIMITE)}
             >
               Próxima
-              <i className="ri-arrow-right-s-line" />
+              <i className="ti ti-chevron-right" />
             </button>
           </footer>
         )}

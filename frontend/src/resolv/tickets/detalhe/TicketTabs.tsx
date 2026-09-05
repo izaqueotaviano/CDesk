@@ -54,7 +54,7 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
                 }
               }}
             >
-              <i className="ri-close-line" />
+              <i className="ti ti-x" />
             </button>
           </div>
         )
@@ -66,7 +66,7 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
         aria-label="Abrir outro ticket"
         onClick={() => navigate('/chamados')}
       >
-        <i className="ri-add-circle-line" />
+        <i className="ti ti-circle-plus" />
       </button>
     </div>
   )

@@ -79,9 +79,9 @@ export function TicketsTable({
                         className={
                           ativo
                             ? desc
-                              ? 'ri-arrow-down-line'
-                              : 'ri-arrow-up-line'
-                            : 'ri-arrow-up-down-line'
+                              ? 'ti ti-arrow-down'
+                              : 'ti ti-arrow-up'
+                            : 'ti ti-arrows-up-down'
                         }
                       />
                     </button>
@@ -109,7 +109,7 @@ export function TicketsTable({
               </td>
               <td className="col-assunto">
                 <span className="tickets-tabela__assunto" title={t.subject}>
-                  {t.is_restricted && <i className="ri-lock-line tickets-tabela__cadeado" />}
+                  {t.is_restricted && <i className="ti ti-lock tickets-tabela__cadeado" />}
                   {t.subject}
                 </span>
               </td>

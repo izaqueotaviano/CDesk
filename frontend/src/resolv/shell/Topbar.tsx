@@ -41,7 +41,7 @@ export function Topbar() {
 
       <div className="topbar-glass__center">
         <div className="topbar-glass__search" role="button" tabIndex={0}>
-          <i className="ri-search-line topbar-glass__search-icon" />
+          <i className="ti ti-search topbar-glass__search-icon" />
           <span className="topbar-glass__search-placeholder">Buscar…</span>
           <span className="topbar-glass__search-kbd">⌘K</span>
         </div>
@@ -54,14 +54,14 @@ export function Topbar() {
           onClick={() => navigate('/chat')}
           title={`${fila?.length ?? 0} na fila · ${meus?.length ?? 0} em atendimento`}
         >
-          <i className="ri-chat-3-line topbar-glass__chats-icon" />
+          <i className="ti ti-message-circle-2 topbar-glass__chats-icon" />
           <span className="topbar-glass__chats-label">
             <strong>{conversas}</strong> {conversas === 1 ? 'conversa' : 'conversas'}
           </span>
         </button>
         <div className="topbar-glass__sep" />
         <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações">
-          <i className="ri-notification-3-line" />
+          <i className="ti ti-bell" />
           <span className="topbar-glass__badge">2</span>
         </button>
         <div className="topbar-glass__sep" />

@@ -161,13 +161,13 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
         <section className="cc-painel__bloco cc-painel__acoes">
           <h3>Ações</h3>
           <button type="button" className={acao === 'transferir' ? 'cc-painel__acao--ativa' : ''} onClick={() => abrir('transferir')}>
-            <i className="ri-arrow-left-right-line" /> Transferir
+            <i className="ti ti-arrows-left-right" /> Transferir
           </button>
           <button type="button" className={acao === 'converter' ? 'cc-painel__acao--ativa' : ''} onClick={() => abrir('converter')}>
-            <i className="ri-ticket-2-line" /> Converter em chamado
+            <i className="ti ti-ticket" /> Converter em chamado
           </button>
           <button type="button" className={acao === 'encerrar' ? 'cc-painel__acao--ativa' : ''} onClick={() => abrir('encerrar')}>
-            <i className="ri-close-circle-line" /> Encerrar
+            <i className="ti ti-circle-x" /> Encerrar
           </button>
 
           {acao === 'transferir' && (

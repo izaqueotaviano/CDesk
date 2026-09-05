@@ -12,15 +12,15 @@ import './sidebar.scss'
 type Item = { id: string; label: string; icon: string; route: string; enabled: boolean }
 
 const NAV: Item[] = [
-  { id: 'inicio', label: 'Início', icon: 'ri-home-5-line', route: '/inicio', enabled: true },
-  { id: 'tickets', label: 'Tickets', icon: 'ri-ticket-2-line', route: '/chamados', enabled: true },
-  { id: 'kanban', label: 'Quadro', icon: 'ri-layout-grid-line', route: '/quadro', enabled: true },
-  { id: 'chat', label: 'Chats', icon: 'ri-chat-3-line', route: '/chat', enabled: true },
-  { id: 'clientes', label: 'Clientes', icon: 'ri-group-line', route: '/empresas', enabled: false },
-  { id: 'config', label: 'Configurações', icon: 'ri-settings-3-line', route: '/admin', enabled: false },
-  { id: 'relatorios', label: 'Relatórios', icon: 'ri-bar-chart-2-line', route: '/relatorios', enabled: false },
-  { id: 'calendario', label: 'Calendário', icon: 'ri-calendar-line', route: '/calendario', enabled: false },
-  { id: 'notas', label: 'Notas', icon: 'ri-sticky-note-line', route: '/notas', enabled: false },
+  { id: 'inicio', label: 'Início', icon: 'ti ti-home', route: '/inicio', enabled: true },
+  { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
+  { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
+  { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
+  { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/empresas', enabled: false },
+  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/admin', enabled: false },
+  { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: false },
+  { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },
+  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: false },
 ]
 
 export function Sidebar() {

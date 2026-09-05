@@ -38,7 +38,7 @@ export function PaginaDetalheTicket() {
 
       {isError ? (
         <div className="detalhe__estado detalhe__estado--erro">
-          <i className="ri-error-warning-line" />
+          <i className="ti ti-alert-triangle" />
           <p>
             {error instanceof ApiError && error.status === 404
               ? 'Ticket não encontrado ou sem acesso.'
@@ -47,7 +47,7 @@ export function PaginaDetalheTicket() {
         </div>
       ) : isLoading || !ticket ? (
         <div className="detalhe__estado">
-          <i className="ri-loader-4-line detalhe__spin" />
+          <i className="ti ti-loader-2 detalhe__spin" />
           <p>Carregando ticket…</p>
         </div>
       ) : (

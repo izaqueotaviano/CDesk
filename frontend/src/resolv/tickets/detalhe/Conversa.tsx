@@ -21,10 +21,10 @@ function haQuanto(iso: string): string {
 }
 
 const ICONE_CANAL: Record<string, string> = {
-  web: 'ri-mail-line',
-  chat: 'ri-chat-3-line',
-  internal: 'ri-lock-line',
-  system: 'ri-robot-2-line',
+  web: 'ti ti-mail',
+  chat: 'ti ti-message-circle-2',
+  internal: 'ti ti-lock',
+  system: 'ti ti-robot',
 }
 const ROTULO_CANAL: Record<string, string> = {
   web: 'Pelo e-mail',
@@ -53,7 +53,7 @@ function Bolha({ msg }: { msg: Mensagem }) {
       <div className="conversa__msg-corpo">
         <div className="conversa__msg-meta">
           <span className="conversa__msg-autor">{msg.author_name}</span>
-          <i className={ICONE_CANAL[msg.source] ?? 'ri-mail-line'} />
+          <i className={ICONE_CANAL[msg.source] ?? 'ti ti-mail'} />
           <span className="conversa__msg-sep">·</span>
           <span className="conversa__msg-tempo">{haQuanto(msg.created_at)}</span>
           {interno && <span className="conversa__msg-tag-interna">Nota interna</span>}
@@ -73,7 +73,7 @@ function Bolha({ msg }: { msg: Mensagem }) {
           <div className="conversa__anexos">
             {msg.attachments.map((a) => (
               <span key={a.id} className="conversa__anexo">
-                <i className="ri-attachment-2" />
+                <i className="ti ti-paperclip" />
                 {a.filename}
               </span>
             ))}
@@ -136,7 +136,7 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
       <header className="conversa__header">
         <div className="conversa__titulo-bloco">
           <h1 className="conversa__titulo">
-            {ticket.is_restricted && <i className="ri-lock-line" />}
+            {ticket.is_restricted && <i className="ti ti-lock" />}
             {ticket.subject}
           </h1>
           <div className="conversa__sub">
@@ -146,16 +146,16 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
               </span>
             )}
             <span className="conversa__canal">
-              <i className={ICONE_CANAL[ticket.source] ?? 'ri-mail-line'} />
+              <i className={ICONE_CANAL[ticket.source] ?? 'ti ti-mail'} />
               {ROTULO_CANAL[ticket.source] ?? ticket.source}
             </span>
           </div>
         </div>
         <div className="conversa__acoes-header">
-          <button type="button" aria-label="Resumo"><i className="ri-list-check" /></button>
-          <button type="button" aria-label="Filtrar"><i className="ri-filter-3-line" /></button>
-          <button type="button" aria-label="Histórico"><i className="ri-history-line" /></button>
-          <button type="button" aria-label="Mais"><i className="ri-more-2-fill" /></button>
+          <button type="button" aria-label="Resumo"><i className="ti ti-list-check" /></button>
+          <button type="button" aria-label="Filtrar"><i className="ti ti-filter" /></button>
+          <button type="button" aria-label="Histórico"><i className="ti ti-history" /></button>
+          <button type="button" aria-label="Mais"><i className="ti ti-dots-vertical" /></button>
         </div>
       </header>
 
@@ -178,14 +178,14 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
               className={'conversa__seg' + (publico ? ' conversa__seg--on' : '')}
               onClick={() => setPublico(true)}
             >
-              <i className="ri-reply-line" /> Resposta pública
+              <i className="ti ti-arrow-back-up" /> Resposta pública
             </button>
             <button
               type="button"
               className={'conversa__seg' + (!publico ? ' conversa__seg--on' : '')}
               onClick={() => setPublico(false)}
             >
-              <i className="ri-sticky-note-line" /> Nota interna
+              <i className="ti ti-note" /> Nota interna
             </button>
           </div>
           <div className="conversa__para">
@@ -202,7 +202,7 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
 
         <div className="conversa__toolbar">
           <button type="button" aria-label="Anexar" onClick={() => inputAnexo.current?.click()}>
-            <i className="ri-attachment-2" />
+            <i className="ti ti-paperclip" />
           </button>
           <input
             ref={inputAnexo}
@@ -214,23 +214,23 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
               e.target.value = '' // permite re-selecionar o mesmo arquivo
             }}
           />
-          <button type="button" aria-label="Formatar"><i className="ri-text" /></button>
-          <button type="button" aria-label="Emoji"><i className="ri-emotion-happy-line" /></button>
-          <button type="button" aria-label="Link"><i className="ri-link" /></button>
+          <button type="button" aria-label="Formatar"><i className="ti ti-typography" /></button>
+          <button type="button" aria-label="Emoji"><i className="ti ti-mood-happy" /></button>
+          <button type="button" aria-label="Link"><i className="ti ti-link" /></button>
         </div>
 
         {anexos.length > 0 && (
           <div className="conversa__anexos-pend">
             {anexos.map((f, i) => (
               <span key={`${f.name}-${i}`} className="conversa__anexo-chip">
-                <i className="ri-attachment-2" />
+                <i className="ti ti-paperclip" />
                 {f.name}
                 <button
                   type="button"
                   aria-label={`Remover ${f.name}`}
                   onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}
                 >
-                  <i className="ri-close-line" />
+                  <i className="ti ti-x" />
                 </button>
               </span>
             ))}
@@ -240,7 +240,7 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
         <div className="conversa__composer-rodape">
           {/* Aplicar macro: preenche o texto pronto (macro.body) no compositor */}
           <div className="conversa__macro">
-            <i className="ri-flashlight-line" />
+            <i className="ti ti-bolt" />
             <select
               value=""
               onChange={(e) => {
@@ -280,7 +280,7 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
                   aria-label="Escolher status"
                   onClick={() => setAbrirStatus((v) => !v)}
                 >
-                  <i className="ri-arrow-down-s-line" />
+                  <i className="ti ti-chevron-down" />
                 </button>
                 {abrirStatus && (
                   <ul className="conversa__enviar-menu">
