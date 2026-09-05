@@ -17,6 +17,8 @@ import { PaginaNovoTicket as PaginaNovoTicketCliente } from '@/portal/tickets/Pa
 import { PaginaTicket as PaginaTicketCliente } from '@/portal/tickets/PaginaTicket'
 import { PaginaTickets as PaginaTicketsCliente } from '@/portal/tickets/PaginaTickets'
 import { PaginaChat as PaginaChatCliente } from '@/portal/chat/PaginaChat'
+import { PaginaAjuda } from '@/portal/ajuda/PaginaAjuda'
+import { PaginaArtigo } from '@/portal/ajuda/PaginaArtigo'
 import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
@@ -187,17 +189,15 @@ export const router = createBrowserRouter([
           { path: 'tickets/novo', element: <PaginaNovoTicketCliente /> },
           { path: 'tickets/:id', element: <PaginaTicketCliente /> },
           { path: 'chat', element: <PaginaChatCliente /> },
-          {
-            path: 'ajuda',
-            element: <PaginaEmBreve titulo="Central de Ajuda" descricao="Artigos e tutoriais vindos do WordPress — a busca e as categorias chegam na próxima etapa." />,
-          },
+          { path: 'ajuda', element: <PaginaAjuda /> },
+          { path: 'ajuda/:id', element: <PaginaArtigo /> },
           {
             path: 'historico',
-            element: <PaginaEmBreve titulo="Histórico" descricao="Todos os seus atendimentos, tickets e chats, com as avaliações — chega na etapa do Chat." />,
+            element: <PaginaEmBreve titulo="Histórico" descricao="Todos os seus atendimentos, tickets e chats, com as avaliações — é a próxima etapa." />,
           },
           {
             path: 'configuracoes',
-            element: <PaginaEmBreve titulo="Configurações" descricao="Dados pessoais e da empresa, notificações por e-mail, tema e senha — chega na última etapa." />,
+            element: <PaginaEmBreve titulo="Configurações" descricao="Dados pessoais e da empresa, notificações por e-mail, tema e senha — chega na etapa final." />,
           },
         ],
       },

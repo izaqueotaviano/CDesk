@@ -499,7 +499,11 @@ class TestNotificationPreferences:
         client = api(agente)
         data = client.get("/api/v1/notification-preferences/").json()
         assert data["in_app"]["sla_warning"] is True
-        assert data["email"]["sla_warning"] is False
+        # E-mail também começa LIGADO: quem nunca abriu esta tela recebe os
+        # avisos, e é o que `services.quer_email()` sempre fez. A tela dizia
+        # "desligado" e o serviço mandava assim mesmo — a paridade dos dois
+        # defaults está travada em `notifications.TestPreferenciaPadrao`.
+        assert data["email"]["sla_warning"] is True
 
         resp = client.put("/api/v1/notification-preferences/",
                           {"in_app": {"sla_warning": False}}, format="json")

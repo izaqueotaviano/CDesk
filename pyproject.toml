@@ -25,6 +25,7 @@ dependencies = [
     "Pillow>=10.4",
     "python-magic>=0.4.27",
     "requests>=2.31",  # cliente HTTP da sincronização com a Central de Ajuda (WordPress)
+    "nh3>=0.2",  # higieniza o HTML que vem do WordPress antes de ele virar tela
     "uvicorn[standard]>=0.30",
     "gunicorn>=22.0",
     # segurança
