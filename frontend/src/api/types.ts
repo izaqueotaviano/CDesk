@@ -32,10 +32,15 @@ export interface Me {
   ticket_scope: string
   custom_role_name: string
   avatar_url: string
+  /** Cargo e telefone — o que a pessoa edita em Configurações. */
+  job_title: string
+  phone: string
   ui_density: UiDensity
   /** Texto livre (o backend guarda cru, sem formato). Nunca é anexado
    *  automaticamente pelo servidor — quem concatena na resposta é o front. */
   signature: string
+  /** Só para cliente: uso da cota de chamados no período corrente. */
+  quota?: { used: number; limit: number | null; period_start: string; period_end: string }
 }
 
 /** Resposta do passo 1 do login (docs/10-frontend-novo.md §"Autenticação"). */

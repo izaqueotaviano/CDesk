@@ -7,6 +7,7 @@ import { useAvisosSonoros } from '@/realtime/useAvisosSonoros'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
 import { usePrefs, type Tema } from '@/stores/prefs'
 import { Avatar } from '@/ui/Avatar'
+import { urlDoAvatar } from '../api/conta'
 import { cn } from '../lib/cn'
 import { Button } from '../ui/button'
 import { Toaster } from '../ui/toaster'
@@ -81,7 +82,7 @@ function Sidebar({ me }: { me: Me | undefined }) {
       <div className="flex items-center gap-2 border-t border-divisoria p-3">
         {me && (
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <Avatar nome={me.full_name} urlFoto={me.avatar_url} tamanho="md" />
+            <Avatar nome={me.full_name} urlFoto={urlDoAvatar(me.avatar_url)} tamanho="md" />
             <span className="min-w-0">
               <span className="block truncate text-pequeno font-medio">{me.full_name}</span>
               <span className="block truncate text-legenda text-tinta-secundaria">{me.email}</span>
@@ -110,7 +111,7 @@ function TopoCelular({ me }: { me: Me | undefined }) {
       <Marca me={me} />
       <div className="flex items-center gap-1">
         <AlternarTema />
-        {me && <Avatar nome={me.full_name} urlFoto={me.avatar_url} tamanho="sm" />}
+        {me && <Avatar nome={me.full_name} urlFoto={urlDoAvatar(me.avatar_url)} tamanho="sm" />}
       </div>
     </header>
   )

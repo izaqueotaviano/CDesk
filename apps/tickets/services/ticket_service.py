@@ -113,6 +113,7 @@ def create_ticket(
 
         sla.apply_sla(ticket)
         _email_support_about_new_ticket(ticket)
+        _email_requester_about_new_ticket(ticket)
         # o aviso in-app sai DEPOIS do commit: ele empurra pelo WebSocket, e
         # empurrar de dentro da transação avisaria de um chamado que a cota
         # ainda pode desfazer
@@ -182,6 +183,106 @@ def _email_support_about_new_ticket(ticket: Ticket) -> None:
         ticket=ticket,
         dedupe_key=f"new-ticket-{ticket.pk}",
     )
+
+
+def _portal_link(caminho: str) -> str:
+    """Endereço absoluto no Painel do Cliente — e-mail precisa de link inteiro."""
+    from django.conf import settings
+
+    return f"{settings.SITE_URL}{caminho}"
+
+
+def _email_requester_about_new_ticket(ticket: Ticket) -> None:
+    """Confirmação de abertura para o CLIENTE.
+
+    A regra do portal é avisar por e-mail da abertura ao encerramento; até
+    aqui o cliente só recebia e-mail de resposta. Sai sob TICKET_CREATED —
+    o mesmo tipo que avisa a equipe in-app —, porque do lado do cliente
+    esse tipo significa exatamente "meu chamado foi aberto", e é o que ele
+    liga ou desliga em Configurações. Só e-mail: aviso in-app do próprio
+    chamado seria ruído (ele acabou de abrir).
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import quer_email, queue_email
+
+    requester = ticket.requester
+    if requester is None or requester.is_internal or not requester.email:
+        return
+    if not quer_email(requester, NotificationKind.TICKET_CREATED):
+        return
+    queue_email(
+        to=requester.email,
+        subject=f"Recebemos seu chamado {ticket.reference}",
+        template="ticket_opened",
+        context={
+            "requester_name": requester.full_name,
+            "reference": ticket.reference,
+            "subject": ticket.subject,
+            "team": ticket.team.name,
+            "link": _portal_link(f"/portal/tickets/{ticket.pk}"),
+        },
+        ticket=ticket,
+        dedupe_key=f"ticket-opened-{ticket.pk}",
+    )
+
+
+def _notify_requester_closed(ticket_pk, *, automatic: bool) -> None:
+    """Avisa o CLIENTE que o chamado terminou — resolvido pelo suporte ou
+    fechado por falta de retorno.
+
+    Roda DEPOIS do commit, pelo mesmo motivo da pesquisa de satisfação: um
+    aviso de fechamento que depois é desfeito é pior que aviso nenhum. Os
+    dois desfechos saem sob TICKET_CLOSED (um interruptor só em
+    Configurações: "encerramento de chamado"), cada canal respeitando a
+    própria preferência. O texto muda: resolvido convida a avaliar e lembra
+    que responder reabre; fechado automaticamente orienta a abrir outro
+    (fechamento automático não reabre — ver `auto_close_stale_pending`).
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import notify, quer_email, queue_email
+
+    try:
+        ticket = Ticket.objects.select_related("requester").get(pk=ticket_pk)
+        requester = ticket.requester
+        if requester is None or requester.is_internal:
+            return
+        if automatic:
+            titulo = f"Chamado {ticket.reference} encerrado por falta de retorno"
+            corpo = (
+                "Ficou aguardando seu retorno além do prazo. "
+                "Precisa de ajuda? Abra um novo chamado."
+            )
+            template = "ticket_auto_closed"
+        else:
+            titulo = f"Seu chamado {ticket.reference} foi resolvido"
+            corpo = "Se puder, avalie o atendimento. Responder ao chamado reabre."
+            template = "ticket_resolved"
+        notify(
+            recipient=requester,
+            kind=NotificationKind.TICKET_CLOSED,
+            title=titulo,
+            body=corpo,
+            url=f"/portal/tickets/{ticket.pk}",
+            ticket=ticket,
+        )
+        if requester.email and quer_email(requester, NotificationKind.TICKET_CLOSED):
+            marca = f"{ticket.closed_at:%Y%m%d%H%M%S}" if ticket.closed_at else "sem-data"
+            queue_email(
+                to=requester.email,
+                subject=titulo,
+                template=template,
+                context={
+                    "requester_name": requester.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": _portal_link(f"/portal/tickets/{ticket.pk}"),
+                },
+                ticket=ticket,
+                # reaberto e fechado de novo é outro desfecho: outro e-mail
+                dedupe_key=f"ticket-closed-{ticket.pk}-{marca}",
+            )
+    except Exception:  # noqa: BLE001 — aviso não derruba o fechamento já commitado
+        logger.exception("Falha ao avisar o cliente do fechamento do ticket %s", ticket_pk)
 
 
 def create_from_chat(*, chat, team, actor=None, subject=None, auto=False):
@@ -853,6 +954,7 @@ def close_ticket(
         # idem para a franquia de horas: a soma tem de enxergar ESTE
         # fechamento já commitado, senão o mês fecha um chamado atrasado
         transaction.on_commit(lambda: _check_maintenance_overage(ticket.pk, actor.pk))
+        transaction.on_commit(lambda: _notify_requester_closed(ticket.pk, automatic=False))
     from apps.notifications.services import broadcast_ticket_event
 
     broadcast_ticket_event(ticket=ticket, kind="closed", actor=actor)
@@ -1062,6 +1164,9 @@ def auto_close_stale_pending() -> int:
             )
             transaction.on_commit(
                 lambda p=ticket.pk: _open_satisfaction_survey(p)
+            )
+            transaction.on_commit(
+                lambda p=ticket.pk: _notify_requester_closed(p, automatic=True)
             )
         fechados += 1
     return fechados

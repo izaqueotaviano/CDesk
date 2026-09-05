@@ -62,7 +62,7 @@ from apps.core.views import (
     SystemConfigView,
 )
 from apps.customers.admin_api import CompanyAdminViewSet, PlanAdminViewSet
-from apps.customers.views import CompanyViewSet, MaintenanceView, QuotaView
+from apps.customers.views import CompanyViewSet, MaintenanceView, MyCompanyView, QuotaView
 from apps.kanban.views import BoardLaneViewSet, BoardViewSet
 from apps.knowledge.views import ArticleViewSet
 from apps.notifications.views import NotificationPreferenceView, NotificationViewSet
@@ -158,6 +158,8 @@ urlpatterns = router.urls + [
     path("me/sessions/<str:key>/", MySessionRevokeView.as_view(), name="my-session-revoke"),
     path("me/access-history/", MyAccessHistoryView.as_view(), name="my-access-history"),
     path("me/presence/", MyPresenceView.as_view(), name="my-presence"),
+    # a empresa do próprio cliente (Configurações → Empresa, no portal)
+    path("me/company/", MyCompanyView.as_view(), name="my-company"),
     path("quota/", QuotaView.as_view(), name="quota"),
     path("maintenance/", MaintenanceView.as_view(), name="maintenance"),
     path("settings/system/", SystemConfigView.as_view(), name="cfg-system"),

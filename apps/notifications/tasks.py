@@ -43,6 +43,44 @@ EMAIL_TEMPLATES = {
         "Acesse o portal de suporte para acompanhar o andamento.\n"
         "Este e-mail não recebe respostas."
     ),
+    # --- ciclo de vida visto pelo cliente (Painel do Cliente) -------------
+    # A regra do portal é "e-mail da abertura ao encerramento do chamado, e
+    # ao fim do chat". Cada um respeita a preferência da conta
+    # (`quer_email`): abertura sob TICKET_CREATED, os dois desfechos sob
+    # TICKET_CLOSED e o chat sob CHAT_CLOSED.
+    "ticket_opened": (
+        "Olá, {requester_name}.\n\n"
+        "Recebemos seu chamado {reference} — {subject}.\n\n"
+        "Equipe responsável: {team}. Você recebe um e-mail a cada resposta "
+        "do suporte, e pode acompanhar tudo pelo portal:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "ticket_resolved": (
+        "Olá, {requester_name}.\n\n"
+        "O chamado {reference} — {subject} foi resolvido pelo suporte.\n\n"
+        "Se ainda precisar de algo sobre este assunto, é só responder ao "
+        "chamado pelo portal — ele reabre. E, se puder, avalie o "
+        "atendimento: leva menos de um minuto.\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "ticket_auto_closed": (
+        "Olá, {requester_name}.\n\n"
+        "O chamado {reference} — {subject} foi encerrado automaticamente "
+        "porque ficou aguardando o seu retorno por mais tempo que o "
+        "combinado.\n\n"
+        "Se ainda precisar de ajuda, abra um novo chamado pelo portal:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "chat_closed": (
+        "Olá, {client_name}.\n\n"
+        "Sua conversa por chat{com_agente} foi encerrada.\n\n"
+        "{proximo_passo}\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
     "twofa_reset_by_admin": (
         "Olá, {full_name}.\n\n"
         "Um administrador desativou a verificação em duas etapas da sua "

@@ -31,15 +31,16 @@ class TestNewTicketEmail:
         settings.SUPPORT_NOTIFICATION_EMAIL = "suporte@empresa.test"
         ticket = _ticket(ana, suporte, subject="Site caiu")
 
-        row = OutboundEmail.objects.get(ticket=ticket)
+        # dois e-mails por abertura: o aviso ao suporte (este) e a
+        # confirmação ao cliente (`test_ciclo_de_vida_cliente`)
+        row = OutboundEmail.objects.get(ticket=ticket, template="new_ticket")
         assert row.status == OutboundEmail.Status.SENT  # task eager pós-commit
         assert row.dedupe_key == f"new-ticket-{ticket.pk}"
 
-        assert len(mail.outbox) == 1
-        sent = mail.outbox[0]
+        assert len(mail.outbox) == 2
+        sent = next(m for m in mail.outbox if m.to == ["suporte@empresa.test"])
         assert ticket.reference in sent.subject
         assert "Site caiu" in sent.subject
-        assert sent.to == ["suporte@empresa.test"]
         assert "não recebe respostas" in sent.body  # e-mail é só aviso, de propósito
 
     def test_team_email_overrides_global(self, ana, suporte, settings):
@@ -47,13 +48,15 @@ class TestNewTicketEmail:
         suporte.notification_email = "fila.suporte@empresa.test"
         suporte.save(update_fields=["notification_email"])
         _ticket(ana, suporte)
-        assert mail.outbox[0].to == ["fila.suporte@empresa.test"]
+        destinos = [m.to for m in mail.outbox]
+        assert ["fila.suporte@empresa.test"] in destinos
+        assert ["suporte@empresa.test"] not in destinos
 
     def test_no_email_configured_no_crash(self, ana, suporte, settings):
         settings.SUPPORT_NOTIFICATION_EMAIL = ""
         ticket = _ticket(ana, suporte)
         assert ticket.pk  # criação segue normal
-        assert OutboundEmail.objects.count() == 0
+        assert not OutboundEmail.objects.filter(template="new_ticket").exists()
 
 
 @pytest.mark.django_db

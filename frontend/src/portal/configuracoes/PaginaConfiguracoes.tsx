@@ -1,0 +1,70 @@
+import { Building2, KeyRound, Mail, Palette, UserRound, type LucideIcon } from 'lucide-react'
+import { SecaoAparencia } from './SecaoAparencia'
+import { SecaoEmpresa } from './SecaoEmpresa'
+import { SecaoNotificacoes } from './SecaoNotificacoes'
+import { SecaoPerfil } from './SecaoPerfil'
+import { SecaoSenha } from './SecaoSenha'
+
+const SECOES: { id: string; rotulo: string; icone: LucideIcon }[] = [
+  { id: 'perfil', rotulo: 'Dados pessoais', icone: UserRound },
+  { id: 'empresa', rotulo: 'Empresa', icone: Building2 },
+  { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: Mail },
+  { id: 'aparencia', rotulo: 'Aparência', icone: Palette },
+  { id: 'senha', rotulo: 'Senha', icone: KeyRound },
+]
+
+/**
+ * Configurações do Painel do Cliente: a conta, a empresa, os avisos por
+ * e-mail, o tema e a senha — cinco blocos numa página só, com um menu de
+ * âncoras (lateral no desktop, em fita no celular). Cada bloco salva por
+ * conta própria: mudar o tema não obriga a "salvar" a senha.
+ */
+export function PaginaConfiguracoes() {
+  return (
+    <div className="flex flex-col gap-6">
+      <header>
+        <h1 className="text-titulo-lg font-forte tracking-display">Configurações</h1>
+        <p className="mt-1 text-pequeno text-tinta-secundaria">Sua conta, sua empresa e como o suporte fala com você.</p>
+      </header>
+
+      <nav aria-label="Seções" className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:hidden">
+        {SECOES.map((s) => (
+          <a
+            key={s.id}
+            href={`#${s.id}`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-total border border-divisoria bg-superficie px-3 py-1.5 text-pequeno font-medio text-tinta-secundaria hover:border-borda-controle hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+          >
+            <s.icone className="size-3.5" aria-hidden="true" />
+            {s.rotulo}
+          </a>
+        ))}
+      </nav>
+
+      <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <nav aria-label="Seções" className="hidden lg:block">
+          <ul className="sticky top-6 flex flex-col gap-1">
+            {SECOES.map((s) => (
+              <li key={s.id}>
+                <a
+                  href={`#${s.id}`}
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-pequeno font-medio text-tinta-secundaria hover:bg-navegacao hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+                >
+                  <s.icone className="size-4" aria-hidden="true" />
+                  {s.rotulo}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div className="flex min-w-0 flex-col gap-6">
+          <SecaoPerfil />
+          <SecaoEmpresa />
+          <SecaoNotificacoes />
+          <SecaoAparencia />
+          <SecaoSenha />
+        </div>
+      </div>
+    </div>
+  )
+}

@@ -11,7 +11,6 @@ import { PaginaInicio } from '@/features/tickets/PaginaInicio'
 import { PaginaListaTickets } from '@/features/tickets/PaginaListaTickets'
 import { AppShell } from '@/layouts/AppShell'
 import { PortalShell } from '@/portal/shell/PortalShell'
-import { PaginaEmBreve } from '@/portal/PaginaEmBreve'
 import { PaginaInicio as PaginaInicioCliente } from '@/portal/inicio/PaginaInicio'
 import { PaginaNovoTicket as PaginaNovoTicketCliente } from '@/portal/tickets/PaginaNovoTicket'
 import { PaginaTicket as PaginaTicketCliente } from '@/portal/tickets/PaginaTicket'
@@ -19,6 +18,8 @@ import { PaginaTickets as PaginaTicketsCliente } from '@/portal/tickets/PaginaTi
 import { PaginaChat as PaginaChatCliente } from '@/portal/chat/PaginaChat'
 import { PaginaAjuda } from '@/portal/ajuda/PaginaAjuda'
 import { PaginaArtigo } from '@/portal/ajuda/PaginaArtigo'
+import { PaginaHistorico } from '@/portal/historico/PaginaHistorico'
+import { PaginaConfiguracoes as PaginaConfiguracoesCliente } from '@/portal/configuracoes/PaginaConfiguracoes'
 import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
@@ -182,7 +183,7 @@ export const router = createBrowserRouter([
           </RotaProtegida>
         ),
         // Painel do Cliente (src/portal): Início, Tickets, Chat, Central de
-        // Ajuda, Histórico e Configurações. As três últimas entram por etapa.
+        // Ajuda, Histórico e Configurações.
         children: [
           { index: true, element: <PaginaInicioCliente /> },
           { path: 'tickets', element: <PaginaTicketsCliente /> },
@@ -191,14 +192,8 @@ export const router = createBrowserRouter([
           { path: 'chat', element: <PaginaChatCliente /> },
           { path: 'ajuda', element: <PaginaAjuda /> },
           { path: 'ajuda/:id', element: <PaginaArtigo /> },
-          {
-            path: 'historico',
-            element: <PaginaEmBreve titulo="Histórico" descricao="Todos os seus atendimentos, tickets e chats, com as avaliações — é a próxima etapa." />,
-          },
-          {
-            path: 'configuracoes',
-            element: <PaginaEmBreve titulo="Configurações" descricao="Dados pessoais e da empresa, notificações por e-mail, tema e senha — chega na etapa final." />,
-          },
+          { path: 'historico', element: <PaginaHistorico /> },
+          { path: 'configuracoes', element: <PaginaConfiguracoesCliente /> },
         ],
       },
     ],

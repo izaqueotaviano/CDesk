@@ -12,6 +12,7 @@ verdade; o WebSocket transporta o que o banco já registrou.
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import re
 
 from asgiref.sync import async_to_sync
@@ -28,6 +29,8 @@ from apps.chat.models import (
     ChatMessage,
     ChatStatus,
 )
+
+logger = logging.getLogger(__name__)
 
 GRUPO_AGENTES = "chat_agentes"  # todo interno conectado escuta a fila aqui
 
@@ -477,9 +480,65 @@ def close_chat(*, chat: Chat, actor, agent_score: int | None = None) -> Chat:
             campos.append("agent_score")
         chat.save(update_fields=campos)
         ChatMessage.objects.create(chat=chat, is_system=True, body="Conversa encerrada.")
+        transaction.on_commit(lambda: _notify_client_closed(chat.pk))
     _sala(chat.pk, {"type": "chat.closed", "by_internal": actor.is_internal})
     _agentes({"type": "chat.taken", "chat_id": chat.pk, "agent_id": 0})  # some da fila
     return chat
+
+
+def _notify_client_closed(chat_pk: int) -> None:
+    """Avisa o CLIENTE que a conversa terminou — quem encerrou não importa.
+
+    O que a pessoa precisa saber é o que vem depois: a avaliação ficou
+    pendente (e é ela que libera o próximo chat), ou onde reler a conversa.
+    Sai sob CHAT_CLOSED, cada canal com a própria preferência da conta —
+    é o interruptor "chat encerrado" das Configurações do portal. Conversão
+    em ticket não passa por aqui: ela fecha o chat direto e tem o próprio
+    aviso (`chat_converted`). Depois do commit, como todo aviso: um
+    encerramento desfeito não pode ter sido anunciado.
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import notify, quer_email, queue_email
+
+    try:
+        chat = Chat.objects.select_related("client", "agent").get(pk=chat_pk)
+        client = chat.client
+        if client is None or client.is_internal:
+            return
+        com_agente = f" com {chat.agent.full_name}" if chat.agent else ""
+        pendente = chat.rating_pending
+        titulo = "Sua conversa por chat foi encerrada"
+        proximo_passo = (
+            "Avalie o atendimento pelo portal — é rápido, e é o que libera o próximo chat."
+            if pendente
+            else "A conversa continua disponível para leitura no portal."
+        )
+        notify(
+            recipient=client,
+            kind=NotificationKind.CHAT_CLOSED,
+            title=titulo,
+            body=proximo_passo,
+            url=f"/portal/chat?chat={chat.pk}",
+        )
+        if client.email and quer_email(client, NotificationKind.CHAT_CLOSED):
+            from django.conf import settings
+
+            marca = f"{chat.closed_at:%Y%m%d%H%M%S}" if chat.closed_at else "sem-data"
+            queue_email(
+                to=client.email,
+                subject=titulo,
+                template="chat_closed",
+                context={
+                    "client_name": client.full_name,
+                    "com_agente": com_agente,
+                    "proximo_passo": proximo_passo,
+                    "link": f"{settings.SITE_URL}/portal/chat?chat={chat.pk}",
+                },
+                # reaberto e encerrado de novo é outro atendimento: outro e-mail
+                dedupe_key=f"chat-closed-{chat.pk}-{marca}",
+            )
+    except Exception:  # noqa: BLE001 — aviso não derruba o encerramento já commitado
+        logger.exception("Falha ao avisar o cliente do encerramento do chat %s", chat_pk)
 
 
 def reopen(*, chat: Chat, actor) -> Chat:

@@ -40,6 +40,18 @@ export function useAgora(): number {
   return agora
 }
 
+/** "12 min", "1 h 05", "2 d" — quanto durou algo entre dois instantes. */
+export function duracaoEntre(inicioIso: string | null | undefined, fimIso: string | null | undefined): string | null {
+  if (!inicioIso || !fimIso) return null
+  const min = Math.round((new Date(fimIso).getTime() - new Date(inicioIso).getTime()) / 60_000)
+  if (min < 0) return null
+  if (min < 1) return 'menos de 1 min'
+  if (min < 60) return `${min} min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `${h} h ${String(min % 60).padStart(2, '0')}`
+  return `${Math.floor(h / 24)} d`
+}
+
 export function tamanhoArquivo(bytes?: number): string {
   if (!bytes && bytes !== 0) return ''
   if (bytes < 1024) return `${bytes} B`
