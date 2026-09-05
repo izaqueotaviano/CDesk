@@ -3,16 +3,20 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
+from django.http import FileResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, viewsets
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import NotFound, ValidationError
+from rest_framework.parsers import MultiPartParser
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.models import AuditAction, AuditLog
+from apps.core import branding
 from apps.core.email_template import TEMPLATE_HTML_PADRAO
-from apps.core.models import BusinessCalendar, Holiday, SystemConfig
+from apps.core.models import BusinessCalendar, Holiday, LoginBranding, SystemConfig
 from apps.core.permissions import IsInternal, IsInternalReadAdminWrite
 
 
@@ -389,3 +393,151 @@ def csrf_recusado(request, reason=""):
         },
         status=403,
     )
+
+
+# --------------------------------------------------------------------------- #
+# Marca da tela de login (core/branding.py)
+
+
+class LoginBrandingSerializer(serializers.ModelSerializer):
+    """Os textos do painel. `image_url` aponta para a rota PÚBLICA da imagem,
+    com a data de alteração na query para o navegador trocar o cache."""
+
+    highlights = serializers.ListField(
+        child=serializers.CharField(max_length=160, allow_blank=False, trim_whitespace=True),
+        max_length=3, required=False,
+    )
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = LoginBranding
+        fields = [
+            "audience", "brand_name", "headline", "subtitle", "highlights",
+            "image_url", "updated_at",
+        ]
+        read_only_fields = ["audience", "updated_at"]
+
+    def get_image_url(self, obj) -> str | None:
+        if not obj.image_name:
+            return None
+        return f"/api/v1/branding/login-image/{obj.audience}/?v={int(obj.updated_at.timestamp())}"
+
+
+def _marca_publica() -> dict:
+    return {
+        audience: LoginBrandingSerializer(LoginBranding.for_audience(audience)).data
+        for audience in branding.AUDIENCIAS
+    }
+
+
+def _audiencia_ou_404(audience: str) -> str:
+    if audience not in branding.AUDIENCIAS:
+        raise NotFound("Público desconhecido.")
+    return audience
+
+
+@extend_schema(
+    responses=OpenApiTypes.OBJECT, description="Textos e imagem da tela de login. Público."
+)
+class LoginBrandingPublicView(APIView):
+    """A tela de login é anônima: quem lê isto ainda não entrou. Sem throttle
+    de anônimo — é uma leitura barata por carregamento de página, e um
+    escritório inteiro atrás do mesmo IP não pode ficar sem tela de login."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def get(self, request):
+        return Response(_marca_publica())
+
+
+@extend_schema(responses={(200, "image/jpeg"): OpenApiTypes.BINARY})
+class LoginBrandingImageView(APIView):
+    """Serve a imagem do painel. Pública, como a tela; sempre JPEG gerado
+    por nós (ver branding.py)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = []
+
+    def get(self, request, audience):
+        obj = LoginBranding.for_audience(_audiencia_ou_404(audience))
+        arquivo = branding.caminho_de(obj.image_name)
+        if arquivo is None:
+            raise NotFound
+        resposta = FileResponse(arquivo.open("rb"), content_type="image/jpeg")
+        resposta["Cache-Control"] = "public, max-age=3600"
+        return resposta
+
+
+def _auditar_marca(request, obj, resumo: str, changes: dict | None = None) -> None:
+    AuditLog.objects.create(
+        actor=request.user,
+        action=AuditAction.CONFIG_CHANGE,
+        content_type=ContentType.objects.get_for_model(LoginBranding),
+        object_id=str(obj.pk),
+        summary=resumo,
+        changes=changes or {},
+    )
+
+
+@extend_schema(request=LoginBrandingSerializer, responses=OpenApiTypes.OBJECT)
+class LoginBrandingAdminView(APIView):
+    """GET: os dois públicos + os padrões de fábrica (para "restaurar").
+    PUT /<audience>/: os textos. Interno lê, admin escreve."""
+
+    permission_classes = [IsInternalReadAdminWrite]
+
+    def get(self, request, audience=None):
+        if audience is not None:
+            obj = LoginBranding.for_audience(_audiencia_ou_404(audience))
+            return Response(LoginBrandingSerializer(obj).data)
+        return Response({**_marca_publica(), "defaults": branding.PADRAO})
+
+    def put(self, request, audience):
+        obj = LoginBranding.for_audience(_audiencia_ou_404(audience))
+        ser = LoginBrandingSerializer(obj, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        _auditar_marca(
+            request, obj, f"Tela de login ({obj.get_audience_display()}) alterada",
+            {k: str(v) for k, v in request.data.items()},
+        )
+        return Response(LoginBrandingSerializer(obj).data)
+
+
+@extend_schema(request=None, responses=OpenApiTypes.OBJECT)
+class LoginBrandingImageAdminView(APIView):
+    """POST: envia a imagem do painel (multipart, campo `file`). DELETE: volta
+    ao painel azul."""
+
+    permission_classes = [IsInternalReadAdminWrite]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request, audience):
+        obj = LoginBranding.for_audience(_audiencia_ou_404(audience))
+        enviado = request.FILES.get("file")
+        if enviado is None:
+            raise ValidationError({"file": "Nenhum arquivo enviado."})
+        try:
+            nome = branding.guardar_imagem(enviado)
+        except branding.ImagemInvalida as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+        branding.apagar_imagem(obj.image_name)
+        obj.image_name = nome
+        obj.save(update_fields=["image_name", "updated_at"])
+        _auditar_marca(
+            request, obj, f"Imagem da tela de login ({obj.get_audience_display()}) trocada"
+        )
+        return Response(LoginBrandingSerializer(obj).data)
+
+    def delete(self, request, audience):
+        obj = LoginBranding.for_audience(_audiencia_ou_404(audience))
+        branding.apagar_imagem(obj.image_name)
+        obj.image_name = ""
+        obj.save(update_fields=["image_name", "updated_at"])
+        _auditar_marca(
+            request, obj, f"Imagem da tela de login ({obj.get_audience_display()}) removida"
+        )
+        return Response(LoginBrandingSerializer(obj).data)

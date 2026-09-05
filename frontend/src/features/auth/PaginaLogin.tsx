@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { ArrowLeft, Eye, EyeOff, Headset, LifeBuoy, MailCheck, ShieldCheck, Smartphone, Ticket, type LucideIcon } from 'lucide-react'
 import { useConfirmar2fa, useReenviar2fa } from '@/api/mutations/use2fa'
 import { precisaDeCodigo, useLogin } from '@/api/mutations/useLogin'
+import { MARCA_PADRAO, urlDaImagemDeMarca, useMarcaLogin, type MarcaLogin, type PublicoLogin } from '@/api/branding'
 import { ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
 import { cn } from '@/portal/lib/cn'
@@ -23,45 +24,38 @@ type Credenciais = z.infer<typeof esquemaCredenciais>
 
 const REENVIO_SEGUNDOS = 30
 
-/** A tela é uma só; o que muda é para quem ela fala. */
+/** O que é fixo por público: título, ícones dos destaques e o atalho para o
+ *  outro público. Os textos e a imagem do painel vêm da marca configurada
+ *  pelo admin (Configurações → Tela de login). */
 interface Contexto {
-  publico: 'cliente' | 'equipe'
+  publico: PublicoLogin
   titulo: string
-  marca: string
   subtitulo: string
-  chamada: string
-  destaques: { icone: LucideIcon; texto: string }[]
+  icones: LucideIcon[]
+  placeholderEmail: string
   outroPublico: { pergunta: string; acao: string; rota: string }
 }
 
-const CONTEXTOS: Record<Contexto['publico'], Contexto> = {
+const CONTEXTOS: Record<PublicoLogin, Contexto> = {
   cliente: {
     publico: 'cliente',
-    marca: 'Central de Suporte',
     titulo: 'Entrar no portal',
     subtitulo: 'Acompanhe seus chamados, fale com a equipe e avalie o atendimento.',
-    chamada: 'Seu suporte, no seu tempo.',
-    destaques: [
-      { icone: Ticket, texto: 'Abra chamados e acompanhe cada resposta, com prazo à vista.' },
-      { icone: Headset, texto: 'Converse por chat com quem atende, no horário de atendimento.' },
-      { icone: LifeBuoy, texto: 'Resolva sozinho com a Central de Ajuda, a qualquer hora.' },
-    ],
+    icones: [Ticket, Headset, LifeBuoy],
+    placeholderEmail: 'voce@suaempresa.com.br',
     outroPublico: { pergunta: 'É da equipe de suporte?', acao: 'Entrar no painel', rota: '/login' },
   },
   equipe: {
     publico: 'equipe',
-    marca: 'Resolv',
     titulo: 'Entrar no painel',
     subtitulo: 'A fila, o chat e os indicadores da equipe.',
-    chamada: 'Tudo que a equipe precisa, num lugar só.',
-    destaques: [
-      { icone: Ticket, texto: 'Fila de chamados com SLA, triagem e quadro por etapa.' },
-      { icone: Headset, texto: 'Chat em tempo real com transferência e conversão em chamado.' },
-      { icone: ShieldCheck, texto: 'Auditoria, LGPD e verificação em duas etapas por conta.' },
-    ],
+    icones: [Ticket, Headset, ShieldCheck],
+    placeholderEmail: 'voce@empresa.com.br',
     outroPublico: { pergunta: 'É cliente?', acao: 'Acessar o portal', rota: '/login/cliente' },
   },
 }
+
+type Marca = Omit<MarcaLogin, 'audience' | 'updated_at'>
 
 /** Mensagem que a pessoa consegue agir em cima — não o texto cru do DRF. */
 function mensagemDeErro(e: unknown): string {
@@ -82,14 +76,70 @@ function destinoDepoisDoLogin(me: Me, de: string | undefined): string {
   return de && de.startsWith('/portal') ? de : '/portal'
 }
 
-function Marca({ contexto, className }: { contexto: Contexto; className?: string }) {
+function Marca({ nome, className }: { nome: string; className?: string }) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-acento text-titulo-sm font-forte text-acento-sobre shadow-elevacao-1">
         r
       </span>
-      <span className="text-corpo-lg font-forte tracking-display text-tinta">{contexto.marca}</span>
+      <span className="text-corpo-lg font-forte tracking-display text-tinta">{nome}</span>
     </div>
+  )
+}
+
+/**
+ * O painel da marca (desktop): azul da casa, ou a imagem que o admin enviou
+ * com um degradê por baixo dos textos. Sem chamada nem destaques, a imagem
+ * fala sozinha.
+ */
+function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: LucideIcon[] }) {
+  const imagem = urlDaImagemDeMarca(marca?.image_url ?? null)
+  const temTexto = Boolean(marca && (marca.headline || marca.highlights.length > 0))
+  return (
+    <aside
+      className={cn(
+        'relative hidden flex-col justify-between overflow-hidden px-12 py-12 text-white lg:flex',
+        // azul fixo nos dois temas: é a marca, não a superfície — no escuro o
+        // token de acento vira azul-claro e o painel perderia o contraste
+        !imagem && 'bg-gradient-to-br from-[#1b63d6] to-[#0d3f96]',
+      )}
+      style={imagem ? { backgroundImage: `url("${imagem}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+      aria-hidden="true"
+    >
+      {imagem ? (
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-black/20" />
+      ) : (
+        <>
+          <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-total bg-white/10 blur-2xl" />
+          <div className="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-total bg-black/10 blur-3xl" />
+        </>
+      )}
+      <div className="relative flex items-center gap-3">
+        <span className="grid size-10 place-items-center rounded-xl bg-white/15 text-titulo-sm font-forte backdrop-blur">r</span>
+        <span className="text-corpo-lg font-forte tracking-display">{marca?.brand_name ?? ''}</span>
+      </div>
+      <div className="relative flex flex-col gap-8">
+        {marca && temTexto && (
+          <>
+            {marca.headline && <h2 className="max-w-md text-display font-forte leading-justa tracking-display">{marca.headline}</h2>}
+            <ul className="flex max-w-md flex-col gap-4">
+              {marca.highlights.map((texto, i) => {
+                const Icone = icones[i] ?? icones[icones.length - 1]
+                return (
+                  <li key={texto} className="flex items-start gap-3 text-corpo text-white/90">
+                    <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-white/15 backdrop-blur">
+                      <Icone className="size-4" />
+                    </span>
+                    {texto}
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        )}
+      </div>
+      <p className="relative text-legenda text-white/70">Resolv · sistema de atendimento</p>
+    </aside>
   )
 }
 
@@ -105,6 +155,11 @@ export function PaginaLogin() {
   const queryClient = useQueryClient()
   const contexto = CONTEXTOS[location.pathname.startsWith('/login/cliente') ? 'cliente' : 'equipe']
   const de = (location.state as { de?: string } | null)?.de
+  // textos e imagem do painel: do admin, ou o padrão se a API não responder;
+  // enquanto carrega, o painel fica sem texto para não piscar o padrão
+  const marcaQuery = useMarcaLogin()
+  const marca: Marca | null = marcaQuery.data ? marcaQuery.data[contexto.publico] : marcaQuery.isError ? MARCA_PADRAO[contexto.publico] : null
+  const nomeDaMarca = marca?.brand_name ?? MARCA_PADRAO[contexto.publico].brand_name
 
   const [passo, setPasso] = useState<'credenciais' | 'codigo'>('credenciais')
   const [metodo, setMetodo] = useState<'email' | 'totp'>('email')
@@ -187,35 +242,12 @@ export function PaginaLogin() {
     <div className="min-h-screen bg-canvas text-tinta">
       <div className="mx-auto grid min-h-screen w-full max-w-6xl lg:grid-cols-[1.1fr_1fr]">
         {/* ---------------------------------------------------- lado da marca */}
-        {/* azul fixo nos dois temas: é a marca, não a superfície — no escuro o
-            token de acento vira azul-claro e o painel perderia o contraste */}
-        <aside className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-[#1b63d6] to-[#0d3f96] px-12 py-12 text-white lg:flex" aria-hidden="true">
-          <div className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-total bg-white/10 blur-2xl" />
-          <div className="pointer-events-none absolute -bottom-32 -left-16 size-96 rounded-total bg-black/10 blur-3xl" />
-          <div className="relative flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded-xl bg-white/15 text-titulo-sm font-forte">r</span>
-            <span className="text-corpo-lg font-forte tracking-display">{contexto.marca}</span>
-          </div>
-          <div className="relative flex flex-col gap-8">
-            <h2 className="max-w-md text-display font-forte leading-justa tracking-display">{contexto.chamada}</h2>
-            <ul className="flex max-w-md flex-col gap-4">
-              {contexto.destaques.map((d) => (
-                <li key={d.texto} className="flex items-start gap-3 text-corpo text-white/90">
-                  <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-lg bg-white/15">
-                    <d.icone className="size-4" />
-                  </span>
-                  {d.texto}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="relative text-legenda text-white/70">Resolv · sistema de atendimento</p>
-        </aside>
+        <PainelDaMarca marca={marca} icones={contexto.icones} />
 
         {/* ------------------------------------------------------ formulário */}
         <main className="relative flex flex-col px-4 py-6 sm:px-8 lg:px-12 lg:py-10">
           <div className="flex items-center justify-between">
-            <Marca contexto={contexto} className="lg:invisible" />
+            <Marca nome={nomeDaMarca} className="lg:invisible" />
             <AlternarTema />
           </div>
 
@@ -242,7 +274,7 @@ export function PaginaLogin() {
                       autoComplete="username"
                       inputMode="email"
                       autoFocus
-                      placeholder={contexto.publico === 'cliente' ? 'voce@suaempresa.com.br' : 'voce@empresa.com.br'}
+                      placeholder={contexto.placeholderEmail}
                       aria-invalid={Boolean(form.formState.errors.email) || undefined}
                       aria-describedby={form.formState.errors.email ? `${idBase}-email-erro` : undefined}
                       {...form.register('email')}

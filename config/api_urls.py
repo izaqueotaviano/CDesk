@@ -59,6 +59,10 @@ from apps.core.views import (
     BusinessCalendarViewSet,
     GlobalSearchView,
     HolidayViewSet,
+    LoginBrandingAdminView,
+    LoginBrandingImageAdminView,
+    LoginBrandingImageView,
+    LoginBrandingPublicView,
     SystemConfigView,
     SystemTestEmailView,
 )
@@ -166,6 +170,17 @@ urlpatterns = router.urls + [
     path("settings/system/", SystemConfigView.as_view(), name="cfg-system"),
     path("settings/system/test-email/", SystemTestEmailView.as_view(),
          name="cfg-system-test-email"),
+    # a tela de login é anônima: os textos e a imagem do painel são públicos;
+    # a edição fica em settings/, como todo o resto que o admin configura
+    path("branding/login/", LoginBrandingPublicView.as_view(), name="branding-login"),
+    path("branding/login-image/<str:audience>/", LoginBrandingImageView.as_view(),
+         name="branding-login-image"),
+    path("settings/branding/login/", LoginBrandingAdminView.as_view(),
+         name="cfg-branding-login"),
+    path("settings/branding/login/<str:audience>/", LoginBrandingAdminView.as_view(),
+         name="cfg-branding-login-audience"),
+    path("settings/branding/login/<str:audience>/image/",
+         LoginBrandingImageAdminView.as_view(), name="cfg-branding-login-image"),
     path("search/", GlobalSearchView.as_view(), name="global-search"),
     # LGPD: self-service do titular e download do pacote de portabilidade
     path("me/data-requests/", MyDataRequestView.as_view(), name="my-data-requests"),

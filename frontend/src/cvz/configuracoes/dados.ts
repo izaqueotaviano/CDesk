@@ -583,3 +583,61 @@ export function useExcluirPalavraBanida() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-moderacao'] }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Tela de login (marca): textos e imagem do painel, por público. A leitura
+// pública é `@/api/branding`; aqui é a escrita do admin.
+// ---------------------------------------------------------------------------
+
+import type { MarcaLogin, MarcaLoginEscrita, PublicoLogin } from '@/api/branding'
+import { chaveMarcaLogin } from '@/api/branding'
+
+export interface MarcaLoginAdmin {
+  cliente: MarcaLogin
+  equipe: MarcaLogin
+  defaults: Record<PublicoLogin, Pick<MarcaLogin, 'brand_name' | 'headline' | 'subtitle' | 'highlights'>>
+}
+
+export function useMarcaLoginAdmin() {
+  return useQuery({
+    queryKey: ['cfg-marca-login'],
+    queryFn: () => api.get<MarcaLoginAdmin>('/api/v1/settings/branding/login/'),
+    staleTime: 60_000,
+  })
+}
+
+function useInvalidarMarca() {
+  const qc = useQueryClient()
+  return () => {
+    qc.invalidateQueries({ queryKey: ['cfg-marca-login'] })
+    qc.invalidateQueries({ queryKey: chaveMarcaLogin })
+  }
+}
+
+export function useAtualizarMarcaLogin(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: (d: MarcaLoginEscrita) => api.put<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/`, d),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEnviarImagemMarca(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/image/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useRemoverImagemMarca(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: () => api.delete<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/image/`),
+    onSuccess: invalidar,
+  })
+}

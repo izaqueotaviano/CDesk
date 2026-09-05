@@ -24,6 +24,10 @@ beforeEach(() => {
       const u = new URL(String(url), 'http://x')
       const corpo = typeof init?.body === 'string' ? JSON.parse(init.body) : {}
       chamadas.push({ url: u.pathname, corpo })
+      if (u.pathname === '/api/v1/branding/login/') {
+        const marca = (a: 'cliente' | 'equipe') => ({ audience: a, brand_name: a === 'cliente' ? 'Central de Suporte' : 'Resolv', headline: 'Chamada', subtitle: 'Sub', highlights: ['Um', 'Dois'], image_url: null, updated_at: '2026-09-01T00:00:00Z' })
+        return Promise.resolve(jsonDe({ cliente: marca('cliente'), equipe: marca('equipe') }))
+      }
       const r = respostas[u.pathname]?.(corpo)
       return Promise.resolve(r ? jsonDe(r.corpo, r.status) : jsonDe({ detail: 'sem rota' }, 404))
     }),
@@ -48,6 +52,8 @@ function montar(rota = '/login/cliente', state?: { de: string }) {
   )
 }
 
+const logins = () => chamadas.filter((c) => c.url === '/api/v1/auth/login/')
+
 function preencher(email = 'ana@acme.test', senha = 'resolv123') {
   fireEvent.change(screen.getByLabelText('E-mail'), { target: { value: email } })
   fireEvent.change(screen.getByLabelText('Senha'), { target: { value: senha } })
@@ -70,7 +76,7 @@ describe('PaginaLogin', () => {
     montar('/login/cliente')
     preencher()
     expect(await screen.findByText('portal do cliente')).toBeInTheDocument()
-    expect(chamadas[0].corpo).toEqual({ email: 'ana@acme.test', password: 'resolv123' })
+    expect(logins()[0].corpo).toEqual({ email: 'ana@acme.test', password: 'resolv123' })
   })
 
   it('a equipe vai para o painel — e volta para onde tentou ir', async () => {
@@ -126,6 +132,6 @@ describe('PaginaLogin', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByText('Informe um e-mail válido.')).toBeInTheDocument()
     expect(screen.getByText('Informe sua senha.')).toBeInTheDocument()
-    await waitFor(() => expect(chamadas).toHaveLength(0))
+    await waitFor(() => expect(logins()).toHaveLength(0))
   })
 })

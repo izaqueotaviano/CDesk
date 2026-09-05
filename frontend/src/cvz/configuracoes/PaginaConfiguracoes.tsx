@@ -8,6 +8,7 @@ import { AbaPapeis } from './AbaPapeis'
 import { AbaPlanos } from './AbaPlanos'
 import { AbaServicos } from './AbaServicos'
 import { AbaSistema } from './AbaSistema'
+import { AbaTelaDeLogin } from './AbaTelaDeLogin'
 import { AbaSla } from './AbaSla'
 import { AbaStatus } from './AbaStatus'
 import { AbaTags } from './AbaTags'
@@ -25,6 +26,7 @@ const ABAS = [
   'calendarios',
   'operacao',
   'moderacao',
+  'login',
 ] as const
 const ABA_PADRAO = ABAS[0]
 
@@ -78,6 +80,8 @@ export function PaginaConfiguracoes() {
           // Lista de palavras censuradas no chat — a regra (censura na
           // exibição, retroativa) é do backend; aqui é só a lista.
           { id: 'moderacao', label: 'Moderação', content: <AbaModeracao /> },
+          // Textos e imagem do painel da tela de login, por público.
+          { id: 'login', label: 'Tela de login', content: <AbaTelaDeLogin /> },
         ]}
       />
     </>

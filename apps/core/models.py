@@ -243,3 +243,36 @@ class SystemConfig(TimeStampedModel):
             config, _ = cls.objects.get_or_create(pk=1)
             cache.set(cls.CACHE_KEY, config, 300)
         return config
+
+
+class LoginBranding(TimeStampedModel):
+    """O painel da tela de login, por público — textos e imagem que o admin
+    edita em Configurações → Tela de login. Uma linha por público; o padrão
+    de fábrica está em `core/branding.py` e vale enquanto a linha não existe.
+    """
+
+    class Audience(models.TextChoices):
+        CLIENTE = "cliente", "Portal do cliente"
+        EQUIPE = "equipe", "Painel da equipe"
+
+    audience = models.CharField(max_length=10, choices=Audience.choices, unique=True)
+    brand_name = models.CharField("Nome da marca", max_length=80, blank=True)
+    headline = models.CharField("Chamada", max_length=160, blank=True)
+    subtitle = models.CharField("Subtítulo", max_length=240, blank=True)
+    highlights = models.JSONField("Destaques", default=list, blank=True)
+    # arquivo em MEDIA_ROOT/marca, recodificado por nós (ver branding.py)
+    image_name = models.CharField(max_length=80, blank=True, default="")
+
+    class Meta:
+        verbose_name = "marca da tela de login"
+        verbose_name_plural = "marcas da tela de login"
+
+    def __str__(self):
+        return f"Tela de login — {self.get_audience_display()}"
+
+    @classmethod
+    def for_audience(cls, audience: str) -> "LoginBranding":
+        from apps.core.branding import PADRAO
+
+        obj, _ = cls.objects.get_or_create(audience=audience, defaults=PADRAO[audience])
+        return obj
