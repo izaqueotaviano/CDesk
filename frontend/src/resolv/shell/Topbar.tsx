@@ -5,6 +5,8 @@
  * (a command palette Ctrl+K é uma melhoria futura, não escopo desta tela).
  */
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import './topbar.scss'
 
@@ -14,7 +16,13 @@ function iniciais(nome: string): string {
 }
 
 export function Topbar() {
+  const navigate = useNavigate()
   const { data: usuario } = useMe()
+  // o contador é real: fila + meus atendimentos, atualizado pelo socket
+  // (a bridge invalida as duas chaves a cada chat_queued/chat_taken)
+  const { data: fila } = useFilaChat(usuario?.is_internal === true)
+  const { data: meus } = useMeusChats(usuario?.is_internal === true)
+  const conversas = (fila?.length ?? 0) + (meus?.length ?? 0)
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -40,12 +48,17 @@ export function Topbar() {
       </div>
 
       <div className="topbar-glass__right">
-        <div className="topbar-glass__chats">
+        <button
+          type="button"
+          className="topbar-glass__chats"
+          onClick={() => navigate('/chat')}
+          title={`${fila?.length ?? 0} na fila · ${meus?.length ?? 0} em atendimento`}
+        >
           <i className="ri-chat-3-line topbar-glass__chats-icon" />
           <span className="topbar-glass__chats-label">
-            <strong>3</strong> conversas
+            <strong>{conversas}</strong> {conversas === 1 ? 'conversa' : 'conversas'}
           </span>
-        </div>
+        </button>
         <div className="topbar-glass__sep" />
         <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações">
           <i className="ri-notification-3-line" />

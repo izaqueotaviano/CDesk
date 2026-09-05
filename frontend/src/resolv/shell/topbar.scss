@@ -77,8 +77,11 @@
     align-items: center;
     gap: 6px;
     padding: 6px 10px;
+    border: none; // é um <button> agora (leva pro console) — sem a moldura nativa
     border-radius: 2px;
     background: rgba(232, 226, 221, 0.45);
+    font: inherit;
+    cursor: pointer;
     i {
       font-size: 14px;
       color: var(--text-secondary);

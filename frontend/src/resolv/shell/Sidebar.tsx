@@ -2,8 +2,8 @@
  * Sidebar Rail (56px) — design system Resolv. Portada da referência
  * (resolvdesignsystem.zip), com uma diferença honesta: só os itens que têm
  * rota real neste app navegam; os demais ficam visíveis mas inertes
- * (`enabled: false`) com tooltip "em breve", em vez de levar a um 404. Tickets
- * e Quadro são as duas entregas até aqui — o resto do shell está aqui para dar
+ * (`enabled: false`) com tooltip "em breve", em vez de levar a um 404. Tickets,
+ * Quadro e Chats são as entregas até aqui — o resto do shell está aqui para dar
  * o enquadramento visual correto, não para prometer telas que ainda não existem.
  */
 import { useLocation, useNavigate } from 'react-router-dom'
@@ -15,7 +15,7 @@ const NAV: Item[] = [
   { id: 'inicio', label: 'Início', icon: 'ri-home-5-line', route: '/inicio', enabled: true },
   { id: 'tickets', label: 'Tickets', icon: 'ri-ticket-2-line', route: '/chamados', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ri-layout-grid-line', route: '/quadro', enabled: true },
-  { id: 'chat', label: 'Chats', icon: 'ri-chat-3-line', route: '/chat', enabled: false },
+  { id: 'chat', label: 'Chats', icon: 'ri-chat-3-line', route: '/chat', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ri-group-line', route: '/empresas', enabled: false },
   { id: 'config', label: 'Configurações', icon: 'ri-settings-3-line', route: '/admin', enabled: false },
   { id: 'relatorios', label: 'Relatórios', icon: 'ri-bar-chart-2-line', route: '/relatorios', enabled: false },
