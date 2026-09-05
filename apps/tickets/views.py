@@ -507,7 +507,7 @@ class TicketViewSet(viewsets.GenericViewSet):
             pdf, nome = transcript.ticket_pdf(ticket, para=request.user)
         except RuntimeError as exc:
             # extra ausente: falha explícita, nunca um PDF vazio
-            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
         resp = HttpResponse(pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{nome}"'
         return resp

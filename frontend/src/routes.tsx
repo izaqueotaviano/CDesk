@@ -9,10 +9,13 @@ import { PaginaRelatorios } from '@/features/reports/PaginaRelatorios'
 import { PaginaDetalheTicket } from '@/features/tickets/PaginaDetalheTicket'
 import { PaginaInicio } from '@/features/tickets/PaginaInicio'
 import { PaginaListaTickets } from '@/features/tickets/PaginaListaTickets'
-import { PaginaPortalNovoTicket } from '@/features/tickets/PaginaPortalNovoTicket'
-import { PaginaPortalTickets } from '@/features/tickets/PaginaPortalTickets'
 import { AppShell } from '@/layouts/AppShell'
-import { PortalShell } from '@/layouts/PortalShell'
+import { PortalShell } from '@/portal/shell/PortalShell'
+import { PaginaEmBreve } from '@/portal/PaginaEmBreve'
+import { PaginaInicio as PaginaInicioCliente } from '@/portal/inicio/PaginaInicio'
+import { PaginaNovoTicket as PaginaNovoTicketCliente } from '@/portal/tickets/PaginaNovoTicket'
+import { PaginaTicket as PaginaTicketCliente } from '@/portal/tickets/PaginaTicket'
+import { PaginaTickets as PaginaTicketsCliente } from '@/portal/tickets/PaginaTickets'
 import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
@@ -176,11 +179,26 @@ export const router = createBrowserRouter([
             <PortalShell />
           </RotaProtegida>
         ),
+        // Painel do Cliente (src/portal): Início, Tickets, Chat, Central de
+        // Ajuda, Histórico e Configurações. As três últimas entram por etapa.
         children: [
-          { index: true, element: <Navigate to="tickets" replace /> },
-          { path: 'tickets', element: <PaginaPortalTickets /> },
-          { path: 'tickets/novo', element: <PaginaPortalNovoTicket /> },
+          { index: true, element: <PaginaInicioCliente /> },
+          { path: 'tickets', element: <PaginaTicketsCliente /> },
+          { path: 'tickets/novo', element: <PaginaNovoTicketCliente /> },
+          { path: 'tickets/:id', element: <PaginaTicketCliente /> },
           { path: 'chat', element: <PaginaPortalChat /> },
+          {
+            path: 'ajuda',
+            element: <PaginaEmBreve titulo="Central de Ajuda" descricao="Artigos e tutoriais vindos do WordPress — a busca e as categorias chegam na próxima etapa." />,
+          },
+          {
+            path: 'historico',
+            element: <PaginaEmBreve titulo="Histórico" descricao="Todos os seus atendimentos, tickets e chats, com as avaliações — chega na etapa do Chat." />,
+          },
+          {
+            path: 'configuracoes',
+            element: <PaginaEmBreve titulo="Configurações" descricao="Dados pessoais e da empresa, notificações por e-mail, tema e senha — chega na última etapa." />,
+          },
         ],
       },
     ],
