@@ -405,6 +405,29 @@ export function useMarcarLidas(chatId: number) {
   })
 }
 
+/**
+ * Editar/excluir a PRÓPRIA mensagem (`can_edit`, checado pelo servidor: só
+ * o autor, mensagem não apagada). O socket também entrega o evento
+ * `message_edited`/`message_deleted` pela sala — a resposta HTTP aqui só
+ * antecipa (o id deduplica em `anexarMensagemNoCache`).
+ */
+export function useEditarMensagemChat(chatId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number; body: string }) =>
+      api.patch<MensagemChat>(`/api/v1/chat/chats/${chatId}/messages/${id}/`, { body }),
+    onSuccess: (msg) => anexarMensagemNoCache(qc, chatId, msg),
+  })
+}
+
+export function useExcluirMensagemChat(chatId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete<MensagemChat>(`/api/v1/chat/chats/${chatId}/messages/${id}/`),
+    onSuccess: (msg) => anexarMensagemNoCache(qc, chatId, msg),
+  })
+}
+
 /** "Carregar anteriores": as N mensagens antes da mais antiga já em tela.
  *  Devolve quantas vieram — zero é o sinal de que não há mais. */
 export function useCarregarAnteriores(chatId: number) {

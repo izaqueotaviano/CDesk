@@ -16,6 +16,17 @@ export function useChatsRecentes(limite = 5) {
   })
 }
 
+/** Histórico — só as encerradas, mais recentes primeiro (é o que a
+ *  listagem já devolve por padrão, `-queued_at`). */
+export function useHistoricoChats(limite = 30) {
+  return useQuery({
+    queryKey: ['portal', 'chats', 'historico', limite],
+    queryFn: () => api.get<Paginado<Chat> | Chat[]>(`/api/v1/chat/chats/?status=closed&limit=${limite}`),
+    staleTime: 15_000,
+    select: lista,
+  })
+}
+
 /** Quantas conversas estão vivas agora (na fila ou em atendimento). */
 export function useContagemChatsAtivos() {
   return useQuery({

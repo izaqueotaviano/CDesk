@@ -16,13 +16,13 @@ import { PaginaInicio as PaginaInicioCliente } from '@/portal/inicio/PaginaInici
 import { PaginaNovoTicket as PaginaNovoTicketCliente } from '@/portal/tickets/PaginaNovoTicket'
 import { PaginaTicket as PaginaTicketCliente } from '@/portal/tickets/PaginaTicket'
 import { PaginaTickets as PaginaTicketsCliente } from '@/portal/tickets/PaginaTickets'
+import { PaginaChat as PaginaChatCliente } from '@/portal/chat/PaginaChat'
 import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
 import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
 import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
 import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
-import { PaginaPortalChat } from '@/features/chat/PaginaPortalChat'
 import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
@@ -186,7 +186,7 @@ export const router = createBrowserRouter([
           { path: 'tickets', element: <PaginaTicketsCliente /> },
           { path: 'tickets/novo', element: <PaginaNovoTicketCliente /> },
           { path: 'tickets/:id', element: <PaginaTicketCliente /> },
-          { path: 'chat', element: <PaginaPortalChat /> },
+          { path: 'chat', element: <PaginaChatCliente /> },
           {
             path: 'ajuda',
             element: <PaginaEmBreve titulo="Central de Ajuda" descricao="Artigos e tutoriais vindos do WordPress — a busca e as categorias chegam na próxima etapa." />,
