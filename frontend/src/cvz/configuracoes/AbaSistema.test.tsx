@@ -17,6 +17,7 @@ const CONFIG = {
   auto_close_warning_message: 'Ainda estamos aguardando seu retorno neste chamado.',
   csat_enabled: true,
   csat_expires_days: 30,
+  two_factor_required: false,
   email_enabled: true,
   smtp_host: '',
   smtp_port: 587,

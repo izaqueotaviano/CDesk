@@ -499,6 +499,8 @@ export interface SistemaCfg {
   auto_close_warning_message: string
   csat_enabled: boolean
   csat_expires_days: number
+  /** Exigir verificação em duas etapas de todos (senão é opcional por conta). */
+  two_factor_required: boolean
   // entrega de e-mail — a senha nunca volta; `smtp_password_set` diz se há uma
   email_enabled: boolean
   smtp_host: string
@@ -518,7 +520,7 @@ export type SistemaCfgEscrita = Partial<
     SistemaCfg,
     | 'attachment_max_bytes' | 'attachment_max_files_per_message' | 'attachment_max_bytes_per_message'
     | 'auto_close_pending_hours' | 'auto_close_message' | 'auto_close_warning_hours'
-    | 'auto_close_warning_message' | 'csat_enabled' | 'csat_expires_days'
+    | 'auto_close_warning_message' | 'csat_enabled' | 'csat_expires_days' | 'two_factor_required'
     | 'email_enabled' | 'smtp_host' | 'smtp_port' | 'smtp_username' | 'smtp_use_tls' | 'smtp_use_ssl'
     | 'email_from' | 'email_html_template'
   > & { smtp_password: string }

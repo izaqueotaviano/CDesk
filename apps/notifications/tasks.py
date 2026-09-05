@@ -103,10 +103,9 @@ EMAIL_TEMPLATES = {
 
 @shared_task(bind=True, max_retries=5, default_retry_delay=30)
 def send_outbound_email(self, email_id: int):
-    from apps.notifications.models import OutboundEmail
-
     from apps.core.models import SystemConfig
     from apps.notifications import mailer
+    from apps.notifications.models import OutboundEmail
 
     email = OutboundEmail.objects.get(pk=email_id)
     if email.status == OutboundEmail.Status.SENT:

@@ -45,5 +45,5 @@ export interface Me {
 
 /** Resposta do passo 1 do login (docs/10-frontend-novo.md §"Autenticação"). */
 export interface LoginPendente {
-  two_factor: 'email'
+  two_factor: 'email' | 'totp'
 }

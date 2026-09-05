@@ -89,7 +89,10 @@ class TestModeloHtml:
         config(email_html_template="<html><h1>{{assunto}}</h1>{{conteudo}}<i>{{ano}}</i></html>")
         mailer.enviar(
             to="ana@acme.test", subject="Olá <Ana>",
-            body="Primeiro parágrafo.\n\nVeja em http://localhost:5174/portal/tickets/1 <b>agora</b>",
+            body=(
+                "Primeiro parágrafo.\n\n"
+                "Veja em http://localhost:5174/portal/tickets/1 <b>agora</b>"
+            ),
         )
         html, tipo = mail.outbox[0].alternatives[0]
         assert tipo == "text/html"

@@ -53,11 +53,13 @@ def _login_completo(email, senha=SENHA):
         "/api/v1/auth/login/", {"email": email, "password": senha}, format="json"
     )
     assert resp.status_code == 200, resp.content
-    user = User.objects.get(email=email)
-    codigo = LoginCode.objects.filter(
-        user=user, purpose=LoginCode.Purpose.LOGIN, used_at__isnull=True
-    ).latest("created_at").code
-    resp = client.post("/api/v1/auth/2fa/", {"code": codigo}, format="json")
+    if resp.json().get("two_factor"):
+        # só há segunda etapa se a conta ligou a verificação (é opcional)
+        user = User.objects.get(email=email)
+        codigo = LoginCode.objects.filter(
+            user=user, purpose=LoginCode.Purpose.LOGIN, used_at__isnull=True
+        ).latest("created_at").code
+        resp = client.post("/api/v1/auth/2fa/", {"code": codigo}, format="json")
     assert resp.status_code == 200, resp.content
     return client
 

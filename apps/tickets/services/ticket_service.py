@@ -611,8 +611,9 @@ def add_reply(
             # pelo colega não tem pesquisa para responder, e travá-lo aqui
             # seria um beco sem saída.
             survey = getattr(ticket, "survey", None)
-            if (author.pk == ticket.requester_id and survey is not None
-                    and not survey.is_answered and not survey.is_expired):
+            pendente = (survey is not None and not survey.is_answered
+                        and not survey.is_expired)
+            if author.pk == ticket.requester_id and pendente:
                 raise TicketRuleViolation(
                     "Avalie o atendimento antes de reabrir o chamado — leva "
                     "menos de um minuto."

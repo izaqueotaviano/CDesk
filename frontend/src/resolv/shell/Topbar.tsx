@@ -65,7 +65,7 @@ export function Topbar() {
           <span className="topbar-glass__badge">2</span>
         </button>
         <div className="topbar-glass__sep" />
-        <button type="button" className="topbar-glass__user">
+        <button type="button" className="topbar-glass__user" onClick={() => navigate('/conta')} title="Minha conta">
           <span className="topbar-glass__avatar topbar-glass__avatar--available">
             <span className="topbar-glass__avatar-initials">{iniciais(nome)}</span>
             <span className="topbar-glass__presence topbar-glass__presence--available" />

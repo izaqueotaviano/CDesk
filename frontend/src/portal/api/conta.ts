@@ -205,8 +205,13 @@ export function useTrocarSenha() {
 export type Metodo2fa = '' | 'email' | 'totp'
 
 export interface Status2fa {
+  /** O que a pessoa configurou ('' = desligada). */
   method: Metodo2fa
   pending: Metodo2fa
+  /** O que VALE no login: a própria escolha, ou e-mail imposto pelo admin. */
+  effective: Metodo2fa
+  /** O admin exige a verificação de todos (Configurações → Sistema). */
+  required: boolean
 }
 
 export interface Setup2fa {

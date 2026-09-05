@@ -19,6 +19,7 @@ import { PaginaChat as PaginaChatCliente } from '@/portal/chat/PaginaChat'
 import { PaginaAjuda } from '@/portal/ajuda/PaginaAjuda'
 import { PaginaArtigo } from '@/portal/ajuda/PaginaArtigo'
 import { PaginaHistorico } from '@/portal/historico/PaginaHistorico'
+import { PaginaConta } from '@/resolv/conta/PaginaConta'
 import { PaginaConfiguracoes as PaginaConfiguracoesCliente } from '@/portal/configuracoes/PaginaConfiguracoes'
 import { NovoShell } from '@/resolv/shell/NovoShell'
 import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
@@ -62,6 +63,17 @@ export const router = createBrowserRouter([
       { path: '/login/google', element: <PaginaLoginGoogle /> },
       { path: '/sessao-expirada', element: <PaginaSessaoExpirada /> },
 
+      // ---- Minha conta (equipe): verificação em duas etapas ----
+      {
+        path: '/conta',
+        element: (
+          <RotaProtegida>
+            <NovoShell>
+              <PaginaConta />
+            </NovoShell>
+          </RotaProtegida>
+        ),
+      },
       // ---- Tela de tickets no NOVO design system Resolv (a que estamos testando) ----
       {
         path: '/chamados',

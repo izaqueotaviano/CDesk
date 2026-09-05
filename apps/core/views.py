@@ -130,6 +130,7 @@ class SystemConfigSerializer(serializers.ModelSerializer):
             "auto_close_pending_hours", "auto_close_message",
             "auto_close_warning_hours", "auto_close_warning_message",
             "csat_enabled", "csat_expires_days",
+            "two_factor_required",
             "email_enabled", "smtp_host", "smtp_port", "smtp_username",
             "smtp_password", "smtp_password_set", "smtp_use_tls", "smtp_use_ssl",
             "email_from", "email_html_template", "email_html_template_default",

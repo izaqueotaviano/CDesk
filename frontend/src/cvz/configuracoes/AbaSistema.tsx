@@ -43,6 +43,7 @@ interface FormularioSistema {
   avisoMensagem: string
   csatAtivo: boolean
   csatDias: string
+  exigir2fa: boolean
   // entrega de e-mail
   emailAtivo: boolean
   smtpHost: string
@@ -72,6 +73,7 @@ function formularioDe(cfg: SistemaCfg): FormularioSistema {
     avisoMensagem: cfg.auto_close_warning_message,
     csatAtivo: cfg.csat_enabled,
     csatDias: String(cfg.csat_expires_days),
+    exigir2fa: cfg.two_factor_required,
     emailAtivo: cfg.email_enabled,
     smtpHost: cfg.smtp_host,
     smtpPorta: String(cfg.smtp_port),
@@ -185,6 +187,7 @@ function payloadDe(f: FormularioSistema, base: SistemaCfg): SistemaCfgEscrita {
   const dias = Number(f.csatDias)
   if (dias !== base.csat_expires_days) p.csat_expires_days = dias
 
+  if (f.exigir2fa !== base.two_factor_required) p.two_factor_required = f.exigir2fa
   if (f.emailAtivo !== base.email_enabled) p.email_enabled = f.emailAtivo
   if (f.smtpHost.trim() !== base.smtp_host) p.smtp_host = f.smtpHost.trim()
   const porta = Number(f.smtpPorta)
@@ -211,6 +214,7 @@ const CAMPO_POR_CHAVE_API: Record<string, keyof FormularioSistema> = {
   auto_close_warning_message: 'avisoMensagem',
   csat_enabled: 'csatAtivo',
   csat_expires_days: 'csatDias',
+  two_factor_required: 'exigir2fa',
   email_enabled: 'emailAtivo',
   smtp_host: 'smtpHost',
   smtp_port: 'smtpPorta',
@@ -428,6 +432,21 @@ export function AbaSistema() {
             error={erros.csatDias}
             onChange={(e) => atualizarCampo('csatDias', e.target.value)}
           />
+        </FormRow>
+      </FormSection>
+
+      <FormSection
+        title="Segurança"
+        description="A verificação em duas etapas é opcional: cada pessoa liga a sua (por e-mail ou aplicativo autenticador) em Minha conta ou nas Configurações do portal. Ligar isto exige de todos — quem não configurou nada passa a receber o código por e-mail no login."
+      >
+        <FormRow columns={2}>
+          <Field label="Verificação em duas etapas">
+            <Toggle
+              checked={form.exigir2fa}
+              onChange={(e) => atualizarCampo('exigir2fa', e.target.checked)}
+              label={form.exigir2fa ? 'Exigida de todos' : 'Opcional por conta'}
+            />
+          </Field>
         </FormRow>
       </FormSection>
 

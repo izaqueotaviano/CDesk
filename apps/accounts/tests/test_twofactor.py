@@ -107,9 +107,29 @@ class TestTOTP:
 
 
 class TestLoginComDoisFatores:
-    def test_2fa_e_obrigatorio_mesmo_sem_configurar(self, acme):
-        """Decisão do Izaque: NINGUÉM entra só com a senha. Quem nunca
-        configurou nada cai no código por e-mail — a conta sempre tem e-mail."""
+    def test_sem_configurar_entra_so_com_a_senha(self, acme):
+        """A verificação é OPCIONAL por conta: quem não ligou a sua entra
+        com a senha, e a resposta já é o `Me` — a mesma do código."""
+        User.objects.create_user(
+            email="normal@acme.test", password=SENHA, full_name="Normal",
+            kind=UserKind.CLIENT, company=acme,
+        )
+        client = APIClient()
+        resp = _login(client, "normal@acme.test")
+        assert resp.status_code == 200
+        assert resp.json()["email"] == "normal@acme.test"
+        assert "two_factor" not in resp.json()
+        assert client.get("/api/v1/auth/me/").status_code == 200
+        assert not OutboundEmail.objects.filter(template="login_code").exists()
+
+    def test_admin_pode_exigir_de_todos(self, acme):
+        """Com "exigir de todos" ligado, quem não configurou nada cai no
+        código por e-mail — a conta sempre tem e-mail."""
+        from apps.core.models import SystemConfig
+
+        cfg = SystemConfig.load()
+        cfg.two_factor_required = True
+        cfg.save()
         user = User.objects.create_user(
             email="normal@acme.test", password=SENHA, full_name="Normal",
             kind=UserKind.CLIENT, company=acme,
@@ -233,12 +253,9 @@ class TestAtivarDesativar:
             kind=UserKind.CLIENT, company=acme,
         )
         client = APIClient()
-        # 2FA obrigatório: o login de verdade tem sempre as DUAS etapas
-        assert _login(client, user.email).status_code == 200
-        codigo = _codigo_no_banco(user)
-        assert client.post(
-            "/api/v1/auth/2fa/", {"code": codigo}, format="json"
-        ).status_code == 200
+        # conta sem verificação configurada: a senha certa já entra
+        resp = _login(client, user.email)
+        assert resp.status_code == 200 and "two_factor" not in resp.json()
         return user, client
 
     def test_exige_autenticacao(self):

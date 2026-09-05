@@ -1,10 +1,11 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
 import { useConfirmar2fa, useReenviar2fa } from '@/api/mutations/use2fa'
-import { useLogin } from '@/api/mutations/useLogin'
+import { precisaDeCodigo, useLogin } from '@/api/mutations/useLogin'
 import { ApiError } from '@/api/client'
 import { Botao } from '@/ui/Botao'
 import { Campo } from '@/ui/Campo'
@@ -29,6 +30,7 @@ export function PaginaLogin() {
   const [passo, setPasso] = useState<'credenciais' | 'codigo'>('credenciais')
   const [email, setEmail] = useState('')
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const login = useLogin()
   const confirmar2fa = useConfirmar2fa()
@@ -38,9 +40,15 @@ export function PaginaLogin() {
   const formCodigo = useForm<Codigo>({ resolver: zodResolver(esquemaCodigo) })
 
   async function enviarCredenciais(dados: Credenciais) {
-    await login.mutateAsync(dados)
-    setEmail(dados.email)
-    setPasso('codigo')
+    const resposta = await login.mutateAsync(dados)
+    if (precisaDeCodigo(resposta)) {
+      setEmail(dados.email)
+      setPasso('codigo')
+      return
+    }
+    // conta sem verificação em duas etapas: a senha já entrou
+    queryClient.setQueryData(['me'], resposta)
+    navigate('/inicio', { replace: true })
   }
 
   async function enviarCodigo(dados: Codigo) {

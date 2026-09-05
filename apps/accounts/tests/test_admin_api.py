@@ -369,7 +369,8 @@ class TestPasswordReset:
             format="json",
         )
         assert login_resp.status_code == 200
-        assert "two_factor" in login_resp.json()  # segue pro 2FA normalmente
+        # a verificação em duas etapas é opcional: sem ela, a senha nova já entra
+        assert login_resp.json()["email"] == cliente.email
 
 
 class TestCompanyConfig:

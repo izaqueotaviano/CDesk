@@ -128,12 +128,15 @@ class LoginView(APIView):
                 record_access_event(alvo, AccessEventKind.LOGIN_FAILED, request)
             return Response({"detail": "E-mail ou senha inválidos."}, status=400)
 
-        # 2FA é OBRIGATÓRIO para todo login (decisão do Izaque): senha certa
-        # NÃO basta. Quem configurou o aplicativo autenticador usa o TOTP;
-        # todo o resto recebe o código de 6 dígitos por e-mail. O pendente
-        # fica na sessão (server-side) e login() só acontece depois do código
-        # — ver TwoFactorVerifyView.
+        # Conta sem verificação em duas etapas (e sem o admin exigi-la de
+        # todos) entra aqui mesmo: a resposta já é o `Me`, como a do código.
+        # Com verificação, a senha certa NÃO basta: quem configurou o
+        # aplicativo usa o TOTP; e-mail recebe o código de 6 dígitos. O
+        # pendente fica na sessão (server-side) e login() só acontece depois
+        # do código — ver TwoFactorVerifyView.
         metodo = _metodo_efetivo(user)
+        if not metodo:
+            return _concluir_login(request, user)
         request.session[PENDING_2FA_KEY] = {
             "user": user.pk,
             "at": timezone.now().isoformat(),
@@ -222,9 +225,36 @@ PENDING_2FA_MINUTES = 5
 
 
 def _metodo_efetivo(user) -> str:
-    """O método que VALE no login. 2FA é obrigatório: sem nada configurado,
-    o e-mail é o método de todo mundo — a conta sempre tem e-mail."""
-    return user.two_factor_method or TwoFactorMethod.EMAIL
+    """O método que VALE no login — ou "" quando a conta entra só com senha.
+
+    A verificação é opcional por conta: cada pessoa liga a sua (e-mail ou
+    aplicativo). O admin pode exigi-la de todos em Configurações → Sistema;
+    aí quem não configurou nada cai no e-mail — a conta sempre tem e-mail.
+    """
+    from apps.core.models import SystemConfig
+
+    if user.two_factor_method:
+        return user.two_factor_method
+    return TwoFactorMethod.EMAIL if SystemConfig.load().two_factor_required else ""
+
+
+def _concluir_login(request, user):
+    """Cria a sessão de verdade — depois da senha (conta sem 2FA) ou depois
+    do código (conta com 2FA). Um lugar só, para as duas portas fazerem o
+    mesmo: limite de sessões, presença e o payload de `Me`."""
+    # o backend vai explícito: com o AxesStandaloneBackend na lista, o Django
+    # não sabe qual dos dois autenticou um usuário carregado da sessão
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    _limitar_sessoes(user, atual=request.session.session_key)
+    # de volta a "Disponível" a cada login — nunca herda o que ficou de
+    # uma sessão anterior (a sessão anterior, se existiu, já forçou
+    # OFFLINE no logout; isto cobre também quem nunca chegou a
+    # deslogar — sessão expirada, navegador fechado).
+    if user.is_internal:
+        user.presence = PresenceStatus.AVAILABLE
+        user.save(update_fields=["presence"])
+        _avisar_presenca(user)
+    return Response(MeSerializer(user).data)
 
 
 def _enviar_codigo(user, purpose) -> None:
@@ -337,21 +367,7 @@ class TwoFactorVerifyView(APIView):
             return Response({"detail": "Código inválido ou expirado."}, status=400)
 
         request.session.pop(PENDING_2FA_KEY, None)
-        # o backend vai explícito: com o AxesStandaloneBackend na lista, o Django
-
-        # não sabe qual dos dois autenticou um usuário carregado da sessão
-
-        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        _limitar_sessoes(user, atual=request.session.session_key)
-        # de volta a "Disponível" a cada login — nunca herda o que ficou de
-        # uma sessão anterior (a sessão anterior, se existiu, já forçou
-        # OFFLINE no logout; isto cobre também quem nunca chegou a
-        # deslogar — sessão expirada, navegador fechado).
-        if user.is_internal:
-            user.presence = PresenceStatus.AVAILABLE
-            user.save(update_fields=["presence"])
-            _avisar_presenca(user)
-        return Response(MeSerializer(user).data)
+        return _concluir_login(request, user)
 
 
 class TwoFactorResendView(APIView):
@@ -377,10 +393,16 @@ class TwoFactorStatusView(APIView):
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
+        from apps.core.models import SystemConfig
+
         setup = request.session.get(SETUP_2FA_KEY) or {}
         return Response({
             "method": request.user.two_factor_method,
             "pending": setup.get("method", ""),
+            # o que VALE no login: a própria escolha, ou o e-mail imposto
+            # pelo admin ("required") a quem não configurou nada
+            "effective": _metodo_efetivo(request.user),
+            "required": SystemConfig.load().two_factor_required,
         })
 
 

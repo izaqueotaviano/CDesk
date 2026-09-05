@@ -113,9 +113,13 @@ class SystemConfig(TimeStampedModel):
     email_enabled = models.BooleanField(
         default=True, verbose_name="Enviar e-mails",
     )
-    smtp_host = models.CharField(max_length=200, blank=True, default="", verbose_name="Servidor SMTP")
+    smtp_host = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Servidor SMTP"
+    )
     smtp_port = models.PositiveIntegerField(default=587, verbose_name="Porta")
-    smtp_username = models.CharField(max_length=200, blank=True, default="", verbose_name="Usuário")
+    smtp_username = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Usuário"
+    )
     smtp_password = models.CharField(max_length=200, blank=True, default="", verbose_name="Senha")
     smtp_use_tls = models.BooleanField(default=True, verbose_name="STARTTLS")
     smtp_use_ssl = models.BooleanField(default=False, verbose_name="SSL")
@@ -126,6 +130,15 @@ class SystemConfig(TimeStampedModel):
     email_html_template = models.TextField(
         blank=True, default=TEMPLATE_HTML_PADRAO, verbose_name="Modelo HTML dos e-mails",
         help_text="Vazio manda só o texto. Marcadores: {{assunto}}, {{conteudo}}, {{ano}}.",
+    )
+
+    # --- Segurança ---
+    # A verificação em duas etapas é OPCIONAL por conta (cada pessoa liga a
+    # sua em "Minha conta"/Configurações). Com isto ligado, vira obrigatória:
+    # quem não configurou nada recebe o código por e-mail no login.
+    two_factor_required = models.BooleanField(
+        default=False,
+        verbose_name="Exigir verificação em duas etapas de todos os usuários",
     )
 
     # --- Pesquisa de satisfação ---
