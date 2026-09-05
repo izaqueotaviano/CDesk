@@ -24,7 +24,7 @@ import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
-import { PaginaNovoTicket } from '@/cvz/tickets/PaginaNovoTicket'
+import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
 
 /**
  * Duas árvores separadas — /app (interno) e /portal (cliente) — com bundles
@@ -73,11 +73,9 @@ export const router = createBrowserRouter([
         path: '/chamados/novo',
         element: (
           <RotaProtegida>
-            {/* `flush`: a tela controla o próprio padding e rolagem — são duas
-                colunas de altura cheia, como o padrão de detalhe de ticket. */}
-            <CvzAppLayout variant="flush">
+            <NovoShell>
               <PaginaNovoTicket />
-            </CvzAppLayout>
+            </NovoShell>
           </RotaProtegida>
         ),
       },

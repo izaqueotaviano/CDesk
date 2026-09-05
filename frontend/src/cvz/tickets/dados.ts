@@ -178,7 +178,8 @@ export function useEmpresasOpcoes() {
  * mantém a lista curta quando a base cresce, em vez de trazer tudo e cortar aqui.
  */
 export function useClientes(empresaId: number | null) {
-  const params = new URLSearchParams({ kind: 'client' })
+  // `limit`: a listagem é paginada (25) — sem isto o seletor só via a 1ª página
+  const params = new URLSearchParams({ kind: 'client', limit: '500' })
   if (empresaId != null) params.set('company', String(empresaId))
   return useQuery({
     queryKey: ['clientes', empresaId],
@@ -196,7 +197,7 @@ export function useClientes(empresaId: number | null) {
 export function useAgentes() {
   return useQuery({
     queryKey: ['agentes'],
-    queryFn: () => api.get<Paginado<UsuarioDiretorio> | UsuarioDiretorio[]>('/api/v1/users/'),
+    queryFn: () => api.get<Paginado<UsuarioDiretorio> | UsuarioDiretorio[]>('/api/v1/users/?limit=500'),
     staleTime: 300_000,
     select: lista,
   })

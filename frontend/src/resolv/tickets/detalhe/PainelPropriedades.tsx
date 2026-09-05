@@ -34,7 +34,8 @@ function EstadoCampo({ m, padrao }: { m: Mutacao; padrao: string }) {
   return null
 }
 
-function Campo({
+/** Rótulo + controle + ajuda — também usado pela tela de abertura. */
+export function Campo({
   rotulo,
   htmlFor,
   acao,
@@ -62,7 +63,7 @@ function Campo({
   )
 }
 
-function Seletor({
+export function Seletor({
   id,
   icone,
   value,
