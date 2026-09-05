@@ -1,6 +1,7 @@
 import { Link, Outlet } from 'react-router-dom'
 import { useLogout } from '@/api/mutations/useLogout'
 import { useMe } from '@/api/queries/useMe'
+import { useAvisosSonoros } from '@/realtime/useAvisosSonoros'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
 import { Botao } from '@/ui/Botao'
 
@@ -13,6 +14,8 @@ export function PortalShell() {
   const { data: usuario } = useMe()
   const logout = useLogout()
   useCanalPessoal()
+  // resposta do atendimento toca (só) quando o cliente está em outra aba
+  useAvisosSonoros()
 
   return (
     <div className="flex h-full flex-col">
@@ -23,6 +26,7 @@ export function PortalShell() {
         <nav className="flex items-center gap-4 text-corpo text-tinta-secundaria">
           <Link to="/portal/tickets/novo">Abrir chamado</Link>
           <Link to="/portal/tickets">Meus chamados</Link>
+          <Link to="/portal/chat">Chat</Link>
           {usuario ? (
             <Botao variante="fantasma" onClick={() => logout.mutate()} disabled={logout.isPending}>
               Sair

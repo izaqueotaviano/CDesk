@@ -1,10 +1,9 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { App } from '@/App'
 import { PaginaLogin } from '@/features/auth/PaginaLogin'
 import { PaginaLoginGoogle } from '@/features/auth/PaginaLoginGoogle'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
-import { PaginaChat } from '@/features/chat/PaginaChat'
 import { PaginaKanban } from '@/features/kanban/PaginaKanban'
 import { PaginaRelatorios } from '@/features/reports/PaginaRelatorios'
 import { PaginaDetalheTicket } from '@/features/tickets/PaginaDetalheTicket'
@@ -19,6 +18,8 @@ import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio
 import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
 import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
 import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
+import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
+import { PaginaPortalChat } from '@/features/chat/PaginaPortalChat'
 import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
@@ -104,6 +105,18 @@ export const router = createBrowserRouter([
         ),
       },
 
+      // ---- Chat — console do agente: fila única, conversa, transferir/converter/encerrar ----
+      {
+        path: '/chat',
+        element: (
+          <RotaProtegida>
+            <NovoShell>
+              <PaginaChatResolv />
+            </NovoShell>
+          </RotaProtegida>
+        ),
+      },
+
       // ---- Clientes/Empresas — primeira tela na base real do design system cvzdesk ----
       {
         path: '/clientes',
@@ -151,7 +164,8 @@ export const router = createBrowserRouter([
           { index: true, element: <PaginaInicio /> },
           { path: 'tickets', element: <PaginaListaTickets /> },
           { path: 'tickets/:id', element: <PaginaDetalheTicket /> },
-          { path: 'chat', element: <PaginaChat /> },
+          // o console de chat virou tela própria (/chat, NovoShell); o caminho antigo só redireciona
+          { path: 'chat', element: <Navigate to="/chat" replace /> },
           { path: 'kanban', element: <PaginaKanban /> },
           { path: 'relatorios', element: <PaginaRelatorios /> },
         ],
@@ -168,6 +182,7 @@ export const router = createBrowserRouter([
           { index: true, element: <Navigate to="tickets" replace /> },
           { path: 'tickets', element: <PaginaPortalTickets /> },
           { path: 'tickets/novo', element: <PaginaPortalNovoTicket /> },
+          { path: 'chat', element: <PaginaPortalChat /> },
         ],
       },
     ],
