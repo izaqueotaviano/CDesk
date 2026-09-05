@@ -257,9 +257,11 @@ MEDIA_URL = None
 
 # Estes três são o PISO DE FALLBACK: o valor efetivo vem de `core.SystemConfig`,
 # editável no admin (o limite de anexo muda com o uso, não com a infraestrutura).
-ATTACHMENT_MAX_BYTES = env.int("ATTACHMENT_MAX_BYTES", 20 * 1024 * 1024)
+# Piso de fallback do `SystemConfig` (core): 10 MB por arquivo é regra de
+# produto, e o painel do cliente anuncia o mesmo número.
+ATTACHMENT_MAX_BYTES = env.int("ATTACHMENT_MAX_BYTES", 10 * 1024 * 1024)
 ATTACHMENT_MAX_BYTES_PER_MESSAGE = env.int(
-    "ATTACHMENT_MAX_BYTES_PER_MESSAGE", 200 * 1024 * 1024
+    "ATTACHMENT_MAX_BYTES_PER_MESSAGE", 100 * 1024 * 1024
 )
 ATTACHMENT_MAX_FILES_PER_MESSAGE = env.int("ATTACHMENT_MAX_FILES_PER_MESSAGE", 10)
 

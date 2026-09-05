@@ -19,7 +19,7 @@ import {
   Trash2,
   Users,
   X,
-} from 'lucide-react'
+ Star } from 'lucide-react'
 import { ApiError } from '@/api/client'
 import { mensagemDeErro, rotuloDia, urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import type { Mensagem, TicketDetalhe } from '@/resolv/tickets/detalhe/tiposDetalhe'
@@ -139,7 +139,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
   const [comentario, setComentario] = useState('')
   const idNota = useId()
   return (
-    <Card className="border-ok/30 bg-ok-suave/40">
+    <Card id="avaliacao" className="scroll-mt-20 border-ok/30 bg-ok-suave/40">
       <CardHeader>
         <CardTitle>Como foi o atendimento?</CardTitle>
         <p className="text-pequeno text-tinta-secundaria">De 0 (péssimo) a 10 (excelente). Sua nota vai para quem cuidou do chamado.</p>
@@ -366,9 +366,12 @@ export function PaginaTicket() {
   }
 
   const fechado = ticket.status === 'closed'
-  const podeReabrir = fechado && !ticket.auto_closed
-  const compositorVisivel = !ticket.content_hidden && (!fechado || reabrindo)
   const aguardaAvaliacao = fechado && (pendentes ?? []).some((p) => p.ticket_id === ticket.id)
+  // antes de reabrir, a nota: o backend recusa a reabertura com a pesquisa
+  // aberta, então o botão só aparece depois de avaliar (o cartão de nota
+  // fica logo abaixo do cabeçalho)
+  const podeReabrir = fechado && !ticket.auto_closed && !aguardaAvaliacao
+  const compositorVisivel = !ticket.content_hidden && (!fechado || reabrindo)
   const podeEnviar = (texto.trim().length > 0 || anexos.length > 0) && !responder.isPending
   const prazoResposta = !ticket.first_response_at && ticket.sla?.first_response?.due_at ? ticket.sla.first_response.due_at : null
 
@@ -458,6 +461,11 @@ export function PaginaTicket() {
                 <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
                   <Plus /> Abrir novo ticket
                 </Link>
+              )}
+              {aguardaAvaliacao && (
+                <a href="#avaliacao" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+                  <Star /> Avaliar para reabrir
+                </a>
               )}
             </div>
           </div>
@@ -699,7 +707,8 @@ export function PaginaTicket() {
       {fechado && !reabrindo && !ticket.auto_closed && !ticket.content_hidden && (
         <p className="inline-flex items-center gap-2 text-pequeno text-tinta-secundaria">
           <FileText className="size-4" aria-hidden="true" />
-          Chamado resolvido{ticket.closed_at ? ` em ${dataHora(ticket.closed_at)}` : ''}. Ainda precisa de ajuda? Use “Reabrir chamado”.
+          Chamado resolvido{ticket.closed_at ? ` em ${dataHora(ticket.closed_at)}` : ''}.{' '}
+          {aguardaAvaliacao ? 'Ainda precisa de ajuda? Avalie o atendimento e o botão “Reabrir chamado” aparece.' : 'Ainda precisa de ajuda? Use “Reabrir chamado”.'}
         </p>
       )}
 

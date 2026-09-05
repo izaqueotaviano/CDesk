@@ -4,7 +4,6 @@ import logging
 
 from celery import shared_task
 from django.conf import settings
-from django.core.mail import EmailMessage
 from django.utils import timezone
 
 logger = logging.getLogger(__name__)
@@ -106,20 +105,30 @@ EMAIL_TEMPLATES = {
 def send_outbound_email(self, email_id: int):
     from apps.notifications.models import OutboundEmail
 
+    from apps.core.models import SystemConfig
+    from apps.notifications import mailer
+
     email = OutboundEmail.objects.get(pk=email_id)
     if email.status == OutboundEmail.Status.SENT:
         return  # idempotência no retry
 
+    config = SystemConfig.load()
+    if not config.email_enabled:
+        # não é falha: a operação desligou. Fica registrado no outbox para a
+        # tela de Sistema mostrar o que deixou de sair, e não volta a tentar.
+        email.status = OutboundEmail.Status.SKIPPED
+        email.error = "Entrega de e-mail desligada em Configurações → Sistema."
+        email.save(update_fields=["status", "error"])
+        return
+
     template = EMAIL_TEMPLATES.get(email.template, "{body}")
     try:
-        message = EmailMessage(
+        mailer.enviar(
+            to=email.to_email,
             subject=email.subject,
             body=template.format(**email.context),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[email.to_email],
-            reply_to=[settings.EMAIL_REPLY_TO],
+            config=config,
         )
-        message.send(fail_silently=False)
     except Exception as exc:
         email.attempts += 1
         email.status = OutboundEmail.Status.FAILED

@@ -4,6 +4,8 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.email_template import TEMPLATE_HTML_PADRAO
+
 
 class TimeStampedModel(models.Model):
     """Base de todos os models de negócio: carimbo de criação e atualização."""
@@ -100,6 +102,31 @@ class SystemConfig(TimeStampedModel):
         ),
     )
 
+
+    # --- Entrega de e-mail ---
+    # A operação liga/desliga a saída de e-mail e aponta o SMTP daqui, sem
+    # deploy. Host vazio = o backend das settings (console em dev, o que o
+    # ambiente definir em produção). Desligado = o outbox registra o e-mail
+    # como pulado e nada sai — inclusive código de login, então a tela avisa.
+    # A senha fica em texto no banco, como ficaria numa variável de
+    # ambiente: o que a protege é o acesso ao banco, não este campo.
+    email_enabled = models.BooleanField(
+        default=True, verbose_name="Enviar e-mails",
+    )
+    smtp_host = models.CharField(max_length=200, blank=True, default="", verbose_name="Servidor SMTP")
+    smtp_port = models.PositiveIntegerField(default=587, verbose_name="Porta")
+    smtp_username = models.CharField(max_length=200, blank=True, default="", verbose_name="Usuário")
+    smtp_password = models.CharField(max_length=200, blank=True, default="", verbose_name="Senha")
+    smtp_use_tls = models.BooleanField(default=True, verbose_name="STARTTLS")
+    smtp_use_ssl = models.BooleanField(default=False, verbose_name="SSL")
+    email_from = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Remetente",
+        help_text="Ex.: Suporte Acme <suporte@acme.com.br>. Vazio usa o das settings.",
+    )
+    email_html_template = models.TextField(
+        blank=True, default=TEMPLATE_HTML_PADRAO, verbose_name="Modelo HTML dos e-mails",
+        help_text="Vazio manda só o texto. Marcadores: {{assunto}}, {{conteudo}}, {{ano}}.",
+    )
 
     # --- Pesquisa de satisfação ---
     csat_enabled = models.BooleanField(

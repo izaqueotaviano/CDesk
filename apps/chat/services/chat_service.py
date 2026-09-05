@@ -561,12 +561,13 @@ def reopen(*, chat: Chat, actor) -> Chat:
                     "Abra um ticket e a equipe responde assim que o expediente começar.",
                     code="fora_do_expediente",
                 )
-            # reabrir conta como "chat novo" pro bloqueio de avaliação — mas o
-            # PRÓPRIO chat pendente pode ser reaberto (é uma forma de retomar)
-            pendentes = pending_ratings(actor).exclude(pk=chat.pk)
-            if pendentes.exists():
+            # reabrir conta como "chat novo" pro bloqueio de avaliação — e o
+            # PRÓPRIO chat pendente também: a regra é "antes de reabrir, a
+            # nota" (decisão de produto; antes o próprio podia ser retomado)
+            if pending_ratings(actor).exists():
                 raise ChatRuleViolation(
-                    "Você tem atendimento sem avaliação. Avalie antes de reabrir."
+                    "Avalie o atendimento antes de reabrir a conversa.",
+                    code="rating_pending",
                 )
             outro_vivo = Chat.objects.filter(
                 client=actor, status__in=[ChatStatus.QUEUED, ChatStatus.ACTIVE]

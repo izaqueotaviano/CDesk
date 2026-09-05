@@ -606,6 +606,17 @@ def add_reply(
                     "resposta e não pode mais ser reaberto. Abra um novo chamado "
                     "para continuar."
                 )
+            # Regra do portal: antes de reabrir, a nota. Só para quem PODE
+            # avaliar (o solicitante); o responsável da empresa respondendo
+            # pelo colega não tem pesquisa para responder, e travá-lo aqui
+            # seria um beco sem saída.
+            survey = getattr(ticket, "survey", None)
+            if (author.pk == ticket.requester_id and survey is not None
+                    and not survey.is_answered and not survey.is_expired):
+                raise TicketRuleViolation(
+                    "Avalie o atendimento antes de reabrir o chamado — leva "
+                    "menos de um minuto."
+                )
             _reopen(ticket, author, now)
         else:  # NEW/OPEN: mantém status, mas o agente fica sabendo
             _notify_assignee_replied(ticket, author)

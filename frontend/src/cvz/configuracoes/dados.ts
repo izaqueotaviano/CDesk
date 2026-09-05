@@ -499,6 +499,18 @@ export interface SistemaCfg {
   auto_close_warning_message: string
   csat_enabled: boolean
   csat_expires_days: number
+  // entrega de e-mail — a senha nunca volta; `smtp_password_set` diz se há uma
+  email_enabled: boolean
+  smtp_host: string
+  smtp_port: number
+  smtp_username: string
+  smtp_password_set: boolean
+  smtp_use_tls: boolean
+  smtp_use_ssl: boolean
+  email_from: string
+  email_html_template: string
+  /** O modelo de fábrica, para o botão "restaurar padrão". */
+  email_html_template_default: string
   updated_at: string
 }
 export type SistemaCfgEscrita = Partial<
@@ -507,7 +519,9 @@ export type SistemaCfgEscrita = Partial<
     | 'attachment_max_bytes' | 'attachment_max_files_per_message' | 'attachment_max_bytes_per_message'
     | 'auto_close_pending_hours' | 'auto_close_message' | 'auto_close_warning_hours'
     | 'auto_close_warning_message' | 'csat_enabled' | 'csat_expires_days'
-  >
+    | 'email_enabled' | 'smtp_host' | 'smtp_port' | 'smtp_username' | 'smtp_use_tls' | 'smtp_use_ssl'
+    | 'email_from' | 'email_html_template'
+  > & { smtp_password: string }
 >
 
 export function useSistemaCfg() {
@@ -522,6 +536,14 @@ export function useAtualizarSistemaCfg() {
   return useMutation({
     mutationFn: (d: SistemaCfgEscrita) => api.put<SistemaCfg>('/api/v1/settings/system/', d),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-sistema'] }),
+  })
+}
+/** Manda um e-mail agora pela configuração SALVA — o jeito de conferir o SMTP
+ *  antes de um cliente ficar sem código de login. O erro do servidor de
+ *  e-mail volta em `detail`. */
+export function useEnviarEmailTeste() {
+  return useMutation({
+    mutationFn: (to: string) => api.post<{ sent: true; to: string }>('/api/v1/settings/system/test-email/', { to }),
   })
 }
 

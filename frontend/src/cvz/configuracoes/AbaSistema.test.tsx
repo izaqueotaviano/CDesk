@@ -17,6 +17,16 @@ const CONFIG = {
   auto_close_warning_message: 'Ainda estamos aguardando seu retorno neste chamado.',
   csat_enabled: true,
   csat_expires_days: 30,
+  email_enabled: true,
+  smtp_host: '',
+  smtp_port: 587,
+  smtp_username: '',
+  smtp_password_set: false,
+  smtp_use_tls: true,
+  smtp_use_ssl: false,
+  email_from: '',
+  email_html_template: '<html>{{assunto}} {{conteudo}}</html>',
+  email_html_template_default: '<html>{{assunto}} {{conteudo}}</html>',
   updated_at: '2026-09-04T12:00:00Z',
 }
 
@@ -137,6 +147,39 @@ describe('AbaSistema', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
 
     expect(await screen.findByText('Prazo grande demais para um link público.')).toBeInTheDocument()
+  })
+
+  it('e-mail: desligar a entrega e trocar a senha do SMTP vão no PUT; senha vazia não vai', async () => {
+    montar()
+    const entrega = await screen.findByRole('switch', { name: 'Ligada' })
+    fireEvent.click(entrega)
+    fireEvent.change(screen.getByLabelText('Servidor SMTP'), { target: { value: 'smtp.acme.test' } })
+    fireEvent.change(screen.getByLabelText('Senha'), { target: { value: 'segredo' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+
+    await waitFor(() => expect(escritas()).toHaveLength(1))
+    expect(escritas()[0]).toEqual({
+      metodo: 'PUT',
+      corpo: { email_enabled: false, smtp_host: 'smtp.acme.test', smtp_password: 'segredo' },
+    })
+  })
+
+  it('e-mail: STARTTLS e SSL juntos são barrados antes da API', async () => {
+    montar()
+    await screen.findByLabelText('Servidor SMTP')
+    fireEvent.click(screen.getByRole('switch', { name: 'Desligado' })) // SSL
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))
+    expect(await screen.findByText('Escolha STARTTLS ou SSL, não os dois.')).toBeInTheDocument()
+    await waitFor(() => expect(escritas()).toHaveLength(0))
+  })
+
+  it('e-mail de teste: POST para o endpoint com o destinatário, só sem alteração pendente', async () => {
+    montar()
+    const destino = await screen.findByLabelText('Destinatário do e-mail de teste')
+    fireEvent.change(destino, { target: { value: 'eu@acme.test' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar teste' }))
+    await waitFor(() => expect(escritas()).toHaveLength(1))
+    expect(escritas()[0]).toEqual({ metodo: 'POST', corpo: { to: 'eu@acme.test' } })
   })
 
   it('não deixa salvar sem alteração nenhuma', async () => {

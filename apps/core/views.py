@@ -3,12 +3,15 @@
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import Q
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.audit.models import AuditAction, AuditLog
+from apps.core.email_template import TEMPLATE_HTML_PADRAO
 from apps.core.models import BusinessCalendar, Holiday, SystemConfig
 from apps.core.permissions import IsInternal, IsInternalReadAdminWrite
 
@@ -110,6 +113,13 @@ class SystemConfigSerializer(serializers.ModelSerializer):
 
     attachment_max_mb = serializers.SerializerMethodField()
     attachment_max_mb_per_message = serializers.SerializerMethodField()
+    # a senha do SMTP nunca volta na leitura — a tela só sabe SE existe uma.
+    # Enviar vazio mantém a atual; para trocar, manda a nova.
+    smtp_password = serializers.CharField(
+        write_only=True, required=False, allow_blank=True, max_length=200
+    )
+    smtp_password_set = serializers.SerializerMethodField()
+    email_html_template_default = serializers.SerializerMethodField()
 
     class Meta:
         model = SystemConfig
@@ -120,9 +130,24 @@ class SystemConfigSerializer(serializers.ModelSerializer):
             "auto_close_pending_hours", "auto_close_message",
             "auto_close_warning_hours", "auto_close_warning_message",
             "csat_enabled", "csat_expires_days",
+            "email_enabled", "smtp_host", "smtp_port", "smtp_username",
+            "smtp_password", "smtp_password_set", "smtp_use_tls", "smtp_use_ssl",
+            "email_from", "email_html_template", "email_html_template_default",
             "updated_at",
         ]
         read_only_fields = ["updated_at"]
+
+    def get_smtp_password_set(self, obj) -> bool:
+        return bool(obj.smtp_password)
+
+    def get_email_html_template_default(self, obj) -> str:
+        """O modelo de fábrica, para o botão "restaurar padrão" da tela."""
+        return TEMPLATE_HTML_PADRAO
+
+    def update(self, instance, validated_data):
+        if validated_data.get("smtp_password", None) == "":
+            validated_data.pop("smtp_password")  # vazio = manter a atual
+        return super().update(instance, validated_data)
 
     def get_attachment_max_mb(self, obj) -> int:
         return obj.attachment_max_bytes // 1024 // 1024
@@ -150,6 +175,13 @@ class SystemConfigSerializer(serializers.ModelSerializer):
         # o aviso só faz sentido chegando ANTES do fechamento — sem isto, um
         # aviso de 80h com prazo de 72h manda o lembrete depois de já ter
         # fechado o ticket
+        tls = data.get("smtp_use_tls", instance.smtp_use_tls)
+        ssl = data.get("smtp_use_ssl", instance.smtp_use_ssl)
+        if tls and ssl:
+            raise serializers.ValidationError({
+                "smtp_use_ssl": "Escolha STARTTLS ou SSL, não os dois."
+            })
+
         prazo = data.get("auto_close_pending_hours", instance.auto_close_pending_hours)
         aviso = data.get("auto_close_warning_hours", instance.auto_close_warning_hours)
         if prazo and aviso and aviso >= prazo:
@@ -187,9 +219,54 @@ class SystemConfigView(APIView):
             content_type=ContentType.objects.get_for_model(SystemConfig),
             object_id=str(config.pk),
             summary="Configuração operacional alterada",
-            changes={k: str(v) for k, v in request.data.items()},
+            # a senha do SMTP não entra na trilha: fica "***" como registro
+            # de que mudou, sem o valor
+            changes={
+                k: ("***" if k == "smtp_password" else str(v))
+                for k, v in request.data.items()
+            },
         )
         return Response(SystemConfigSerializer(SystemConfig.load()).data)
+
+
+class TestEmailSerializer(serializers.Serializer):
+    to = serializers.EmailField()
+
+
+@extend_schema(
+    request=TestEmailSerializer,
+    responses=OpenApiTypes.OBJECT,
+    description="Envia um e-mail de teste pela configuração atual. Só admin.",
+)
+class SystemTestEmailView(APIView):
+    """O jeito de saber se o SMTP está certo ANTES de um cliente ficar sem o
+    código de login: manda um e-mail agora, pela mesma conexão do outbox, e
+    devolve o erro do servidor de e-mail em vez de engoli-lo."""
+
+    permission_classes = [IsInternalReadAdminWrite]
+
+    def post(self, request):
+        from apps.notifications import mailer
+
+        ser = TestEmailSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        config = SystemConfig.load()
+        try:
+            mailer.enviar(
+                to=ser.validated_data["to"],
+                subject="E-mail de teste do Resolv",
+                body=(
+                    "Este é um e-mail de teste enviado pela tela de Configurações → "
+                    "Sistema. Se ele chegou, a entrega está funcionando.\n\n"
+                    f"Servidor: {config.smtp_host or 'backend padrão das settings'}."
+                ),
+                config=config,
+            )
+        except mailer.EmailDesligado as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        except Exception as exc:  # noqa: BLE001 — o erro do SMTP é a resposta útil
+            raise ValidationError({"detail": f"O servidor de e-mail recusou: {exc}"}) from exc
+        return Response({"sent": True, "to": ser.validated_data["to"]})
 
 
 # --------------------------------------------------------------------------- #

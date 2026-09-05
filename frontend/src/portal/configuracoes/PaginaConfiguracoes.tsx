@@ -1,8 +1,9 @@
-import { Building2, KeyRound, Mail, Palette, UserRound, type LucideIcon } from 'lucide-react'
+import { Building2, KeyRound, Mail, Palette, ShieldCheck, UserRound, type LucideIcon } from 'lucide-react'
 import { SecaoAparencia } from './SecaoAparencia'
 import { SecaoEmpresa } from './SecaoEmpresa'
 import { SecaoNotificacoes } from './SecaoNotificacoes'
 import { SecaoPerfil } from './SecaoPerfil'
+import { SecaoSeguranca } from './SecaoSeguranca'
 import { SecaoSenha } from './SecaoSenha'
 
 const SECOES: { id: string; rotulo: string; icone: LucideIcon }[] = [
@@ -11,11 +12,12 @@ const SECOES: { id: string; rotulo: string; icone: LucideIcon }[] = [
   { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: Mail },
   { id: 'aparencia', rotulo: 'Aparência', icone: Palette },
   { id: 'senha', rotulo: 'Senha', icone: KeyRound },
+  { id: 'seguranca', rotulo: 'Verificação em duas etapas', icone: ShieldCheck },
 ]
 
 /**
  * Configurações do Painel do Cliente: a conta, a empresa, os avisos por
- * e-mail, o tema e a senha — cinco blocos numa página só, com um menu de
+ * e-mail, o tema, a senha e a verificação em duas etapas — seis blocos numa página só, com um menu de
  * âncoras (lateral no desktop, em fita no celular). Cada bloco salva por
  * conta própria: mudar o tema não obriga a "salvar" a senha.
  */
@@ -63,6 +65,7 @@ export function PaginaConfiguracoes() {
           <SecaoNotificacoes />
           <SecaoAparencia />
           <SecaoSenha />
+          <SecaoSeguranca />
         </div>
       </div>
     </div>

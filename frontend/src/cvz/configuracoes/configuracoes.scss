@@ -190,3 +190,15 @@
   @include type($fs-meta, $w-regular);
   color: $text-muted;
 }
+
+// Sistema → E-mail: destinatário + botão do e-mail de teste na mesma linha
+.cfg-sistema__teste {
+  display: flex;
+  gap: var(--espaco-2, 8px);
+  align-items: center;
+
+  .control {
+    flex: 1;
+    min-width: 0;
+  }
+}

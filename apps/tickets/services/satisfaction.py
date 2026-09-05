@@ -80,11 +80,15 @@ def pending_for(client):
 
     Escopo por `requester`, não por empresa: só quem abriu o chamado dá a
     nota dele (mesma regra do chat, onde só quem abriu a conversa avalia)."""
-    from apps.tickets.models import SatisfactionSurvey
+    from apps.tickets.models import SatisfactionSurvey, TicketStatus
 
+    # só de chamado ainda FECHADO: reaberto pelo agente (ou pelo responsável
+    # da empresa), ele volta a ser um chamado em andamento — a nota é do
+    # próximo fechamento, e a pesquisa volta a valer quando ele chegar
     return (
         SatisfactionSurvey.objects.filter(
             ticket__requester=client,
+            ticket__status=TicketStatus.CLOSED,
             responded_at__isnull=True,
             expires_at__gt=timezone.now(),
         )

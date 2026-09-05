@@ -60,6 +60,7 @@ from apps.core.views import (
     GlobalSearchView,
     HolidayViewSet,
     SystemConfigView,
+    SystemTestEmailView,
 )
 from apps.customers.admin_api import CompanyAdminViewSet, PlanAdminViewSet
 from apps.customers.views import CompanyViewSet, MaintenanceView, MyCompanyView, QuotaView
@@ -163,6 +164,7 @@ urlpatterns = router.urls + [
     path("quota/", QuotaView.as_view(), name="quota"),
     path("maintenance/", MaintenanceView.as_view(), name="maintenance"),
     path("settings/system/", SystemConfigView.as_view(), name="cfg-system"),
+    path("settings/system/test-email/", SystemTestEmailView.as_view(), name="cfg-system-test-email"),
     path("search/", GlobalSearchView.as_view(), name="global-search"),
     # LGPD: self-service do titular e download do pacote de portabilidade
     path("me/data-requests/", MyDataRequestView.as_view(), name="my-data-requests"),

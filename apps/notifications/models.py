@@ -91,6 +91,10 @@ class OutboundEmail(TimeStampedModel):
         PENDING = "pending", "Pendente"
         SENT = "sent", "Enviado"
         FAILED = "failed", "Falhou"
+        # a entrega estava desligada em Configurações → Sistema: registrado,
+        # não enviado, e sem retry — ligar depois não despacha o atrasado
+        # (um código de login de ontem não pode chegar hoje)
+        SKIPPED = "skipped", "Pulado"
 
     to_email = models.EmailField()
     subject = models.CharField(max_length=200)

@@ -13,7 +13,7 @@ import {
   useToast,
 } from '@/cvz/components'
 import { ApiError } from '@/api/client'
-import { useAtualizarSistemaCfg, useSistemaCfg, type SistemaCfg, type SistemaCfgEscrita } from './dados'
+import { useAtualizarSistemaCfg, useEnviarEmailTeste, useSistemaCfg, type SistemaCfg, type SistemaCfgEscrita } from './dados'
 
 const BYTES_POR_MB = 1024 * 1024
 
@@ -43,6 +43,17 @@ interface FormularioSistema {
   avisoMensagem: string
   csatAtivo: boolean
   csatDias: string
+  // entrega de e-mail
+  emailAtivo: boolean
+  smtpHost: string
+  smtpPorta: string
+  smtpUsuario: string
+  /** Vazio = manter a senha guardada (o backend nunca a devolve). */
+  smtpSenha: string
+  smtpTls: boolean
+  smtpSsl: boolean
+  remetente: string
+  modeloHtml: string
 }
 
 type Erros = Partial<Record<keyof FormularioSistema, string>>
@@ -61,6 +72,15 @@ function formularioDe(cfg: SistemaCfg): FormularioSistema {
     avisoMensagem: cfg.auto_close_warning_message,
     csatAtivo: cfg.csat_enabled,
     csatDias: String(cfg.csat_expires_days),
+    emailAtivo: cfg.email_enabled,
+    smtpHost: cfg.smtp_host,
+    smtpPorta: String(cfg.smtp_port),
+    smtpUsuario: cfg.smtp_username,
+    smtpSenha: '',
+    smtpTls: cfg.smtp_use_tls,
+    smtpSsl: cfg.smtp_use_ssl,
+    remetente: cfg.email_from,
+    modeloHtml: cfg.email_html_template,
   }
 }
 
@@ -119,6 +139,7 @@ function validar(f: FormularioSistema): Erros {
     erros.csatDias = 'Pelo menos um dia de validade.'
   }
 
+  validarEmail(f, erros)
   return erros
 }
 
@@ -127,6 +148,16 @@ function validar(f: FormularioSistema): Erros {
  * cru em `AuditLog.changes`: mandar o formulário inteiro registraria onze
  * campos "alterados" toda vez que alguém mexesse em um só.
  */
+/** Regras da entrega de e-mail — as mesmas do serializer. */
+function validarEmail(f: FormularioSistema, erros: Erros) {
+  const porta = Number(f.smtpPorta)
+  if (!Number.isInteger(porta) || porta < 1 || porta > 65535) erros.smtpPorta = 'Porta entre 1 e 65535.'
+  if (f.smtpTls && f.smtpSsl) erros.smtpSsl = 'Escolha STARTTLS ou SSL, não os dois.'
+  if (f.emailAtivo && f.smtpHost.trim() && !f.smtpUsuario.trim()) {
+    // aviso, não bloqueio: há SMTP sem autenticação (relay interno)
+  }
+}
+
 function payloadDe(f: FormularioSistema, base: SistemaCfg): SistemaCfgEscrita {
   const p: SistemaCfgEscrita = {}
 
@@ -154,6 +185,17 @@ function payloadDe(f: FormularioSistema, base: SistemaCfg): SistemaCfgEscrita {
   const dias = Number(f.csatDias)
   if (dias !== base.csat_expires_days) p.csat_expires_days = dias
 
+  if (f.emailAtivo !== base.email_enabled) p.email_enabled = f.emailAtivo
+  if (f.smtpHost.trim() !== base.smtp_host) p.smtp_host = f.smtpHost.trim()
+  const porta = Number(f.smtpPorta)
+  if (porta !== base.smtp_port) p.smtp_port = porta
+  if (f.smtpUsuario.trim() !== base.smtp_username) p.smtp_username = f.smtpUsuario.trim()
+  if (f.smtpSenha) p.smtp_password = f.smtpSenha
+  if (f.smtpTls !== base.smtp_use_tls) p.smtp_use_tls = f.smtpTls
+  if (f.smtpSsl !== base.smtp_use_ssl) p.smtp_use_ssl = f.smtpSsl
+  if (f.remetente.trim() !== base.email_from) p.email_from = f.remetente.trim()
+  if (f.modeloHtml !== base.email_html_template) p.email_html_template = f.modeloHtml
+
   return p
 }
 
@@ -169,12 +211,23 @@ const CAMPO_POR_CHAVE_API: Record<string, keyof FormularioSistema> = {
   auto_close_warning_message: 'avisoMensagem',
   csat_enabled: 'csatAtivo',
   csat_expires_days: 'csatDias',
+  email_enabled: 'emailAtivo',
+  smtp_host: 'smtpHost',
+  smtp_port: 'smtpPorta',
+  smtp_username: 'smtpUsuario',
+  smtp_password: 'smtpSenha',
+  smtp_use_tls: 'smtpTls',
+  smtp_use_ssl: 'smtpSsl',
+  email_from: 'remetente',
+  email_html_template: 'modeloHtml',
 }
 
 export function AbaSistema() {
   const { data, isLoading, isError, error, refetch } = useSistemaCfg()
   const salvar = useAtualizarSistemaCfg()
+  const teste = useEnviarEmailTeste()
   const { push } = useToast()
+  const [destinoTeste, setDestinoTeste] = useState('')
 
   const [form, setForm] = useState<FormularioSistema | null>(null)
   const [erros, setErros] = useState<Erros>({})
@@ -244,6 +297,19 @@ export function AbaSistema() {
 
   const alteracoes = payloadDe(form, data)
   const temAlteracao = Object.keys(alteracoes).length > 0
+
+  async function enviarTeste() {
+    try {
+      const r = await teste.mutateAsync(destinoTeste.trim())
+      push({ tone: 'success', title: 'E-mail de teste enviado', description: `Para ${r.to}. Confira a caixa de entrada (e o spam).` })
+    } catch (e) {
+      push({
+        tone: 'danger',
+        title: 'O e-mail de teste não saiu',
+        description: e instanceof ApiError ? (e.detail ?? 'Erro desconhecido.') : 'Erro desconhecido.',
+      })
+    }
+  }
   const prazoLigado = Number(form.fechamentoHoras) > 0
   const avisoLigado = prazoLigado && Number(form.avisoHoras) > 0
 
@@ -362,6 +428,116 @@ export function AbaSistema() {
             error={erros.csatDias}
             onChange={(e) => atualizarCampo('csatDias', e.target.value)}
           />
+        </FormRow>
+      </FormSection>
+
+      <FormSection
+        title="E-mail"
+        description="Por onde saem os avisos (resposta no chamado, código de login, pesquisa…). Desligado, nada sai — nem o código de login; a fila registra o que deixou de ir. Sem servidor SMTP, usa o que o ambiente definiu (em desenvolvimento, o console)."
+      >
+        <FormRow columns={2}>
+          <Field label="Entrega de e-mail">
+            <Toggle
+              checked={form.emailAtivo}
+              onChange={(e) => atualizarCampo('emailAtivo', e.target.checked)}
+              label={form.emailAtivo ? 'Ligada' : 'Desligada'}
+            />
+          </Field>
+          <TextInput
+            label="Remetente"
+            placeholder="Suporte Acme <suporte@acme.com.br>"
+            helper="Vazio usa o remetente das settings."
+            value={form.remetente}
+            error={erros.remetente}
+            onChange={(e) => atualizarCampo('remetente', e.target.value)}
+          />
+        </FormRow>
+        <FormRow columns={2}>
+          <TextInput
+            label="Servidor SMTP"
+            placeholder="smtp.provedor.com.br"
+            autoComplete="off"
+            value={form.smtpHost}
+            error={erros.smtpHost}
+            onChange={(e) => atualizarCampo('smtpHost', e.target.value)}
+          />
+          <TextInput
+            label="Porta"
+            type="number"
+            min={1}
+            max={65535}
+            step={1}
+            helper="587 com STARTTLS, 465 com SSL, 25 sem criptografia."
+            value={form.smtpPorta}
+            error={erros.smtpPorta}
+            onChange={(e) => atualizarCampo('smtpPorta', e.target.value)}
+          />
+        </FormRow>
+        <FormRow columns={2}>
+          <TextInput
+            label="Usuário"
+            autoComplete="off"
+            value={form.smtpUsuario}
+            error={erros.smtpUsuario}
+            onChange={(e) => atualizarCampo('smtpUsuario', e.target.value)}
+          />
+          <TextInput
+            label="Senha"
+            type="password"
+            autoComplete="new-password"
+            placeholder={data.smtp_password_set ? '••••••••' : ''}
+            helper={data.smtp_password_set ? 'Há uma senha guardada. Deixe em branco para manter.' : 'A senha não volta para a tela depois de salva.'}
+            value={form.smtpSenha}
+            error={erros.smtpSenha}
+            onChange={(e) => atualizarCampo('smtpSenha', e.target.value)}
+          />
+        </FormRow>
+        <FormRow columns={2}>
+          <Field label="STARTTLS" helper="O mais comum (porta 587).">
+            <Toggle checked={form.smtpTls} onChange={(e) => atualizarCampo('smtpTls', e.target.checked)} label={form.smtpTls ? 'Ligado' : 'Desligado'} />
+          </Field>
+          <Field label="SSL" helper="Conexão já criptografada (porta 465)." error={erros.smtpSsl}>
+            <Toggle checked={form.smtpSsl} onChange={(e) => atualizarCampo('smtpSsl', e.target.checked)} label={form.smtpSsl ? 'Ligado' : 'Desligado'} />
+          </Field>
+        </FormRow>
+        <FormRow columns={1}>
+          <TextArea
+            label="Modelo HTML dos e-mails"
+            rows={14}
+            helper="Marcadores: {{assunto}}, {{conteudo}} (o texto do aviso em parágrafos, com links clicáveis) e {{ano}}. Vazio manda só o texto."
+            value={form.modeloHtml}
+            error={erros.modeloHtml}
+            onChange={(e) => atualizarCampo('modeloHtml', e.target.value)}
+          />
+        </FormRow>
+        <FormRow columns={2}>
+          <Field label="Modelo">
+            <Button
+              variant="ghost"
+              disabled={form.modeloHtml === data.email_html_template_default}
+              onClick={() => atualizarCampo('modeloHtml', data.email_html_template_default)}
+            >
+              Restaurar modelo padrão
+            </Button>
+          </Field>
+          <Field
+            label="Enviar e-mail de teste"
+            helper={temAlteracao ? 'Salve as alterações antes: o teste usa a configuração salva.' : 'Usa a configuração salva e mostra o erro do servidor, se houver.'}
+          >
+            <div className="cfg-sistema__teste">
+              <input
+                className="control"
+                type="email"
+                placeholder="voce@empresa.com.br"
+                aria-label="Destinatário do e-mail de teste"
+                value={destinoTeste}
+                onChange={(e) => setDestinoTeste(e.target.value)}
+              />
+              <Button variant="secondary" onClick={enviarTeste} disabled={temAlteracao || teste.isPending || !destinoTeste.includes('@')}>
+                {teste.isPending ? 'Enviando…' : 'Enviar teste'}
+              </Button>
+            </div>
+          </Field>
         </FormRow>
       </FormSection>
 

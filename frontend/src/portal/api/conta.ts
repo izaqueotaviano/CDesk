@@ -194,3 +194,62 @@ export function useTrocarSenha() {
       api.post<{ detail: string }>('/api/v1/me/password/', dados),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Verificação em duas etapas — sempre exigida no login; o que a pessoa
+// escolhe aqui é COMO recebe o código: por e-mail (padrão, sem configurar
+// nada) ou por aplicativo autenticador (TOTP). Ativar o aplicativo não muda
+// nada até um código válido confirmar; o segredo pendente vive na sessão.
+// ---------------------------------------------------------------------------
+
+export type Metodo2fa = '' | 'email' | 'totp'
+
+export interface Status2fa {
+  method: Metodo2fa
+  pending: Metodo2fa
+}
+
+export interface Setup2fa {
+  method: Metodo2fa
+  secret?: string
+  otpauth_uri?: string
+  sent?: boolean
+}
+
+export const chaves2fa = ['auth', '2fa', 'status'] as const
+
+export function useStatus2fa() {
+  return useQuery({
+    queryKey: chaves2fa,
+    queryFn: () => api.get<Status2fa>('/api/v1/auth/2fa/status/'),
+    staleTime: 60_000,
+  })
+}
+
+export function useIniciar2fa() {
+  return useMutation({
+    mutationFn: (method: 'totp' | 'email') => api.post<Setup2fa>('/api/v1/auth/2fa/setup/', { method }),
+  })
+}
+
+export function useConfirmar2fa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (code: string) => api.post<{ method: Metodo2fa }>('/api/v1/auth/2fa/confirm/', { code }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaves2fa }),
+  })
+}
+
+export function usePedirCodigoDesativar2fa() {
+  return useMutation({
+    mutationFn: () => api.post<{ sent: true }>('/api/v1/auth/2fa/request-code/'),
+  })
+}
+
+export function useDesativar2fa() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (code: string) => api.post<{ method: Metodo2fa }>('/api/v1/auth/2fa/disable/', { code }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaves2fa }),
+  })
+}
