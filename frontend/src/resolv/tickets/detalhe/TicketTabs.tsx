@@ -23,6 +23,8 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
       {tabs.map((aba) => {
         const ativo = aba.ticketId === idAtivo
         const titulo = aba.resumo?.company_name || aba.resumo?.subject || 'Ticket'
+        const ref = aba.resumo?.reference ?? `#${aba.ticketId}`
+        const rascunho = aba.draft.trim().length > 0
         return (
           <div
             key={aba.ticketId}
@@ -33,18 +35,36 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
             <button
               type="button"
               className="ticket-tabs__abrir"
+              title={aba.resumo?.subject ? `${ref} · ${aba.resumo.subject}` : ref}
               onClick={() => {
                 definirAtiva(aba.ticketId)
                 navigate(`/chamados/${aba.ticketId}`)
               }}
             >
-              <span className="ticket-tabs__titulo">{titulo}</span>
-              <span className="ticket-tabs__num">{aba.resumo?.reference ?? `#${aba.ticketId}`}</span>
+              <span className="ticket-tabs__titulo">
+                {aba.resumo?.stage_color && (
+                  <span
+                    className="ticket-tabs__etapa"
+                    style={{ background: aba.resumo.stage_color }}
+                    aria-hidden="true"
+                  />
+                )}
+                {titulo}
+              </span>
+              <span className="ticket-tabs__num">
+                {ref}
+                {rascunho && (
+                  <span className="ticket-tabs__rascunho" title="Rascunho não enviado">
+                    · rascunho
+                  </span>
+                )}
+              </span>
             </button>
             <button
               type="button"
               className="ticket-tabs__fechar"
-              aria-label={`Fechar ${aba.resumo?.reference ?? aba.ticketId}`}
+              aria-label={`Fechar aba ${ref}`}
+              title="Fechar aba"
               onClick={() => {
                 const restantes = tabs.filter((t) => t.ticketId !== aba.ticketId)
                 fechar(aba.ticketId)
@@ -64,9 +84,10 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
         type="button"
         className="ticket-tabs__mais"
         aria-label="Abrir outro ticket"
+        title="Abrir outro ticket"
         onClick={() => navigate('/chamados')}
       >
-        <i className="ti ti-circle-plus" />
+        <i className="ti ti-plus" />
       </button>
     </div>
   )

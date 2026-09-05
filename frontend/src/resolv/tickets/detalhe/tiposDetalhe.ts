@@ -5,11 +5,17 @@
  */
 import type { EstadoSla, Prioridade, StatusTicket } from '../tipos'
 
+/** Resultado da varredura antivírus (D19) — `ScanStatus` do backend. */
+export type StatusVarredura = 'pending' | 'clean' | 'infected' | 'error' | 'skipped'
+
 export interface Anexo {
   id: number
   filename: string
+  content_type?: string
+  size_bytes?: number
+  /** Caminho relativo à API (`/api/v1/attachments/{id}/`) — prefixar com API_BASE_URL. */
   url?: string
-  scan_status?: string
+  scan_status?: StatusVarredura
   is_downloadable?: boolean
 }
 
@@ -21,6 +27,7 @@ export interface Mencao {
 export interface Mensagem {
   id: number
   author_name: string
+  /** Caminho relativo à API (`/avatars/...`) ou URL absoluta. */
   author_avatar: string | null
   author_is_internal: boolean
   body: string
@@ -77,19 +84,31 @@ export interface TicketDetalhe {
   team: { id: number; name: string; slug: string } | null
   requester_display: string
   assignee_name: string | null
+  assignee_avatar?: string | null
   assignee_id: number | null
   owner_name: string | null
   owner_id: number | null
   company_name: string
+  plan?: { slug: string; name: string } | null
   category: number | null
   category_name: string | null
+  service_name?: string | null
   current_status_note: string | null
   is_restricted: boolean
   content_hidden: boolean
+  restriction_reason?: string
   sla: { first_response: RelogioSla; resolution: RelogioSla }
   tags: Etiqueta[]
   created_at: string
+  updated_at?: string
   first_response_at: string | null
+  closed_at?: string | null
+  auto_closed?: boolean
+  reopen_count?: number
+  last_reopened_at?: string | null
+  resolution_started_at?: string | null
+  resolution_ended_at?: string | null
+  sla_cycle?: number
   messages: Mensagem[]
   events: Evento[]
   watchers: Seguidor[]
@@ -105,6 +124,7 @@ export interface AlvoMencao {
   name: string
   email: string
   avatar_url?: string | null
+  group?: 'ticket' | 'equipe' | 'outros' | 'equipes'
 }
 
 /** Contato do solicitante — agora exposto pelo TicketDetail (RequesterSerializer). */
@@ -115,9 +135,24 @@ export interface Requester {
   timezone: string | null
 }
 
-/** Macro (GET /settings/ticket-macros/). */
+/** Macro (GET /settings/ticket-macros/). Além do texto pronto, carrega os
+ *  campos de triagem que `POST /tickets/{id}/apply-macro/` grava no servidor. */
 export interface Macro {
   id: number
   name: string
   body: string
+  category?: number | null
+  category_name?: string | null
+  priority?: Prioridade | '' | null
+  assignee?: number | null
+  assignee_name?: string | null
+  tags?: number[]
+  is_active?: boolean
+}
+
+/** Dados do fechamento (D4): início/término reais da solução + justificativa. */
+export interface DadosFechamento {
+  resolution_started_at: string
+  resolution_ended_at: string
+  note: string
 }

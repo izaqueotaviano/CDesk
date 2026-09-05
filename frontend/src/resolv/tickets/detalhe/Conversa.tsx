@@ -1,309 +1,402 @@
-import { useEffect, useRef, useState } from 'react'
-import { useMe } from '@/api/queries/useMe'
-import { ROTULO_STATUS } from '../format'
-import type { StatusTicket } from '../tipos'
-import { useAcoesTicket, useMacros } from './dados'
-import type { Mensagem, TicketDetalhe } from './tiposDetalhe'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import type { Me } from '@/api/types'
+import { formatarDataHora } from '../format'
+import { Compositor } from './Compositor'
+import { useAcoesTicket } from './dados'
+import {
+  ICONE_CANAL,
+  agruparPorDia,
+  descreverEvento,
+  iniciais,
+  mensagemDeErro,
+  mesclarLinhaDoTempo,
+  tamanhoArquivo,
+  tempoRelativo,
+  urlApi,
+} from './linhaDoTempo'
+import type { Anexo, Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
 
-function iniciais(nome: string) {
-  const p = nome.trim().split(/\s+/)
-  return ((p[0]?.[0] ?? '') + (p.length > 1 ? (p.at(-1)?.[0] ?? '') : '')).toUpperCase()
+const ROTULO_VARREDURA: Record<string, string> = {
+  pending: 'verificando…',
+  infected: 'bloqueado pelo antivírus',
+  error: 'falha na verificação',
+  skipped: 'não verificado',
 }
 
-function haQuanto(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime()
-  const min = Math.floor(diff / 60000)
-  if (min < 1) return 'agora'
-  if (min < 60) return `há ${min} min`
-  const h = Math.floor(min / 60)
-  if (h < 24) return `há ${h}h`
-  return `há ${Math.floor(h / 24)}d`
-}
-
-const ICONE_CANAL: Record<string, string> = {
-  web: 'ti ti-mail',
-  chat: 'ti ti-message-circle-2',
-  internal: 'ti ti-lock',
-  system: 'ti ti-robot',
-}
-const ROTULO_CANAL: Record<string, string> = {
-  web: 'Pelo e-mail',
-  chat: 'Pelo chat',
-  internal: 'Interno',
-  system: 'Automático',
-}
-
-const STATUS_ENVIO: StatusTicket[] = ['open', 'pending_customer', 'new', 'closed']
-
-function Bolha({ msg }: { msg: Mensagem }) {
-  const interno = !msg.is_public
-  return (
-    <div className={'conversa__msg' + (msg.author_is_internal ? ' conversa__msg--agente' : '')}>
-      <span
-        className={
-          'conversa__avatar' + (msg.author_is_internal ? ' conversa__avatar--agente' : '')
-        }
-      >
-        {msg.author_avatar ? (
-          <img src={msg.author_avatar} alt={msg.author_name} />
-        ) : (
-          iniciais(msg.author_name)
-        )}
+/** O corpo guarda `@[user:12]`; o serializer manda `mentions` com o nome. */
+function renderizarCorpo(msg: Mensagem): ReactNode {
+  const partes = msg.body.split(/(@\[(?:user|team):\d+\])/g)
+  if (partes.length === 1) return msg.body
+  return partes.map((p, i) => {
+    const m = p.match(/^@\[(user|team):(\d+)\]$/)
+    if (!m) return p
+    const alvo = msg.mentions.find((x) => x.id === Number(m[2]))
+    return alvo ? (
+      <span key={i} className="msg__mencao">
+        @{alvo.display}
       </span>
-      <div className="conversa__msg-corpo">
-        <div className="conversa__msg-meta">
-          <span className="conversa__msg-autor">{msg.author_name}</span>
-          <i className={ICONE_CANAL[msg.source] ?? 'ti ti-mail'} />
-          <span className="conversa__msg-sep">·</span>
-          <span className="conversa__msg-tempo">{haQuanto(msg.created_at)}</span>
-          {interno && <span className="conversa__msg-tag-interna">Nota interna</span>}
-          {msg.edited_at && <span className="conversa__msg-editada">editada</span>}
-        </div>
-        <div
-          className={
-            'conversa__balao' +
-            (msg.author_is_internal ? ' conversa__balao--agente' : '') +
-            (interno ? ' conversa__balao--interna' : '') +
-            (msg.is_deleted ? ' conversa__balao--apagada' : '')
-          }
+    ) : (
+      p
+    )
+  })
+}
+
+function AnexoChip({ anexo }: { anexo: Anexo }) {
+  const tamanho = tamanhoArquivo(anexo.size_bytes)
+  if (anexo.is_downloadable && anexo.url) {
+    return (
+      <a className="msg__anexo" href={urlApi(anexo.url)} target="_blank" rel="noreferrer">
+        <i className="ti ti-paperclip" />
+        <span className="msg__anexo-nome">{anexo.filename}</span>
+        {tamanho && <span className="msg__anexo-tam">{tamanho}</span>}
+        <i className="ti ti-download msg__anexo-baixar" aria-hidden="true" />
+      </a>
+    )
+  }
+  const motivo = ROTULO_VARREDURA[anexo.scan_status ?? ''] ?? 'indisponível'
+  return (
+    <span className="msg__anexo msg__anexo--off" title={`Download indisponível: ${motivo}`}>
+      <i className="ti ti-paperclip" />
+      <span className="msg__anexo-nome">{anexo.filename}</span>
+      <span className="msg__anexo-tam">{motivo}</span>
+    </span>
+  )
+}
+
+/** Editor inline de uma mensagem. Monta só enquanto edita — o estado nasce
+ *  do corpo atual na montagem, sem efeito para sincronizar. */
+function EditorMensagem({
+  original,
+  onSalvar,
+  onCancelar,
+}: {
+  original: string
+  onSalvar: (body: string) => Promise<unknown>
+  onCancelar: () => void
+}) {
+  const [texto, setTexto] = useState(original)
+  const [ocupado, setOcupado] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+
+  async function salvar() {
+    if (!texto.trim() || texto === original) return onCancelar()
+    setOcupado(true)
+    setErro(null)
+    try {
+      await onSalvar(texto.trim())
+    } catch (e) {
+      setErro(
+        `${mensagemDeErro(e, 'Não foi possível salvar a correção.')} O texto editado continua aqui.`,
+      )
+      setOcupado(false)
+    }
+  }
+
+  return (
+    <div className="msg__editor">
+      <textarea
+        autoFocus
+        value={texto}
+        rows={4}
+        onChange={(e) => setTexto(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onCancelar()
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) salvar()
+        }}
+        aria-label="Corrigir mensagem"
+      />
+      <div className="msg__editor-acoes">
+        <button
+          type="button"
+          className="msg__btn msg__btn--primario"
+          onClick={salvar}
+          disabled={ocupado}
         >
-          {msg.is_deleted ? <em>Mensagem apagada</em> : msg.body}
-        </div>
-        {msg.attachments.length > 0 && (
-          <div className="conversa__anexos">
-            {msg.attachments.map((a) => (
-              <span key={a.id} className="conversa__anexo">
-                <i className="ti ti-paperclip" />
-                {a.filename}
-              </span>
-            ))}
-          </div>
-        )}
+          {ocupado ? 'Salvando…' : 'Salvar correção'}
+        </button>
+        <button type="button" className="msg__btn" onClick={onCancelar} disabled={ocupado}>
+          Cancelar
+        </button>
+        <span className="msg__editor-dica">O cliente vê que a mensagem foi editada.</span>
       </div>
+      {erro && (
+        <p className="msg__erro" role="alert">
+          {erro}
+        </p>
+      )}
     </div>
   )
 }
 
-export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
-  const { data: me } = useMe()
-  const { data: macros } = useMacros()
-  const { responder } = useAcoesTicket(ticket.id)
+interface MensagemProps {
+  msg: Mensagem
+  agoraMs: number
+  editando: boolean
+  onEditar: () => void
+  onCancelarEdicao: () => void
+  onSalvar: (body: string) => Promise<unknown>
+  onApagar: () => Promise<unknown>
+}
 
-  const [texto, setTexto] = useState('')
-  const [publico, setPublico] = useState(true)
-  const [statusEnvio, setStatusEnvio] = useState<StatusTicket>('open')
-  const [abrirStatus, setAbrirStatus] = useState(false)
-  const [anexos, setAnexos] = useState<File[]>([])
-  const inputAnexo = useRef<HTMLInputElement>(null)
-  const fimMensagens = useRef<HTMLDivElement>(null)
+function ItemMensagem({
+  msg,
+  agoraMs,
+  editando,
+  onEditar,
+  onCancelarEdicao,
+  onSalvar,
+  onApagar,
+}: MensagemProps) {
+  const interna = !msg.is_public
+  const sistema = msg.source === 'system'
+  const [confirmandoApagar, setConfirmandoApagar] = useState(false)
+  const [apagando, setApagando] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
 
-  // rola para a última mensagem quando o total muda — inclui a mensagem que
-  // chega por realtime (ws), que é o que torna o push visível sem F5.
-  const totalMensagens = ticket.messages.length
-  useEffect(() => {
-    fimMensagens.current?.scrollIntoView({ block: 'end' })
-  }, [totalMensagens])
-
-  // pode enviar com texto OU só anexo (anexar um print sem comentário é válido)
-  const podeEnviar = (texto.trim().length > 0 || anexos.length > 0) && !responder.isPending
-
-  function enviar() {
-    if (!podeEnviar) return
-    responder.mutate(
-      {
-        body: texto.trim(),
-        is_public: publico,
-        // resposta pública de agente exige status; nota interna não manda status
-        ...(publico && me?.is_internal ? { new_status: statusEnvio } : {}),
-        ...(anexos.length > 0 ? { files: anexos } : {}),
-      },
-      {
-        onSuccess: () => {
-          setTexto('')
-          setAnexos([])
-        },
-      },
-    )
+  async function apagar() {
+    setApagando(true)
+    setErro(null)
+    try {
+      await onApagar()
+      setConfirmandoApagar(false)
+    } catch (e) {
+      setErro(mensagemDeErro(e, 'Não foi possível apagar a mensagem.'))
+    } finally {
+      setApagando(false)
+    }
   }
 
-  const badgeSla = ticket.sla?.first_response
-  const estadoSla = badgeSla?.state
-  const min = badgeSla?.minutes_left
+  const papel = sistema ? 'Sistema' : msg.author_is_internal ? 'Equipe' : 'Cliente'
+  const classe =
+    'msg' +
+    (msg.author_is_internal ? ' msg--agente' : ' msg--cliente') +
+    (interna ? ' msg--interna' : '') +
+    (sistema ? ' msg--sistema' : '') +
+    (msg.is_deleted ? ' msg--apagada' : '')
 
   return (
-    <section className="conversa">
-      {/* Header */}
-      <header className="conversa__header">
-        <div className="conversa__titulo-bloco">
-          <h1 className="conversa__titulo">
-            {ticket.is_restricted && <i className="ti ti-lock" />}
-            {ticket.subject}
-          </h1>
-          <div className="conversa__sub">
-            {min != null && estadoSla && estadoSla !== 'none' && (
-              <span className={'conversa__sla conversa__sla--' + estadoSla}>
-                {min < 0 ? `-${Math.abs(min)}m` : `${min}m`}
-              </span>
-            )}
-            <span className="conversa__canal">
-              <i className={ICONE_CANAL[ticket.source] ?? 'ti ti-mail'} />
-              {ROTULO_CANAL[ticket.source] ?? ticket.source}
-            </span>
-          </div>
-        </div>
-        <div className="conversa__acoes-header">
-          <button type="button" aria-label="Resumo"><i className="ti ti-list-check" /></button>
-          <button type="button" aria-label="Filtrar"><i className="ti ti-filter" /></button>
-          <button type="button" aria-label="Histórico"><i className="ti ti-history" /></button>
-          <button type="button" aria-label="Mais"><i className="ti ti-dots-vertical" /></button>
-        </div>
-      </header>
-
-      {/* Mensagens */}
-      <div className="conversa__mensagens">
-        {ticket.messages.length === 0 ? (
-          <p className="conversa__vazio">Nenhuma mensagem ainda.</p>
+    <article
+      className={classe}
+      aria-label={`${interna ? 'Nota interna' : 'Mensagem'} de ${msg.author_name}`}
+    >
+      <span
+        className={'msg__avatar' + (msg.author_is_internal ? ' msg__avatar--agente' : '')}
+        aria-hidden="true"
+      >
+        {sistema ? (
+          <i className="ti ti-robot" />
+        ) : msg.author_avatar ? (
+          <img src={urlApi(msg.author_avatar)} alt="" />
         ) : (
-          ticket.messages.map((m) => <Bolha key={m.id} msg={m} />)
+          iniciais(msg.author_name)
         )}
-        <div ref={fimMensagens} />
-      </div>
+      </span>
 
-      {/* Compositor */}
-      <div className="conversa__composer">
-        <div className="conversa__composer-topo">
-          <div className="conversa__tipo-resposta">
+      <div className="msg__corpo">
+        <header className="msg__meta">
+          <span className="msg__autor">{msg.author_name}</span>
+          <span className={`msg__papel msg__papel--${papel.toLowerCase()}`}>{papel}</span>
+          <i className={ICONE_CANAL[msg.source] ?? 'ti ti-mail'} aria-hidden="true" />
+          <time
+            dateTime={msg.created_at}
+            title={formatarDataHora(msg.created_at)}
+            className="msg__tempo"
+          >
+            {tempoRelativo(msg.created_at, agoraMs)}
+          </time>
+          {interna && (
+            <span className="msg__etiqueta msg__etiqueta--interna">
+              <i className="ti ti-lock" /> Nota interna
+            </span>
+          )}
+          {msg.is_first_response && <span className="msg__etiqueta">1ª resposta</span>}
+          {msg.edited_at && (
+            <span className="msg__editada" title={`Editada em ${formatarDataHora(msg.edited_at)}`}>
+              editada
+            </span>
+          )}
+
+          {msg.can_edit && !msg.is_deleted && !editando && !confirmandoApagar && (
+            <span className="msg__acoes">
+              <button type="button" onClick={onEditar} aria-label="Editar mensagem" title="Editar">
+                <i className="ti ti-pencil" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmandoApagar(true)}
+                aria-label="Apagar mensagem"
+                title="Apagar"
+              >
+                <i className="ti ti-trash" />
+              </button>
+            </span>
+          )}
+        </header>
+
+        {editando ? (
+          <EditorMensagem original={msg.body} onSalvar={onSalvar} onCancelar={onCancelarEdicao} />
+        ) : (
+          <div className="msg__texto">
+            {msg.is_deleted ? <em>Mensagem apagada</em> : renderizarCorpo(msg)}
+          </div>
+        )}
+
+        {confirmandoApagar && (
+          <div className="msg__confirmar" role="alertdialog" aria-label="Confirmar exclusão">
+            <span>Apagar esta mensagem? Ela some para todo mundo.</span>
             <button
               type="button"
-              className={'conversa__seg' + (publico ? ' conversa__seg--on' : '')}
-              onClick={() => setPublico(true)}
+              className="msg__btn msg__btn--perigo"
+              onClick={apagar}
+              disabled={apagando}
             >
-              <i className="ti ti-arrow-back-up" /> Resposta pública
+              {apagando ? 'Apagando…' : 'Apagar'}
             </button>
             <button
               type="button"
-              className={'conversa__seg' + (!publico ? ' conversa__seg--on' : '')}
-              onClick={() => setPublico(false)}
+              className="msg__btn"
+              onClick={() => setConfirmandoApagar(false)}
+              disabled={apagando}
             >
-              <i className="ti ti-note" /> Nota interna
+              Cancelar
             </button>
           </div>
-          <div className="conversa__para">
-            Para <span className="conversa__para-chip">{ticket.requester_display}</span>
-          </div>
-        </div>
+        )}
 
-        <textarea
-          className="conversa__textarea"
-          placeholder={publico ? 'Escreva a resposta ao cliente…' : 'Nota interna (não vai para o cliente)…'}
-          value={texto}
-          onChange={(e) => setTexto(e.target.value)}
-        />
+        {erro && (
+          <p className="msg__erro" role="alert">
+            {erro}
+          </p>
+        )}
 
-        <div className="conversa__toolbar">
-          <button type="button" aria-label="Anexar" onClick={() => inputAnexo.current?.click()}>
-            <i className="ti ti-paperclip" />
-          </button>
-          <input
-            ref={inputAnexo}
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => {
-              setAnexos((a) => [...a, ...Array.from(e.target.files ?? [])])
-              e.target.value = '' // permite re-selecionar o mesmo arquivo
-            }}
-          />
-          <button type="button" aria-label="Formatar"><i className="ti ti-typography" /></button>
-          <button type="button" aria-label="Emoji"><i className="ti ti-mood-happy" /></button>
-          <button type="button" aria-label="Link"><i className="ti ti-link" /></button>
-        </div>
-
-        {anexos.length > 0 && (
-          <div className="conversa__anexos-pend">
-            {anexos.map((f, i) => (
-              <span key={`${f.name}-${i}`} className="conversa__anexo-chip">
-                <i className="ti ti-paperclip" />
-                {f.name}
-                <button
-                  type="button"
-                  aria-label={`Remover ${f.name}`}
-                  onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}
-                >
-                  <i className="ti ti-x" />
-                </button>
-              </span>
+        {msg.attachments.length > 0 && (
+          <div className="msg__anexos">
+            {msg.attachments.map((a) => (
+              <AnexoChip key={a.id} anexo={a} />
             ))}
           </div>
         )}
-
-        <div className="conversa__composer-rodape">
-          {/* Aplicar macro: preenche o texto pronto (macro.body) no compositor */}
-          <div className="conversa__macro">
-            <i className="ti ti-bolt" />
-            <select
-              value=""
-              onChange={(e) => {
-                const m = macros?.find((x) => x.id === Number(e.target.value))
-                if (m?.body) setTexto((t) => (t ? `${t}\n${m.body}` : m.body))
-              }}
-            >
-              <option value="">Aplicar macro</option>
-              {(macros ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="conversa__enviar-grupo">
-            <button
-              type="button"
-              className="conversa__enviar"
-              disabled={!podeEnviar}
-              onClick={enviar}
-            >
-              {responder.isPending
-                ? 'Enviando…'
-                : publico && me?.is_internal
-                  ? `Enviar como ${ROTULO_STATUS[statusEnvio]}`
-                  : publico
-                    ? 'Enviar'
-                    : 'Salvar nota'}
-            </button>
-            {publico && me?.is_internal && (
-              <div className="conversa__enviar-menu-wrap">
-                <button
-                  type="button"
-                  className="conversa__enviar-toggle"
-                  aria-label="Escolher status"
-                  onClick={() => setAbrirStatus((v) => !v)}
-                >
-                  <i className="ti ti-chevron-down" />
-                </button>
-                {abrirStatus && (
-                  <ul className="conversa__enviar-menu">
-                    {STATUS_ENVIO.map((s) => (
-                      <li key={s}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setStatusEnvio(s)
-                            setAbrirStatus(false)
-                          }}
-                        >
-                          Enviar como {ROTULO_STATUS[s]}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
+    </article>
+  )
+}
+
+function ItemEvento({ evento, agoraMs }: { evento: Evento; agoraMs: number }) {
+  const { texto, tom } = descreverEvento(evento)
+  return (
+    <div className={`evento evento--${tom}`} role="status">
+      <span className="evento__linha" aria-hidden="true" />
+      <span className="evento__miolo">
+        <span className="evento__ponto" aria-hidden="true" />
+        <span className="evento__texto">{texto}</span>
+        {evento.note && <span className="evento__nota">“{evento.note}”</span>}
+        <time
+          dateTime={evento.created_at}
+          title={formatarDataHora(evento.created_at)}
+          className="evento__tempo"
+        >
+          {tempoRelativo(evento.created_at, agoraMs)}
+        </time>
+      </span>
+      <span className="evento__linha" aria-hidden="true" />
+    </div>
+  )
+}
+
+interface Props {
+  ticket: TicketDetalhe
+  me: Me | undefined
+  agoraMs: number
+  /** Incrementado pelo cabeçalho quando a pessoa pede para reabrir — o
+   *  compositor foca em modo público com status "Aberto". */
+  pedidoReabrir: number
+}
+
+export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
+  const { editarMensagem, apagarMensagem } = useAcoesTicket(ticket.id)
+  const [mostrarEventos, setMostrarEventos] = useState(true)
+  const [editandoId, setEditandoId] = useState<number | null>(null)
+  const fimRef = useRef<HTMLDivElement>(null)
+
+  const grupos = useMemo(
+    () =>
+      agruparPorDia(mesclarLinhaDoTempo(ticket.messages, ticket.events, mostrarEventos), agoraMs),
+    [ticket.messages, ticket.events, mostrarEventos, agoraMs],
+  )
+
+  // Rola para a última mensagem quando o total muda — inclui a que chega por
+  // realtime (ws), que é o que torna o push visível sem F5.
+  const totalMensagens = ticket.messages.length
+  useEffect(() => {
+    fimRef.current?.scrollIntoView({ block: 'end' })
+  }, [totalMensagens, ticket.id])
+
+  const publicas = ticket.messages.filter((m) => m.is_public && !m.is_deleted).length
+  const notas = ticket.messages.filter((m) => !m.is_public && !m.is_deleted).length
+  const semMensagens = ticket.messages.length === 0
+
+  return (
+    <section className="conversa" aria-label="Conversa">
+      <header className="conversa__topo">
+        <h2 className="conversa__titulo">Conversa</h2>
+        <span className="conversa__contagem">
+          {publicas} {publicas === 1 ? 'mensagem' : 'mensagens'}
+          {notas > 0 && ` · ${notas} ${notas === 1 ? 'nota interna' : 'notas internas'}`}
+        </span>
+        {ticket.events.length > 0 && (
+          <label className="conversa__interruptor">
+            <input
+              type="checkbox"
+              checked={mostrarEventos}
+              onChange={(e) => setMostrarEventos(e.target.checked)}
+            />
+            <span>Mostrar eventos</span>
+          </label>
+        )}
+      </header>
+
+      <div className="conversa__lista" tabIndex={0} aria-label="Mensagens">
+        {grupos.map((g) => (
+          <section key={g.chave} className="conversa__dia" aria-label={g.rotulo}>
+            <div className="conversa__dia-rotulo">
+              <span>{g.rotulo}</span>
+            </div>
+            {g.itens.map((item) =>
+              item.tipo === 'mensagem' ? (
+                <ItemMensagem
+                  key={`m${item.mensagem.id}`}
+                  msg={item.mensagem}
+                  agoraMs={agoraMs}
+                  editando={editandoId === item.mensagem.id}
+                  onEditar={() => setEditandoId(item.mensagem.id)}
+                  onCancelarEdicao={() => setEditandoId(null)}
+                  onSalvar={async (body) => {
+                    await editarMensagem.mutateAsync({ mensagemId: item.mensagem.id, body })
+                    setEditandoId(null)
+                  }}
+                  onApagar={() => apagarMensagem.mutateAsync(item.mensagem.id)}
+                />
+              ) : (
+                <ItemEvento key={`e${item.evento.id}`} evento={item.evento} agoraMs={agoraMs} />
+              ),
+            )}
+          </section>
+        ))}
+
+        {semMensagens && (
+          <div className="conversa__vazio">
+            <i className="ti ti-message-2" aria-hidden="true" />
+            <p className="conversa__vazio-titulo">Nenhuma mensagem ainda</p>
+            <p>
+              Responda ao cliente abaixo — a primeira resposta pública fecha o relógio de 1ª
+              resposta — ou registre uma nota interna para a equipe.
+            </p>
+          </div>
+        )}
+        <div ref={fimRef} />
+      </div>
+
+      <Compositor ticket={ticket} me={me} pedidoReabrir={pedidoReabrir} />
     </section>
   )
 }

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
-import type { AlvoMencao, Macro, TicketDetalhe } from './tiposDetalhe'
+import type { AlvoMencao, DadosFechamento, Macro, TicketDetalhe } from './tiposDetalhe'
 import type { Prioridade, StatusTicket } from '../tipos'
 
 const chaveDetalhe = (id: number) => ['ticket', id] as const
@@ -48,8 +48,21 @@ export function useMacros() {
     queryKey: ['ticket-macros'],
     queryFn: () => api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/'),
     staleTime: 300_000,
-    select: (d) => (Array.isArray(d) ? d : d.results),
+    select: (d) => (Array.isArray(d) ? d : d.results).filter((m) => m.is_active !== false),
   })
+}
+
+/** Corpo do `POST /tickets/{id}/reply/`. Responder-e-fechar é UMA chamada:
+ *  quando `new_status` é `closed`, os campos de resolução (D4) e a
+ *  justificativa vão juntos (TicketReplySerializer). */
+export interface DadosResposta {
+  body: string
+  is_public: boolean
+  new_status?: StatusTicket
+  resolution_started_at?: string
+  resolution_ended_at?: string
+  close_note?: string
+  files?: File[]
 }
 
 /**
@@ -66,23 +79,18 @@ export function useAcoesTicket(id: number) {
   }
 
   const responder = useMutation({
-    mutationFn: (dados: {
-      body: string
-      is_public: boolean
-      new_status?: StatusTicket
-      files?: File[]
-    }) => {
+    mutationFn: (dados: DadosResposta) => {
       // Com anexos vai por multipart (o endpoint reply aceita `files`); sem,
       // JSON puro. O client detecta FormData e ajusta o Content-Type sozinho.
-      if (dados.files && dados.files.length > 0) {
+      const { files, ...json } = dados
+      if (files && files.length > 0) {
         const fd = new FormData()
-        fd.append('body', dados.body)
-        fd.append('is_public', String(dados.is_public))
-        if (dados.new_status) fd.append('new_status', dados.new_status)
-        dados.files.forEach((f) => fd.append('files', f))
+        Object.entries(json).forEach(([k, v]) => {
+          if (v !== undefined) fd.append(k, String(v))
+        })
+        files.forEach((f) => fd.append('files', f))
         return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, fd)
       }
-      const { files: _f, ...json } = dados
       return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, json)
     },
     onSuccess: gravar,
@@ -121,9 +129,30 @@ export function useAcoesTicket(id: number) {
     onSuccess: gravar,
   })
 
+  /** Grava só os campos de triagem da macro (categoria/urgência/responsável/
+   *  etiquetas). O texto pronto é responsabilidade do compositor. */
   const aplicarMacro = useMutation({
     mutationFn: (macro_id: number) =>
       api.post<TicketDetalhe>(`/api/v1/tickets/${id}/apply-macro/`, { macro_id }),
+    onSuccess: gravar,
+  })
+
+  /** Fechamento sem resposta ao cliente — mesmo contrato do quadro (D4). */
+  const fechar = useMutation({
+    mutationFn: (dados: DadosFechamento) =>
+      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados),
+    onSuccess: gravar,
+  })
+
+  const editarMensagem = useMutation({
+    mutationFn: ({ mensagemId, body }: { mensagemId: number; body: string }) =>
+      api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`, { body }),
+    onSuccess: gravar,
+  })
+
+  const apagarMensagem = useMutation({
+    mutationFn: (mensagemId: number) =>
+      api.delete<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`),
     onSuccess: gravar,
   })
 
@@ -136,5 +165,8 @@ export function useAcoesTicket(id: number) {
     deixarDeSeguir,
     mudarPrioridade,
     aplicarMacro,
+    fechar,
+    editarMensagem,
+    apagarMensagem,
   }
 }

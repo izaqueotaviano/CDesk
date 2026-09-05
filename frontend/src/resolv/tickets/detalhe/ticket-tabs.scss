@@ -42,13 +42,24 @@
   }
 
   &__titulo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-primary);
-    max-width: 150px;
+    max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  // ponto com a cor da etapa — a pessoa vê de longe qual aba está fechada,
+  // aguardando cliente etc., sem abrir cada uma
+  &__etapa {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
   &__num {
     font-family: var(--f-mono);
@@ -56,21 +67,26 @@
     color: var(--accent);
     white-space: nowrap;
   }
+  &__rascunho {
+    font-family: var(--f-ui);
+    color: var(--away);
+  }
 
+  // 24×24 — alvo mínimo de toque (WCAG 2.5.8); antes eram 18px
   &__fechar {
-    width: 18px;
-    height: 18px;
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 8px;
+    margin-right: 6px;
     border: none;
     background: transparent;
     border-radius: 2px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     cursor: pointer;
     i {
-      font-size: 12px;
+      font-size: 13px;
     }
     &:hover {
       background: var(--stroke);
@@ -91,5 +107,12 @@
     &:hover {
       filter: brightness(0.95);
     }
+  }
+
+  &__abrir:focus-visible,
+  &__fechar:focus-visible,
+  &__mais:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
   }
 }

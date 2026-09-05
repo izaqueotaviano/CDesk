@@ -1,166 +1,217 @@
-import { useMe } from '@/api/queries/useMe'
-import { ROTULO_PRIORIDADE } from '../format'
+import { useId, type ReactNode } from 'react'
+import type { UseMutationResult } from '@tanstack/react-query'
+import type { Me } from '@/api/types'
+import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
 import { useAcoesTicket, useAlvosMencao, useCategorias } from './dados'
+import { iniciais, mensagemDeErro } from './linhaDoTempo'
 import type { TicketDetalhe } from './tiposDetalhe'
 
 const PRIORIDADES: Prioridade[] = ['low', 'normal', 'high', 'urgent']
 
-export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
-  const { data: me } = useMe()
+type Mutacao = Pick<
+  UseMutationResult<unknown, unknown, never, unknown>,
+  'isPending' | 'isError' | 'error' | 'isSuccess'
+>
+
+/** Linha de estado embaixo do controle: "Salvando…", erro ou nada. É o que
+ *  faltava — antes toda ação falhava em silêncio. */
+function EstadoCampo({ m, padrao }: { m: Mutacao; padrao: string }) {
+  if (m.isPending) {
+    return (
+      <span className="props__estado props__estado--salvando" role="status">
+        <i className="ti ti-loader-2" aria-hidden="true" /> Salvando…
+      </span>
+    )
+  }
+  if (m.isError) {
+    return (
+      <span className="props__estado props__estado--erro" role="alert">
+        {mensagemDeErro(m.error, padrao)} Nada foi alterado.
+      </span>
+    )
+  }
+  return null
+}
+
+function Campo({
+  rotulo,
+  htmlFor,
+  acao,
+  children,
+}: {
+  rotulo: ReactNode
+  htmlFor?: string
+  acao?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div className="props__campo">
+      <div className="props__rotulo-linha">
+        {htmlFor ? (
+          <label className="props__rotulo" htmlFor={htmlFor}>
+            {rotulo}
+          </label>
+        ) : (
+          <span className="props__rotulo">{rotulo}</span>
+        )}
+        {acao}
+      </div>
+      {children}
+    </div>
+  )
+}
+
+function Seletor({
+  id,
+  icone,
+  value,
+  onChange,
+  disabled,
+  children,
+  cor,
+}: {
+  id: string
+  icone?: string
+  value: string
+  onChange: (v: string) => void
+  disabled?: boolean
+  children: ReactNode
+  cor?: string
+}) {
+  return (
+    <span className="props__seletor">
+      {cor ? (
+        <span className="props__cor" style={{ background: cor }} aria-hidden="true" />
+      ) : icone ? (
+        <i className={icone} aria-hidden="true" />
+      ) : null}
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled}>
+        {children}
+      </select>
+      <i className="ti ti-chevron-down props__seta" aria-hidden="true" />
+    </span>
+  )
+}
+
+function ValorFixo({
+  icone,
+  children,
+  vazio,
+}: {
+  icone?: string
+  children?: ReactNode
+  vazio?: boolean
+}) {
+  return (
+    <span className={'props__valor' + (vazio ? ' props__valor--vazio' : '')}>
+      {icone && <i className={icone} aria-hidden="true" />}
+      {children}
+    </span>
+  )
+}
+
+/**
+ * Propriedades em três grupos — quem atende, como está classificado, quem
+ * acompanha — em vez de uma pilha de campos sem hierarquia. Controle sem
+ * permissão não aparece desabilitado: vira valor fixo (decisão do design
+ * system: "o sistema tira o controle inteiro quando falta permissão").
+ */
+export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: Me | undefined }) {
+  const idBase = useId()
   const { data: alvos } = useAlvosMencao(ticket.id)
   const { data: categorias } = useCategorias()
-  const { atribuir, definirDono, mudarCategoria, seguir, deixarDeSeguir, mudarPrioridade } =
+  const { atribuir, definirDono, mudarCategoria, mudarPrioridade, seguir, deixarDeSeguir } =
     useAcoesTicket(ticket.id)
+
+  const perms = me?.permissions ?? []
+  const podeEditar = perms.includes('ticket.edit_properties')
 
   // mention-targets traz usuários (agentes) e equipes — para atribuir/dono só
   // interessam os usuários. Shape real: {type:'user'|'team', id, name, email}.
   const agentes = (alvos ?? []).filter((a) => a.type === 'user')
-  const jaSegue = me ? ticket.watchers.some((w) => w.id === me.id) : false
-  const souOAtribuido = me ? ticket.assignee_id === me.id : false
+  const jaSegue = me != null && ticket.watchers.some((w) => w.id === me.id)
+
+  function opcoesAgentes(atualId: number | null, atualNome: string | null) {
+    return (
+      <>
+        {atualId != null && !agentes.some((a) => a.id === atualId) && (
+          <option value={atualId}>{atualNome}</option>
+        )}
+        {agentes.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+      </>
+    )
+  }
 
   return (
-    <aside className="prop-panel" aria-label="Propriedades do ticket">
-      {/* Solicitante */}
-      <div className="prop-panel__campo">
-        <label className="prop-panel__label">Solicitante</label>
-        <div className="prop-panel__valor-fixo">
-          <i className="ti ti-user" />
-          <span>{ticket.requester_display}</span>
-        </div>
-      </div>
+    <aside className="props" aria-label="Propriedades do ticket">
+      <section className="props__grupo">
+        <h2 className="props__titulo">Atendimento</h2>
 
-      {/* Atribuído */}
-      <div className="prop-panel__campo">
-        <div className="prop-panel__label-linha">
-          <label className="prop-panel__label">
-            Atribuído <span className="prop-panel__obrig">*</span>
-          </label>
-          {!souOAtribuido && (
-            <button
-              type="button"
-              className="prop-panel__link"
-              onClick={() => me && atribuir.mutate(me.id)}
+        {/* "Assumir" mora no cabeçalho — aqui é o seletor completo */}
+        <Campo rotulo="Responsável" htmlFor={podeEditar ? `${idBase}-resp` : undefined}>
+          {podeEditar ? (
+            <Seletor
+              id={`${idBase}-resp`}
+              icone="ti ti-headset"
+              value={ticket.assignee_id != null ? String(ticket.assignee_id) : ''}
+              onChange={(v) => atribuir.mutate(v ? Number(v) : null)}
               disabled={atribuir.isPending}
             >
-              aceitar
-            </button>
+              <option value="">Sem responsável</option>
+              {opcoesAgentes(ticket.assignee_id, ticket.assignee_name)}
+            </Seletor>
+          ) : (
+            <ValorFixo icone="ti ti-headset" vazio={!ticket.assignee_name}>
+              {ticket.assignee_name ?? 'Sem responsável'}
+            </ValorFixo>
           )}
-        </div>
-        <div className="prop-panel__select">
-          <i className="ti ti-headset" />
-          <select
-            value={ticket.assignee_id ?? ''}
-            onChange={(e) => atribuir.mutate(e.target.value ? Number(e.target.value) : null)}
-            disabled={atribuir.isPending}
-          >
-            <option value="">Sem responsável</option>
-            {ticket.assignee_id != null && !agentes.some((a) => a.id === ticket.assignee_id) && (
-              <option value={ticket.assignee_id}>{ticket.assignee_name}</option>
-            )}
-            {agentes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <i className="ti ti-chevron-down prop-panel__seta" />
-        </div>
-      </div>
+          <span className="props__ajuda">Fala com o cliente</span>
+          <EstadoCampo m={atribuir} padrao="Não foi possível mudar o responsável." />
+        </Campo>
 
-      {/* Dono técnico (set-owner) — quem entrega a solução, separado de quem responde */}
-      <div className="prop-panel__campo">
-        <label className="prop-panel__label">Dono técnico</label>
-        <div className="prop-panel__select">
-          <i className="ti ti-tool" />
-          <select
-            value={ticket.owner_id ?? ''}
-            onChange={(e) => definirDono.mutate(e.target.value ? Number(e.target.value) : null)}
-            disabled={definirDono.isPending}
-          >
-            <option value="">Sem dono técnico</option>
-            {ticket.owner_id != null && !agentes.some((a) => a.id === ticket.owner_id) && (
-              <option value={ticket.owner_id}>{ticket.owner_name}</option>
-            )}
-            {agentes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
-          <i className="ti ti-chevron-down prop-panel__seta" />
-        </div>
-      </div>
-
-      {/* Seguidores */}
-      <div className="prop-panel__campo">
-        <div className="prop-panel__label-linha">
-          <label className="prop-panel__label">Seguidores</label>
-          <button
-            type="button"
-            className="prop-panel__link"
-            onClick={() => (jaSegue ? deixarDeSeguir.mutate() : seguir.mutate())}
-            disabled={seguir.isPending || deixarDeSeguir.isPending}
-          >
-            {jaSegue ? 'deixar de seguir' : 'seguir'}
-          </button>
-        </div>
-        {ticket.watchers.length > 0 ? (
-          <div className="prop-panel__chips">
-            {ticket.watchers.map((w) => (
-              <span key={w.id} className="prop-panel__chip">
-                {w.name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="prop-panel__vazio">Ninguém seguindo</p>
-        )}
-      </div>
-
-      {/* Tags */}
-      <div className="prop-panel__campo">
-        <label className="prop-panel__label">Tags</label>
-        {ticket.tags.length > 0 ? (
-          <div className="prop-panel__chips">
-            {ticket.tags.map((t) => (
-              <span key={t.id} className="prop-panel__chip">
-                {t.name}
-              </span>
-            ))}
-          </div>
-        ) : (
-          <p className="prop-panel__vazio">Sem tags</p>
-        )}
-      </div>
-
-      {/* Categoria (PATCH) + Prioridade (PATCH) */}
-      <div className="prop-panel__grid2">
-        <div className="prop-panel__campo">
-          <label className="prop-panel__label">Categoria</label>
-          <div className="prop-panel__select">
-            <select
-              value={ticket.category ?? ''}
-              onChange={(e) => mudarCategoria.mutate(e.target.value ? Number(e.target.value) : null)}
-              disabled={mudarCategoria.isPending}
+        <Campo rotulo="Dono técnico" htmlFor={podeEditar ? `${idBase}-dono` : undefined}>
+          {podeEditar ? (
+            <Seletor
+              id={`${idBase}-dono`}
+              icone="ti ti-tool"
+              value={ticket.owner_id != null ? String(ticket.owner_id) : ''}
+              onChange={(v) => definirDono.mutate(v ? Number(v) : null)}
+              disabled={definirDono.isPending}
             >
-              <option value="">—</option>
-              {(categorias ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            <i className="ti ti-chevron-down prop-panel__seta" />
-          </div>
-        </div>
+              <option value="">Sem dono técnico</option>
+              {opcoesAgentes(ticket.owner_id, ticket.owner_name)}
+            </Seletor>
+          ) : (
+            <ValorFixo icone="ti ti-tool" vazio={!ticket.owner_name}>
+              {ticket.owner_name ?? 'Sem dono técnico'}
+            </ValorFixo>
+          )}
+          <span className="props__ajuda">Entrega a solução</span>
+          <EstadoCampo m={definirDono} padrao="Não foi possível mudar o dono técnico." />
+        </Campo>
 
-        <div className="prop-panel__campo">
-          <label className="prop-panel__label">Prioridade</label>
-          <div className="prop-panel__select">
-            <select
+        <Campo rotulo="Equipe">
+          <ValorFixo icone="ti ti-users-group" vazio={!ticket.team}>
+            {ticket.team?.name ?? '—'}
+          </ValorFixo>
+        </Campo>
+      </section>
+
+      <section className="props__grupo">
+        <h2 className="props__titulo">Classificação</h2>
+
+        <Campo rotulo="Prioridade" htmlFor={podeEditar ? `${idBase}-prio` : undefined}>
+          {podeEditar ? (
+            <Seletor
+              id={`${idBase}-prio`}
+              cor={COR_PRIORIDADE[ticket.priority]}
               value={ticket.priority}
-              onChange={(e) => mudarPrioridade.mutate(e.target.value as Prioridade)}
+              onChange={(v) => mudarPrioridade.mutate(v as Prioridade)}
               disabled={mudarPrioridade.isPending}
             >
               {PRIORIDADES.map((p) => (
@@ -168,19 +219,127 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
                   {ROTULO_PRIORIDADE[p]}
                 </option>
               ))}
-            </select>
-            <i className="ti ti-chevron-down prop-panel__seta" />
-          </div>
-        </div>
-      </div>
+            </Seletor>
+          ) : (
+            <ValorFixo>
+              <span
+                className="props__cor"
+                style={{ background: COR_PRIORIDADE[ticket.priority] }}
+                aria-hidden="true"
+              />
+              {ROTULO_PRIORIDADE[ticket.priority]}
+            </ValorFixo>
+          )}
+          <EstadoCampo m={mudarPrioridade} padrao="Não foi possível mudar a prioridade." />
+        </Campo>
 
-      {/* Justificativa — nota interna da última mudança de status (real, read-only) */}
-      <div className="prop-panel__campo">
-        <label className="prop-panel__label">Justificativa (última mudança de status)</label>
-        <div className="prop-panel__valor-fixo prop-panel__valor-fixo--multi">
-          {ticket.current_status_note || <span className="prop-panel__vazio">—</span>}
-        </div>
-      </div>
+        <Campo rotulo="Categoria" htmlFor={podeEditar ? `${idBase}-cat` : undefined}>
+          {podeEditar ? (
+            <Seletor
+              id={`${idBase}-cat`}
+              icone="ti ti-tag"
+              value={ticket.category != null ? String(ticket.category) : ''}
+              onChange={(v) => mudarCategoria.mutate(v ? Number(v) : null)}
+              disabled={mudarCategoria.isPending}
+            >
+              <option value="">Sem categoria</option>
+              {(categorias ?? []).map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Seletor>
+          ) : (
+            <ValorFixo icone="ti ti-tag" vazio={!ticket.category_name}>
+              {ticket.category_name ?? 'Sem categoria'}
+            </ValorFixo>
+          )}
+          {ticket.service_name && (
+            <span className="props__ajuda">Serviço: {ticket.service_name}</span>
+          )}
+          <EstadoCampo m={mudarCategoria} padrao="Não foi possível mudar a categoria." />
+        </Campo>
+
+        <Campo rotulo="Etiquetas">
+          {ticket.tags.length > 0 ? (
+            <ul className="props__chips" aria-label="Etiquetas">
+              {ticket.tags.map((t) => (
+                <li key={t.id} className="props__chip">
+                  {t.color && (
+                    <span
+                      className="props__cor"
+                      style={{ background: t.color }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {t.name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="props__vazio">Nenhuma etiqueta — as macros podem aplicar.</p>
+          )}
+        </Campo>
+      </section>
+
+      <section className="props__grupo">
+        <h2 className="props__titulo">Pessoas</h2>
+
+        <Campo rotulo="Solicitante">
+          <ValorFixo icone="ti ti-user">
+            <span className="props__valor-principal">{ticket.requester_display}</span>
+            {ticket.company_name && <span className="props__valor-sub">{ticket.company_name}</span>}
+          </ValorFixo>
+        </Campo>
+
+        <Campo
+          rotulo="Seguidores"
+          acao={
+            me?.is_internal ? (
+              <button
+                type="button"
+                className="props__link"
+                onClick={() => (jaSegue ? deixarDeSeguir.mutate() : seguir.mutate())}
+                disabled={seguir.isPending || deixarDeSeguir.isPending}
+              >
+                {jaSegue ? 'Deixar de seguir' : 'Seguir'}
+              </button>
+            ) : undefined
+          }
+        >
+          {ticket.watchers.length > 0 ? (
+            <ul className="props__chips" aria-label="Seguidores">
+              {ticket.watchers.map((w) => (
+                <li key={w.id} className="props__chip props__chip--pessoa">
+                  <span className="props__mini-avatar" aria-hidden="true">
+                    {iniciais(w.name)}
+                  </span>
+                  {w.name}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="props__vazio">
+              Ninguém acompanha ainda — quem segue recebe os avisos deste ticket.
+            </p>
+          )}
+          <EstadoCampo
+            m={seguir.isError ? seguir : deixarDeSeguir}
+            padrao="Não foi possível atualizar os seguidores."
+          />
+        </Campo>
+      </section>
+
+      {ticket.current_status_note && (
+        <section className="props__grupo">
+          <h2 className="props__titulo">Justificativa</h2>
+          <blockquote className="props__nota">
+            <i className="ti ti-quote" aria-hidden="true" />
+            {ticket.current_status_note}
+          </blockquote>
+          <span className="props__ajuda">Registrada na última mudança de status</span>
+        </section>
+      )}
     </aside>
   )
 }
