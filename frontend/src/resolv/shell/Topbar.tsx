@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useLogout } from '@/api/mutations/useLogout'
 import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
+import { PainelNotificacoes } from './PainelNotificacoes'
 import './topbar.scss'
 
 function iniciais(nome: string): string {
@@ -64,13 +65,7 @@ export function Topbar() {
           </span>
         </button>
         <div className="topbar-glass__sep" />
-        {/* Sem badge de contagem: "2" era um número inventado, não a
-            quantidade real de notificações (não existe painel ainda — ver
-            item pendente de produto). Mentir um número é pior que não
-            mostrar nenhum. */}
-        <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações">
-          <i className="ti ti-bell" />
-        </button>
+        <PainelNotificacoes />
         <div className="topbar-glass__sep" />
         <button type="button" className="topbar-glass__user" onClick={() => navigate('/conta')} title="Minha conta">
           <span className="topbar-glass__avatar topbar-glass__avatar--available">

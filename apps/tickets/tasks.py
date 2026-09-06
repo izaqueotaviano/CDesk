@@ -78,7 +78,7 @@ def _report_infection(attachment) -> None:
 
     from apps.audit.models import AuditAction, AuditLog
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, ticket_url
 
     ticket = attachment.message.ticket
 
@@ -103,7 +103,7 @@ def _report_infection(attachment) -> None:
                 "A verificação antivírus identificou uma ameaça neste arquivo, "
                 "que não ficará disponível para download."
             ),
-            url=f"/tickets/{ticket.pk}",
+            url=ticket_url(ticket, attachment.uploaded_by),
             ticket=ticket,
         )
 

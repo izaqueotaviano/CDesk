@@ -1,6 +1,7 @@
 """Notificações: outbox de e-mail, in-app (atribuição/menção/reabertura) e SLA."""
 
 import datetime as dt
+from types import SimpleNamespace
 
 import pytest
 from django.core import mail
@@ -12,7 +13,7 @@ from apps.notifications.models import (
     NotificationPreference,
     OutboundEmail,
 )
-from apps.notifications.services import quer_email, quer_in_app
+from apps.notifications.services import quer_email, quer_in_app, ticket_url
 from apps.notifications.tasks import sla_scan
 from apps.tickets.models import Ticket, TicketStatus
 from apps.tickets.services import ticket_service
@@ -23,6 +24,23 @@ def _ticket(ana, suporte, **kw):
         requester=ana, team=suporte, subject=kw.pop("subject", "Assunto"),
         body="Corpo", **kw,
     )
+
+
+class TestTicketUrl:
+    """A rota do sino não pode inventar `/tickets/<id>` — nenhuma das duas
+    bases do frontend tem essa rota (ver docstring de `ticket_url`)."""
+
+    def test_interno_cai_no_painel(self):
+        assert ticket_url(SimpleNamespace(pk=7), SimpleNamespace(is_internal=True)) == "/chamados/7"
+
+    def test_cliente_cai_no_portal(self):
+        cliente = SimpleNamespace(is_internal=False)
+        assert ticket_url(SimpleNamespace(pk=7), cliente) == "/portal/tickets/7"
+
+    def test_ancora_e_anexada(self):
+        agente = SimpleNamespace(is_internal=True)
+        url = ticket_url(SimpleNamespace(pk=7), agente, anchor="#mensagem-9")
+        assert url == "/chamados/7#mensagem-9"
 
 
 @pytest.mark.django_db(transaction=True)

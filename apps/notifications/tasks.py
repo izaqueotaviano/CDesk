@@ -192,7 +192,7 @@ def sla_scan():
 
 def _alert(ticket, past_due, label) -> int:
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import already_notified, notify
+    from apps.notifications.services import already_notified, notify, ticket_url
 
     # sem responsável, quem responde pela fila é o SUPERVISOR da equipe —
     # justamente os tickets "sem atendimento" eram os que ninguém alertava
@@ -211,7 +211,7 @@ def _alert(ticket, past_due, label) -> int:
         kind=kind,
         title=f"SLA de {label} {verb}: {ticket.reference}{sufixo}",
         body=ticket.subject,
-        url=f"/tickets/{ticket.pk}",
+        url=ticket_url(ticket, destinatario),
         ticket=ticket,
     )
     return 1 if past_due else 0

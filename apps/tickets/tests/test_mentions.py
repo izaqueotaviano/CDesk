@@ -102,7 +102,7 @@ class TestEfeitoDaMencao:
 
         aviso = Notification.objects.get(recipient=izaque)
         assert aviso.kind == NotificationKind.MENTION
-        assert aviso.url == f"/tickets/{ticket.pk}#mensagem-{msg.pk}"
+        assert aviso.url == f"/chamados/{ticket.pk}#mensagem-{msg.pk}"  # menção é sempre interna
         # o sino mostra o nome, não a marcação crua
         assert "@Izaque Sá" in aviso.body
 

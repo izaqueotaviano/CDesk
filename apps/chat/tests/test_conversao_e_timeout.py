@@ -206,7 +206,7 @@ class TestNotificacaoDeConversao:
             recipient=ana, kind=NotificationKind.CHAT_CONVERTED, ticket=ticket,
         )
         assert ticket.reference in aviso.title
-        assert aviso.url == f"/tickets/{ticket.pk}"
+        assert aviso.url == f"/portal/tickets/{ticket.pk}"  # ana é cliente
 
     def test_conversao_manual_enfileira_email(self, chat_da_ana, ana, agente, suporte):
         ticket = ticket_service.create_from_chat(

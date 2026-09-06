@@ -60,7 +60,7 @@ def registrar_mencoes(*, message, author) -> list[User]:
     esta linha, não a tela.
     """
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, ticket_url
     from apps.tickets.models import TicketMention, TicketWatcher
 
     if message.is_public or author is None or not author.is_internal:
@@ -113,7 +113,7 @@ def registrar_mencoes(*, message, author) -> list[User]:
             # o resumo já sai com os nomes trocados, legível fora do ticket
             body=resumir(message.body)[:200],
             # âncora da nota: o sino leva à MENSAGEM, não ao topo do ticket
-            url=f"/tickets/{ticket.pk}#mensagem-{message.pk}",
+            url=ticket_url(ticket, user, anchor=f"#mensagem-{message.pk}"),
             ticket=ticket,
             actor=author,
         )

@@ -61,6 +61,19 @@ def notify(*, recipient, kind, title, body="", url="", ticket=None, actor=None):
     return notification
 
 
+def ticket_url(ticket, recipient, *, anchor: str = "") -> str:
+    """Link do sino para um ticket — depende de QUEM vai clicar: agente cai
+    no painel interno, cliente cai no portal. As duas bases do frontend têm
+    rotas diferentes para o mesmo ticket (`/chamados/<id>` vs.
+    `/portal/tickets/<id>`) — não existe `/tickets/<id>` em NENHUMA das
+    duas. Toda chamada a `notify()` sobre um ticket usa isto para montar
+    `url`, em vez de escrever o caminho na mão (foi assim que o caminho
+    errado se espalhou por 9 pontos antes de existir uma tela que clicasse
+    no link e revelasse o 404)."""
+    base = f"/chamados/{ticket.pk}" if recipient.is_internal else f"/portal/tickets/{ticket.pk}"
+    return f"{base}{anchor}"
+
+
 def already_notified(*, recipient, kind, ticket, since=None) -> bool:
     """Evita spam de avisos repetidos (ex.: SLA warning a cada varredura).
 

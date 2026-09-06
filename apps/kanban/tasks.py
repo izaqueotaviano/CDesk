@@ -14,7 +14,7 @@ from django.utils import timezone
 def warn_overdue_cards() -> int:
     from apps.kanban.models import Card
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import already_notified, notify
+    from apps.notifications.services import already_notified, notify, ticket_url
     from apps.tickets.models import TicketStatus
 
     agora = timezone.now()
@@ -42,7 +42,7 @@ def warn_overdue_cards() -> int:
             kind=NotificationKind.KANBAN_DUE,
             title=f"Prazo do quadro vencido: {ticket.reference}",
             body=f"{ticket.subject} — quadro {card.board.name}",
-            url=f"/tickets/{ticket.pk}",
+            url=ticket_url(ticket, destinatario),
             ticket=ticket,
         )
         avisados += 1

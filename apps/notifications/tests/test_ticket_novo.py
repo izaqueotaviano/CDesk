@@ -30,7 +30,7 @@ class TestAvisoDeTicketNovo:
         )
         assert ticket.reference in aviso.title
         assert ticket.subject in aviso.body
-        assert aviso.url == f"/tickets/{ticket.pk}"
+        assert aviso.url == f"/chamados/{ticket.pk}"  # agente é interno
         assert aviso.ticket_id == ticket.pk
 
     def test_agente_de_outra_equipe_nao_e_avisado(self, ana, suporte, agente):
