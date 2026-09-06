@@ -1,6 +1,7 @@
 import { useLogout } from '@/api/mutations/useLogout'
 import { useMe } from '@/api/queries/useMe'
 import { urlDoAvatar } from '@/portal/api/conta'
+import { SecaoAcessos } from '@/portal/configuracoes/SecaoAcessos'
 import { SecaoSeguranca } from '@/portal/configuracoes/SecaoSeguranca'
 import { Button } from '@/portal/ui/button'
 import { Toaster } from '@/portal/ui/toaster'
@@ -30,6 +31,7 @@ export function PaginaConta() {
         </Button>
       </header>
       <SecaoSeguranca />
+      <SecaoAcessos />
       <Toaster />
     </div>
   )

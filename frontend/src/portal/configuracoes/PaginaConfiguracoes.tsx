@@ -1,4 +1,5 @@
-import { Building2, KeyRound, Mail, Palette, ShieldCheck, UserRound, type LucideIcon } from 'lucide-react'
+import { Building2, KeyRound, Mail, Monitor, Palette, ShieldCheck, UserRound, type LucideIcon } from 'lucide-react'
+import { SecaoAcessos } from './SecaoAcessos'
 import { SecaoAparencia } from './SecaoAparencia'
 import { SecaoEmpresa } from './SecaoEmpresa'
 import { SecaoNotificacoes } from './SecaoNotificacoes'
@@ -13,6 +14,7 @@ const SECOES: { id: string; rotulo: string; icone: LucideIcon }[] = [
   { id: 'aparencia', rotulo: 'Aparência', icone: Palette },
   { id: 'senha', rotulo: 'Senha', icone: KeyRound },
   { id: 'seguranca', rotulo: 'Verificação em duas etapas', icone: ShieldCheck },
+  { id: 'acessos', rotulo: 'Sessões e acesso', icone: Monitor },
 ]
 
 /**
@@ -66,6 +68,7 @@ export function PaginaConfiguracoes() {
           <SecaoAparencia />
           <SecaoSenha />
           <SecaoSeguranca />
+          <SecaoAcessos />
         </div>
       </div>
     </div>

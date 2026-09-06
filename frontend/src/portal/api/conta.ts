@@ -258,3 +258,54 @@ export function useDesativar2fa() {
     onSuccess: () => qc.invalidateQueries({ queryKey: chaves2fa }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// Sessões ativas e histórico de acesso — self-service sobre a PRÓPRIA conta
+// (`/me/...`, nunca um id de outro usuário na URL). Mesma forma de resposta
+// que a tela do admin sobre outra pessoa (apps.accounts.sessions.
+// access_history_payload) — só muda de quem é a conta.
+// ---------------------------------------------------------------------------
+
+export interface SessaoViva {
+  key: string
+  browser: string
+  ip: string
+  user_agent: string
+  started_at: string | null
+  expires_at: string
+  current: boolean
+}
+
+export interface EventoDeAcesso {
+  kind: string
+  kind_label: string
+  ip: string
+  browser: string
+  created_at: string
+  success: boolean
+}
+
+export interface HistoricoDeAcesso {
+  events: EventoDeAcesso[]
+  logins: EventoDeAcesso[]
+  sessions: SessaoViva[]
+  session_limit: number
+}
+
+export const chaveHistoricoAcesso = ['auth', 'access-history'] as const
+
+export function useMeuHistoricoAcesso() {
+  return useQuery({
+    queryKey: chaveHistoricoAcesso,
+    queryFn: () => api.get<HistoricoDeAcesso>('/api/v1/me/access-history/'),
+    staleTime: 15_000,
+  })
+}
+
+export function useEncerrarSessao() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (key: string) => api.delete<void>(`/api/v1/me/sessions/${key}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAcesso }),
+  })
+}
