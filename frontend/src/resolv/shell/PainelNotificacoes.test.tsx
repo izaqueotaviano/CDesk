@@ -32,7 +32,25 @@ beforeEach(() => {
     }),
   )
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+})
+
+/** A permissão é do navegador, não da conta — cada teste diz em que pé ela
+ *  está (ou tira a API do ar, que é o caso de navegador sem suporte). */
+function permissaoDoNavegador(estado: NotificationPermission | 'sem-api') {
+  if (estado === 'sem-api') return vi.stubGlobal('Notification', undefined)
+  const Fake = function () {} as unknown as typeof Notification
+  Object.defineProperty(Fake, 'permission', { value: estado, configurable: true })
+  Object.defineProperty(Fake, 'requestPermission', { value: vi.fn(async () => 'granted'), configurable: true })
+  vi.stubGlobal('Notification', Fake)
+}
+
+async function abrirPainel() {
+  montar()
+  fireEvent.click(await screen.findByRole('button', { name: 'Notificações' }))
+}
 
 function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -84,5 +102,55 @@ describe('PainelNotificacoes', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Notificações' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Marcar todas como lidas' }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/notifications/read-all/' && c.metodo === 'POST')).toBe(true))
+  })
+
+  describe('avisar neste computador', () => {
+    it('oferece ligar quando o navegador ainda não perguntou nada', async () => {
+      permissaoDoNavegador('default')
+      await abrirPainel()
+
+      const chave = await screen.findByRole('switch', { name: /Avisar neste computador/ })
+      expect(chave).toHaveAttribute('aria-checked', 'false')
+    })
+
+    it('ligar pede a permissão do navegador e a chave passa a valer', async () => {
+      permissaoDoNavegador('default')
+      await abrirPainel()
+
+      const chave = await screen.findByRole('switch', { name: /Avisar neste computador/ })
+      // conceder é assíncrono: o estado só troca depois da resposta do navegador
+      permissaoDoNavegador('granted')
+      fireEvent.click(chave)
+
+      await waitFor(() => expect(chave).toHaveAttribute('aria-checked', 'true'))
+    })
+
+    it('desligar é possível mesmo com a permissão concedida', async () => {
+      permissaoDoNavegador('granted')
+      await abrirPainel()
+
+      const chave = await screen.findByRole('switch', { name: /Avisar neste computador/ })
+      expect(chave).toHaveAttribute('aria-checked', 'true')
+
+      fireEvent.click(chave)
+      await waitFor(() => expect(chave).toHaveAttribute('aria-checked', 'false'))
+    })
+
+    it('quando o navegador bloqueou, explica em vez de oferecer um botão que não funciona', async () => {
+      permissaoDoNavegador('denied')
+      await abrirPainel()
+
+      expect(await screen.findByText(/bloqueados por este navegador/)).toBeInTheDocument()
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    })
+
+    it('some por completo em navegador sem a API — nada de chave morta', async () => {
+      permissaoDoNavegador('sem-api')
+      await abrirPainel()
+
+      await screen.findByText('Notificações')
+      expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+      expect(screen.queryByText(/bloqueados por este navegador/)).not.toBeInTheDocument()
+    })
   })
 })

@@ -3,7 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useMe } from '@/api/queries/useMe'
 import { useLogout } from '@/api/mutations/useLogout'
 import type { Me } from '@/api/types'
-import { useAvisosSonoros } from '@/realtime/useAvisosSonoros'
+import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
 import { usePrefs, type Tema } from '@/stores/prefs'
 import { Avatar } from '@/ui/Avatar'
@@ -162,8 +162,9 @@ export function PortalShell() {
   const { data: me } = useMe()
   // canal pessoal (ws/me/) — ticket_event, chat, presença
   useCanalPessoal()
-  // resposta do atendimento toca (só) quando o cliente está em outra aba
-  useAvisosSonoros()
+  // resposta do atendimento avisa (som, título, notificação do sistema) só
+  // quando o cliente está em outra aba
+  useAvisos()
 
   return (
     <div className="flex h-full bg-canvas font-ui text-tinta">

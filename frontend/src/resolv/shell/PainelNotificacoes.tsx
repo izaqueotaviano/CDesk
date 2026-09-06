@@ -1,8 +1,14 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Popover } from '@/cvz/components'
 import { useMarcarNotificacaoLida, useMarcarTodasLidas, useNotificacoes, type Notificacao } from '@/api/notifications'
 import { tempoRelativo } from '@/resolv/tickets/detalhe/linhaDoTempo'
+import {
+  desligarAvisosDoSistema,
+  estadoDosAvisos,
+  ligarAvisosDoSistema,
+  type EstadoAviso,
+} from '@/realtime/avisos'
 import './notificacoes.scss'
 
 const ICONE_TIPO: Record<string, string> = {
@@ -48,6 +54,66 @@ function LinhaNotificacao({
       </span>
       {naoLida && <span className="painel-notif__ponto" aria-hidden="true" />}
     </button>
+  )
+}
+
+/**
+ * Liga/desliga a notificação do sistema operacional — a única das três
+ * entregas de `realtime/avisos.ts` que aparece por cima de outro programa.
+ *
+ * Mora no rodapé do sino porque é onde a pessoa está pensando em
+ * notificação. A permissão é pedida no CLIQUE, nunca na carga da página: o
+ * pedido que aparece sozinho ao abrir o site é o que todo mundo nega por
+ * reflexo — e "negado" no navegador não dá pra desfazer por código.
+ *
+ * Os quatro estados são visíveis de propósito, inclusive os dois que não têm
+ * botão: sem isso, "não recebo aviso nenhum" vira mistério.
+ */
+function AvisosDoSistema() {
+  const [estado, setEstado] = useState<EstadoAviso>(estadoDosAvisos)
+  const idRotulo = useId()
+  const idDescricao = useId()
+
+  if (estado === 'indisponivel') return null
+
+  if (estado === 'bloqueado') {
+    return (
+      <p className="painel-notif__avisos painel-notif__avisos--bloqueado">
+        Avisos no computador estão bloqueados por este navegador. Para voltar a
+        recebê-los, libere as notificações deste site nas configurações dele.
+      </p>
+    )
+  }
+
+  const ligado = estado === 'ligado'
+  return (
+    <div className="painel-notif__avisos">
+      <span>
+        {/* O nome acessível da chave é este texto, e a explicação é o <small>:
+            sem isso o leitor de tela anuncia "interruptor, ligado" sem dizer
+            ligado o quê. */}
+        <span id={idRotulo}>Avisar neste computador</span>
+        <small id={idDescricao}>Aparece mesmo com o Resolv em outra aba.</small>
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={ligado}
+        aria-labelledby={idRotulo}
+        aria-describedby={idDescricao}
+        className={'painel-notif__chave' + (ligado ? ' painel-notif__chave--ligada' : '')}
+        onClick={async () => {
+          if (ligado) {
+            desligarAvisosDoSistema()
+            setEstado(estadoDosAvisos())
+          } else {
+            setEstado(await ligarAvisosDoSistema())
+          }
+        }}
+      >
+        <span className="painel-notif__chave-bolinha" />
+      </button>
+    </div>
   )
 }
 
@@ -104,6 +170,7 @@ export function PainelNotificacoes() {
               ))}
             </div>
           )}
+          <AvisosDoSistema />
         </div>
       )}
     </Popover>

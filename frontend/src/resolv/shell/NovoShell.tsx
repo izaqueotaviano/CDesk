@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { useAvisosSonoros } from '@/realtime/useAvisosSonoros'
+import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
 import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
@@ -16,8 +16,9 @@ export function NovoShell({ children }: { children: ReactNode }) {
   // canal pessoal (ws/me/) — recebe os ticket_event do backend para o realtime.
   // Singleton na bridge: se o AppShell já abriu, reaproveita a mesma conexão.
   useCanalPessoal()
-  // chat novo na fila toca (só) quando a aba está em segundo plano
-  useAvisosSonoros()
+  // som, marca no título e notificação do sistema — só com a aba em segundo
+  // plano (quem está olhando já viu chegar)
+  useAvisos()
 
   return (
     <div className="resolv-scope novo-shell">
