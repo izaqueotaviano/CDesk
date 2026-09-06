@@ -22,12 +22,14 @@ const ROTA_POR_NAV: Partial<Record<NavId, string>> = {
   tickets: '/chamados',
   clientes: '/clientes',
   avisos: '/avisos',
+  auditoria: '/auditoria',
   configuracoes: '/configuracoes',
 }
 
 function navIdAtivo(pathname: string): NavId {
   if (pathname.startsWith('/clientes')) return 'clientes'
   if (pathname.startsWith('/avisos')) return 'avisos'
+  if (pathname.startsWith('/auditoria')) return 'auditoria'
   if (pathname.startsWith('/configuracoes')) return 'configuracoes'
   if (pathname.startsWith('/chamados')) return 'tickets'
   return 'inicio'
@@ -85,6 +87,7 @@ function CvzAppShellBridge({
         else if (cmd.id === 'nav-tickets') navigate('/chamados')
         else if (cmd.id === 'nav-clientes') navigate('/clientes')
         else if (cmd.id === 'nav-avisos') navigate('/avisos')
+        else if (cmd.id === 'nav-auditoria') navigate('/auditoria')
         else if (cmd.id === 'nav-configuracoes') navigate('/configuracoes')
         else if (cmd.id !== 'advanced')
           push({ tone: 'info', title: 'Em construção', description: 'Esta área ainda não existe.' })

@@ -309,3 +309,39 @@ export function useEncerrarSessao() {
     onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAcesso }),
   })
 }
+
+// ---------------------------------------------------------------------------
+// "Meus dados" (LGPD, art. 18) — self-service de exportação. Anonimização
+// não entra aqui de propósito: é irreversível e passa por verificação de
+// identidade feita por um admin (apps.audit.views.MyDataRequestView).
+// ---------------------------------------------------------------------------
+
+export type StatusPedidoDados = 'pending' | 'approved' | 'running' | 'done' | 'failed' | 'rejected'
+
+export interface PedidoDeDados {
+  id: number
+  kind: 'export' | 'anonymize' | 'rectify'
+  status: StatusPedidoDados
+  has_export: boolean
+  error: string
+  rejection_reason: string
+  created_at: string
+}
+
+export const chavePedidosDeDados = ['auth', 'data-requests'] as const
+
+export function useMeusPedidosDeDados() {
+  return useQuery({
+    queryKey: chavePedidosDeDados,
+    queryFn: () => api.get<PedidoDeDados[]>('/api/v1/me/data-requests/'),
+    staleTime: 10_000,
+  })
+}
+
+export function useSolicitarExportacao() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<PedidoDeDados>('/api/v1/me/data-requests/', { kind: 'export' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chavePedidosDeDados }),
+  })
+}

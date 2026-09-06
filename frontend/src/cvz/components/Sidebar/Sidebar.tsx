@@ -10,6 +10,7 @@ import {
   IconCalendar,
   IconNotes,
   IconMegaphone,
+  IconAudit,
   type IconProps,
 } from '../icons';
 import './Sidebar.scss';
@@ -20,6 +21,7 @@ export type NavId =
   | 'chats'
   | 'clientes'
   | 'avisos'
+  | 'auditoria'
   | 'configuracoes'
   | 'relatorios'
   | 'calendario'
@@ -39,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { id: 'chats', label: 'Chats', Icon: IconChats },
   { id: 'clientes', label: 'Clientes', Icon: IconClients },
   { id: 'avisos', label: 'Avisos', Icon: IconMegaphone },
+  { id: 'auditoria', label: 'Auditoria e LGPD', Icon: IconAudit },
   { id: 'configuracoes', label: 'Configurações', Icon: IconSettings },
   { id: 'relatorios', label: 'Relatórios', Icon: IconReports },
   { id: 'calendario', label: 'Calendário', Icon: IconCalendar },

@@ -30,6 +30,7 @@ import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
 import { PaginaAvisos } from '@/cvz/avisos/PaginaAvisos'
+import { PaginaAuditoria } from '@/cvz/auditoria/PaginaAuditoria'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
 import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
 
@@ -163,6 +164,20 @@ export const router = createBrowserRouter([
           <RotaProtegida>
             <CvzAppLayout>
               <PaginaAvisos />
+            </CvzAppLayout>
+          </RotaProtegida>
+        ),
+      },
+
+      // ---- Auditoria e LGPD — backend já pronto (apps/audit), primeira tela
+      // consumindo. IsAdmin no backend; a tela mostra um aviso amigável em
+      // vez de 403 cru para quem não é admin ----
+      {
+        path: '/auditoria',
+        element: (
+          <RotaProtegida>
+            <CvzAppLayout>
+              <PaginaAuditoria />
             </CvzAppLayout>
           </RotaProtegida>
         ),

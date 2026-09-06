@@ -2,6 +2,7 @@ import { useLogout } from '@/api/mutations/useLogout'
 import { useMe } from '@/api/queries/useMe'
 import { urlDoAvatar } from '@/portal/api/conta'
 import { SecaoAcessos } from '@/portal/configuracoes/SecaoAcessos'
+import { SecaoMeusDados } from '@/portal/configuracoes/SecaoMeusDados'
 import { SecaoSeguranca } from '@/portal/configuracoes/SecaoSeguranca'
 import { Button } from '@/portal/ui/button'
 import { Toaster } from '@/portal/ui/toaster'
@@ -32,6 +33,7 @@ export function PaginaConta() {
       </header>
       <SecaoSeguranca />
       <SecaoAcessos />
+      <SecaoMeusDados />
       <Toaster />
     </div>
   )
