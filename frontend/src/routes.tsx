@@ -4,7 +4,6 @@ import { PaginaLogin } from '@/features/auth/PaginaLogin'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { PaginaKanban } from '@/features/kanban/PaginaKanban'
-import { PaginaRelatorios } from '@/features/reports/PaginaRelatorios'
 import { PaginaDetalheTicket } from '@/features/tickets/PaginaDetalheTicket'
 import { PaginaInicio } from '@/features/tickets/PaginaInicio'
 import { PaginaListaTickets } from '@/features/tickets/PaginaListaTickets'
@@ -32,6 +31,7 @@ import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
 import { PaginaAvisos } from '@/cvz/avisos/PaginaAvisos'
 import { PaginaAuditoria } from '@/cvz/auditoria/PaginaAuditoria'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
+import { PaginaRelatorios as PaginaRelatoriosResolv } from '@/cvz/relatorios/PaginaRelatorios'
 import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
 
 /**
@@ -183,6 +183,20 @@ export const router = createBrowserRouter([
         ),
       },
 
+      // ---- Relatórios — backend já pronto (apps/reports), a tela na base
+      // antiga (/app/relatorios) era só um placeholder (PaginaPendente); esta
+      // é a primeira de verdade. Área interna no backend (IsInternal) ----
+      {
+        path: '/relatorios',
+        element: (
+          <RotaProtegida>
+            <CvzAppLayout>
+              <PaginaRelatoriosResolv />
+            </CvzAppLayout>
+          </RotaProtegida>
+        ),
+      },
+
       // ---- Configurações — Fase 1 do plano: Status, Serviços, Categorias,
       // Tags por enquanto (SLA/Equipes/Planos/Calendário/Papéis/Sistema vêm
       // nas próximas abas desta mesma fase) ----
@@ -211,7 +225,9 @@ export const router = createBrowserRouter([
           // o console de chat virou tela própria (/chat, NovoShell); o caminho antigo só redireciona
           { path: 'chat', element: <Navigate to="/chat" replace /> },
           { path: 'kanban', element: <PaginaKanban /> },
-          { path: 'relatorios', element: <PaginaRelatorios /> },
+          // a tela virou de verdade em /relatorios (CvzAppLayout) — o
+          // placeholder (PaginaPendente) que vivia aqui foi retirado
+          { path: 'relatorios', element: <Navigate to="/relatorios" replace /> },
         ],
       },
 
