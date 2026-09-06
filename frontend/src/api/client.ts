@@ -20,7 +20,8 @@
  *   - Paginação: LimitOffsetPagination, 25/página,
  *     `{count, next, previous, results}`.
  *   - Erro: `{"detail": "..."}` (geral) ou `{"campo": ["mensagem"]}`
- *     (validação), às vezes com `code` legível.
+ *     (validação — a view que valida na mão manda `{"campo": "mensagem"}`,
+ *     string crua, sem lista), às vezes com `code` legível.
  */
 
 // Exportada: campos como `avatar_url` chegam do backend como caminho relativo
@@ -33,11 +34,17 @@ export class ApiError extends Error {
   status: number
   detail?: string
   code?: string
-  /** Erros de validação por campo: `{"email": ["obrigatório"]}`. */
+  /** Erros de validação por campo, SEMPRE em lista — mesmo quando o backend
+   *  mandou a mensagem solta (ver a normalização no construtor). */
   fieldErrors?: Record<string, string[]>
 
   constructor(status: number, body: unknown) {
-    const asRecord = typeof body === 'object' && body !== null ? (body as Record<string, unknown>) : {}
+    // Lista de fora de propósito: `ValidationError("msg")` numa view vira o
+    // corpo `["msg"]`, e ler isso como registro inventaria "erro do campo 0".
+    const asRecord =
+      typeof body === 'object' && body !== null && !Array.isArray(body)
+        ? (body as Record<string, unknown>)
+        : {}
     const detail = typeof asRecord.detail === 'string' ? asRecord.detail : undefined
     super(detail ?? `Erro ${status}`)
     this.name = 'ApiError'
@@ -45,9 +52,26 @@ export class ApiError extends Error {
     this.detail = detail
     this.code = typeof asRecord.code === 'string' ? asRecord.code : undefined
 
-    const { detail: _d, code: _c, ...rest } = asRecord
+    // O erro de campo chega de DUAS formas: lista quando nasce no serializer
+    // (`{"email": ["obrigatório"]}`) e string crua quando a view valida na
+    // mão — `{"requester_id": "Cliente não encontrado."}` e `{"files": "..."}`
+    // em apps/tickets/views.py. Só a lista era colhida, então o motivo real
+    // do 400 (anexo recusado, cliente desativado) sumia e a tela mostrava
+    // "Erro 400". A string vira lista de um item aqui, e não em cada tela.
+    //
+    // `code` no corpo marca envelope montado à mão pela view (`detail` +
+    // `code` + dados de apoio), não validação: o 422 de cota
+    // (apps/tickets/views.py:391) manda `used`/`limit`/`renews_at` junto, e
+    // `renews_at` é string — normalizar às cegas criaria um "erro do campo
+    // renews_at" que nenhum formulário tem. Nesses corpos as chaves extras
+    // são dado para a tela; a lista continua entrando porque
+    // `pendentesDoErro` (api/chat.ts) lê `pending_ratings` daqui.
+    const { detail: _d, code: _c, ...resto } = asRecord
+    const ehEnvelopeDaView = this.code !== undefined
     const fieldErrors = Object.fromEntries(
-      Object.entries(rest).filter(([, v]) => Array.isArray(v)),
+      Object.entries(resto)
+        .filter(([, v]) => Array.isArray(v) || (!ehEnvelopeDaView && typeof v === 'string'))
+        .map(([campo, v]) => [campo, typeof v === 'string' ? [v] : v]),
     ) as Record<string, string[]>
     if (Object.keys(fieldErrors).length > 0) this.fieldErrors = fieldErrors
   }

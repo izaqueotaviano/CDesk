@@ -64,8 +64,21 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
               type="button"
               className="ticket-tabs__fechar"
               aria-label={`Fechar aba ${ref}`}
-              title="Fechar aba"
+              title={rascunho ? 'Fechar aba — há um rascunho não enviado' : 'Fechar aba'}
               onClick={() => {
+                // A aba já sabe que há texto não enviado (é o "· rascunho" ao
+                // lado da referência) e `useTabs.fechar` leva o rascunho junto —
+                // ele é local por contrato (docs/06: nunca vai para o servidor),
+                // então fechar sem perguntar apaga de vez. Pergunta SÓ quando há
+                // rascunho: confirmar toda troca de aba viraria ruído.
+                if (
+                  rascunho &&
+                  !window.confirm(
+                    `A aba ${ref} tem um rascunho não enviado. Fechar descarta esse texto.`,
+                  )
+                ) {
+                  return
+                }
                 const restantes = tabs.filter((t) => t.ticketId !== aba.ticketId)
                 fechar(aba.ticketId)
                 if (ativo) {

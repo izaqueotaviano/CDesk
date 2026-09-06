@@ -72,7 +72,11 @@ from apps.tickets.services import (
     ticket_service,
     transcript,
 )
-from apps.tickets.services.attachments import AttachmentRejected, attach_to_message
+from apps.tickets.services.attachments import (
+    AttachmentRejected,
+    attach_to_message,
+    validar_uploads,
+)
 from apps.tickets.services.satisfaction import SurveyClosed
 from apps.tickets.services.ticket_service import TicketRuleViolation
 
@@ -379,6 +383,18 @@ class TicketViewSet(viewsets.GenericViewSet):
             if requester is None:
                 raise ValidationError({"requester_id": "Cliente não encontrado."})
 
+        # O anexo é conferido ANTES de criar o chamado. `create_ticket` abre e
+        # fecha a própria transação (ATOMIC_REQUESTS=False,
+        # config/settings/base.py): recusar o arquivo só na hora de gravá-lo
+        # deixava o chamado nascido e devolvia 400 — a tela lia "não criou", o
+        # agente reenviava e o chamado saía duplicado.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             ticket = ticket_service.create_ticket(
                 requester=requester,
@@ -408,8 +424,12 @@ class TicketViewSet(viewsets.GenericViewSet):
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
-        # anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado
-        if uploads := request.FILES.getlist("files"):
+        # Anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado.
+        # A conferência acontece de novo aqui dentro: `attach_to_message`
+        # (apps/tickets/services/attachments.py) é a dona da regra e a única
+        # porta de gravação — a chamada lá em cima é só antecipação, barata e
+        # sem efeito colateral.
+        if uploads:
             primeira = ticket.messages.order_by("id").first()
             try:
                 attach_to_message(
@@ -539,6 +559,18 @@ class TicketViewSet(viewsets.GenericViewSet):
         if not request.user.is_internal and data.get("new_status"):
             raise ValidationError({"new_status": "Cliente não escolhe status."})
 
+        # Mesmo motivo do `create`: o anexo é conferido antes de gravar a
+        # mensagem. `add_reply` já muda o status, notifica e conta SLA em
+        # transação própria; recusar o arquivo depois disso deixava a resposta
+        # publicada e pedia "tente de novo" — cada retentativa gravava outra
+        # mensagem na thread.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             message = ticket_service.add_reply(
                 ticket=ticket,
@@ -554,7 +586,8 @@ class TicketViewSet(viewsets.GenericViewSet):
             raise ValidationError({"detail": str(exc)}) from exc
 
         # anexos entram na mesma requisição: validação em lote antes de gravar
-        if uploads := request.FILES.getlist("files"):
+        # (repetida de propósito — ver o comentário na conferência acima)
+        if uploads:
             try:
                 attach_to_message(
                     message=message, uploads=uploads, uploaded_by=request.user

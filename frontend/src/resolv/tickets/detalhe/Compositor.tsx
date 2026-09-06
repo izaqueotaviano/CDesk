@@ -1,6 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Me } from '@/api/types'
+import { useSistemaCfg } from '@/cvz/configuracoes/dados'
 import { useTabs } from '@/stores/tabs'
+import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { ROTULO_PRIORIDADE, ROTULO_STATUS, formatarDataHora } from '../format'
 import type { StatusTicket } from '../tipos'
 import { useAcoesTicket, useMacros } from './dados'
@@ -24,6 +26,36 @@ const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
   closed: 'Fechado',
 }
 
+/** Limites de anexo em vigor. Vêm do servidor (`SystemConfig`), que é quem o
+ *  backend consulta em `attachments.limits()` — a tela não tem número próprio. */
+/** Valem enquanto GET /api/v1/settings/system/ não respondeu (e para quem o
+ *  endpoint recusa: ele é `IsInternalReadAdminWrite`). São os mesmos números de
+ *  config/settings/base.py:260-264 — o fallback que o próprio
+ *  `attachments.limits()` usa quando não consegue ler o `SystemConfig`, então
+ *  na dúvida a tela erra para o mesmo lado que o servidor. */
+
+/**
+ * Corpo que vai para `POST /tickets/{id}/reply/`.
+ *
+ * Anexar um print e enviar sem escrever é o gesto mais natural do suporte, e o
+ * botão sempre acendeu para ele — mas `body` é obrigatório no
+ * `TicketReplySerializer` (apps/tickets/serializers.py:538, `allow_blank=False`),
+ * então esse envio sempre voltava 400. Entre apagar o gesto (botão só acende com
+ * texto) e completá-lo, a tela completa: sem texto, o corpo vira a legenda dos
+ * arquivos que a pessoa escolheu. É descrição do que está ali, não frase
+ * inventada em nome de quem enviou — e a tela mostra a legenda ANTES do envio,
+ * então ninguém publica o que não leu.
+ *
+ * Sem ponto final: o último caractere é um nome de arquivo, e um ponto colado
+ * nele parece parte da extensão.
+ */
+function corpoParaEnviar(texto: string, anexos: File[]): string {
+  const escrito = texto.trim()
+  if (escrito) return escrito
+  if (anexos.length === 0) return ''
+  return `Segue em anexo: ${anexos.map((f) => f.name).join(', ')}`
+}
+
 interface Props {
   ticket: TicketDetalhe
   me: Me | undefined
@@ -42,11 +74,23 @@ interface Props {
  *  - erro de envio aparece embaixo e o texto fica; Ctrl+Enter envia;
  *  - macro entra como menu com prévia e ainda grava os campos de triagem no
  *    servidor (apply-macro), que o texto sozinho nunca fez;
- *  - os botões sem função (formatar, emoji, link) saíram.
+ *  - os botões sem função (formatar, emoji, link) saíram;
+ *  - o anexo é conferido ANTES de subir, contra o limite que o servidor
+ *    publica (`conferirAnexos`), e a tela anuncia esse limite;
+ *  - anexo sem texto passou a ser um envio válido: o corpo vira a legenda dos
+ *    arquivos (`corpoParaEnviar`), visível antes de enviar;
+ *  - "Reabrir…" no cabeçalho não reclassifica mais uma nota interna já
+ *    escrita: pergunta.
  */
 export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const idBase = useId()
   const { data: macros } = useMacros()
+  // Limite de anexo é configuração do servidor (SystemConfig), não constante da
+  // tela: a query é a mesma de Configurações (chave `cfg-sistema`), então cai no
+  // cache já quente na maioria das vezes. Ainda não voltou, `limitesDeAnexo`
+  // devolve null e a conferência local não recusa nada — ver o porquê lá.
+  const { data: cfgSistema } = useSistemaCfg()
+  const limites = limitesDeAnexo(cfgSistema)
   const { responder, aplicarMacro } = useAcoesTicket(ticket.id)
   const rascunhoInicial = useTabs((s) => s.tabs.find((t) => t.ticketId === ticket.id)?.draft ?? '')
   const atualizarRascunho = useTabs((s) => s.atualizarRascunho)
@@ -72,10 +116,17 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     setStatus(statusInicialAoEnviar(ticket.status))
   }
   const [reabrirVisto, setReabrirVisto] = useState(pedidoReabrir)
+  // "Reabrir…" fica no CABEÇALHO: quem clica está olhando para lá, não para o
+  // compositor. Trocar sozinho para público um texto que a pessoa escreveu em
+  // "Nota interna" é decidir por ela quem lê o que ela escreveu — então o modo
+  // só muda sozinho quando não há nada escrito. Havendo, a decisão é dela, e a
+  // pergunta aparece no compositor (`perguntaReabrir`, abaixo).
+  const [perguntaReabrir, setPerguntaReabrir] = useState(false)
   if (reabrirVisto !== pedidoReabrir) {
     setReabrirVisto(pedidoReabrir)
-    setPublico(true)
     setStatus('open')
+    if (podePublico && !modoPublico && texto.trim()) setPerguntaReabrir(true)
+    else setPublico(true)
   }
   const [anexos, setAnexos] = useState<File[]>([])
   const [erro, setErro] = useState<string | null>(null)
@@ -155,16 +206,42 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const fechamentoInvalido = Boolean(errosFechamento.inicio || errosFechamento.fim)
   const temConteudo = texto.trim().length > 0 || anexos.length > 0
   const podeEnviar = temConteudo && !responder.isPending
+  // Anexo sem texto continua acendendo o botão — e agora chega ao servidor com
+  // corpo, que é o que faltava (ver `corpoParaEnviar`).
+  // (`corpo` já é o nome do texto da macro em `usarMacro`)
+  const corpoDaMensagem = corpoParaEnviar(texto, anexos)
+  const soAnexo = !texto.trim() && anexos.length > 0
+  // Sem configuração carregada não há teto conhecido: não bloqueia e não
+  // anuncia número nenhum, em vez de anunciar um chutado.
+  const anexosNoLimite = limites != null && anexos.length >= limites.maxArquivos
 
   function trocarModo(paraPublico: boolean) {
     setPublico(paraPublico)
+    setPerguntaReabrir(false)
     setErro(null)
     areaRef.current?.focus()
+  }
+
+  function adicionarAnexos(escolhidos: File[]) {
+    const { aceitos, recusas } = conferirAnexos(anexos, escolhidos, limites)
+    if (aceitos.length > 0) setAnexos((a) => [...a, ...aceitos])
+    // O que foi recusado some da tela junto com o motivo — não fica um arquivo
+    // na lista que a pessoa acha que vai junto.
+    setErro(recusas.length > 0 ? recusas.join(' ') : null)
   }
 
   function enviar() {
     if (!podeEnviar) return
     setErro(null)
+    // Mesma conferência da escolha, agora sobre o lote inteiro — é o que
+    // `validar_uploads` faz no servidor. Cobre o caso do limite ter chegado
+    // depois da escolha (a configuração é uma query; até ela voltar vale o
+    // padrão) e o de o limite ter mudado com a aba aberta.
+    const { recusas } = conferirAnexos([], anexos, limites)
+    if (recusas.length > 0) {
+      setErro(`${recusas.join(' ')} Tire o arquivo da lista para enviar o resto.`)
+      return
+    }
     if (vaiFechar) {
       setTocouFechamento(true)
       // "agora" novo só no momento de validar — não a cada tecla
@@ -173,7 +250,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     }
     responder.mutate(
       {
-        body: texto.trim(),
+        body: corpoDaMensagem,
         is_public: publico,
         // resposta pública de agente exige status; nota interna não manda status
         ...(publico && interno ? { new_status: status } : {}),
@@ -336,6 +413,13 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
         </ul>
       )}
 
+      {soAnexo && (
+        <p className="compositor__corpo-padrao">
+          <i className="ti ti-corner-down-right" aria-hidden="true" />
+          Sem nada escrito, a mensagem vai com a legenda “{corpoDaMensagem}”.
+        </p>
+      )}
+
       {vaiFechar && (
         <fieldset className="compositor__fechamento">
           <legend>
@@ -389,6 +473,41 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
         </fieldset>
       )}
 
+      {perguntaReabrir && (
+        <div className="compositor__pergunta" role="alert">
+          <i className="ti ti-help-circle" aria-hidden="true" />
+          <div>
+            <p>
+              Reabrir é responder ao cliente, mas você está escrevendo uma nota interna. O texto
+              continua interno até você decidir.
+            </p>
+            <div className="compositor__pergunta-acoes">
+              <button
+                type="button"
+                className="compositor__pergunta-botao compositor__pergunta-botao--primario"
+                onClick={() => {
+                  setPublico(true)
+                  setPerguntaReabrir(false)
+                  areaRef.current?.focus()
+                }}
+              >
+                Passar para resposta ao cliente
+              </button>
+              <button
+                type="button"
+                className="compositor__pergunta-botao"
+                onClick={() => {
+                  setPerguntaReabrir(false)
+                  areaRef.current?.focus()
+                }}
+              >
+                Manter como nota interna
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {aviso && (
         <p className="compositor__aviso" role="status">
           <i className="ti ti-bolt" aria-hidden="true" /> {aviso}
@@ -406,6 +525,12 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
             type="button"
             className="compositor__ferramenta"
             onClick={() => inputAnexo.current?.click()}
+            disabled={anexosNoLimite}
+            title={
+              anexosNoLimite && limites
+                ? `Você já escolheu ${limites.maxArquivos} arquivo(s), o máximo por mensagem.`
+                : undefined
+            }
           >
             <i className="ti ti-paperclip" aria-hidden="true" /> Anexar
           </button>
@@ -415,10 +540,19 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
             multiple
             hidden
             onChange={(e) => {
-              setAnexos((a) => [...a, ...Array.from(e.target.files ?? [])])
+              adicionarAnexos(Array.from(e.target.files ?? []))
               e.target.value = '' // permite re-selecionar o mesmo arquivo
             }}
           />
+          {/* O limite fica visível ANTES de escolher: era a tela de abertura
+              prometendo 20 MB que fazia a pessoa esperar o upload para descobrir
+              que o teto é outro. */}
+          {limites && (
+            <span className="compositor__dica-anexo">
+              Até {limites.maxMb} MB por arquivo · {limites.maxArquivos} arquivos ·{' '}
+              {limites.maxMbPorMensagem} MB no total
+            </span>
+          )}
 
           {podeMacro && (macros?.length ?? 0) > 0 && (
             <div className="compositor__macro" ref={menuRef}>
@@ -488,6 +622,8 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
             className={'compositor__botao' + (vaiFechar ? ' compositor__botao--fechar' : '')}
             disabled={!podeEnviar}
             onClick={enviar}
+            // O convite do title ("ou anexe um arquivo") ficou: agora ele é
+            // verdade — anexo sem texto envia, com a legenda de `corpoParaEnviar`.
             title={temConteudo ? 'Ctrl+Enter' : 'Escreva algo ou anexe um arquivo para enviar'}
           >
             {rotuloBotao}

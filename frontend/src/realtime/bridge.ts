@@ -61,10 +61,40 @@ export function desconectarCanalPessoal(): void {
   canalPessoal = null
 }
 
+/**
+ * Kinds de notificação que mudam a LISTA de tickets E que nenhum outro evento
+ * cobre. `broadcast_ticket_event` (apps/notifications/services/__init__.py)
+ * só alcança solicitante/responsável/dono/seguidores do ticket, e o
+ * `case 'ticket_event'` abaixo já revalida a fila para eles — quem recebe
+ * `ticket_assigned`, `ticket_owner_set`, `ticket_replied`, `ticket_reopened`
+ * ou `ticket_closed` está sempre nesse conjunto, então repetir a invalidação
+ * aqui seria só um segundo GET da mesma lista. Sobram dois sem dono:
+ *
+ *  - `ticket_created` vai para os AGENTES DA EQUIPE
+ *    (`ticket_service._notify_team_about_new_ticket`), que não são nem
+ *    solicitante nem responsável de um chamado recém-aberto — não existe
+ *    `ticket_event` na abertura. É o buraco que congelava a fila até o F5.
+ *  - `sla_warning`/`sla_breached` saem da task periódica
+ *    (`notifications/tasks.py::_alert`), sem broadcast nenhum, e o estado do
+ *    relógio vem CALCULADO do servidor (`get_sla`, apps/tickets/serializers.py):
+ *    sem refetch o sino avisa "estourado" com a coluna ainda em "2h restantes"
+ *    e o filtro `sla=` continua mostrando o recorte velho.
+ *
+ * `mention` fica de fora porque ser citado cria `TicketWatcher`
+ * (`tickets/services/mentions.py`) antes do broadcast da resposta — o
+ * `ticket_event` chega junto.
+ */
+const KINDS_QUE_MUDAM_A_FILA = new Set(['ticket_created', 'sla_warning', 'sla_breached'])
+
 function aplicarEventoPessoal(evento: EventoServidorPessoal, queryClient: QueryClient) {
   switch (evento.type) {
     case 'notification':
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      // prefixo da chave de `resolv/tickets/useTicketsList.ts`
+      // (`['tickets', 'lista', params]`) — pega a fila em qualquer filtro
+      if (KINDS_QUE_MUDAM_A_FILA.has(evento.kind)) {
+        queryClient.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+      }
       if (evento.kind === 'chat_message' || evento.kind === 'chat_transferred' || evento.kind === 'chat_converted') {
         // badge/preview nas listas — a conversa aberta já recebe pela sala
         queryClient.invalidateQueries({ queryKey: chaves.meus })

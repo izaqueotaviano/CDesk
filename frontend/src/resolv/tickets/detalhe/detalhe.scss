@@ -1340,6 +1340,77 @@
     color: var(--text-secondary);
   }
 
+  // Legenda que vai no lugar do texto quando só há anexo (`corpoParaEnviar`):
+  // discreta, mas legível — a pessoa precisa ler ANTES de enviar o que vai sair
+  // com o nome dela.
+  &__corpo-padrao {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    i {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+
+  // Pergunta do "Reabrir…" sobre uma nota interna já escrita. Tom âmbar, o
+  // mesmo da nota interna em todo o compositor: o assunto da pergunta é
+  // justamente o texto que hoje é interno.
+  &__pergunta {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 0.7px solid var(--tom-alerta-borda);
+    border-radius: 2px;
+    background: var(--tom-alerta);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-primary);
+    > i {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--away);
+    }
+    p {
+      margin: 0;
+    }
+  }
+  &__pergunta-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  &__pergunta-botao {
+    height: 28px;
+    padding: 0 10px;
+    border: 0.7px solid var(--tom-alerta-borda);
+    border-radius: 2px;
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--away);
+    }
+    &--primario {
+      background: var(--away);
+      border-color: var(--away);
+      // Superfície sobre fundo de marca, como no --accent: branco cru reprova
+      // o AA quando o --away clareia no tema escuro.
+      color: var(--surface-card);
+    }
+  }
+
   &__fechamento {
     margin: 0;
     padding: 10px 12px 12px;
@@ -1463,6 +1534,20 @@
       border-color: var(--stroke-hover);
       color: var(--text-primary);
     }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      &:hover {
+        border-color: var(--stroke);
+        color: var(--text-secondary);
+      }
+    }
+  }
+  // Limite anunciado ao lado do "Anexar". Quebra para a linha de baixo antes de
+  // espremer os botões (o rodapé já é `flex-wrap`).
+  &__dica-anexo {
+    font-size: 11px;
+    color: var(--text-secondary);
   }
   &__macro {
     position: relative;

@@ -1,7 +1,16 @@
-import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import { useSistemaCfg } from '@/cvz/configuracoes/dados'
 import {
   useAbrirTicket,
   useAgentes,
@@ -13,10 +22,11 @@ import {
   useEtiquetas,
   useServicos,
 } from '@/cvz/tickets/dados'
+import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
 import { useMacros } from '../detalhe/dados'
-import { Campo, Seletor } from '../detalhe/PainelPropriedades'
+import { Campo } from '../detalhe/PainelPropriedades'
 import {
   iniciais,
   interpolarMacro,
@@ -26,6 +36,7 @@ import {
 } from '../detalhe/linhaDoTempo'
 import type { Macro } from '../detalhe/tiposDetalhe'
 import { BuscaPessoa } from './BuscaPessoa'
+import { estaSujo, lerRascunho, limparRascunho, useGravarRascunho, type Rascunho } from './rascunho'
 // A tela é "o detalhe antes de o ticket existir": mesmas colunas, mesmos
 // controles (.props, .compositor, .ticket-cab) — importa a folha do detalhe
 // e só acrescenta o que é próprio da abertura em novo.scss.
@@ -34,10 +45,6 @@ import './novo.scss'
 
 const PRIORIDADES: Prioridade[] = ['low', 'normal', 'high', 'urgent']
 
-/** Limites do backend (ATTACHMENT_MAX_BYTES / _FILES_PER_MESSAGE). Conferir
- *  aqui só evita subir um arquivo que seria recusado depois. */
-const MAX_MB = 20
-const MAX_ARQUIVOS = 10
 /** Mesma allowlist de `ATTACHMENT_ALLOWED_MIME` — para o `accept` do seletor
  *  e um aviso cedo. Quem decide é o backend, por magic bytes. */
 const TIPOS_ACEITOS =
@@ -57,14 +64,83 @@ type NomeCampo =
   | 'order_number'
 
 /** Ordem em que os campos aparecem na tela — o foco vai para o PRIMEIRO
- *  inválido nessa ordem (WCAG 3.3.1: erro identificado e alcançável). */
-const ORDEM_FOCO: NomeCampo[] = ['team_id', 'requester_id', 'subject', 'body']
+ *  inválido nessa ordem (WCAG 3.3.1: erro identificado e alcançável). O painel
+ *  de triagem é a coluna da esquerda, por isso vem antes da redação. */
+const ORDEM_FOCO: NomeCampo[] = [
+  'team_id',
+  'category_id',
+  'order_number',
+  'requester_id',
+  'subject',
+  'body',
+  'files',
+]
+
+/** O backend erra por CAMPO (`{"team_id": [...]}`, `{"files": "..."}` —
+ *  apps/tickets/serializers.py e views.py). O que não é campo desta tela
+ *  (`non_field_errors`, campo de um fluxo que ela não usa) não pode sumir em
+ *  silêncio: vira mensagem geral. */
+function ehCampoDaTela(nome: string): nome is NomeCampo {
+  return ORDEM_FOCO.includes(nome as NomeCampo)
+}
 
 function Obrigatorio() {
   return (
     <abbr className="novo__obrig" title="obrigatório">
       *
     </abbr>
+  )
+}
+
+/**
+ * O `Seletor` do painel do detalhe (../detalhe/PainelPropriedades.tsx) com o
+ * que um FORMULÁRIO precisa e o detalhe não tem: `aria-invalid` e
+ * `aria-describedby`. Lá cada campo salva sozinho e nunca fica "inválido";
+ * aqui o envio recusa o formulário inteiro, e sem essas duas ligações o leitor
+ * de tela anuncia "Equipe, caixa de combinação" sem dizer que ela está errada
+ * nem qual é o texto de ajuda ao lado (WCAG 3.3.1 e 1.3.1). As classes são as
+ * mesmas (.props__seletor), então o controle continua idêntico na tela.
+ */
+function SeletorCampo({
+  id,
+  icone,
+  cor,
+  valor,
+  onChange,
+  desabilitado,
+  invalido,
+  descrito,
+  children,
+}: {
+  id: string
+  icone?: string
+  cor?: string
+  valor: string
+  onChange: (v: string) => void
+  desabilitado?: boolean
+  invalido?: boolean
+  descrito?: string
+  children: ReactNode
+}) {
+  return (
+    <span className={'props__seletor' + (invalido ? ' novo__seletor--invalido' : '')}>
+      {cor ? (
+        <span className="props__cor" style={{ background: cor }} aria-hidden="true" />
+      ) : icone ? (
+        <i className={icone} aria-hidden="true" />
+      ) : null}
+      <select
+        id={id}
+        value={valor}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={desabilitado}
+        aria-invalid={invalido || undefined}
+        aria-describedby={descrito}
+      >
+        {children}
+      </select>
+      <i className="ti ti-chevron-down props__seta" aria-hidden="true" />
+    </span>
   )
 }
 
@@ -83,7 +159,11 @@ function Obrigatorio() {
  *    o contador de palavras e a toolbar B/I/lista/link — o produto mostra
  *    texto puro, então `**negrito**` chegaria literal ao cliente;
  *  - anexos: botão com nome e lista visível, como no compositor do detalhe;
- *  - Ctrl+Enter abre o chamado; sair com texto escrito pede confirmação.
+ *  - Ctrl+Enter abre o chamado; sair com texto escrito pede confirmação e o
+ *    rascunho fica guardado (./rascunho.ts), inclusive para navegação interna,
+ *    que o `beforeunload` não vê.
+ *
+ * Chamado criado é FIM DE TELA: o formulário sai e dá lugar à confirmação.
  */
 export function PaginaNovoTicket() {
   const navigate = useNavigate()
@@ -97,29 +177,50 @@ export function PaginaNovoTicket() {
   const { data: agentes } = useAgentes()
   const { data: etiquetas } = useEtiquetas()
   const { data: macros } = useMacros()
+  const { data: configSistema } = useSistemaCfg()
 
-  const [empresaId, setEmpresaId] = useState<number | null>(null)
-  const [solicitanteId, setSolicitanteId] = useState<number | null>(null)
-  const [equipeId, setEquipeId] = useState('')
-  const [assunto, setAssunto] = useState('')
-  const [texto, setTexto] = useState('')
-  const [prioridade, setPrioridade] = useState<Prioridade>('normal')
-  const [servicoId, setServicoId] = useState('')
-  const [categoriaId, setCategoriaId] = useState('')
-  const [numeroPedido, setNumeroPedido] = useState('')
-  const [responsavelId, setResponsavelId] = useState('')
-  const [tagIds, setTagIds] = useState<number[]>([])
+  // Rascunho da visita anterior, lido UMA vez: cada campo abaixo já nasce com
+  // o que estava escrito, sem um efeito que sobrescreveria o que a pessoa
+  // digitar enquanto as queries chegam.
+  const [rascunhoSalvo] = useState(lerRascunho)
+
+  const [empresaId, setEmpresaId] = useState<number | null>(rascunhoSalvo?.empresaId ?? null)
+  const [solicitanteId, setSolicitanteId] = useState<number | null>(
+    rascunhoSalvo?.solicitanteId ?? null,
+  )
+  const [equipeId, setEquipeId] = useState(rascunhoSalvo?.equipeId ?? '')
+  const [assunto, setAssunto] = useState(rascunhoSalvo?.assunto ?? '')
+  const [texto, setTexto] = useState(rascunhoSalvo?.texto ?? '')
+  const [prioridade, setPrioridade] = useState<Prioridade>(rascunhoSalvo?.prioridade ?? 'normal')
+  const [servicoId, setServicoId] = useState(rascunhoSalvo?.servicoId ?? '')
+  const [categoriaId, setCategoriaId] = useState(rascunhoSalvo?.categoriaId ?? '')
+  const [numeroPedido, setNumeroPedido] = useState(rascunhoSalvo?.numeroPedido ?? '')
+  const [responsavelId, setResponsavelId] = useState(rascunhoSalvo?.responsavelId ?? '')
+  const [tagIds, setTagIds] = useState<number[]>(rascunhoSalvo?.tagIds ?? [])
   const [anexos, setAnexos] = useState<File[]>([])
-  const [assinaturaLigada, setAssinaturaLigada] = useState(true)
+  const [assinaturaLigada, setAssinaturaLigada] = useState(rascunhoSalvo?.assinaturaLigada ?? true)
   const [erros, setErros] = useState<Partial<Record<NomeCampo, string>>>({})
   const [erroGeral, setErroGeral] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [menuMacro, setMenuMacro] = useState(false)
-  /** Chamado criado, mas responsável/etiquetas não colaram: fica na tela
-   *  com o chamado a um clique, em vez de sumir com o aviso. */
-  const [pendencia, setPendencia] = useState<{ id: number; referencia: string; itens: string[] } | null>(
-    null,
+  const [avisoRascunho, setAvisoRascunho] = useState(
+    () => rascunhoSalvo != null && estaSujo(rascunhoSalvo),
   )
+  /** Chamado aberto: a tela vira confirmação. Guarda o que o formulário vai
+   *  deixar de mostrar (referência, assunto, cliente) e o que das etapas
+   *  seguintes não colou. */
+  const [criado, setCriado] = useState<{
+    id: number
+    referencia: string
+    assunto: string
+    cliente: string
+    pendencias: string[]
+  } | null>(null)
+  /** Id do campo que deve receber o foco no próximo render — o alvo ainda não
+   *  existe na hora do clique (o formulário volta depois da confirmação).
+   *  Ref, não estado: quem escreve aqui já está mudando estado de verdade, e
+   *  isto não deve provocar um render por si. */
+  const focoPedidoRef = useRef<string | null>(null)
 
   const { data: clientes, isLoading: carregandoClientes } = useClientes(empresaId)
   const abrir = useAbrirTicket()
@@ -127,6 +228,7 @@ export function PaginaNovoTicket() {
   const paraRef = useRef<HTMLInputElement>(null)
   const inputAnexo = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const feitoRef = useRef<HTMLDivElement>(null)
   const enviadoRef = useRef(false)
 
   const assinatura = (me?.signature ?? '').trim()
@@ -142,16 +244,28 @@ export function PaginaNovoTicket() {
     para: `${idBase}-para`,
     assunto: `${idBase}-assunto`,
     texto: `${idBase}-texto`,
+    anexar: `${idBase}-anexar`,
   }
+  // `files` aponta para o botão "Anexar", não para a mensagem: era o mesmo id
+  // de `body`, o que gerava DOIS elementos `-erro` com o mesmo id na página e
+  // mandava o foco de um anexo recusado para o textarea.
   const idDoCampo: Record<NomeCampo, string> = {
     team_id: ids.equipe,
     requester_id: ids.para,
     subject: ids.assunto,
     body: ids.texto,
-    files: ids.texto,
+    files: ids.anexar,
     category_id: ids.cat,
     order_number: ids.pedido,
   }
+
+  // Limites de anexo do SERVIDOR (SystemConfig), não constante da tela: o
+  // "20 MB" que estava cravado aqui não era o limite real nem em produção
+  // (10 MB), e prometer folga que o backend não dá era o caminho do chamado
+  // duplicado. A conferência é a MESMA do compositor do detalhe — as duas
+  // telas dividem `../anexos`, senão elas divergem (e já tinham divergido:
+  // esta não recusava extensão bloqueada).
+  const limites = limitesDeAnexo(configSistema)
 
   // A tela abre com o foco em "Para": é o primeiro campo da tarefa
   // principal (escrever para alguém), e evita sete tabs pelo painel de
@@ -160,18 +274,23 @@ export function PaginaNovoTicket() {
     paraRef.current?.focus()
   }, [])
 
-  // Sair com texto escrito (fechar aba, F5) pede confirmação — o navegador
-  // mostra o diálogo dele. Depois de aberto o chamado, não.
-  const sujo = Boolean(assunto.trim() || texto.trim() || solicitanteId != null || anexos.length)
+  // Foco pedido por uma ação que troca a árvore (voltar da confirmação para o
+  // formulário) — no clique o campo ainda não existia. Sem lista de
+  // dependências de propósito: o pedido é consumido no primeiro render depois
+  // do clique, qualquer que seja o estado que mudou junto.
   useEffect(() => {
-    if (!sujo) return
-    const h = (e: BeforeUnloadEvent) => {
-      if (enviadoRef.current) return
-      e.preventDefault()
-    }
-    window.addEventListener('beforeunload', h)
-    return () => window.removeEventListener('beforeunload', h)
-  }, [sujo])
+    const alvo = focoPedidoRef.current
+    if (!alvo) return
+    focoPedidoRef.current = null
+    document.getElementById(alvo)?.focus()
+  })
+
+  // Confirmação de chamado aberto: leva o foco para ela. Sem isso o foco fica
+  // no botão "Abrir chamado" que acabou de sumir e volta para o <body>, e
+  // quem navega por teclado não sabe que a tela trocou.
+  useEffect(() => {
+    if (criado) feitoRef.current?.focus()
+  }, [criado])
 
   // menu de macro fecha ao clicar fora / Esc
   useEffect(() => {
@@ -231,6 +350,13 @@ export function PaginaNovoTicket() {
   const solicitante = (clientes ?? []).find((c) => c.id === solicitanteId) ?? null
   const empresaDoSolicitante = solicitante ? empresaPorId.get(solicitante.company ?? -1) : undefined
 
+  // Solicitante que veio do rascunho pode não existir mais (desativado, mudou
+  // de empresa). Quem manda é a lista carregada, não o id guardado: sem isto o
+  // combobox mostraria o campo VAZIO e o envio passaria assim mesmo, porque o
+  // id continua no estado — e o "Cliente não encontrado." só viria do servidor.
+  // Enquanto a lista não chega o id vale, senão o rascunho piscaria vazio.
+  const solicitanteEscolhido = clientes == null || solicitante != null ? solicitanteId : null
+
   /** Categoria depende do serviço — o filtro é do frontend por decisão do
    *  backend (ServiceSerializer). Sem serviço escolhido, oferece todas. */
   const categoriasDoServico = useMemo(() => {
@@ -240,6 +366,58 @@ export function PaginaNovoTicket() {
   }, [categorias, servicoId])
   const temServicos = (servicos?.length ?? 0) > 0
   const temEtiquetas = (etiquetas?.length ?? 0) > 0
+
+  // Uma só descrição do formulário serve para três coisas: gravar o rascunho,
+  // decidir se há trabalho a perder e montar o aviso do que foi recuperado.
+  const rascunho: Rascunho = useMemo(
+    () => ({
+      empresaId,
+      solicitanteId: solicitanteEscolhido,
+      equipeId,
+      assunto,
+      texto,
+      prioridade,
+      servicoId,
+      categoriaId,
+      numeroPedido,
+      responsavelId,
+      tagIds,
+      assinaturaLigada,
+      anexos: anexos.map((f) => f.name),
+    }),
+    [
+      empresaId,
+      solicitanteEscolhido,
+      equipeId,
+      assunto,
+      texto,
+      prioridade,
+      servicoId,
+      categoriaId,
+      numeroPedido,
+      responsavelId,
+      tagIds,
+      assinaturaLigada,
+      anexos,
+    ],
+  )
+  const sujo = estaSujo(rascunho)
+  // Chamado já aberto não tem rascunho a guardar — e o `false` aqui é o que
+  // apaga o que estava gravado.
+  useGravarRascunho(rascunho, sujo && criado == null)
+
+  // Sair com o formulário mexido (fechar aba, F5) pede confirmação — o
+  // navegador mostra o diálogo dele. Navegação interna não passa por aqui: é
+  // o rascunho que cobre esse caso.
+  useEffect(() => {
+    if (!sujo) return
+    const h = (e: BeforeUnloadEvent) => {
+      if (enviadoRef.current) return
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', h)
+    return () => window.removeEventListener('beforeunload', h)
+  }, [sujo])
 
   function limparErro(campo: NomeCampo) {
     setErros((atuais) => {
@@ -283,23 +461,21 @@ export function PaginaNovoTicket() {
     setTagIds((atuais) => (atuais.includes(id) ? atuais.filter((t) => t !== id) : [...atuais, id]))
   }
 
+  /**
+   * Confere o que o backend confere (apps/tickets/services/attachments.py:
+   * `validar_uploads`) — tamanho por arquivo, soma da mensagem e contagem —
+   * usando os limites que ele mesmo publicou.
+   *
+   * Sem os limites carregados, aceita e deixa o servidor decidir: recusar por
+   * um número inventado esconderia um arquivo que passaria, e o 400 do
+   * servidor agora acontece ANTES de criar o chamado (views.py:create), então
+   * ele não deixa mais chamado órfão.
+   */
   function adicionarAnexos(lista: FileList | null) {
-    if (!lista) return
-    const novos = Array.from(lista)
-    const grandes = novos.filter((f) => f.size > MAX_MB * 1024 * 1024)
-    const aceitos = novos.filter((f) => f.size <= MAX_MB * 1024 * 1024)
-    const total = anexos.length + aceitos.length
-    const problemas: string[] = []
-    if (grandes.length) {
-      problemas.push(
-        `${grandes.map((f) => f.name).join(', ')}: acima de ${MAX_MB} MB — não foi adicionado.`,
-      )
-    }
-    if (total > MAX_ARQUIVOS) {
-      problemas.push(`No máximo ${MAX_ARQUIVOS} arquivos por mensagem.`)
-    }
-    setAnexos((a) => [...a, ...aceitos].slice(0, MAX_ARQUIVOS))
-    if (problemas.length) setErros((e) => ({ ...e, files: problemas.join(' ') }))
+    if (!lista?.length) return
+    const { aceitos, recusas } = conferirAnexos(anexos, Array.from(lista), limites)
+    setAnexos((a) => [...a, ...aceitos])
+    if (recusas.length) setErros((e) => ({ ...e, files: recusas.join(' ') }))
     else limparErro('files')
   }
 
@@ -340,7 +516,7 @@ export function PaginaNovoTicket() {
   function validar(): Partial<Record<NomeCampo, string>> {
     const e: Partial<Record<NomeCampo, string>> = {}
     if (!equipeId) e.team_id = 'Escolha a equipe que vai atender.'
-    if (solicitanteId == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
+    if (solicitanteEscolhido == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
     if (!assunto.trim()) e.subject = 'Resuma o chamado em uma linha.'
     if (!texto.trim()) {
       e.body = 'Escreva a mensagem — ela abre o chamado para o cliente.'
@@ -360,8 +536,44 @@ export function PaginaNovoTicket() {
     if (primeiro) document.getElementById(idDoCampo[primeiro])?.focus()
   }
 
+  function limparFormulario() {
+    setAssunto('')
+    setTexto('')
+    setAnexos([])
+    setTagIds([])
+    setNumeroPedido('')
+    setResponsavelId('')
+    setCategoriaId('')
+    setServicoId('')
+    setPrioridade('normal')
+    setErros({})
+    setErroGeral(null)
+    setAviso(null)
+  }
+
+  /** Volta ao formulário mantendo empresa, cliente e equipe: é o mesmo
+   *  atendimento seguindo. Reescolher os três a cada chamado é o que fazia a
+   *  pessoa voltar no navegador — e reenviar o formulário anterior. */
+  function abrirOutroParaMesmoCliente() {
+    limparFormulario()
+    setCriado(null)
+    enviadoRef.current = false
+    focoPedidoRef.current = ids.assunto
+  }
+
+  function descartarRascunho() {
+    limparFormulario()
+    setEmpresaId(null)
+    setSolicitanteId(null)
+    setEquipeId('')
+    setAssinaturaLigada(true)
+    setAvisoRascunho(false)
+    limparRascunho()
+    focoPedidoRef.current = ids.para
+  }
+
   async function enviar() {
-    if (abrir.isPending) return
+    if (abrir.isPending || criado) return
     setErroGeral(null)
     const invalidos = validar()
     if (Object.keys(invalidos).length) {
@@ -379,7 +591,7 @@ export function PaginaNovoTicket() {
         subject: assunto.trim(),
         body: corpo,
         priority: prioridade,
-        requester_id: solicitanteId!,
+        requester_id: solicitanteEscolhido!,
         category_id: categoriaId ? Number(categoriaId) : null,
         order_number: numeroPedido.trim(),
         arquivos: anexos,
@@ -387,21 +599,47 @@ export function PaginaNovoTicket() {
         tag_ids: tagIds,
       })
       enviadoRef.current = true
+      limparRascunho()
       if (pendencias.length) {
-        setPendencia({ id: ticket.id, referencia: ticket.reference, itens: pendencias })
+        setCriado({
+          id: ticket.id,
+          referencia: ticket.reference,
+          assunto: assunto.trim(),
+          cliente: solicitante?.full_name ?? '',
+          pendencias,
+        })
         return
       }
       navigate(`/chamados/${ticket.id}`)
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors) {
-        const porCampo = Object.fromEntries(
-          Object.entries(e.fieldErrors).map(([campo, msgs]) => [campo, msgs[0]]),
-        ) as Partial<Record<NomeCampo, string>>
+        // O cliente HTTP normaliza as duas formas do backend — `["msg"]` do
+        // serializer e `"msg"` cru da view que valida na mão (src/api/client.ts,
+        // apps/tickets/views.py) — então "Cliente não encontrado." e a recusa
+        // do anexo chegam no campo, e não como "Erro 400".
+        const porCampo: Partial<Record<NomeCampo, string>> = {}
+        const semCampo: string[] = []
+        for (const [campo, mensagens] of Object.entries(e.fieldErrors)) {
+          const texto = mensagens[0]
+          if (!texto) continue
+          if (ehCampoDaTela(campo)) porCampo[campo] = texto
+          else semCampo.push(texto)
+        }
+        if (porCampo.files) {
+          // O anexo passou a ser conferido ANTES de `create_ticket`
+          // (apps/tickets/views.py:create): 400 em `files` significa agora que
+          // nada foi criado. Dizer isso é o que impede o agente de achar que o
+          // chamado nasceu e abrir um segundo por precaução.
+          porCampo.files = `${porCampo.files} Nenhum chamado foi aberto — troque o arquivo e envie de novo.`
+        }
         setErros((atuais) => ({ ...atuais, ...porCampo }))
         focarPrimeiroInvalido(porCampo)
-        if (e.detail) setErroGeral(e.detail)
+        const geral = [e.detail, ...semCampo].filter(Boolean).join(' ')
+        setErroGeral(geral || null)
       } else {
-        setErroGeral(`${mensagemDeErro(e, 'Não foi possível abrir o chamado.')} Nada foi perdido — o texto continua aqui.`)
+        setErroGeral(
+          `${mensagemDeErro(e, 'Não foi possível abrir o chamado.')} Nada foi perdido — o texto continua aqui.`,
+        )
       }
     }
   }
@@ -409,6 +647,7 @@ export function PaginaNovoTicket() {
   function cancelar() {
     if (sujo && !window.confirm('Descartar o chamado que você começou a escrever?')) return
     enviadoRef.current = true
+    limparRascunho()
     navigate('/chamados')
   }
 
@@ -420,7 +659,8 @@ export function PaginaNovoTicket() {
   }
 
   const descreve = (campo: NomeCampo, ajuda?: string) =>
-    [ajuda, erros[campo] ? `${idDoCampo[campo]}-erro` : undefined].filter(Boolean).join(' ') || undefined
+    [ajuda, erros[campo] ? `${idDoCampo[campo]}-erro` : undefined].filter(Boolean).join(' ') ||
+    undefined
 
   // função, não componente: declarar um componente aqui dentro o remontaria
   // a cada render (e o lint do React recusa)
@@ -430,6 +670,61 @@ export function PaginaNovoTicket() {
         <i className="ti ti-alert-circle" aria-hidden="true" /> {erros[campo]}
       </span>
     ) : null
+
+  // O chamado existe: o formulário SAI da tela. Ele continuava montado e
+  // habilitado embaixo do aviso, com tudo preenchido — lia-se como "deu erro,
+  // tente de novo", e o clique seguinte abria um chamado idêntico.
+  if (criado) {
+    return (
+      <div className="novo">
+        <header className="ticket-cab novo__cab">
+          <div className="ticket-cab__linha">
+            <div className="ticket-cab__identidade novo__identidade">
+              <h1 className="ticket-cab__assunto">Chamado aberto</h1>
+              <span className="novo__cab-sub">{criado.assunto}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* o foco vai para o bloco (tabIndex -1) e o `status` fica na frase:
+            um live region embrulhando os botões faria o leitor de tela reler a
+            tela inteira a cada mudança dentro dela */}
+        <div className="novo__feito" ref={feitoRef} tabIndex={-1}>
+          <p className="novo__feito-linha" role="status">
+            <i className="ti ti-circle-check" aria-hidden="true" />
+            <span>
+              <strong>{criado.referencia}</strong> foi aberto
+              {criado.cliente ? ` para ${criado.cliente}` : ''}.
+            </span>
+          </p>
+          {criado.pendencias.length > 0 && (
+            <p className="novo__feito-pendencia">
+              <i className="ti ti-alert-triangle" aria-hidden="true" />
+              <span>
+                O chamado está lá, mas {criado.pendencias.join(' e ')} — dá para ajustar no próprio
+                chamado.
+              </span>
+            </p>
+          )}
+          <div className="novo__feito-acoes">
+            <button
+              type="button"
+              className="compositor__botao"
+              onClick={() => navigate(`/chamados/${criado.id}`)}
+            >
+              Abrir {criado.referencia}
+            </button>
+            <button type="button" className="novo__cancelar" onClick={abrirOutroParaMesmoCliente}>
+              Abrir outro chamado{criado.cliente ? ` para ${criado.cliente}` : ''}
+            </button>
+            <button type="button" className="novo__link" onClick={() => navigate('/chamados')}>
+              Voltar para a lista
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="novo" onKeyDown={aoTeclar}>
@@ -471,25 +766,25 @@ export function PaginaNovoTicket() {
               }
               htmlFor={ids.equipe}
             >
-              <span className={erros.team_id ? 'novo__invalido' : undefined}>
-                <Seletor
-                  id={ids.equipe}
-                  icone="ti ti-users-group"
-                  value={equipeId}
-                  onChange={(v) => {
-                    setEquipeId(v)
-                    limparErro('team_id')
-                  }}
-                  disabled={equipes == null}
-                >
-                  <option value="">{equipes ? 'Selecione a equipe' : 'Carregando…'}</option>
-                  {equipesDisponiveis.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.name}
-                    </option>
-                  ))}
-                </Seletor>
-              </span>
+              <SeletorCampo
+                id={ids.equipe}
+                icone="ti ti-users-group"
+                valor={equipeId}
+                onChange={(v) => {
+                  setEquipeId(v)
+                  limparErro('team_id')
+                }}
+                desabilitado={equipes == null}
+                invalido={Boolean(erros.team_id)}
+                descrito={descreve('team_id', `${ids.equipe}-ajuda`)}
+              >
+                <option value="">{equipes ? 'Selecione a equipe' : 'Carregando…'}</option>
+                {equipesDisponiveis.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.name}
+                  </option>
+                ))}
+              </SeletorCampo>
               <span className="props__ajuda" id={`${ids.equipe}-ajuda`}>
                 {semEquipe
                   ? 'Você não atende nenhuma equipe — a abertura fica com quem atende.'
@@ -516,12 +811,13 @@ export function PaginaNovoTicket() {
                 ) : undefined
               }
             >
-              <Seletor
+              <SeletorCampo
                 id={ids.resp}
                 icone="ti ti-headset"
-                value={responsavelId}
+                valor={responsavelId}
                 onChange={setResponsavelId}
-                disabled={agentes == null}
+                desabilitado={agentes == null}
+                descrito={`${ids.resp}-ajuda`}
               >
                 <option value="">{agentes ? 'Sem responsável' : 'Carregando…'}</option>
                 {(agentes ?? []).map((a) => (
@@ -529,8 +825,10 @@ export function PaginaNovoTicket() {
                     {a.full_name}
                   </option>
                 ))}
-              </Seletor>
-              <span className="props__ajuda">Pode ficar para a triagem.</span>
+              </SeletorCampo>
+              <span className="props__ajuda" id={`${ids.resp}-ajuda`}>
+                Pode ficar para a triagem.
+              </span>
             </Campo>
           </section>
 
@@ -538,10 +836,10 @@ export function PaginaNovoTicket() {
             <h2 className="props__titulo">Classificação</h2>
 
             <Campo rotulo="Urgência" htmlFor={ids.prio}>
-              <Seletor
+              <SeletorCampo
                 id={ids.prio}
                 cor={COR_PRIORIDADE[prioridade]}
-                value={prioridade}
+                valor={prioridade}
                 onChange={(v) => setPrioridade(v as Prioridade)}
               >
                 {PRIORIDADES.map((p) => (
@@ -549,33 +847,43 @@ export function PaginaNovoTicket() {
                     {ROTULO_PRIORIDADE[p]}
                   </option>
                 ))}
-              </Seletor>
+              </SeletorCampo>
             </Campo>
 
             {temServicos && (
               <Campo rotulo="Serviço" htmlFor={ids.servico}>
-                <Seletor id={ids.servico} icone="ti ti-briefcase" value={servicoId} onChange={trocarServico}>
+                <SeletorCampo
+                  id={ids.servico}
+                  icone="ti ti-briefcase"
+                  valor={servicoId}
+                  onChange={trocarServico}
+                  descrito={`${ids.servico}-ajuda`}
+                >
                   <option value="">Todos os serviços</option>
                   {(servicos ?? []).map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
                   ))}
-                </Seletor>
-                <span className="props__ajuda">Filtra as categorias abaixo.</span>
+                </SeletorCampo>
+                <span className="props__ajuda" id={`${ids.servico}-ajuda`}>
+                  Filtra as categorias abaixo.
+                </span>
               </Campo>
             )}
 
             <Campo rotulo="Categoria" htmlFor={ids.cat}>
-              <Seletor
+              <SeletorCampo
                 id={ids.cat}
                 icone="ti ti-tag"
-                value={categoriaId}
+                valor={categoriaId}
                 onChange={(v) => {
                   setCategoriaId(v)
                   limparErro('category_id')
                 }}
-                disabled={categorias == null}
+                desabilitado={categorias == null}
+                invalido={Boolean(erros.category_id)}
+                descrito={descreve('category_id', `${ids.cat}-ajuda`)}
               >
                 <option value="">{categorias ? 'Sem categoria' : 'Carregando…'}</option>
                 {categoriasDoServico.map((c) => (
@@ -583,8 +891,10 @@ export function PaginaNovoTicket() {
                     {c.name}
                   </option>
                 ))}
-              </Seletor>
-              <span className="props__ajuda">A triagem pode classificar depois.</span>
+              </SeletorCampo>
+              <span className="props__ajuda" id={`${ids.cat}-ajuda`}>
+                A triagem pode classificar depois.
+              </span>
               {erroDe('category_id')}
             </Campo>
 
@@ -645,16 +955,26 @@ export function PaginaNovoTicket() {
               <i className="ti ti-alert-circle" aria-hidden="true" /> {erroGeral}
             </p>
           )}
-          {pendencia && (
-            <p className="compositor__aviso novo__pendencia" role="status">
-              <i className="ti ti-circle-check" aria-hidden="true" />
+          {avisoRascunho && (
+            <p className="compositor__aviso novo__rascunho" role="status">
+              <i className="ti ti-history" aria-hidden="true" />
               <span>
-                <strong>{pendencia.referencia}</strong> foi aberto, mas {pendencia.itens.join(' e ')} — dá para
-                ajustar no próprio chamado.{' '}
-                <button type="button" className="novo__link" onClick={() => navigate(`/chamados/${pendencia.id}`)}>
-                  Abrir {pendencia.referencia}
+                Recuperamos o chamado que você tinha começado a escrever aqui.
+                {rascunhoSalvo?.anexos.length
+                  ? ` Os anexos (${rascunhoSalvo.anexos.join(', ')}) precisam ser escolhidos de novo.`
+                  : ''}{' '}
+                <button type="button" className="novo__link" onClick={descartarRascunho}>
+                  Descartar rascunho
                 </button>
               </span>
+              <button
+                type="button"
+                className="novo__fechar"
+                aria-label="Fechar o aviso de rascunho"
+                onClick={() => setAvisoRascunho(false)}
+              >
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
             </p>
           )}
 
@@ -685,7 +1005,7 @@ export function PaginaNovoTicket() {
               ref={paraRef}
               id={ids.para}
               opcoes={pessoas}
-              valor={solicitanteId}
+              valor={solicitanteEscolhido}
               onChange={escolherSolicitante}
               carregando={carregandoClientes}
               placeholder="Nome ou e-mail do cliente"
@@ -773,7 +1093,10 @@ export function PaginaNovoTicket() {
                     <button
                       type="button"
                       aria-label={`Remover ${f.name}`}
-                      onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}
+                      onClick={() => {
+                        setAnexos((a) => a.filter((_, j) => j !== i))
+                        limparErro('files')
+                      }}
                     >
                       <i className="ti ti-x" />
                     </button>
@@ -806,10 +1129,12 @@ export function PaginaNovoTicket() {
             <div className="compositor__rodape novo__rodape">
               <div className="compositor__ferramentas">
                 <button
+                  id={ids.anexar}
                   type="button"
                   className="compositor__ferramenta"
                   onClick={() => inputAnexo.current?.click()}
-                  disabled={anexos.length >= MAX_ARQUIVOS}
+                  disabled={limites != null && anexos.length >= limites.maxArquivos}
+                  aria-describedby={descreve('files', `${ids.anexar}-ajuda`)}
                 >
                   <i className="ti ti-paperclip" aria-hidden="true" /> Anexar
                 </button>
@@ -864,8 +1189,10 @@ export function PaginaNovoTicket() {
                     )}
                   </div>
                 )}
-                <span className="novo__dica novo__dica--anexo">
-                  Até {MAX_MB} MB por arquivo · imagem, PDF, texto, planilha, zip
+                <span className="novo__dica novo__dica--anexo" id={`${ids.anexar}-ajuda`}>
+                  {limites
+                    ? `Até ${limites.maxMb} MB por arquivo e ${limites.maxArquivos} arquivos · imagem, PDF, texto, planilha, zip`
+                    : 'Imagem, PDF, texto, planilha, zip · o limite de tamanho vem da configuração do sistema'}
                 </span>
               </div>
 

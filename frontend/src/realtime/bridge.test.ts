@@ -29,6 +29,7 @@ const queryClientFalso = { invalidateQueries: vi.fn(), setQueryData: vi.fn() } a
 
 beforeEach(() => {
   vi.useFakeTimers()
+  vi.clearAllMocks() // as chaves invalidadas de um teste não contam no outro
   FakeWebSocket.instancias = []
   vi.stubGlobal('WebSocket', FakeWebSocket)
 })
@@ -63,5 +64,52 @@ describe('canal pessoal — sobrevive à troca de usuário na mesma aba', () => 
 
   it('desconectar sem nunca ter conectado não explode', () => {
     expect(() => desconectarCanalPessoal()).not.toThrow()
+  })
+})
+
+/** Entrega um frame como o navegador entrega: JSON cru no `onmessage`. */
+function receber(evento: unknown) {
+  FakeWebSocket.instancias[0].onmessage?.({ data: JSON.stringify(evento) })
+}
+
+function invalidou(chave: unknown[]): boolean {
+  return vi
+    .mocked(queryClientFalso.invalidateQueries)
+    .mock.calls.some(([filtro]) => JSON.stringify(filtro?.queryKey) === JSON.stringify(chave))
+}
+
+const CHAVE_DA_FILA = ['tickets', 'lista'] // prefixo de `useTicketsList.ts`
+
+describe('canal pessoal — a fila de tickets acompanha o que o sino avisa', () => {
+  beforeEach(() => conectarCanalPessoal(queryClientFalso))
+
+  it('chamado novo na equipe revalida a fila, não só o sino', () => {
+    // é o único aviso que o agente da equipe recebe: a abertura não emite
+    // `ticket_event` (ele só alcança solicitante/responsável/dono/seguidores)
+    receber({ type: 'notification', kind: 'ticket_created', ticket_id: 7 })
+    expect(invalidou(['notifications'])).toBe(true)
+    expect(invalidou(CHAVE_DA_FILA)).toBe(true)
+  })
+
+  it('SLA estourado revalida a fila — o relógio da linha vem calculado do servidor', () => {
+    receber({ type: 'notification', kind: 'sla_breached', ticket_id: 7 })
+    expect(invalidou(CHAVE_DA_FILA)).toBe(true)
+  })
+
+  it('ticket atribuído NÃO pede a fila de novo: o `ticket_event` já cobre quem recebe', () => {
+    receber({ type: 'notification', kind: 'ticket_assigned', ticket_id: 7 })
+    expect(invalidou(['notifications'])).toBe(true)
+    expect(invalidou(CHAVE_DA_FILA)).toBe(false)
+  })
+
+  it('notificação de chat não mexe na fila de tickets', () => {
+    receber({ type: 'notification', kind: 'chat_message', chat_id: 3 })
+    expect(invalidou(CHAVE_DA_FILA)).toBe(false)
+  })
+
+  it('`ticket_event` continua revalidando detalhe e fila (comportamento de sempre)', () => {
+    receber({ type: 'ticket_event', ticket_id: 7, kind: 'reply' })
+    expect(invalidou(['ticket', 7])).toBe(true)
+    expect(invalidou(CHAVE_DA_FILA)).toBe(true)
   })
 })

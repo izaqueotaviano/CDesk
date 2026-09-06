@@ -171,7 +171,7 @@
   }
   // Seletor do painel com erro: borda vermelha no controle (o .props__seletor
   // não tem estado de erro — o detalhe salva campo a campo e não precisa).
-  &__invalido .props__seletor {
+  &__seletor--invalido {
     border-color: var(--danger);
   }
 
@@ -304,11 +304,88 @@
       cursor: default;
     }
   }
-  &__pendencia {
-    background: var(--tom-ok);
+  // ---- aviso de rascunho recuperado ----
+  &__rascunho {
+    align-items: flex-start;
+    span {
+      flex: 1;
+    }
+  }
+  &__fechar {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: 2px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+
+  // ---- confirmação: o chamado existe, o formulário saiu ----
+  &__feito {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 28px 24px;
+    background: var(--surface);
+    &:focus {
+      // o foco vem por código (a tela trocou), não por tabulação: o anel
+      // roubaria a atenção do texto que a pessoa precisa ler
+      outline: none;
+    }
+  }
+  &__feito-linha,
+  &__feito-pendencia {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    max-width: 62ch;
+    line-height: 1.5;
+    i {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+  &__feito-linha {
+    font-size: 15px;
+    color: var(--text-primary);
     i {
       color: var(--ok);
     }
+  }
+  &__feito-pendencia {
+    padding: 8px 10px;
+    border-radius: 2px;
+    background: var(--tom-alerta);
+    font-size: 13px;
+    color: var(--text-primary);
+    i {
+      font-size: 15px;
+      color: var(--away);
+    }
+  }
+  &__feito-acoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
   }
   &__link {
     border: none;

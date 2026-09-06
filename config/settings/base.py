@@ -263,9 +263,12 @@ ATTACHMENT_MAX_BYTES_PER_MESSAGE = env.int(
 )
 ATTACHMENT_MAX_FILES_PER_MESSAGE = env.int("ATTACHMENT_MAX_FILES_PER_MESSAGE", 10)
 
-# 20 MB × 10 arquivos = 200 MB por requisição. Isso ultrapassa o default do
-# Django e do nginx — ambos precisam acompanhar, senão o upload morre com 413
-# antes de chegar na validação (ver docs/04 D13).
+# Folga acima do teto por mensagem (100 MB) para o corpo da requisição inteiro.
+# Isso ultrapassa o default do Django e do nginx — ambos precisam acompanhar,
+# senão o upload morre com 413 antes de chegar na validação (ver docs/04 D13).
+# O número velho aqui ("20 MB × 10 arquivos") ficou para trás quando o piso caiu
+# para 10 MB, e foi de um comentário desatualizado como este que a tela de
+# abertura tirou o 20 MB que prometia errado.
 DATA_UPLOAD_MAX_MEMORY_SIZE = env.int("DATA_UPLOAD_MAX_MEMORY_SIZE", 210 * 1024 * 1024)
 DATA_UPLOAD_MAX_NUMBER_FILES = env.int("DATA_UPLOAD_MAX_NUMBER_FILES", 20)
 # nenhum formulário do sistema chega perto disso; o teto é contra payload
