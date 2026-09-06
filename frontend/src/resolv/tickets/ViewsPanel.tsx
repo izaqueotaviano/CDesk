@@ -33,7 +33,14 @@ const VIEWS: Visualizacao[] = [
   { id: 'prioritario', label: 'Tickets Prioritário', priorityOnly: true },
   { id: 'sem-atendimento', label: 'Tickets Sem Atendimento', view: 'sem-atendimento' },
   { id: 'nao-resolvidos', label: 'Todos os tickets não resolvidos', view: 'nao-resolvidos' },
-  { id: 'em-kanban', label: 'Todos os tickets - Kanban', view: 'em-kanban' },
+  // Item 24: o nome antigo ("Todos os tickets - Kanban") prometia "está no
+  // quadro" — mas todo ticket visível está no quadro (é a mesma fila vista
+  // por status), então isso não recortaria nada. O filtro real do servidor
+  // é `cards__due_at__isnull=False` — "tem prazo interno anotado no quadro"
+  // (`_apply_saved_view` em apps/tickets/views.py:150-151, documentado lá
+  // como intencional). O sentido mudou no servidor; só o rótulo ficou pra
+  // trás — o filtro está certo, não mexe nele.
+  { id: 'em-kanban', label: 'Com prazo no quadro', view: 'em-kanban' },
   { id: 'nao-atribuidos', label: 'Tickets não atribuídos', view: 'nao-atribuidos' },
   { id: 'resolvidos', label: 'Tickets Resolvidos', view: 'resolvidos' },
   { id: 'internos', label: 'Tickets Internos', view: 'internos' },

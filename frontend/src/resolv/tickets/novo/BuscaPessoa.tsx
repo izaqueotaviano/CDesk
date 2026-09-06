@@ -19,6 +19,12 @@ interface Props {
   describedBy?: string
   /** Texto quando a busca não acha ninguém. */
   vazio?: string
+  /** A CONSULTA que alimenta `opcoes` falhou (rede, 500) — sem isto o
+   *  componente não tem como saber a diferença entre "ninguém com esse nome"
+   *  e "não consegui nem perguntar", e mentia a primeira frase pela segunda. */
+  erro?: boolean
+  /** Some sem `erro`; com `erro`, aparece junto da mensagem de falha. */
+  aoTentarDeNovo?: () => void
 }
 
 const MAX_RESULTADOS = 8
@@ -42,7 +48,20 @@ function normalizar(s: string): string {
  * inteira e este componente a mantém legível.
  */
 export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPessoa(
-  { id, opcoes, valor, onChange, placeholder, carregando, disabled, invalido, describedBy, vazio },
+  {
+    id,
+    opcoes,
+    valor,
+    onChange,
+    placeholder,
+    carregando,
+    disabled,
+    invalido,
+    describedBy,
+    vazio,
+    erro,
+    aoTentarDeNovo,
+  },
   ref,
 ) {
   const idLista = useId()
@@ -92,7 +111,15 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
       e.preventDefault()
       setAtivo((i) => Math.max(i - 1, 0))
     } else if (e.key === 'Enter') {
-      if (listaVisivel && resultados[ativo]) {
+      // Combobox ARIA: o foco real nunca sai do input (as opções são
+      // "virtuais", via `aria-activedescendant`) — então o retry por teclado
+      // também precisa disparar daqui, sem exigir Tab até o botão visível
+      // (que só o clique do mouse alcança de forma confiável, porque o Tab
+      // dispara blur, que fecha a lista antes de o foco chegar lá dentro).
+      if (erro && listaVisivel && aoTentarDeNovo) {
+        e.preventDefault()
+        aoTentarDeNovo()
+      } else if (listaVisivel && resultados[ativo]) {
         e.preventDefault()
         escolher(resultados[ativo])
       }
@@ -162,6 +189,21 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
           <li className="busca-pessoa__vazio" role="presentation">
             Carregando pessoas…
           </li>
+        ) : erro ? (
+          // Antes disto o `resultados.length === 0` abaixo cobria os dois
+          // casos com a MESMA frase — "ninguém com esse nome" é uma afirmação
+          // sobre a busca, e uma consulta que nem respondeu não fez busca
+          // nenhuma. `onMouseDown` já tem `preventDefault()` no <ul> (evita o
+          // blur fechar a lista antes do clique), então o botão usa `onClick`
+          // normal, igual às opções da lista.
+          <li className="busca-pessoa__vazio busca-pessoa__vazio--erro" role="presentation">
+            <i className="ti ti-alert-circle" aria-hidden="true" /> Não foi possível carregar as pessoas.
+            {aoTentarDeNovo && (
+              <button type="button" className="busca-pessoa__retentar" onClick={aoTentarDeNovo}>
+                Tentar de novo
+              </button>
+            )}
+          </li>
         ) : resultados.length === 0 ? (
           <li className="busca-pessoa__vazio" role="presentation">
             {vazio ?? 'Ninguém com esse nome ou e-mail.'}
@@ -185,10 +227,14 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
       </ul>
 
       <span className="busca-pessoa__sr" aria-live="polite">
-        {listaVisivel && !carregando && texto.trim()
-          ? resultados.length === 0
-            ? 'Nenhum resultado'
-            : `${resultados.length} resultado${resultados.length === 1 ? '' : 's'}`
+        {listaVisivel && !carregando
+          ? erro
+            ? 'Não foi possível carregar as pessoas.'
+            : texto.trim()
+              ? resultados.length === 0
+                ? 'Nenhum resultado'
+                : `${resultados.length} resultado${resultados.length === 1 ? '' : 's'}`
+              : ''
           : ''}
       </span>
     </div>

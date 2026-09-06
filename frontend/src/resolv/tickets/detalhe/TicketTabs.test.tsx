@@ -108,3 +108,68 @@ describe('TicketTabs', () => {
     expect(useTabs.getState().tabs).toEqual([])
   })
 })
+
+describe('TicketTabs — abas operáveis por teclado, padrão WAI-ARIA (item 30)', () => {
+  it('só a aba ativa entra na ordem de tabulação (tabIndex 0); as outras ficam -1', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+        { id: 3, ref: '#1003', draft: '' },
+      ],
+      2,
+    )
+
+    const abas = screen.getAllByRole('tab')
+    expect(abas.map((a) => a.getAttribute('tabindex'))).toEqual(['-1', '0', '-1'])
+    expect(abas[1]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('seta direita move o FOCO para a próxima aba sem navegar (ativação manual)', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+      ],
+      1,
+    )
+
+    const [aba1, aba2] = screen.getAllByRole('tab')
+    aba1.focus()
+    fireEvent.keyDown(aba1, { key: 'ArrowRight' })
+
+    expect(aba2).toHaveFocus()
+    expect(aba2).toHaveAttribute('tabindex', '0')
+    expect(aba1).toHaveAttribute('tabindex', '-1')
+    // Só moveu o foco — não ativou a aba nem trocou de rota.
+    expect(useTabs.getState().active).toBe(1)
+    expect(screen.queryByText('lista de chamados')).not.toBeInTheDocument()
+  })
+
+  it('seta esquerda na primeira aba dá a volta para a última (wrap-around)', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+        { id: 3, ref: '#1003', draft: '' },
+      ],
+      1,
+    )
+
+    const abas = screen.getAllByRole('tab')
+    abas[0].focus()
+    fireEvent.keyDown(abas[0], { key: 'ArrowLeft' })
+
+    expect(abas[2]).toHaveFocus()
+  })
+
+  it('o botão de fechar é irmão do role="tab", nunca filho dele', () => {
+    montar([{ id: 1, ref: '#1001', draft: '' }])
+
+    const aba = screen.getByRole('tab')
+    const fechar = screen.getByRole('button', { name: 'Fechar aba #1001' })
+
+    expect(aba.contains(fechar)).toBe(false)
+    expect(aba.parentElement).toBe(fechar.parentElement)
+  })
+})

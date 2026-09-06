@@ -576,6 +576,22 @@ class MentionTargetSerializer(serializers.Serializer):
     group = serializers.ChoiceField(choices=["ticket", "equipe", "outros", "equipes"])
 
 
+class AssignableAgentSerializer(serializers.Serializer):
+    """Um item do seletor de Responsável/Dono técnico.
+
+    Mesmos 4 campos de `MentionTargetSerializer` (id/name/email/avatar_url) —
+    de propósito, para o front consumir as duas listas com o mesmo tipo
+    TypeScript. Sem `type` nem `group`: esta lista é só de gente (nunca
+    equipe), então não há o que discriminar nem agrupar
+    (apps/tickets/services/atribuicao.py::agentes_atribuiveis).
+    """
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.CharField(allow_blank=True)
+    avatar_url = serializers.CharField(allow_blank=True)
+
+
 class TicketMessageEditSerializer(serializers.Serializer):
     body = serializers.CharField()
 

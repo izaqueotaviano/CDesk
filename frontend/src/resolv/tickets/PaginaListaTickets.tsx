@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAgentes } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
@@ -34,7 +34,9 @@ const ROTULO_VIEW: Record<string, string> = {
   prioritario: 'Tickets Prioritário',
   'sem-atendimento': 'Tickets Sem Atendimento',
   'nao-resolvidos': 'Todos os tickets não resolvidos',
-  'em-kanban': 'Todos os tickets - Kanban',
+  // Item 24: mesmo rótulo e mesmo motivo de ViewsPanel.tsx — o filtro real
+  // é "tem prazo interno anotado no quadro", não "está no kanban".
+  'em-kanban': 'Com prazo no quadro',
   'nao-atribuidos': 'Tickets não atribuídos',
   resolvidos: 'Tickets Resolvidos',
   internos: 'Tickets Internos',
@@ -43,11 +45,25 @@ const ROTULO_VIEW: Record<string, string> = {
 export function PaginaListaTickets() {
   const navigate = useNavigate()
   const { data: me } = useMe()
-  const [viewAtiva, setViewAtiva] = useState(VIEW_INICIAL)
-  const [busca, setBusca] = useState('')
-  const [buscaDebounced, setBuscaDebounced] = useState('')
-  const [ordering, setOrdering] = useState('-criado')
-  const [offset, setOffset] = useState(0)
+
+  // Item 18: view/busca/ordering/offset vivem na URL, não em useState solto —
+  // mesmo padrão de cvz/configuracoes, portal/chat, portal/historico e
+  // resolv/chat/PaginaChat.tsx (`useSearchParams` + um `definir()` que
+  // aplica mudanças preservando o resto da query). Sem isso, triar na
+  // página 4 de "Não atribuídos" com busca ativa, abrir um chamado e voltar
+  // jogava a pessoa de volta na página 1 da view padrão.
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const viewParam = searchParams.get('view')
+  const viewAtiva =
+    viewParam && Object.prototype.hasOwnProperty.call(ROTULO_VIEW, viewParam) ? viewParam : VIEW_INICIAL
+  const ordering = searchParams.get('ordering') || '-criado'
+  const offsetParam = Number(searchParams.get('offset') ?? 0)
+  const offset = Number.isFinite(offsetParam) && offsetParam > 0 ? offsetParam : 0
+  // `q` é o termo já DEBOUNCED (o que de fato foi pedido ao servidor) — o
+  // valor bruto de cada tecla mora só no estado local `busca`, abaixo.
+  const q = searchParams.get('q') ?? ''
+
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const [avisoLote, setAvisoLote] = useState<string | null>(null)
 
@@ -55,13 +71,65 @@ export function PaginaListaTickets() {
   const { data: agentes } = useAgentes()
   const { atribuir, mudarPrioridade } = useAcoesEmLote()
 
-  // 300ms parado de digitar antes de bater no servidor — cada tecla batendo
-  // no backend fazia toda troca de página/ordenação e a resposta de uma
-  // tecla anterior podia "desfazer" a busca mais recente na tela.
+  /** Aplica mudanças na URL preservando as demais chaves (mesmo formato de
+   *  `definir` em portal/tickets/PaginaTickets.tsx). `replace: true` porque
+   *  cada tecla ou clique aqui é um refinamento do mesmo recorte, não uma
+   *  parada nova de histórico — sem isso, apertar "voltar" desfaria filtro
+   *  por filtro em vez de sair da tela. Toda troca reseta `offset` (página 1)
+   *  a menos que `manterOffset` diga o contrário — é assim que a paginação
+   *  consegue setar o offset sem se autoderrubar. */
+  const definir = useCallback(
+    (mudancas: Record<string, string | undefined>, opcoes: { manterOffset?: boolean } = {}) => {
+      setSearchParams(
+        (atual) => {
+          const novo = new URLSearchParams(atual)
+          for (const [k, v] of Object.entries(mudancas)) {
+            if (v) novo.set(k, v)
+            else novo.delete(k)
+          }
+          if (!opcoes.manterOffset) novo.delete('offset')
+          return novo
+        },
+        { replace: true },
+      )
+    },
+    [setSearchParams],
+  )
+
+  /** Toda troca de RECORTE (visão, busca, ordenação, página) zera a seleção:
+   *  agir em lote sobre uma linha que saiu da tela é ação às cegas — a
+   *  pessoa marca 3 na página 1, vira a página e a barra continua dizendo "3
+   *  selecionado(s)" de chamados que ela não vê mais. O aviso da última
+   *  tentativa parcial vai junto, porque ele fala dos ids que acabaram de
+   *  sair de vista. */
+  function trocarRecorte(mudancas: Record<string, string | undefined>, opcoes?: { manterOffset?: boolean }) {
+    definir(mudancas, opcoes)
+    setSelecionados(new Set())
+    setAvisoLote(null)
+  }
+
+  // Busca bruta (cada tecla) fica só no estado local — nunca vai direto pra
+  // URL. 300ms parado de digitar antes de sincronizar com a URL (e daí com o
+  // servidor): escrever a cada tecla enchia o histórico e fazia a resposta
+  // de uma tecla anterior "desfazer" a busca mais recente na tela. Só troca
+  // o recorte (e zera a seleção) no momento em que o termo debounced muda de
+  // verdade — não a cada tecla bruta.
+  const [busca, setBusca] = useState(q)
   useEffect(() => {
-    const t = setTimeout(() => setBuscaDebounced(busca), 300)
+    const alvo = busca.trim()
+    if (alvo === q) return
+    const t = setTimeout(() => trocarRecorte({ q: alvo || undefined }), 300)
     return () => clearTimeout(t)
-  }, [busca])
+    // `trocarRecorte` fica de fora de propósito: ela só encapsula `definir`
+    // (estável via useCallback) + dois `setState`, também estáveis — incluí-
+    // la aqui só forçaria o efeito a rodar de novo a cada render à toa.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busca, q])
+
+  function limparBusca() {
+    setBusca('')
+    trocarRecorte({ q: undefined })
+  }
 
   // "Tickets Prioritário" = urgente E ainda não resolvido. Sem o recorte de
   // status a gaveta trazia todo chamado urgente da história (o queryset base
@@ -72,17 +140,17 @@ export function PaginaListaTickets() {
   // (SAVED_VIEWS em apps/tickets/views.py); é o padrão da lateral, não uma
   // exceção deste item.
   const ehPrioritario = viewAtiva === 'prioritario'
-  const params: ParamsListagem = {
+  const consulta: ParamsListagem = {
     view: ehPrioritario ? 'nao-resolvidos' : viewAtiva,
     priority: ehPrioritario ? 'urgent' : undefined,
-    q: buscaDebounced,
+    q,
     ordering,
     limit: LIMITE,
     offset,
   }
 
   const { data, isLoading, isError, error, isFetching, refetch, dataUpdatedAt } =
-    useTicketsList(params)
+    useTicketsList(consulta)
 
   // Referência de "agora" para o tempo de espera: o instante do último fetch
   // (determinístico, vindo do cache do Query) — não Date.now() em render, que
@@ -94,21 +162,16 @@ export function PaginaListaTickets() {
   const inicio = total === 0 ? 0 : offset + 1
   const fim = Math.min(offset + LIMITE, total)
 
-  function selecionarView(v: Visualizacao) {
-    setViewAtiva(v.id === 'prioritario' ? 'prioritario' : (v.view ?? v.id))
-    trocarRecorte(0)
-  }
+  // Item 15: `useTicketsList`/`montarQuery` só manda `q=` ao servidor com 3+
+  // caracteres (mesma regra de `_busca_q`, apps/tickets/views.py) — com
+  // menos que isso, `q` chega até aqui mas nenhum filtro foi de fato
+  // aplicado. Um resultado vazio só é "sem resultado da busca" quando o
+  // termo realmente foi pro servidor; do contrário é a view mesmo que está
+  // vazia, e são dois avisos diferentes.
+  const termoBuscaAplicado = q.length >= 3 ? q : ''
 
-  /** Toda troca de RECORTE (visão, busca, página) zera a seleção: agir em
-   *  lote sobre uma linha que saiu da tela é ação às cegas — a pessoa marca
-   *  3 na página 1, vira a página e a barra continua dizendo "3
-   *  selecionado(s)" de chamados que ela não vê mais. O aviso da última
-   *  tentativa parcial vai junto, porque ele fala dos ids que acabaram de
-   *  sair de vista. */
-  function trocarRecorte(novoOffset: number) {
-    setOffset(novoOffset)
-    setSelecionados(new Set())
-    setAvisoLote(null)
+  function selecionarView(v: Visualizacao) {
+    trocarRecorte({ view: v.id === 'prioritario' ? 'prioritario' : (v.view ?? v.id) })
   }
 
   // Resposta parcial (`updated`/`failed`): sem falhas, limpa a seleção; com
@@ -143,11 +206,11 @@ export function PaginaListaTickets() {
   }
 
   function ordenar(chave: ColunaOrdenavel) {
-    setOrdering((atual) => (atual === chave ? `-${chave}` : chave))
     // Reordenar mantém o mesmo conjunto, mas troca QUEM está nesta página —
     // as marcadas escorregam para outra e a barra passaria a falar de linhas
-    // que ninguém vê. Mesma razão de virar página.
-    trocarRecorte(0)
+    // que ninguém vê. Mesma razão de virar página: `trocarRecorte` zera a
+    // seleção e volta pra página 1 junto.
+    trocarRecorte({ ordering: ordering === chave ? `-${chave}` : chave })
   }
 
   function alternarSelecao(id: number) {
@@ -161,6 +224,10 @@ export function PaginaListaTickets() {
 
   function selecionarTodos(marcar: boolean) {
     setSelecionados(marcar ? new Set(linhas.map((l) => l.id)) : new Set())
+  }
+
+  function irParaOffset(novoOffset: number) {
+    trocarRecorte({ offset: novoOffset > 0 ? String(novoOffset) : undefined }, { manterOffset: true })
   }
 
   const titulo = ROTULO_VIEW[viewAtiva] ?? 'Tickets'
@@ -202,14 +269,19 @@ export function PaginaListaTickets() {
             </button>
             <div className="lista-tickets__search">
               <i className="ti ti-search" />
+              {/* Item 15: só tinha `placeholder` — some assim que a pessoa
+                  digita, e um placeholder nunca é nome acessível confiável
+                  (leitor de tela não anuncia com o campo já preenchido em
+                  todo navegador). O aria-label também diz o ESCOPO: `_busca_q`
+                  (apps/tickets/views.py) casa só referência, assunto e número
+                  do pedido — sem isso, alguém digitava um nome de cliente,
+                  não achava nada e desconfiava da tela errada. */}
               <input
                 type="text"
                 placeholder="Pesquisar"
+                aria-label="Buscar por referência, assunto ou número do pedido"
                 value={busca}
-                onChange={(e) => {
-                  setBusca(e.target.value)
-                  trocarRecorte(0)
-                }}
+                onChange={(e) => setBusca(e.target.value)}
               />
             </div>
           </div>
@@ -306,8 +378,26 @@ export function PaginaListaTickets() {
           </div>
         ) : linhas.length === 0 ? (
           <div className="lista-tickets__estado">
-            <i className="ti ti-inbox" />
-            <p>Nenhum ticket nesta visualização.</p>
+            {/* Item 15: o vazio de "não achei o que você buscou" (com saída
+                pra tentar de novo) é um problema diferente do vazio de "esta
+                view não tem nada" — confundir os dois faz quem busca "Acme"
+                numa view com 40 chamados da Acme culpar a view errada,
+                trocar de view, repetir, e concluir que o chamado não
+                existe. */}
+            {termoBuscaAplicado ? (
+              <>
+                <i className="ti ti-search" />
+                <p>Nenhum resultado para "{termoBuscaAplicado}".</p>
+                <button type="button" onClick={limparBusca}>
+                  Limpar busca
+                </button>
+              </>
+            ) : (
+              <>
+                <i className="ti ti-inbox" />
+                <p>Nenhum ticket nesta visualização.</p>
+              </>
+            )}
           </div>
         ) : (
           <TicketsTable
@@ -328,7 +418,7 @@ export function PaginaListaTickets() {
             <button
               type="button"
               disabled={offset === 0}
-              onClick={() => trocarRecorte(Math.max(0, offset - LIMITE))}
+              onClick={() => irParaOffset(Math.max(0, offset - LIMITE))}
             >
               <i className="ti ti-chevron-left" />
               Anterior
@@ -339,7 +429,7 @@ export function PaginaListaTickets() {
             <button
               type="button"
               disabled={fim >= total}
-              onClick={() => trocarRecorte(offset + LIMITE)}
+              onClick={() => irParaOffset(offset + LIMITE)}
             >
               Próxima
               <i className="ti ti-chevron-right" />

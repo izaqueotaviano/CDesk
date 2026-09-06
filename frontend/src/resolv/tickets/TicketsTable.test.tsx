@@ -1,4 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import { TicketsTable } from './TicketsTable'
 import type { EstadoSla, TicketLinha } from './tipos'
@@ -29,6 +31,14 @@ function linha(id: number, sla: { state: EstadoSla; minutes_left: number | null 
   }
 }
 
+/** Mostra a rota atual do MemoryRouter — só usado pelos testes do link de
+ *  protocolo (item 26), pra confirmar que Enter navega de verdade em vez de
+ *  mockar `useNavigate` e confiar que o componente "deve" ter chamado. */
+function RotaAtual() {
+  const location = useLocation()
+  return <span data-testid="rota-atual">{location.pathname}</span>
+}
+
 function montar(props: Partial<Parameters<typeof TicketsTable>[0]> = {}) {
   const padrao = {
     linhas: [linha(1, { state: 'at_risk' as EstadoSla, minutes_left: 90 })],
@@ -41,7 +51,14 @@ function montar(props: Partial<Parameters<typeof TicketsTable>[0]> = {}) {
     agoraMs: Date.parse('2026-09-06T13:00:00.000Z'),
   }
   const finais = { ...padrao, ...props }
-  render(<TicketsTable {...finais} />)
+  // MemoryRouter: a célula de protocolo agora é um <Link> de verdade (item
+  // 26) — sem Router em volta, o próprio render lançaria.
+  render(
+    <MemoryRouter initialEntries={['/chamados']}>
+      <TicketsTable {...finais} />
+      <RotaAtual />
+    </MemoryRouter>,
+  )
   return finais
 }
 
@@ -114,5 +131,90 @@ describe('TicketsTable — caixa de selecionar do cabeçalho', () => {
     const caixa = screen.getByRole('checkbox', { name: /desta página/ }) as HTMLInputElement
     expect(caixa.checked).toBe(true)
     expect(caixa.indeterminate).toBe(false)
+  })
+})
+
+describe('TicketsTable — link de abrir chamado na célula de protocolo (item 26)', () => {
+  it('Tab a partir do checkbox da linha alcança o link antes da próxima linha', async () => {
+    const usuario = userEvent.setup()
+    montar({
+      linhas: [
+        linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }),
+        linha(2, { state: 'ok' as EstadoSla, minutes_left: 300 }),
+      ],
+    })
+
+    // Parte do checkbox da linha 1 — hoje é o único jeito de chegar na linha
+    // por teclado. O bug do item 26 era o próximo Tab pular direto pro
+    // checkbox da linha 2 (25 caixas em sequência, sem destino nenhum).
+    screen.getByRole('checkbox', { name: 'Selecionar T-0001' }).focus()
+
+    await usuario.tab()
+    expect(screen.getByRole('link', { name: /Abrir chamado T-0001/ })).toHaveFocus()
+
+    await usuario.tab()
+    expect(screen.getByRole('checkbox', { name: 'Selecionar T-0002' })).toHaveFocus()
+  })
+
+  it('Enter no link abre o chamado — não precisa de mouse', async () => {
+    const usuario = userEvent.setup()
+    montar({ linhas: [linha(7, { state: 'ok' as EstadoSla, minutes_left: 300 })] })
+
+    screen.getByRole('link', { name: /Abrir chamado T-0007/ }).focus()
+    await usuario.keyboard('{Enter}')
+
+    expect(await screen.findByTestId('rota-atual')).toHaveTextContent('/chamados/7')
+  })
+
+  it('o nome acessível do link leva o contexto da linha, não só a referência', () => {
+    montar({
+      linhas: [
+        {
+          ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }),
+          subject: 'Teclado sem resposta',
+          company_name: 'Acme Marketing',
+        },
+      ],
+    })
+
+    expect(
+      screen.getByRole('link', { name: 'Abrir chamado T-0001: Teclado sem resposta — Acme Marketing' }),
+    ).toBeInTheDocument()
+  })
+
+  it('clicar no link não dispara também o onClick da linha (sem duplo disparo)', () => {
+    const onAbrir = vi.fn()
+    montar({ onAbrir })
+
+    fireEvent.click(screen.getByRole('link', { name: /Abrir chamado/ }))
+
+    expect(onAbrir).not.toHaveBeenCalled()
+  })
+})
+
+describe('TicketsTable — urgência e cadeado têm nome pra leitor de tela (item 27)', () => {
+  it('a barra de urgência expõe o rótulo por texto, não só um atributo', () => {
+    montar({
+      linhas: [{ ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }), priority: 'urgent' }],
+    })
+
+    // `.tickets-tabela__sr` é texto de verdade na árvore (recortado da tela),
+    // não um `aria-label` num <span> genérico — que browsers modernos não
+    // expõem como nome acessível.
+    expect(screen.getByText('Urgente', { selector: '.tickets-tabela__sr' })).toBeInTheDocument()
+  })
+
+  it('o cadeado de ticket restrito diz o motivo em texto fixo, não fica mudo', () => {
+    montar({
+      linhas: [{ ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }), is_restricted: true }],
+    })
+
+    expect(screen.getByText(/Equipe restrita: visível só para quem abriu/)).toBeInTheDocument()
+  })
+
+  it('sem restrição, o aviso do cadeado não aparece', () => {
+    montar({ linhas: [linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 })] })
+
+    expect(screen.queryByText(/Equipe restrita/)).not.toBeInTheDocument()
   })
 })

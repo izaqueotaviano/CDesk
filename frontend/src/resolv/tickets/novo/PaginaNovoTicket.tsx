@@ -93,6 +93,34 @@ function Obrigatorio() {
 }
 
 /**
+ * Estado de erro de uma consulta que alimenta um campo (equipe, categoria,
+ * "para") — sem isto um 500 em `/teams/`, `/categories/` ou `/users/` fica
+ * IDÊNTICO a "ainda carregando" (o único teste que havia era `== null`): a
+ * pessoa espera para sempre ou recarrega a página inteira no chute, perdendo
+ * o que já tinha escrito. `id` mantém o elo com o `aria-describedby` do
+ * campo quando substitui a ajuda normal — mesmo motivo de `${id}-ajuda` no
+ * resto do arquivo.
+ */
+function ErroConsulta({
+  id,
+  mensagem,
+  aoTentar,
+}: {
+  id?: string
+  mensagem: string
+  aoTentar: () => void
+}) {
+  return (
+    <span id={id} className="novo__erro-consulta" role="alert">
+      <i className="ti ti-alert-circle" aria-hidden="true" /> {mensagem}{' '}
+      <button type="button" className="novo__link" onClick={aoTentar}>
+        Tentar de novo
+      </button>
+    </span>
+  )
+}
+
+/**
  * O `Seletor` do painel do detalhe (../detalhe/PainelPropriedades.tsx) com o
  * que um FORMULÁRIO precisa e o detalhe não tem: `aria-invalid` e
  * `aria-describedby`. Lá cada campo salva sozinho e nunca fica "inválido";
@@ -170,9 +198,15 @@ export function PaginaNovoTicket() {
   const idBase = useId()
   const { data: me } = useMe()
 
-  const { data: equipes } = useEquipes()
+  // isError/refetch (não só `data`): um 500 aqui não pode ficar indistinguível
+  // de "ainda carregando" — ver `ErroConsulta` acima.
+  const { data: equipes, isError: falhouEquipes, refetch: recarregarEquipes } = useEquipes()
   const { data: servicos } = useServicos()
-  const { data: categorias } = useCategorias()
+  const {
+    data: categorias,
+    isError: falhouCategorias,
+    refetch: recarregarCategorias,
+  } = useCategorias()
   const { data: empresas } = useEmpresasOpcoes()
   const { data: agentes } = useAgentes()
   const { data: etiquetas } = useEtiquetas()
@@ -222,13 +256,19 @@ export function PaginaNovoTicket() {
    *  isto não deve provocar um render por si. */
   const focoPedidoRef = useRef<string | null>(null)
 
-  const { data: clientes, isLoading: carregandoClientes } = useClientes(empresaId)
+  const {
+    data: clientes,
+    isLoading: carregandoClientes,
+    isError: falhouClientes,
+    refetch: recarregarClientes,
+  } = useClientes(empresaId)
   const abrir = useAbrirTicket()
 
   const paraRef = useRef<HTMLInputElement>(null)
   const inputAnexo = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const feitoRef = useRef<HTMLDivElement>(null)
+  const semEquipeRef = useRef<HTMLDivElement>(null)
   const enviadoRef = useRef(false)
 
   const assinatura = (me?.signature ?? '').trim()
@@ -330,8 +370,28 @@ export function PaginaNovoTicket() {
   }, [equipes, me])
   const semEquipe = me != null && !me.is_admin && equipes != null && equipesDisponiveis.length === 0
 
+  // Beco sem saída de verdade (só um admin resolve, incluindo a pessoa numa
+  // equipe — um "tentar de novo" não muda nada): a tela troca o formulário
+  // inteiro pela explicação (ver o `return` mais abaixo), e o foco precisa ir
+  // junto — mesmo motivo do efeito de `feitoRef`, a árvore troca sem clique
+  // direto no que recebe o foco.
+  useEffect(() => {
+    if (semEquipe) semEquipeRef.current?.focus()
+  }, [semEquipe])
+
   const equipeEscolhida = equipesDisponiveis.find((e) => String(e.id) === equipeId)
   const { data: estimativa } = useEstimativaResposta(equipeEscolhida?.slug ?? null)
+
+  /**
+   * Responsável e etiquetas exigem `ticket.edit_properties` — a mesma
+   * permissão que já decide o painel do TICKET ABERTO
+   * (../detalhe/PainelPropriedades.tsx: `podeEditar`). Lá, sem a permissão, o
+   * controle vira valor fixo porque HÁ um valor do ticket para mostrar; aqui
+   * o ticket ainda não existe (não há "responsável atual" nenhum) — então o
+   * equivalente correto é não oferecer o campo, não exibir um "Sem
+   * responsável" que não é fixo coisa nenhuma, só decorativo.
+   */
+  const podeEditarPropriedades = (me?.permissions ?? []).includes('ticket.edit_properties')
 
   const empresaPorId = useMemo(() => new Map((empresas ?? []).map((e) => [e.id, e])), [empresas])
   const nomeEmpresa = (id: number | null | undefined) =>
@@ -595,8 +655,11 @@ export function PaginaNovoTicket() {
         category_id: categoriaId ? Number(categoriaId) : null,
         order_number: numeroPedido.trim(),
         arquivos: anexos,
-        assignee_id: responsavelId ? Number(responsavelId) : null,
-        tag_ids: tagIds,
+        // Guarda mesmo sem controle na tela: um rascunho gravado enquanto a
+        // pessoa TINHA a permissão (perfil trocado depois) não pode enviar,
+        // por baixo dos panos, um campo que a tela agora nem mostra.
+        assignee_id: podeEditarPropriedades && responsavelId ? Number(responsavelId) : null,
+        tag_ids: podeEditarPropriedades ? tagIds : [],
       })
       enviadoRef.current = true
       limparRascunho()
@@ -726,6 +789,50 @@ export function PaginaNovoTicket() {
     )
   }
 
+  // Sem equipe, não há chamado possível (o backend exige `team_id` —
+  // ticket_service.create_ticket) e o <select> de Equipe fica sem NENHUMA
+  // opção: preencher Para/Assunto/Mensagem para travar só no envio final é
+  // pior do que nunca abrir o formulário. Troca o corpo pela explicação — a
+  // mesma ideia de `lista.scss` `__estado` (ícone, frase, saída), com as
+  // classes desta tela porque `novo.scss` não importa `lista.scss`.
+  if (semEquipe) {
+    return (
+      <div className="novo">
+        <header className="ticket-cab novo__cab">
+          <div className="ticket-cab__linha">
+            <button
+              type="button"
+              className="ticket-cab__voltar"
+              onClick={cancelar}
+              aria-label="Voltar para a lista de tickets"
+              title="Voltar para a lista"
+            >
+              <i className="ti ti-arrow-left" />
+            </button>
+            <div className="ticket-cab__identidade novo__identidade">
+              <h1 className="ticket-cab__assunto">Novo chamado</h1>
+            </div>
+          </div>
+        </header>
+
+        {/* foco no bloco (tabIndex -1), `status` só na frase — mesmo motivo
+            do `.novo__feito` acima: um live region no bloco inteiro faria o
+            leitor de tela reler tudo de novo a cada re-render à toa. */}
+        <div className="novo__estado" ref={semEquipeRef} tabIndex={-1}>
+          <i className="ti ti-users-group" aria-hidden="true" />
+          <p role="status">Você não atende nenhuma equipe.</p>
+          <p>
+            Chamado sempre nasce numa equipe, e a abertura só oferece as equipes que você atende.
+            Peça a um administrador para te incluir em uma.
+          </p>
+          <button type="button" className="novo__cancelar" onClick={cancelar}>
+            Voltar para a fila
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="novo" onKeyDown={aoTeclar}>
       <header className="ticket-cab novo__cab">
@@ -778,58 +885,77 @@ export function PaginaNovoTicket() {
                 invalido={Boolean(erros.team_id)}
                 descrito={descreve('team_id', `${ids.equipe}-ajuda`)}
               >
-                <option value="">{equipes ? 'Selecione a equipe' : 'Carregando…'}</option>
+                <option value="">
+                  {equipes ? 'Selecione a equipe' : falhouEquipes ? 'Não carregou' : 'Carregando…'}
+                </option>
                 {equipesDisponiveis.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name}
                   </option>
                 ))}
               </SeletorCampo>
-              <span className="props__ajuda" id={`${ids.equipe}-ajuda`}>
-                {semEquipe
-                  ? 'Você não atende nenhuma equipe — a abertura fica com quem atende.'
-                  : estimativa?.label
+              {/* `semEquipe` (a pessoa não atende NENHUMA equipe) nem chega
+                  aqui: vira o `return` de estado lá em cima. Aqui só sobra o
+                  caso "a lista falhou ao carregar" — coisa que um retry pode
+                  resolver, diferente do primeiro. */}
+              {falhouEquipes ? (
+                <ErroConsulta
+                  id={`${ids.equipe}-ajuda`}
+                  mensagem="Não foi possível carregar as equipes."
+                  aoTentar={() => recarregarEquipes()}
+                />
+              ) : (
+                <span className="props__ajuda" id={`${ids.equipe}-ajuda`}>
+                  {estimativa?.label
                     ? `Primeira resposta costuma sair em ${estimativa.label}.`
                     : 'Quem vai atender o chamado.'}
-              </span>
+                </span>
+              )}
               {erroDe('team_id')}
             </Campo>
 
-            <Campo
-              rotulo="Responsável"
-              htmlFor={ids.resp}
-              acao={
-                me?.is_internal ? (
-                  <button
-                    type="button"
-                    className="props__link"
-                    onClick={() => setResponsavelId(String(me.id))}
-                    disabled={responsavelId === String(me.id)}
-                  >
-                    Atribuir para mim
-                  </button>
-                ) : undefined
-              }
-            >
-              <SeletorCampo
-                id={ids.resp}
-                icone="ti ti-headset"
-                valor={responsavelId}
-                onChange={setResponsavelId}
-                desabilitado={agentes == null}
-                descrito={`${ids.resp}-ajuda`}
+            {/* Sem `ticket.edit_properties` o campo some — não fica desabilitado
+                mostrando "Sem responsável" (que não é um valor fixo do
+                ticket, é só decoração: o ticket ainda nem existe). Mesma
+                permissão do painel do ticket aberto (../detalhe/
+                PainelPropriedades.tsx: `podeEditar`). */}
+            {podeEditarPropriedades && (
+              <Campo
+                rotulo="Responsável"
+                htmlFor={ids.resp}
+                acao={
+                  me?.is_internal ? (
+                    <button
+                      type="button"
+                      className="props__link"
+                      onClick={() => setResponsavelId(String(me.id))}
+                      disabled={responsavelId === String(me.id)}
+                    >
+                      Atribuir para mim
+                    </button>
+                  ) : undefined
+                }
               >
-                <option value="">{agentes ? 'Sem responsável' : 'Carregando…'}</option>
-                {(agentes ?? []).map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.full_name}
-                  </option>
-                ))}
-              </SeletorCampo>
-              <span className="props__ajuda" id={`${ids.resp}-ajuda`}>
-                Pode ficar para a triagem.
-              </span>
-            </Campo>
+                <SeletorCampo
+                  id={ids.resp}
+                  icone="ti ti-headset"
+                  valor={responsavelId}
+                  onChange={setResponsavelId}
+                  desabilitado={agentes == null}
+                  descrito={`${ids.resp}-ajuda`}
+                >
+                  <option value="">{agentes ? 'Sem responsável' : 'Carregando…'}</option>
+                  {(agentes ?? []).map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.full_name}
+                    </option>
+                  ))}
+                </SeletorCampo>
+                <span className="props__ajuda" id={`${ids.resp}-ajuda`}>
+                  Pode ficar para a triagem.
+                </span>
+              </Campo>
+            )}
           </section>
 
           <section className="props__grupo">
@@ -881,24 +1007,39 @@ export function PaginaNovoTicket() {
                   setCategoriaId(v)
                   limparErro('category_id')
                 }}
-                desabilitado={categorias == null}
+                // Categoria é OPCIONAL: se a lista falhou, a pessoa ainda
+                // segue com "Sem categoria" em vez de ficar travada num
+                // seletor desabilitado (`categorias == null` sozinho não
+                // distinguia "carregando" de "falhou" — o mesmo bug do
+                // <select> de Equipe, só que sem bloquear o envio).
+                desabilitado={categorias == null && !falhouCategorias}
                 invalido={Boolean(erros.category_id)}
                 descrito={descreve('category_id', `${ids.cat}-ajuda`)}
               >
-                <option value="">{categorias ? 'Sem categoria' : 'Carregando…'}</option>
+                <option value="">
+                  {categorias != null || falhouCategorias ? 'Sem categoria' : 'Carregando…'}
+                </option>
                 {categoriasDoServico.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </SeletorCampo>
-              <span className="props__ajuda" id={`${ids.cat}-ajuda`}>
-                A triagem pode classificar depois.
-              </span>
+              {falhouCategorias ? (
+                <ErroConsulta
+                  id={`${ids.cat}-ajuda`}
+                  mensagem="Não foi possível carregar as categorias."
+                  aoTentar={() => recarregarCategorias()}
+                />
+              ) : (
+                <span className="props__ajuda" id={`${ids.cat}-ajuda`}>
+                  A triagem pode classificar depois.
+                </span>
+              )}
               {erroDe('category_id')}
             </Campo>
 
-            {temEtiquetas && (
+            {temEtiquetas && podeEditarPropriedades && (
               <Campo rotulo="Etiquetas">
                 <ul className="props__chips" aria-label="Etiquetas">
                   {(etiquetas ?? []).map((t) => {
@@ -1012,6 +1153,10 @@ export function PaginaNovoTicket() {
               invalido={Boolean(erros.requester_id)}
               describedBy={descreve('requester_id', `${ids.para}-ajuda`)}
               vazio={empresaId != null ? 'Ninguém com esse nome nesta empresa.' : 'Ninguém com esse nome ou e-mail.'}
+              // BuscaPessoa troca sozinho o "Ninguém encontrado" (falso,
+              // aqui seria falha de rede) por um erro de verdade com retry.
+              erro={falhouClientes}
+              aoTentarDeNovo={() => recarregarClientes()}
             />
             {solicitante ? (
               <div className="novo__cliente" id={`${ids.para}-ajuda`}>
@@ -1030,6 +1175,12 @@ export function PaginaNovoTicket() {
                   aberto por você, não consome a cota
                 </span>
               </div>
+            ) : falhouClientes ? (
+              <ErroConsulta
+                id={`${ids.para}-ajuda`}
+                mensagem="Não foi possível carregar os clientes."
+                aoTentar={() => recarregarClientes()}
+              />
             ) : (
               <span className="props__ajuda" id={`${ids.para}-ajuda`}>
                 O cliente em nome de quem o chamado é aberto. Ele recebe a mensagem abaixo por e-mail.

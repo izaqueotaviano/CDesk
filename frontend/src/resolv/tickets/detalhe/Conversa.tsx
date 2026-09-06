@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react'
+import { useLocation } from 'react-router-dom'
 import type { Me } from '@/api/types'
+import { useTabs } from '@/stores/tabs'
 import { formatarDataHora } from '../format'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
@@ -176,6 +178,7 @@ function ItemMensagem({
 
   return (
     <article
+      id={`mensagem-${msg.id}`}
       className={classe}
       aria-label={`${interna ? 'Nota interna' : 'Mensagem'} de ${msg.author_name}`}
     >
@@ -312,11 +315,39 @@ interface Props {
   pedidoReabrir: number
 }
 
+/** "Perto do fim" o bastante para o push de uma mensagem nova ainda arrastar
+ *  a leitura — acima disso, a pessoa está lendo o meio da thread de propósito
+ *  e uma mensagem chegando não pode puxar a rolagem para longe de onde ela
+ *  está (item 21). */
+const LIMIAR_PERTO_DO_FIM_PX = 80
+
+/** Debounce de gravação da posição de rolagem — "razoável", não a cada pixel
+ *  (item 21): local e síncrono (`atualizarScroll`, stores/tabs.ts, nunca vai
+ *  para o servidor), então não precisa dos 2s do sync com o backend
+ *  (DEBOUNCE_MS em tabs.ts) — só o bastante para não gravar a cada frame de
+ *  scroll contínuo. */
+const DEBOUNCE_SCROLL_MS = 400
+
 export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
   const { editarMensagem, apagarMensagem } = useAcoesTicket(ticket.id)
   const [mostrarEventos, setMostrarEventos] = useState(true)
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const fimRef = useRef<HTMLDivElement>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
+  const location = useLocation()
+
+  // scroll é local por contrato (docs/06 — nunca sincroniza com o servidor),
+  // então o valor lido aqui é só o desta aba neste navegador; correto para
+  // "restaura ao trocar de aba/voltar" (item 21).
+  const scrollSalvo = useTabs(
+    (s) => s.tabs.find((a) => a.ticketId === ticket.id)?.scroll ?? 0,
+  )
+  const atualizarScroll = useTabs((s) => s.atualizarScroll)
+  const debounceScrollRef = useRef<ReturnType<typeof setTimeout>>()
+  // Perto do fim decide se uma mensagem NOVA arrasta a rolagem (mesma ideia
+  // de app de chat); começa true porque a primeira coisa que a pessoa vê é o
+  // fim da conversa (ou a mensagem ancorada — ver o efeito de montagem).
+  const pertoDoFimRef = useRef(true)
 
   const grupos = useMemo(
     () =>
@@ -324,12 +355,58 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
     [ticket.messages, ticket.events, mostrarEventos, agoraMs],
   )
 
-  // Rola para a última mensagem quando o total muda — inclui a que chega por
-  // realtime (ws), que é o que torna o push visível sem F5.
-  const totalMensagens = ticket.messages.length
+  // Só na MONTAGEM (o componente remonta por ticket — PaginaDetalheTicket usa
+  // `key={ticket.id}` — então isto roda de novo a cada troca de aba/ticket):
+  // três prioridades, da mais para a menos específica —
+  //   1) link de notificação de menção com #mensagem-{pk} (item 22, único
+  //      anchor que o backend gera: apps/tickets/services/mentions.py:116);
+  //   2) posição salva desta aba (item 21: "restaura ao trocar de aba/voltar");
+  //   3) fim da conversa (comportamento anterior, mantido para thread nova).
   useEffect(() => {
+    const alvoDaAncora = location.hash.match(/^#mensagem-(\d+)$/)
+    if (alvoDaAncora) {
+      document.getElementById(`mensagem-${alvoDaAncora[1]}`)?.scrollIntoView({ block: 'center' })
+      return
+    }
+    if (scrollSalvo > 0 && listaRef.current) {
+      listaRef.current.scrollTop = scrollSalvo
+      return
+    }
     fimRef.current?.scrollIntoView({ block: 'end' })
-  }, [totalMensagens, ticket.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Rola para a mensagem nova SÓ quando a pessoa já estava perto do fim —
+  // chegar por realtime (ws) não pode arrastar quem está lendo o meio da
+  // thread (item 21; antes disparava sempre, só com `totalMensagens` na
+  // dependência).
+  const totalMensagens = ticket.messages.length
+  const primeiraRenderRef = useRef(true)
+  useEffect(() => {
+    if (primeiraRenderRef.current) {
+      // a primeira "chegada" de mensagens é a montagem — já tratada acima
+      // (âncora/posição salva/fim); disparar de novo aqui sobrescreveria.
+      primeiraRenderRef.current = false
+      return
+    }
+    if (pertoDoFimRef.current) {
+      fimRef.current?.scrollIntoView({ block: 'end' })
+    }
+  }, [totalMensagens])
+
+  useEffect(() => () => clearTimeout(debounceScrollRef.current), [])
+
+  function aoRolar(e: UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget
+    const distanciaDoFim = el.scrollHeight - el.scrollTop - el.clientHeight
+    pertoDoFimRef.current = distanciaDoFim < LIMIAR_PERTO_DO_FIM_PX
+
+    clearTimeout(debounceScrollRef.current)
+    const scrollTop = el.scrollTop
+    debounceScrollRef.current = setTimeout(() => {
+      atualizarScroll(ticket.id, scrollTop)
+    }, DEBOUNCE_SCROLL_MS)
+  }
 
   const publicas = ticket.messages.filter((m) => m.is_public && !m.is_deleted).length
   const notas = ticket.messages.filter((m) => !m.is_public && !m.is_deleted).length
@@ -355,7 +432,21 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
         )}
       </header>
 
-      <div className="conversa__lista" tabIndex={0} aria-label="Mensagens">
+      {/* role="log" + aria-live="polite" + aria-relevant="additions": é o
+          papel exato do WAI-ARIA para "coisas chegando" (item 31) — sem ele,
+          a resposta do cliente que chega por realtime nunca é anunciada para
+          quem usa leitor de tela (o único aviso análogo antes disto era o
+          role="status" dos eventos de status, poucas linhas abaixo). */}
+      <div
+        ref={listaRef}
+        className="conversa__lista"
+        tabIndex={0}
+        aria-label="Mensagens"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        onScroll={aoRolar}
+      >
         {grupos.map((g) => (
           <section key={g.chave} className="conversa__dia" aria-label={g.rotulo}>
             <div className="conversa__dia-rotulo">

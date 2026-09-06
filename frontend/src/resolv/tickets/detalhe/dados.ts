@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
-import type { AlvoMencao, DadosFechamento, Macro, TicketDetalhe } from './tiposDetalhe'
+import type {
+  AgenteAtribuivel,
+  AlvoMencao,
+  DadosFechamento,
+  Macro,
+  TicketDetalhe,
+} from './tiposDetalhe'
 import type { Prioridade, StatusTicket } from '../tipos'
 
 const chaveDetalhe = (id: number) => ['ticket', id] as const
@@ -25,16 +31,27 @@ export interface Categoria {
   slug: string
 }
 
+// `?limit=200` porque o backend pagina em 25 por padrão (PAGE_SIZE,
+// config/settings/base.py) — sem isso, empresa com mais de 25
+// categorias/macros perde as demais em silêncio (o <select> de categoria em
+// PainelPropriedades.tsx não tem paginação, é lista fechada ou nada). Mesmo
+// precedente de cvz/tickets/dados.ts (`useAgentes`, `?limit=500`); 200 já
+// cobre a escala real de categoria/macro sem carregar o catálogo inteiro à
+// toa como 500 faria aqui.
 export function useCategorias() {
   return useQuery({
     queryKey: ['categorias'],
-    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/'),
+    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/?limit=200'),
     staleTime: 300_000,
     select: (d) => (Array.isArray(d) ? d : d.results),
   })
 }
 
-/** Agentes/equipes que podem ser atribuídos — lista inteira, filtrada em memória. */
+/** Quem pode ser @mencionado neste ticket — agentes internos ativos e
+ *  equipes (MentionTargetSerializer, apps/tickets/views.py `mention_targets`).
+ *  NÃO é a lista de quem pode ser Responsável/Dono técnico — ver
+ *  `useAgentesAtribuiveis` logo abaixo, que é a pergunta certa para os dois
+ *  seletores do painel de propriedades. */
 export function useAlvosMencao(id: number) {
   return useQuery({
     queryKey: ['ticket', id, 'mention-targets'],
@@ -43,10 +60,26 @@ export function useAlvosMencao(id: number) {
   })
 }
 
+/** Quem os seletores de Responsável e Dono técnico podem oferecer
+ *  (AssignableAgentSerializer, `GET /tickets/{id}/assignable-agents/`,
+ *  apps/tickets/views.py `assignable_agents`). Pergunta DIFERENTE de
+ *  `useAlvosMencao`: aqui o próprio agente logado JÁ está incluído (é o
+ *  "Assumir" pelo seletor) e agente leve JÁ está excluído (não passa em
+ *  `TICKET_BE_ASSIGNED`) — reusar a lista de menção aqui é o que fazia o
+ *  seletor oferecer gente que a atribuição real recusa com 400. */
+export function useAgentesAtribuiveis(id: number) {
+  return useQuery({
+    queryKey: ['ticket', id, 'assignable-agents'],
+    queryFn: () => api.get<AgenteAtribuivel[]>(`/api/v1/tickets/${id}/assignable-agents/`),
+    staleTime: 60_000,
+  })
+}
+
 export function useMacros() {
   return useQuery({
     queryKey: ['ticket-macros'],
-    queryFn: () => api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/'),
+    queryFn: () =>
+      api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/?limit=200'),
     staleTime: 300_000,
     select: (d) => (Array.isArray(d) ? d : d.results).filter((m) => m.is_active !== false),
   })

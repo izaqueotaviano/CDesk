@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
   COR_PRIORIDADE,
@@ -7,6 +8,7 @@ import {
   corEstadoSla,
   esperaEmFila,
   formatarDataHora,
+  rotuloAbrirChamado,
   textoEstadoSla,
 } from './format'
 
@@ -146,12 +148,47 @@ export function TicketsTable({
                   />
                 </label>
               </td>
-              <td className="col-protocolo">
-                <span className="tickets-tabela__ref">{t.reference}</span>
+              {/* Item 26: <tr onClick> sozinho não é alcançável por teclado (a
+                  linha não tem tabIndex/role, e as células são <span>) — quem
+                  tabula pelas 25 caixas de seleção nunca chega ao chamado.
+                  Um <Link> de verdade é ADICIONAL ao clique na linha (mouse
+                  continua indo em qualquer ponto dela): dá parada de Tab,
+                  Enter ativa, e o leitor de tela anuncia "link". Não é a
+                  linha inteira virando link (stretched link) — em <tr>/<td>
+                  essa técnica quebra de formas sutis (área clicável some
+                  atrás de outra célula, sobreposição com o próprio link),
+                  então só a célula do protocolo. `stopPropagation` no mesmo
+                  padrão da célula do checkbox logo acima: sem ele, clicar no
+                  link também dispararia o onClick da linha por baixo — dois
+                  disparos do mesmo destino em sequência. */}
+              <td className="col-protocolo" onClick={(e) => e.stopPropagation()}>
+                <Link
+                  to={`/chamados/${t.id}`}
+                  className="tickets-tabela__ref"
+                  aria-label={rotuloAbrirChamado(t)}
+                >
+                  {t.reference}
+                </Link>
               </td>
               <td className="col-assunto">
                 <span className="tickets-tabela__assunto" title={t.subject}>
-                  {t.is_restricted && <i className="ti ti-lock tickets-tabela__cadeado" />}
+                  {t.is_restricted && (
+                    <>
+                      {/* Ícone sozinho não tem nome: `<i>` sem role tem papel
+                          implícito "generic", que não recebe nome de autor
+                          (mesmo defeito do `aria-label` na barra de urgência
+                          logo abaixo) — daí o texto real ao lado, só recortado
+                          da tela. TEXTO FIXO, não `restriction_reason`: para
+                          usuário interno esse campo do backend chega sempre
+                          vazio (`is_content_visible_to` libera tudo que ele
+                          enxerga — a máscara é regra do portal, não daqui, ver
+                          `_busca_q` em apps/tickets/views.py), então declarar
+                          o campo prometeria um texto que esta tela nunca
+                          teria pra mostrar. */}
+                      <i className="ti ti-lock tickets-tabela__cadeado" aria-hidden="true" />
+                      <span className="tickets-tabela__sr">Equipe restrita: visível só para quem abriu. </span>
+                    </>
+                  )}
                   {t.subject}
                 </span>
               </td>
@@ -164,13 +201,23 @@ export function TicketsTable({
               </td>
               <td className="col-resp">{t.assignee_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
               <td className="col-cat">{t.category_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
+              {/* Item 27: a barra colorida sozinha falha WCAG 1.4.1 (cor não
+                  pode ser o único jeito de saber a prioridade — daltonismo
+                  não distingue) e o `aria-label` antigo, num <span> sem role
+                  (papel implícito "generic"), não tem nome de autor exposto
+                  — o leitor de tela não ouvia nada. Visualmente continua só
+                  a barra (o `title` cobre quem passa o mouse); o nome
+                  acessível vem de ROTULO_PRIORIDADE num texto real ao lado,
+                  só recortado da tela — não de um atributo que este elemento
+                  não consegue expor. */}
               <td className="col-urg">
                 <span
                   className="tickets-tabela__urg"
                   style={{ background: COR_PRIORIDADE[t.priority] }}
                   title={ROTULO_PRIORIDADE[t.priority]}
-                  aria-label={ROTULO_PRIORIDADE[t.priority]}
+                  aria-hidden="true"
                 />
+                <span className="tickets-tabela__sr">{ROTULO_PRIORIDADE[t.priority]}</span>
               </td>
               <td className="col-status">
                 <span className="tickets-tabela__status">

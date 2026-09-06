@@ -6,11 +6,19 @@ import { ApiError } from '@/api/client'
 import { PaginaNovoTicket } from './PaginaNovoTicket'
 
 const abrirMock = vi.hoisted(() => vi.fn())
-/** Mutável: cada teste diz o que o servidor respondeu em
- *  GET /api/v1/settings/system/ — inclusive "ainda não respondeu". */
+const recarregarEquipesMock = vi.hoisted(() => vi.fn())
+const recarregarCategoriasMock = vi.hoisted(() => vi.fn())
+const recarregarClientesMock = vi.hoisted(() => vi.fn())
+/** Mutável: cada teste diz o que o servidor respondeu — inclusive "ainda não
+ *  respondeu" (`sistema`) e "respondeu com erro" (`*Erro`, item 17: um 500
+ *  não pode ficar indistinguível de "ainda carregando"). */
 const servidor = vi.hoisted(() => ({
+  me: undefined as unknown,
   sistema: undefined as unknown,
   clientes: [] as { id: number; full_name: string }[],
+  equipesErro: false,
+  categoriasErro: false,
+  clientesErro: false,
 }))
 
 const MB = 1024 * 1024
@@ -32,7 +40,10 @@ const ME = {
   is_admin: true,
   teams: ['suporte'],
   signature: 'Samuel — Suporte Resolv',
-  permissions: [],
+  // Admin recebe TODO o catálogo por construção (apps/accounts/rbac.py
+  // `_ADMIN_PERMS`) — sem isto o mock mentia um admin sem
+  // `ticket.edit_properties`, permissão que qualquer admin real tem.
+  permissions: ['ticket.edit_properties'],
 }
 
 const EQUIPES = [
@@ -55,19 +66,29 @@ const AGENTES = [
 const MACROS = [
   { id: 1, name: 'Boas-vindas', body: 'Olá, {{solicitante}}! Recebemos o pedido da {{empresa}}.', priority: 'high', category: null, assignee: null, tags: [], is_active: true },
 ]
+const ETIQUETAS = [{ id: 1, name: 'Urgente-VIP', color: '#e00' }]
 
-vi.mock('@/api/queries/useMe', () => ({ useMe: () => ({ data: ME }) }))
+vi.mock('@/api/queries/useMe', () => ({ useMe: () => ({ data: servidor.me }) }))
 vi.mock('@/cvz/configuracoes/dados', () => ({
   useSistemaCfg: () => ({ data: servidor.sistema }),
 }))
 vi.mock('@/cvz/tickets/dados', () => ({
-  useEquipes: () => ({ data: EQUIPES }),
+  useEquipes: () =>
+    servidor.equipesErro
+      ? { data: undefined, isError: true, refetch: recarregarEquipesMock }
+      : { data: EQUIPES, isError: false, refetch: recarregarEquipesMock },
   useServicos: () => ({ data: [] }),
-  useCategorias: () => ({ data: [] }),
+  useCategorias: () =>
+    servidor.categoriasErro
+      ? { data: undefined, isError: true, refetch: recarregarCategoriasMock }
+      : { data: [], isError: false, refetch: recarregarCategoriasMock },
   useEmpresasOpcoes: () => ({ data: EMPRESAS }),
-  useClientes: () => ({ data: servidor.clientes, isLoading: false }),
+  useClientes: () =>
+    servidor.clientesErro
+      ? { data: undefined, isLoading: false, isError: true, refetch: recarregarClientesMock }
+      : { data: servidor.clientes, isLoading: false, isError: false, refetch: recarregarClientesMock },
   useAgentes: () => ({ data: AGENTES }),
-  useEtiquetas: () => ({ data: [] }),
+  useEtiquetas: () => ({ data: ETIQUETAS }),
   useEstimativaResposta: (slug: string | null) => ({
     data: slug ? { label: '2 h', minutes: 120, sample: 12 } : undefined,
   }),
@@ -127,8 +148,15 @@ async function preencherObrigatorios(cliente = /Beto Barros/) {
 
 beforeEach(() => {
   abrirMock.mockReset()
+  recarregarEquipesMock.mockReset()
+  recarregarCategoriasMock.mockReset()
+  recarregarClientesMock.mockReset()
+  servidor.me = ME
   servidor.sistema = CFG_SISTEMA
   servidor.clientes = CLIENTES
+  servidor.equipesErro = false
+  servidor.categoriasErro = false
+  servidor.clientesErro = false
   // o rascunho é o mesmo localStorage entre testes — sem isto, o formulário
   // do teste anterior volta preenchido no seguinte
   localStorage.clear()
@@ -465,5 +493,117 @@ describe('PaginaNovoTicket', () => {
     anexar([arquivoDe('a.pdf', 1024), arquivoDe('b.pdf', 1024)])
     const erro = screen.getByText(/Máximo de 1 arquivo\(s\) por mensagem/)
     expect(anexarBtn.getAttribute('aria-describedby')).toContain(erro.id)
+  })
+
+  // ------------------------------------------------------------------
+  // Agente sem equipe: beco sem saída (item 13)
+  // ------------------------------------------------------------------
+
+  it('agente sem nenhuma equipe vê o estado explicativo, não o formulário condenado', () => {
+    servidor.me = { ...ME, is_admin: false, teams: [] }
+    montar()
+
+    expect(screen.getByText('Você não atende nenhuma equipe.')).toBeInTheDocument()
+    // nada de formulário: preencher aqui nunca abriria chamado (team_id é obrigatório no backend)
+    expect(screen.queryByLabelText(/^Mensagem/)).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/^Equipe/)).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Voltar para a fila' }))
+    expect(screen.getByText('lista de chamados')).toBeInTheDocument()
+  })
+
+  it('admin com `teams` vazio continua vendo o formulário — o recorte por equipe não vale para admin', () => {
+    // `equipesDisponiveis` só filtra por `me.teams` quando NÃO é admin
+    // (ticket_service.create_ticket não recorta admin): `teams: []` bastaria
+    // para zerar a lista de um agente comum, mas para o admin não conta —
+    // `semEquipe` exige `!me.is_admin` de propósito.
+    servidor.me = { ...ME, is_admin: true, teams: [] }
+    montar()
+    expect(screen.getByLabelText(/^Mensagem/)).toBeInTheDocument()
+    expect(screen.queryByText('Você não atende nenhuma equipe.')).not.toBeInTheDocument()
+  })
+
+  // ------------------------------------------------------------------
+  // Permissão: responsável e etiquetas exigem ticket.edit_properties (item 12)
+  // ------------------------------------------------------------------
+
+  it('sem "ticket.edit_properties" a tela não oferece responsável nem etiquetas', () => {
+    servidor.me = { ...ME, permissions: [] }
+    montar()
+
+    expect(screen.queryByLabelText('Responsável')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Atribuir para mim' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Urgente-VIP' })).not.toBeInTheDocument()
+  })
+
+  it('com a permissão, responsável e etiquetas continuam disponíveis', () => {
+    montar() // ME já tem ticket.edit_properties (ver beforeEach)
+    expect(screen.getByLabelText('Responsável')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Urgente-VIP' })).toBeInTheDocument()
+  })
+
+  it('sem a permissão, o envio não aplica responsável/etiquetas por baixo dos panos', async () => {
+    servidor.me = { ...ME, permissions: [] }
+    abrirMock.mockResolvedValue({ ticket: { id: 51, reference: 'TD-00051' }, pendencias: [] })
+    montar()
+    await preencherObrigatorios()
+    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+
+    await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
+    expect(abrirMock.mock.calls[0][0]).toMatchObject({ assignee_id: null, tag_ids: [] })
+  })
+
+  // ------------------------------------------------------------------
+  // Consulta em erro não pode ficar idêntica a "ainda carregando" (item 17)
+  // ------------------------------------------------------------------
+
+  it('equipes em erro mostram mensagem real, não "Carregando…" para sempre, e "tentar de novo" refaz a consulta', () => {
+    servidor.equipesErro = true
+    montar()
+
+    expect(screen.getByText('Não foi possível carregar as equipes.')).toBeInTheDocument()
+    expect(screen.queryByText('Carregando…', { selector: 'option' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(recarregarEquipesMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('categorias em erro avisam e permitem "tentar de novo", mas não travam o envio — categoria é opcional', async () => {
+    servidor.categoriasErro = true
+    abrirMock.mockResolvedValue({ ticket: { id: 52, reference: 'TD-00052' }, pendencias: [] })
+    montar()
+
+    expect(screen.getByText('Não foi possível carregar as categorias.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Tentar de novo' }))
+    expect(recarregarCategoriasMock).toHaveBeenCalledTimes(1)
+
+    await preencherObrigatorios()
+    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
+    expect(abrirMock.mock.calls[0][0]).toMatchObject({ category_id: null })
+  })
+
+  it('clientes em erro mostram falha real no campo "Para", não a mentira de "ninguém encontrado"', () => {
+    servidor.clientesErro = true
+    montar() // a tela já abre com foco em "Para", que abre a lista
+
+    // duas cópias de propósito: uma visível na lista (`--erro`), outra só
+    // para leitor de tela no `aria-live` — por isso `getAllByText`.
+    expect(screen.getAllByText('Não foi possível carregar as pessoas.').length).toBeGreaterThan(0)
+    expect(screen.getByText('Não foi possível carregar os clientes.')).toBeInTheDocument()
+    expect(screen.queryByText(/Ninguém com esse nome/)).not.toBeInTheDocument()
+
+    // duas ofertas de retry (a de dentro da lista e a de baixo do campo) —
+    // as duas chamam a mesma função, então clicar qualquer uma serve.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Tentar de novo' })[0])
+    expect(recarregarClientesMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('Enter no campo "Para" também aciona o "tentar de novo" — o foco nunca sai do input (combobox ARIA)', () => {
+    servidor.clientesErro = true
+    montar()
+
+    fireEvent.keyDown(campoPara(), { key: 'Enter' })
+    expect(recarregarClientesMock).toHaveBeenCalledTimes(1)
   })
 })

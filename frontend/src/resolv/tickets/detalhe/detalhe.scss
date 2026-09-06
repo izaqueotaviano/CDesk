@@ -33,6 +33,16 @@
     outline: none;
   }
 
+  // Wrapper de ARIA (role="tabpanel"), não de visual: mesma regra de flex de
+  // __miolo/__esqueleto/__estado, porque ele agora fica ENTRE .detalhe e o
+  // que antes era filho direto dela — sem isto o conteúdo perderia a altura
+  // que o flex column de .detalhe distribuía.
+  &__painel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
   &__miolo {
     display: flex;
     flex-direction: column;
@@ -139,6 +149,40 @@
       cursor: pointer;
       &:hover {
         background: color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+    }
+  }
+
+  // Mesma forma do erro-acao acima, em --accent: informa, não alerta — o
+  // chamado mudou por baixo (status/responsável/dono), nada quebrou (item 20).
+  &__aviso-atualizacao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    margin: 0;
+    background: var(--tom-acento);
+    border-bottom: 0.7px solid var(--tom-acento-borda);
+    font-size: 12px;
+    color: var(--accent);
+    i {
+      font-size: 15px;
+    }
+    span {
+      flex: 1;
+    }
+    button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      border-radius: 2px;
+      cursor: pointer;
+      &:hover {
+        background: var(--tom-acento-forte);
       }
     }
   }
@@ -1002,11 +1046,13 @@
   }
 
   &__acoes {
+    // Sempre visível — sem mouse (teclado) ou em touch não existe ":hover"
+    // para revelar o botão, e o alvo então simplesmente não existia (item 29).
+    // O alvo de toque já era 24×24; só a visibilidade muda, em --text-muted
+    // para não competir com o texto da mensagem em repouso.
     margin-left: auto;
     display: inline-flex;
     gap: 2px;
-    opacity: 0;
-    transition: opacity 0.15s ease;
     button {
       width: 24px;
       height: 24px;
@@ -1015,7 +1061,7 @@
       border: none;
       background: transparent;
       border-radius: 2px;
-      color: var(--text-secondary);
+      color: var(--text-muted);
       cursor: pointer;
       i {
         font-size: 14px;
@@ -1025,10 +1071,6 @@
         color: var(--text-primary);
       }
     }
-  }
-  &:hover &__acoes,
-  &:focus-within &__acoes {
-    opacity: 1;
   }
 
   &__texto {

@@ -1,4 +1,4 @@
-import type { Prioridade, RelogioSla, StatusTicket } from './tipos'
+import type { Prioridade, RelogioSla, StatusTicket, TicketLinha } from './tipos'
 
 /** "03/09/2026 15:51" — formato da coluna "Aberto em" do print. */
 export function formatarDataHora(iso: string): string {
@@ -26,6 +26,21 @@ export function esperaEmFila(createdAt: string, firstResponseAt: string | null, 
   const h = Math.floor(min / 60)
   if (h < 24) return `${h}h`
   return `${Math.floor(h / 24)}d`
+}
+
+/**
+ * Nome acessível do link "abrir chamado" da célula de protocolo
+ * (TicketsTable.tsx, item 26 da auditoria) — a REFERÊNCIA sozinha
+ * ("T-0007") é o que uma pessoa vidente vê escrito no link, mas ela também
+ * lê de graça o assunto e a empresa nas células vizinhas da mesma linha;
+ * quem navega por teclado ou leitor de tela só tem o alcance do próprio
+ * link, então o mesmo contexto entra aqui.
+ */
+export function rotuloAbrirChamado(
+  t: Pick<TicketLinha, 'reference' | 'subject' | 'company_name'>,
+): string {
+  const empresa = t.company_name ? ` — ${t.company_name}` : ''
+  return `Abrir chamado ${t.reference}: ${t.subject}${empresa}`
 }
 
 export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {

@@ -143,6 +143,18 @@ export interface AlvoMencao {
   group?: 'ticket' | 'equipe' | 'outros' | 'equipes'
 }
 
+/** Um item do seletor de Responsável/Dono técnico
+ *  (GET /tickets/{id}/assignable-agents/, AssignableAgentSerializer em
+ *  apps/tickets/serializers.py). Sem `type`/`group`: diferente de
+ *  `AlvoMencao`, esta lista nunca tem equipe — só gente, já filtrada pela
+ *  regra de negócio de atribuição (inclui o próprio agente, exclui leve). */
+export interface AgenteAtribuivel {
+  id: number
+  name: string
+  email: string
+  avatar_url: string
+}
+
 /** Contato do solicitante — agora exposto pelo TicketDetail (RequesterSerializer). */
 export interface Requester {
   name: string

@@ -119,6 +119,16 @@ describe('ViewsPanel — visões salvas oferecidas', () => {
 
     expect(screen.queryByRole('button', { name: /menciona/i })).not.toBeInTheDocument()
   })
+
+  it('item 24: o rótulo diz o filtro real (prazo no quadro), não "estar no kanban"', () => {
+    // O filtro do servidor é `cards__due_at__isnull=False` — "tem prazo
+    // interno anotado" — não "está no kanban" (todo ticket visível está lá).
+    // Ver `_apply_saved_view` em apps/tickets/views.py.
+    montar()
+
+    expect(screen.getByRole('button', { name: /Com prazo no quadro/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Kanban/ })).not.toBeInTheDocument()
+  })
 })
 
 describe('ViewsPanel — controles que ainda não fazem nada', () => {

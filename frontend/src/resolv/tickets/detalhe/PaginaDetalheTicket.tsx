@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import type { Me } from '@/api/types'
 import { useTabs } from '@/stores/tabs'
+import { ROTULO_STATUS } from '../format'
 import { CabecalhoTicket, type PainelLateral } from './CabecalhoTicket'
 import { Conversa } from './Conversa'
 import { ModalFecharTicket } from './ModalFecharTicket'
@@ -14,6 +15,48 @@ import { useAcoesTicket, useTicketDetalhe } from './dados'
 import { mensagemDeErro } from './linhaDoTempo'
 import type { TicketDetalhe } from './tiposDetalhe'
 import './detalhe.scss'
+
+/** Retrato dos campos que a faixa de "atualizado por baixo" vigia — status,
+ *  responsável e dono técnico (item 20). Fechamento/reabertura mexem em mais
+ *  coisa (datas de resolução etc.), mas essas são estado LOCAL do Compositor
+ *  e sobrevivem ao refetch sozinhas — não precisam de aviso. */
+interface RetratoTicket {
+  status: TicketDetalhe['status']
+  assignee_id: number | null
+  owner_id: number | null
+}
+
+function retratar(t: TicketDetalhe): RetratoTicket {
+  return { status: t.status, assignee_id: t.assignee_id, owner_id: t.owner_id }
+}
+
+/**
+ * Mensagem da faixa quando um refetch em segundo plano muda dado visível.
+ *
+ * Nomear quem mudou só quando dá para confiar na atribuição: o único autor
+ * que o payload carrega é `events[].actor_name` (Evento, tiposDetalhe.ts), e
+ * ele só corresponde ao que apareceu na tela quando o que mudou foi o STATUS
+ * e o evento mais recente aponta para esse mesmo `to_status` — responsável e
+ * dono técnico não têm "quem atribuiu" no TicketDetail, então nesses casos a
+ * mensagem fica sem nome. Inventar autor aqui seria pior que omitir.
+ */
+function descreverAtualizacaoDeFundo(
+  anterior: RetratoTicket,
+  atual: TicketDetalhe,
+): string | null {
+  const statusMudou = anterior.status !== atual.status
+  const responsavelMudou = anterior.assignee_id !== atual.assignee_id
+  const donoMudou = anterior.owner_id !== atual.owner_id
+  if (!statusMudou && !responsavelMudou && !donoMudou) return null
+
+  if (statusMudou) {
+    const maisRecente = [...atual.events].sort((a, b) => (a.created_at > b.created_at ? -1 : 1))[0]
+    if (maisRecente?.actor_name && maisRecente.to_status === atual.status) {
+      return `${maisRecente.actor_name} atualizou este chamado — status agora é "${ROTULO_STATUS[atual.status]}".`
+    }
+  }
+  return 'Este chamado foi atualizado enquanto você olhava.'
+}
 
 /** Placeholder com a forma da tela — a pessoa vê onde cada coisa vai
  *  aparecer em vez de um spinner no meio do nada. */
@@ -55,19 +98,60 @@ function DetalheCarregado({
   ticket,
   me,
   agoraMs,
+  buscandoEmSegundoPlano,
 }: {
   ticket: TicketDetalhe
   me: Me | undefined
   agoraMs: number
+  /** `isFetching` da query — true só durante um GET de verdade (refetch de
+   *  60s/foco/socket). Ação própria grava com `setQueryData` (dados.ts,
+   *  `gravar`) e nunca passa por aqui, então a transição true→false deste
+   *  flag é o sinal de "isto veio de fora", não de "eu acabei de salvar". */
+  buscandoEmSegundoPlano: boolean
 }) {
   const { atribuir, fechar } = useAcoesTicket(ticket.id)
   const [modalFechar, setModalFechar] = useState(false)
   const [pedidoReabrir, setPedidoReabrir] = useState(0)
   const [painelAberto, setPainelAberto] = useState<PainelLateral | null>(null)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
+  const [avisoAtualizacao, setAvisoAtualizacao] = useState<string | null>(null)
+
+  // Retrato do ticket ANTES do render corrente e se a busca estava em voo no
+  // render anterior — comparados dentro do efeito para pegar a transição
+  // true→false (fetch que acabou de chegar). Nasce do próprio ticket/estado
+  // atuais (não de `undefined`) porque este componente é remontado com
+  // `key={ticket.id}` a cada troca de aba (comentário da página) — sem isso a
+  // primeira renderização de CADA ticket comparia contra "nada" e nunca
+  // dispararia por acidente, mas documentar o porquê evita "corrigir" para
+  // `useRef<RetratoTicket | null>(null)` e reintroduzir o falso positivo.
+  const retratoAnterior = useRef<RetratoTicket>(retratar(ticket))
+  const buscavaAntes = useRef(buscandoEmSegundoPlano)
+
+  useEffect(() => {
+    if (buscavaAntes.current && !buscandoEmSegundoPlano) {
+      const mensagem = descreverAtualizacaoDeFundo(retratoAnterior.current, ticket)
+      if (mensagem) setAvisoAtualizacao(mensagem)
+    }
+    buscavaAntes.current = buscandoEmSegundoPlano
+    retratoAnterior.current = retratar(ticket)
+  }, [ticket, buscandoEmSegundoPlano])
 
   return (
     <div className={'detalhe__miolo' + (painelAberto ? ` detalhe--gaveta-${painelAberto}` : '')}>
+      {avisoAtualizacao && (
+        <p className="detalhe__aviso-atualizacao" role="status" aria-live="polite">
+          <i className="ti ti-refresh-alert" aria-hidden="true" />
+          <span>{avisoAtualizacao}</span>
+          <button
+            type="button"
+            onClick={() => setAvisoAtualizacao(null)}
+            aria-label="Fechar aviso de atualização"
+          >
+            <i className="ti ti-x" />
+          </button>
+        </p>
+      )}
+
       <CabecalhoTicket
         ticket={ticket}
         me={me}
@@ -177,6 +261,19 @@ export function PaginaDetalheTicket() {
     <div className="detalhe">
       <TicketTabs idAtivo={ticketId} />
 
+      {/* O painel que a aba ativa controla — único elemento com esse papel
+          na árvore (trocar de aba navega para outra rota, não empilha um
+          segundo painel ao lado). `aria-labelledby` aponta para o id que
+          `TicketTabs` já expõe por aba (`aba-tab-${ticketId}`); o vínculo
+          completa o padrão WAI-ARIA de tabs que faltava — a aba já era
+          role="tab" e navegável, só não dizia qual painel ela abre. */}
+      <div
+        role="tabpanel"
+        id="detalhe-painel-ticket"
+        aria-labelledby={`aba-tab-${ticketId}`}
+        className="detalhe__painel"
+      >
+
       {isError ? (
         <div className="detalhe__estado detalhe__estado--erro" role="alert">
           <i className="ti ti-alert-triangle" aria-hidden="true" />
@@ -205,8 +302,15 @@ export function PaginaDetalheTicket() {
       ) : (
         // Referência de "agora" para tempos relativos e hora local: o instante
         // do último fetch, determinístico — não Date.now() em render.
-        <DetalheCarregado key={ticket.id} ticket={ticket} me={me} agoraMs={dataUpdatedAt} />
+        <DetalheCarregado
+          key={ticket.id}
+          ticket={ticket}
+          me={me}
+          agoraMs={dataUpdatedAt}
+          buscandoEmSegundoPlano={isFetching}
+        />
       )}
+      </div>
     </div>
   )
 }

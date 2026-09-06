@@ -47,6 +47,7 @@ from apps.tickets.models import (
 )
 from apps.tickets.serializers import (
     SLA_AT_RISK_MINUTES,
+    AssignableAgentSerializer,
     BulkAssignSerializer,
     BulkCloseSerializer,
     BulkPrioritySerializer,
@@ -66,6 +67,7 @@ from apps.tickets.serializers import (
     TicketReplySerializer,
 )
 from apps.tickets.services import (
+    atribuicao,
     mentions,
     response_estimate,
     satisfaction,
@@ -547,6 +549,26 @@ class TicketViewSet(viewsets.GenericViewSet):
         ticket = self.get_object()
         alvos = mentions.alvos_de_mencao(ticket=ticket, requester=request.user)
         return Response(MentionTargetSerializer(alvos, many=True).data)
+
+    @action(detail=True, methods=["get"], url_path="assignable-agents",
+            pagination_class=None)
+    def assignable_agents(self, request, pk=None):
+        """Quem os seletores de Responsável e Dono técnico podem oferecer.
+
+        Pergunta DIFERENTE da de `mention_targets` — ver o porquê completo em
+        `services/atribuicao.py`. Resumo: aqui o requester PRECISA aparecer
+        (é o "Assumir" pelo seletor) e agente leve NÃO aparece (não passa em
+        `assign()`/`set_owner()`, que exigem `Perm.TICKET_BE_ASSIGNED`).
+
+        `self.get_object()` só para 404 fora do escopo — igual a
+        `mention_targets`, a lista em si não depende do ticket (nem tem
+        recorte por equipe: `services/atribuicao.agentes_atribuiveis`).
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Atribuição é recurso interno.")
+        self.get_object()
+        agentes = atribuicao.agentes_atribuiveis()
+        return Response(AssignableAgentSerializer(agentes, many=True).data)
 
     @action(detail=True, methods=["post"],
             parser_classes=[JSONParser, MultiPartParser, FormParser])

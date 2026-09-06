@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '@/api/types'
 import { PainelPropriedades } from './PainelPropriedades'
@@ -10,9 +10,14 @@ const mudarEquipeMock = vi.hoisted(() => vi.fn(() => Promise.resolve()))
 /** Toda mutação do painel tem a mesma forma; só as duas em teste têm espião. */
 const parada = () => ({ mutate: vi.fn(), isPending: false, isError: false, error: null })
 
+let categorias: { data?: { id: number; name: string; slug: string }[] } = { data: [] }
+let agentesAtribuiveis: {
+  data?: { id: number; name: string; email: string; avatar_url: string }[]
+} = { data: [] }
+
 vi.mock('./dados', () => ({
-  useAlvosMencao: () => ({ data: [] }),
-  useCategorias: () => ({ data: [] }),
+  useAgentesAtribuiveis: () => agentesAtribuiveis,
+  useCategorias: () => categorias,
   useAcoesTicket: () => ({
     atribuir: parada(),
     definirDono: parada(),
@@ -115,6 +120,8 @@ beforeEach(() => {
   mudarEtiquetasMock.mockReset()
   mudarEquipeMock.mockReset().mockResolvedValue(undefined)
   etiquetas = { data: ETIQUETAS, isLoading: false, isError: false }
+  categorias = { data: [] }
+  agentesAtribuiveis = { data: [] }
 })
 
 describe('PainelPropriedades — etiquetar depois da abertura', () => {
@@ -213,5 +220,67 @@ describe('PainelPropriedades — transferir de equipe', () => {
 
     expect(screen.queryByLabelText('Equipe')).toBeNull()
     expect(screen.getByText('Suporte')).toBeInTheDocument()
+  })
+})
+
+describe('PainelPropriedades — Responsável/Dono técnico usam a lista de atribuição (item 11)', () => {
+  it('lista de assignable-agents alimenta os dois seletores, sem filtro por type', () => {
+    // Contrato de `useAgentesAtribuiveis` (GET .../assignable-agents/) não tem
+    // `type`/`group` — é só gente, diferente do de @menção. Se o componente
+    // ainda tentasse filtrar por `a.type === 'user'`, a lista sumiria inteira
+    // (o campo não existe) e os dois seletores ficariam vazios.
+    agentesAtribuiveis = {
+      data: [{ id: 9, name: 'Ana Agente', email: 'ana@demo.test', avatar_url: '' }],
+    }
+
+    montar()
+
+    const responsavel = screen.getByLabelText('Responsável') as HTMLSelectElement
+    const dono = screen.getByLabelText('Dono técnico') as HTMLSelectElement
+    expect(within(responsavel).getByRole('option', { name: 'Ana Agente' })).toBeInTheDocument()
+    expect(within(dono).getByRole('option', { name: 'Ana Agente' })).toBeInTheDocument()
+  })
+
+  it('mantém o responsável atual visível mesmo se ele não vier na lista de atribuíveis', () => {
+    // Não é o mesmo bug da categoria (aqui não há paginação), mas o mesmo
+    // padrão de defesa: se por qualquer razão o atual não está na lista (ex.:
+    // desativado depois de atribuído), a tela não pode fingir "sem
+    // responsável" — precisa mostrar quem está atribuído de verdade.
+    agentesAtribuiveis = { data: [] }
+
+    montar({ assignee_id: 42, assignee_name: 'Beto Sumido' })
+
+    const responsavel = screen.getByLabelText('Responsável') as HTMLSelectElement
+    expect(responsavel.value).toBe('42')
+    expect(within(responsavel).getByRole('option', { name: 'Beto Sumido' })).toBeInTheDocument()
+  })
+})
+
+describe('PainelPropriedades — categoria além da página do catálogo (item 9)', () => {
+  it('mostra a categoria atual no seletor mesmo quando ela não veio na página carregada', () => {
+    // useCategorias só traz `?limit=200`: uma empresa com catálogo maior tem
+    // categoria (ex.: a 201ª) que nunca aparece na lista, mas o ticket pode
+    // estar classificado nela — sem a opção injetada o <select> não acha o
+    // value, cai silenciosamente na primeira ("Sem categoria") e a tela mente.
+    categorias = { data: [{ id: 1, name: 'Financeiro', slug: 'financeiro' }] }
+
+    montar({ category: 999, category_name: 'Categoria Fora Da Página' })
+
+    const seletor = screen.getByLabelText('Categoria') as HTMLSelectElement
+    expect(seletor.value).toBe('999')
+    expect(
+      screen.getByRole('option', { name: 'Categoria Fora Da Página' }),
+    ).toBeInTheDocument()
+  })
+
+  it('não duplica a opção quando a categoria atual já está na página carregada', () => {
+    // Escopado ao seletor de Categoria: o de Equipe também tem uma opção
+    // "Financeiro" (EQUIPES acima) — sem `within` o teste contaria as duas.
+    categorias = { data: [{ id: 1, name: 'Financeiro', slug: 'financeiro' }] }
+
+    montar({ category: 1, category_name: 'Financeiro' })
+
+    const seletor = screen.getByLabelText('Categoria')
+    expect(within(seletor).getAllByRole('option', { name: 'Financeiro' })).toHaveLength(1)
   })
 })

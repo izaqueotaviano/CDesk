@@ -1,8 +1,16 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaginaListaTickets } from './PaginaListaTickets'
+
+/** Mostra caminho + querystring do MemoryRouter — só usado pelos testes do
+ *  item 18 (estado na URL), pra confirmar o que de fato foi escrito na URL
+ *  em vez de inferir isso pelo comportamento da tela. */
+function UrlAtual() {
+  const location = useLocation()
+  return <span data-testid="url-atual">{location.pathname + location.search}</span>
+}
 
 const ME = {
   id: 2,
@@ -85,6 +93,7 @@ function montar() {
     <QueryClientProvider client={client}>
       <MemoryRouter>
         <PaginaListaTickets />
+        <UrlAtual />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -190,5 +199,69 @@ describe('PaginaListaTickets — a seleção segue o recorte da tela', () => {
     fireEvent.click(caixa)
 
     expect(await screen.findByText('2', { selector: 'strong' })).toBeInTheDocument()
+  })
+})
+
+describe('PaginaListaTickets — recorte mora na URL, não em useState solto (item 18)', () => {
+  it('trocar de visão grava ?view= na URL e não carrega offset de página anterior', async () => {
+    montar()
+    await screen.findByText('T-0007')
+
+    fireEvent.click(screen.getByRole('button', { name: /Tickets Resolvidos/ }))
+
+    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('view=resolvidos'))
+    expect(screen.getByTestId('url-atual')).not.toHaveTextContent('offset=')
+  })
+
+  it('a busca só entra na URL depois do debounce — não a cada tecla', async () => {
+    montar()
+    await screen.findByText('T-0007')
+
+    fireEvent.change(screen.getByPlaceholderText('Pesquisar'), { target: { value: 'cobrança' } })
+    // Logo após a tecla, antes do debounce de 300ms: a URL ainda não mudou.
+    // Regressão que o item 18 avisa: escrever a cada tecla enche o
+    // histórico e desfaz busca em cima de busca a cada resposta que chega.
+    expect(screen.getByTestId('url-atual')).not.toHaveTextContent('q=')
+
+    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('q=cobran'))
+  })
+
+  it('virar a página grava o offset na URL', async () => {
+    respostaDaLista = () =>
+      jsonDe({ count: 60, next: null, previous: null, results: [LINHA, { ...LINHA, id: 8, reference: 'T-0008' }] })
+    montar()
+    await screen.findByText('T-0007')
+
+    fireEvent.click(screen.getByRole('button', { name: /Próxima/ }))
+
+    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('offset=25'))
+  })
+})
+
+describe('PaginaListaTickets — a busca distingue "sem resultado" de "view vazia" (item 15)', () => {
+  beforeEach(() => {
+    respostaDaLista = () => jsonDe({ count: 0, next: null, previous: null, results: [] })
+  })
+
+  it('o campo de busca diz o escopo, não só o placeholder', async () => {
+    montar()
+
+    expect(
+      await screen.findByLabelText('Buscar por referência, assunto ou número do pedido'),
+    ).toBeInTheDocument()
+  })
+
+  it('sem busca o vazio é da visualização; com busca sem resultado, diz o termo e oferece limpar', async () => {
+    montar()
+    expect(await screen.findByText('Nenhum ticket nesta visualização.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByPlaceholderText('Pesquisar'), { target: { value: 'Acme' } })
+
+    expect(await screen.findByText('Nenhum resultado para "Acme".')).toBeInTheDocument()
+    expect(screen.queryByText('Nenhum ticket nesta visualização.')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpar busca' }))
+
+    expect(await screen.findByText('Nenhum ticket nesta visualização.')).toBeInTheDocument()
   })
 })

@@ -598,10 +598,40 @@
   }
 
   // células
+  // Item 26: agora é um <Link> de verdade (antes era <span>) — sem
+  // `text-decoration: none` herdaria o sublinhado padrão de âncora e
+  // destoaria do resto da tabela, que não sublinha nada. Sublinha só em
+  // hover/foco: mesmo sinal visual que um link ganha em qualquer outro
+  // lugar da casa, sem "azul sublinhado" constante brigando com a densidade
+  // da lista.
   &__ref {
+    display: inline-block;
     font-family: var(--f-mono);
     font-size: 11px;
     color: var(--accent);
+    text-decoration: none;
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+  // Texto que existe só para o leitor de tela (o cadeado da célula de
+  // assunto e a barra de urgência): a técnica de recorte 1px é a mesma do
+  // utilitário `sr-only` do Tailwind, só que local a este componente — a
+  // folha do shell cvz que declara `.sr-only` (cvz/styles/global.scss) só é
+  // importada por cvz/AppLayout.tsx, que não envolve `/chamados` (rota usa
+  // NovoShell, ver routes.tsx); depender dela aqui apagaria o texto também
+  // do relatório de acessibilidade, não só da tela.
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
   }
   &__mono-muted {
     font-family: var(--f-mono);

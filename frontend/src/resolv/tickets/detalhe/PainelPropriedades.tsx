@@ -9,7 +9,7 @@ import { ConfirmDialog } from '@/cvz/components'
 import { useEquipes, useEtiquetas } from '@/cvz/tickets/dados'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
-import { useAcoesTicket, useAlvosMencao, useCategorias } from './dados'
+import { useAcoesTicket, useAgentesAtribuiveis, useCategorias } from './dados'
 import { iniciais, mensagemDeErro } from './linhaDoTempo'
 import type { TicketDetalhe } from './tiposDetalhe'
 
@@ -126,7 +126,7 @@ function ValorFixo({
  */
 export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: Me | undefined }) {
   const idBase = useId()
-  const { data: alvos } = useAlvosMencao(ticket.id)
+  const { data: agentes } = useAgentesAtribuiveis(ticket.id)
   const { data: categorias } = useCategorias()
   const {
     data: equipes,
@@ -157,18 +157,21 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
   const perms = me?.permissions ?? []
   const podeEditar = perms.includes('ticket.edit_properties')
 
-  // mention-targets traz usuários (agentes) e equipes — para atribuir/dono só
-  // interessam os usuários. Shape real: {type:'user'|'team', id, name, email}.
-  const agentes = (alvos ?? []).filter((a) => a.type === 'user')
   const jaSegue = me != null && ticket.watchers.some((w) => w.id === me.id)
 
+  // Lista vem de `assignable-agents` (useAgentesAtribuiveis), não da de
+  // @menção: já inclui a própria pessoa logada (o "Assumir" pelo seletor) e
+  // já exclui agente leve (a atribuição de verdade recusa com 400) — não tem
+  // mais o que filtrar aqui. Mesmo assim, o atual pode estar fora da PÁGINA
+  // (`?limit=200`, não da regra de negócio) — a injeção abaixo cobre isso.
   function opcoesAgentes(atualId: number | null, atualNome: string | null) {
+    const lista = agentes ?? []
     return (
       <>
-        {atualId != null && !agentes.some((a) => a.id === atualId) && (
+        {atualId != null && !lista.some((a) => a.id === atualId) && (
           <option value={atualId}>{atualNome}</option>
         )}
-        {agentes.map((a) => (
+        {lista.map((a) => (
           <option key={a.id} value={a.id}>
             {a.name}
           </option>
@@ -350,6 +353,16 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
               disabled={mudarCategoria.isPending}
             >
               <option value="">Sem categoria</option>
+              {/* A categoria do ticket pode estar além da página do catálogo
+                  (`?limit=200`) — sem isto o <select> não acha a option, o
+                  React cai na primeira ("Sem categoria") SEM avisar, e
+                  salvar em cima grava a categoria errada por cima da certa. */}
+              {ticket.category != null &&
+                !(categorias ?? []).some((c) => c.id === ticket.category) && (
+                  <option value={ticket.category}>
+                    {ticket.category_name ?? `Categoria #${ticket.category}`}
+                  </option>
+                )}
               {(categorias ?? []).map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
