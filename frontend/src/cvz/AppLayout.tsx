@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMe } from '@/api/queries/useMe'
+import { MiniChat } from '@/resolv/chat/MiniChat'
 // Tudo do barrel (DESIGN.md: "Importe sempre de src/components, nunca do
 // caminho profundo") — inclusive ToastProvider/useToast e initialsFrom, que
 // antes vinham de caminhos internos dos componentes.
@@ -74,31 +75,37 @@ function CvzAppShellBridge({
   }
 
   return (
-    <AppShell
-      variant={variant}
-      active={navIdAtivo(location.pathname)}
-      onNavigate={handleNavigate}
-      user={{
-        name: me?.full_name ?? '—',
-        initials: me ? initialsFrom(me.full_name) : '—',
-        presence: me?.presence ?? 'offline',
-      }}
-      conversations={0}
-      notifications={0}
-      onRunCommand={(cmd) => {
-        if (cmd.id === 'nav-inicio') navigate('/inicio')
-        else if (cmd.id === 'nav-tickets') navigate('/chamados')
-        else if (cmd.id === 'nav-clientes') navigate('/clientes')
-        else if (cmd.id === 'nav-avisos') navigate('/avisos')
-        else if (cmd.id === 'nav-auditoria') navigate('/auditoria')
-        else if (cmd.id === 'nav-configuracoes') navigate('/configuracoes')
-        else if (cmd.id === 'nav-relatorios') navigate('/relatorios')
-        else if (cmd.id !== 'advanced')
-          push({ tone: 'info', title: 'Em construção', description: 'Esta área ainda não existe.' })
-      }}
-    >
-      {children}
-    </AppShell>
+    <>
+      <AppShell
+        variant={variant}
+        active={navIdAtivo(location.pathname)}
+        onNavigate={handleNavigate}
+        user={{
+          name: me?.full_name ?? '—',
+          initials: me ? initialsFrom(me.full_name) : '—',
+          presence: me?.presence ?? 'offline',
+        }}
+        conversations={0}
+        notifications={0}
+        onRunCommand={(cmd) => {
+          if (cmd.id === 'nav-inicio') navigate('/inicio')
+          else if (cmd.id === 'nav-tickets') navigate('/chamados')
+          else if (cmd.id === 'nav-clientes') navigate('/clientes')
+          else if (cmd.id === 'nav-avisos') navigate('/avisos')
+          else if (cmd.id === 'nav-auditoria') navigate('/auditoria')
+          else if (cmd.id === 'nav-configuracoes') navigate('/configuracoes')
+          else if (cmd.id === 'nav-relatorios') navigate('/relatorios')
+          else if (cmd.id !== 'advanced')
+            push({ tone: 'info', title: 'Em construção', description: 'Esta área ainda não existe.' })
+        }}
+      >
+        {children}
+      </AppShell>
+      {/* irmão do shell, não filho do <main>: o mesmo mini chat do shell
+          Resolv — a pessoa continua respondendo um atendimento enquanto
+          olha um cliente ou um relatório aqui */}
+      <MiniChat />
+    </>
   )
 }
 

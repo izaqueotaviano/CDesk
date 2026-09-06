@@ -150,6 +150,15 @@ Se o widget estivesse dentro de uma rota, cada navegação o desmontaria e a
 conexão cairia. ⚑ Isso foi verificado: com o widget fora, navegar para o Kanban
 com uma conversa aberta preserva as mensagens e o socket.
 
+Na base atual o widget é o **mini chat** (`frontend/src/resolv/chat/MiniChat.tsx`):
+docado embaixo à direita, montado como irmão do `<main>` nos dois shells internos
+(`NovoShell` e `CvzAppLayout`), com os atendimentos do agente como abas e cada
+aba abrindo um painel com o mesmo `ConversaChat` do console (mesma sala de
+socket — o registro em `realtime/salaChat.ts` é contado por assinante). Quais
+painéis estão abertos mora em `stores/chatUi.ts` (zustand, fora do React Router),
+e o teto de painéis simultâneos é o `max_chats_per_agent` da configuração do
+chat — o mesmo número que limita quantos atendimentos o agente pega.
+
 **Dois sockets, ciclos de vida distintos:**
 
 | Socket | Vive enquanto | Serve para |

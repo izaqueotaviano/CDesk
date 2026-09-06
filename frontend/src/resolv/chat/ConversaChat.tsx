@@ -85,6 +85,9 @@ function Bolha({ msg }: { msg: MensagemChat }) {
 interface Props {
   chatId: number
   me: Me | undefined
+  /** Dentro de um painel do mini chat: sem o cabeçalho grande (o painel já
+   *  mostra quem é) e com espaçamento mais apertado. */
+  compacto?: boolean
 }
 
 /**
@@ -93,7 +96,7 @@ interface Props {
  * quando o backend aceitaria a mensagem (`can_send`), e nos outros casos
  * a tela diz o que fazer em vez de deixar um botão que ia falhar.
  */
-export function ConversaChat({ chatId, me }: Props) {
+export function ConversaChat({ chatId, me, compacto = false }: Props) {
   const navigate = useNavigate()
   const { data: chat, isLoading, isError } = useChat(chatId)
   const { data: mensagens, dataUpdatedAt } = useMensagensChat(chatId)
@@ -201,7 +204,8 @@ export function ConversaChat({ chatId, me }: Props) {
   }
 
   return (
-    <section className="cc-conversa">
+    <section className={'cc-conversa' + (compacto ? ' cc-conversa--compacta' : '')}>
+      {!compacto && (
       <header className="cc-conversa__header">
         <div>
           <h1 className="cc-conversa__titulo">
@@ -220,6 +224,7 @@ export function ConversaChat({ chatId, me }: Props) {
           {ROTULO_STATUS_SOCKET[status]}
         </span>
       </header>
+      )}
 
       <div className="cc-conversa__mensagens">
         {total >= LIMITE_MENSAGENS && !fimDoHistorico && (

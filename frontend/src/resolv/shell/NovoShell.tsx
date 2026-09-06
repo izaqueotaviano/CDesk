@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAvisosSonoros } from '@/realtime/useAvisosSonoros'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
+import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import './shell.scss'
 import { Sidebar } from './Sidebar'
@@ -25,6 +26,8 @@ export function NovoShell({ children }: { children: ReactNode }) {
         <Topbar />
         <main className="novo-shell__conteudo">{children}</main>
       </div>
+      {/* fora do <main>: trocar de tela não desmonta a conversa aberta (docs/07 §3.3) */}
+      <MiniChat />
     </div>
   )
 }
