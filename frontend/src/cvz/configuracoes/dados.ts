@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
+import { chaves as chavesChat, type ConfigChat } from '@/api/chat'
 
 function lista<T>(d: Paginado<T> | T[]): T[] {
   return Array.isArray(d) ? d : d.results
@@ -639,5 +640,33 @@ export function useRemoverImagemMarca(publico: PublicoLogin) {
   return useMutation({
     mutationFn: () => api.delete<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/image/`),
     onSuccess: invalidar,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Chat (ChatConfig, singleton) — GET/PUT /api/v1/chat/config/. A LEITURA é a
+// mesma do console e do mini chat (`useConfigChat`, chave `chaves.config` em
+// @/api/chat): salvar aqui atualiza o teto de atendimentos que eles mostram
+// sem F5. Só admin escreve (a view recusa o resto com 403).
+// ---------------------------------------------------------------------------
+
+export type ChatCfgEscrita = Partial<{
+  welcome_message: string
+  queue_timeout_minutes: number
+  max_chats_per_agent: number
+  score_min: number
+  score_max: number
+  low_score_threshold: number
+  default_team: number | null
+}>
+
+export function useAtualizarChatCfg() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (d: ChatCfgEscrita) => api.put<ConfigChat>('/api/v1/chat/config/', d),
+    onSuccess: (config) => {
+      qc.setQueryData(chavesChat.config, config)
+      qc.invalidateQueries({ queryKey: chavesChat.config })
+    },
   })
 }

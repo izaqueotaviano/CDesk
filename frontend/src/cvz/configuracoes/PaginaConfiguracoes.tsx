@@ -2,6 +2,7 @@ import { useSearchParams } from 'react-router-dom'
 import { PageHeader, Tabs } from '@/cvz/components'
 import { AbaCalendarios } from './AbaCalendarios'
 import { AbaCategorias } from './AbaCategorias'
+import { AbaChat } from './AbaChat'
 import { AbaEquipes } from './AbaEquipes'
 import { AbaModeracao } from './AbaModeracao'
 import { AbaPapeis } from './AbaPapeis'
@@ -25,6 +26,7 @@ const ABAS = [
   'papeis',
   'calendarios',
   'operacao',
+  'chat',
   'moderacao',
   'login',
 ] as const
@@ -77,6 +79,10 @@ export function PaginaConfiguracoes() {
           // Última porque é a única que não é cadastro: são os parâmetros
           // operacionais (linha única em banco) que valem para o sistema todo.
           { id: 'operacao', label: 'Operação', content: <AbaSistema /> },
+          // Parâmetros do chat (ChatConfig): boas-vindas, timeout da fila,
+          // teto de atendimentos por agente (que também é o teto de painéis
+          // do mini chat) e a escala da avaliação.
+          { id: 'chat', label: 'Chat', content: <AbaChat /> },
           // Lista de palavras censuradas no chat — a regra (censura na
           // exibição, retroativa) é do backend; aqui é só a lista.
           { id: 'moderacao', label: 'Moderação', content: <AbaModeracao /> },
