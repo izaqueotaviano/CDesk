@@ -283,6 +283,35 @@
   gap: $sp-4;
 }
 
+// --- chats por período (barras SVG à mão) -------------------------------------
+// Reaproveita `.relatorios-linha-do-tempo__eixo` (traço da base) e
+// `.relatorios-linha-do-tempo__datas` (rodapé de rótulos) — só o que é
+// específico de barra (retângulo, wrapper, estado curto) entra aqui.
+
+.relatorios-barras-periodo {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+
+  &--curta {
+    @include type($fs-ui);
+    color: $text-secondary;
+  }
+}
+
+.relatorios-barras-periodo__svg {
+  width: 100%;
+  height: 200px;
+}
+
+.relatorios-barras-periodo__barra {
+  fill: $blue;
+}
+
+.relatorios-barras-periodo__rotulos {
+  justify-content: space-between;
+}
+
 // --- satisfação ---------------------------------------------------------------
 
 .relatorios-satisfacao {

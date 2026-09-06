@@ -1,4 +1,5 @@
 import { PageHeader, Tabs } from '@/cvz/components'
+import { PainelChats } from './PainelChats'
 import { PainelDetalhado } from './PainelDetalhado'
 import { PainelIndicadores } from './PainelIndicadores'
 import './relatorios.scss'
@@ -19,6 +20,7 @@ export function PaginaRelatorios() {
         items={[
           { id: 'indicadores', label: 'Indicadores', content: <PainelIndicadores /> },
           { id: 'detalhado', label: 'Relatório detalhado', content: <PainelDetalhado /> },
+          { id: 'chats', label: 'Chats', content: <PainelChats /> },
         ]}
       />
     </>

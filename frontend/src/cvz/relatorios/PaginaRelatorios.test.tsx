@@ -141,7 +141,12 @@ describe('PaginaRelatorios', () => {
     montar()
     fireEvent.click(await screen.findByRole('tab', { name: 'Relatório detalhado' }))
     await screen.findByText('Tickets no recorte')
-    fireEvent.change(screen.getByLabelText('Agente'), { target: { value: '9' } })
+    // a aba "Chats" também tem um Select "Agente" — só fica fora da consulta
+    // porque o painel dela está `hidden` (não é a aba ativa), então
+    // `getByRole` já filtra por padrão; `getByLabelText` não filtra hidden,
+    // por isso o escopo em `within(tabpanel ativo)` aqui.
+    const painelAtivo = screen.getByRole('tabpanel')
+    fireEvent.change(within(painelAtivo).getByLabelText('Agente'), { target: { value: '9' } })
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/reports/tickets/' && c.search.includes('agent=9'))).toBe(true))
 
     const link = await screen.findByRole('link', { name: /Baixar CSV/ })

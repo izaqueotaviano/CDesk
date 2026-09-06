@@ -18,7 +18,9 @@ import { direcaoVariacao, formatarDuracao, formatarNota, formatarPercentual, for
 
 // Mesma ordem/rótulo de `indicators.PERIODS` — fixo o bastante para não valer
 // a pena esperar a primeira resposta da API só para desenhar os três botões.
-const PERIODOS: { key: ChavePeriodo; label: string }[] = [
+// Exportado porque `PainelChats` usa o mesmo seletor sobre o mesmo enum
+// (`ChavePeriodo`) — duplicar os três botões custaria mais do que importar.
+export const PERIODOS: { key: ChavePeriodo; label: string }[] = [
   { key: 'today', label: 'Hoje' },
   { key: 'week', label: 'Esta semana' },
   { key: 'month', label: 'Este mês' },

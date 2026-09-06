@@ -226,3 +226,71 @@ export function useCriarExportacao() {
 export function urlBaixarExportacao(downloadUrl: string): string {
   return `${API_BASE_URL}${downloadUrl}`
 }
+
+// --------------------------------------------------------------------------
+// Chats atendidos por agente e ao longo do tempo —
+// apps/reports/services/chat_stats.py::build_chat_stats, ChatStatsView
+// --------------------------------------------------------------------------
+
+export type Granularidade = 'hour' | 'day' | 'month' | 'year'
+
+/**
+ * `_by_agent` devolve duas formas de linha, não uma normalizada: a do
+ * agente (`agent_id`+`agent_name`) e a do total (`agent_id: null`,
+ * `label`+`is_total`). O union abaixo é o mesmo formato, sem inventar um
+ * terceiro shape só para a SPA — `agent_id` já distingue as duas.
+ */
+export interface LinhaAgenteChat {
+  agent_id: number
+  agent_name: string
+  value: number
+  variation: number | null
+  is_total?: false
+}
+
+export interface LinhaTotalChat {
+  agent_id: null
+  label: string
+  value: number
+  variation: number | null
+  is_total: true
+}
+
+export type LinhaEstatisticaAgente = LinhaAgenteChat | LinhaTotalChat
+
+/** Um balde da série — rótulo já formatado pela granularidade pedida (ver
+ *  `_bucket_label`): "2026-09-06T14:00:00", "2026-09-06", "2026-09" ou "2026". */
+export interface PontoEstatisticaChat {
+  bucket: string
+  count: number
+}
+
+export interface EstatisticasDeChat {
+  period: { key: ChavePeriodo; label: string }
+  /** Sempre TODOS os agentes com aceitação no período — `?agent=` não recorta
+   *  esta lista, só a `timeline` abaixo (ver docstring de `_by_agent`). */
+  by_agent: LinhaEstatisticaAgente[]
+  granularity: Granularidade
+  timeline: PontoEstatisticaChat[]
+}
+
+export interface FiltrosEstatisticasDeChat {
+  period: ChavePeriodo
+  granularity: Granularidade
+  /** `null` = todos os agentes. */
+  agentId: number | null
+  from?: string
+  to?: string
+}
+
+export function useEstatisticasDeChat(filtros: FiltrosEstatisticasDeChat) {
+  const q = new URLSearchParams({ period: filtros.period, granularity: filtros.granularity })
+  if (filtros.agentId) q.set('agent', String(filtros.agentId))
+  if (filtros.from) q.set('from', filtros.from)
+  if (filtros.to) q.set('to', filtros.to)
+  return useQuery({
+    queryKey: ['relatorios', 'chats', filtros.period, filtros.granularity, filtros.agentId, filtros.from, filtros.to],
+    queryFn: () => api.get<EstatisticasDeChat>(`/api/v1/reports/chats/?${q.toString()}`),
+    staleTime: 15_000,
+  })
+}

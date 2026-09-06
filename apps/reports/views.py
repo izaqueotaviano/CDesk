@@ -22,7 +22,7 @@ from rest_framework.views import APIView
 from apps.audit.models import AuditLog
 from apps.core.permissions import IsInternal
 from apps.reports.models import ReportExport
-from apps.reports.services import indicators, metrics
+from apps.reports.services import chat_stats, indicators, metrics
 from apps.tickets import selectors
 
 CSV_COLUMNS = [
@@ -179,6 +179,45 @@ class IndicatorsView(APIView):
             request.user,
             period=request.query_params.get("period") or "month",
             team_id=_parse_int(request.query_params.get("team"), "team"),
+        ))
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter("period", OpenApiTypes.STR, enum=list(indicators.PERIODS),
+                         description="Janela da tabela por agente (padrão: month)"),
+        OpenApiParameter("granularity", OpenApiTypes.STR, enum=["hour", "day", "month", "year"],
+                         description="Bucket da série temporal (padrão: day)"),
+        OpenApiParameter("agent", OpenApiTypes.INT,
+                         description="Recorta a série temporal (não afeta a tabela por agente)"),
+        OpenApiParameter("from", OpenApiTypes.DATE, description="Início da série (AAAA-MM-DD)"),
+        OpenApiParameter("to", OpenApiTypes.DATE, description="Fim da série (AAAA-MM-DD)"),
+    ],
+    responses=OpenApiTypes.OBJECT,
+)
+class ChatStatsView(APIView):
+    """GET /api/v1/reports/chats/?period=&granularity=&agent=&from=&to=
+
+    Quantos chats cada agente atendeu (tabela, com variação vs. o período
+    anterior) e a mesma contagem ao longo do tempo (série, na granularidade
+    pedida). Escopo gerencial — todos os chats do sistema, sem recorte por
+    empresa, o mesmo espírito de `IndicatorsView`.
+
+    "Atendido" e as contagens exatas seguem as regras documentadas em
+    `apps.reports.services.chat_stats` — em especial a limitação sobre chat
+    reaberto (só a última aceitação conta).
+    """
+
+    permission_classes = [IsInternal]
+
+    def get(self, request):
+        params = request.query_params
+        return Response(chat_stats.build_chat_stats(
+            period=params.get("period") or "month",
+            granularity=params.get("granularity") or "day",
+            agent_id=_parse_int(params.get("agent"), "agent"),
+            date_from=_parse_date(params.get("from"), "from"),
+            date_to=_parse_date(params.get("to"), "to"),
         ))
 
 

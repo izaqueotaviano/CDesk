@@ -72,6 +72,7 @@ from apps.kanban.views import BoardLaneViewSet, BoardViewSet
 from apps.knowledge.views import ArticleViewSet
 from apps.notifications.views import NotificationPreferenceView, NotificationViewSet
 from apps.reports.views import (
+    ChatStatsView,
     IndicatorsView,
     ReportExportViewSet,
     TicketReportExportView,
@@ -204,4 +205,5 @@ urlpatterns = router.urls + [
     path("reports/tickets/", TicketReportView.as_view(), name="report-tickets"),
     path("reports/tickets/export/", TicketReportExportView.as_view(),
          name="report-tickets-export"),
+    path("reports/chats/", ChatStatsView.as_view(), name="report-chats"),
 ]
