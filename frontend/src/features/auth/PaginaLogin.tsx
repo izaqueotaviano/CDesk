@@ -2,19 +2,27 @@ import { useQueryClient } from '@tanstack/react-query'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useId, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
 import { ArrowLeft, Eye, EyeOff, Headset, LifeBuoy, MailCheck, ShieldCheck, Smartphone, Ticket, type LucideIcon } from 'lucide-react'
 import { useConfirmar2fa, useReenviar2fa } from '@/api/mutations/use2fa'
 import { precisaDeCodigo, useLogin } from '@/api/mutations/useLogin'
 import { MARCA_PADRAO, urlDaImagemDeMarca, useMarcaLogin, type MarcaLogin, type PublicoLogin } from '@/api/branding'
-import { ApiError } from '@/api/client'
+import { API_BASE_URL, ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
 import { cn } from '@/portal/lib/cn'
 import { AlternarTema } from '@/portal/shell/PortalShell'
 import { Alert } from '@/portal/ui/alert'
-import { Button } from '@/portal/ui/button'
+import { Button, buttonVariants } from '@/portal/ui/button'
 import { ErroCampo, Input, Label } from '@/portal/ui/input'
+
+/** `?erro=` na volta do redirect do allauth (`apps/accounts/adapters.py`,
+ *  `SocialAccountAdapter.pre_social_login`) — a única forma de o backend
+ *  avisar algo aqui, já que esse fluxo é redirect de navegador, não fetch. */
+const ERRO_GOOGLE: Record<string, string> = {
+  dominio: 'Esse e-mail do Google não tem acesso ao painel. Entre com e-mail e senha, ou fale com um administrador.',
+  inativo: 'Sua conta está inativa. Fale com um administrador.',
+}
 
 const esquemaCredenciais = z.object({
   email: z.string().trim().email('Informe um e-mail válido.'),
@@ -161,6 +169,19 @@ function BannerCelular({ marca, nome }: { marca: Marca | null; nome: string }) {
   )
 }
 
+/** O "G" colorido do Google — não é um ícone da lucide (é logo de marca, não
+ *  glifo genérico), então vem inline em SVG, só aqui onde é usado. */
+function GoogleG() {
+  return (
+    <svg className="size-4" viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z" />
+      <path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.6 15.4 18.9 12 24 12c3.1 0 5.8 1.1 8 3l5.7-5.7C34.6 6 29.6 4 24 4c-7.4 0-13.8 4.1-17.1 10.2z" />
+      <path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.2-5.5l-6.6-5.6C29.6 34.6 26.9 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.6 5.1C9.1 39.6 15.9 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4 5.5l6.6 5.6C41.4 36 44 30.6 44 24c0-1.3-.1-2.7-.4-3.5z" />
+    </svg>
+  )
+}
+
 /**
  * Login da equipe (/login) e do cliente (/login/cliente): a mesma tela, com o
  * texto de cada público. Dois passos só quando a conta tem a verificação em
@@ -171,8 +192,13 @@ export function PaginaLogin() {
   const location = useLocation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const contexto = CONTEXTOS[location.pathname.startsWith('/login/cliente') ? 'cliente' : 'equipe']
   const de = (location.state as { de?: string } | null)?.de
+  // Google é só para a equipe (adapters.py: cliente não se auto-cadastra) —
+  // e mesmo `?erro=` chegando aqui via /login/cliente por engano, não faz
+  // sentido mostrar um aviso sobre um botão que essa tela nem tem.
+  const erroGoogle = contexto.publico === 'equipe' ? ERRO_GOOGLE[searchParams.get('erro') ?? ''] : undefined
   // textos e imagem do painel: do admin, ou o padrão se a API não responder;
   // enquanto carrega, o painel fica sem texto para não piscar o padrão
   const marcaQuery = useMarcaLogin()
@@ -282,6 +308,28 @@ export function PaginaLogin() {
                     <Alert id={idErro} variant="destructive" titulo={erro instanceof ApiError && erro.status === 400 ? 'Não deu para entrar' : 'Tente de novo'}>
                       {mensagemDeErro(erro)}
                     </Alert>
+                  )}
+                  {erro == null && erroGoogle && (
+                    <Alert variant="destructive" titulo="Não deu para entrar com o Google">
+                      {erroGoogle}
+                    </Alert>
+                  )}
+
+                  {contexto.publico === 'equipe' && (
+                    <>
+                      <a
+                        href={`${API_BASE_URL}/accounts/google/login/`}
+                        className={cn(buttonVariants({ variant: 'outline', size: 'lg' }), 'w-full gap-2.5')}
+                      >
+                        <GoogleG />
+                        Continuar com o Google
+                      </a>
+                      <div className="flex items-center gap-3 text-legenda text-tinta-secundaria" role="separator">
+                        <span className="h-px flex-1 bg-divisoria" aria-hidden="true" />
+                        ou entre com e-mail e senha
+                        <span className="h-px flex-1 bg-divisoria" aria-hidden="true" />
+                      </div>
+                    </>
                   )}
 
                   <div className="flex flex-col gap-1.5">

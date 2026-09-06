@@ -37,7 +37,7 @@ DJANGO_APPS = [
     # Só pelo lookup `unaccent` da busca (extensão criada em
     # tickets/0024) — nenhum campo de modelo vem daqui.
     "django.contrib.postgres",
-    # "django.contrib.sites",  # só exigido pelo allauth — volta junto com ele
+    "django.contrib.sites",  # exigido pelo allauth
 ]
 
 THIRD_PARTY_APPS = [
@@ -48,15 +48,13 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "channels",
     "django_celery_beat",
-    # Login por Google Workspace (allauth) desativado por enquanto — os internos
-    # de demo entram por e-mail/senha em /login/cliente, igual ao cliente.
-    # Para religar: descomentar aqui, no MIDDLEWARE, em AUTHENTICATION_BACKENDS,
-    # no bloco "--- allauth ---" abaixo, em config/urls.py e em
-    # django.contrib.sites acima — e configurar GOOGLE_OAUTH_CLIENT_ID/SECRET.
-    # "allauth",
-    # "allauth.account",
-    # "allauth.socialaccount",
-    # "allauth.socialaccount.providers.google",
+    # Login por Google Workspace (allauth) — internos entram por aqui OU por
+    # e-mail/senha em /login/cliente (a allowlist de domínio decide quem passa,
+    # ver apps/accounts/adapters.py e GOOGLE_OAUTH_ALLOWED_DOMAINS abaixo).
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
 ]
 
 LOCAL_APPS = [
@@ -90,13 +88,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # "allauth.account.middleware.AccountMiddleware",  # volta junto com o allauth acima
+    "allauth.account.middleware.AccountMiddleware",
     # por último: só transforma a exceção de bloqueio do axes em resposta
     # (para o admin; na API quem faz isso é apps.core.exceptions)
     "axes.middleware.AxesMiddleware",
 ]
 
-# SITE_ID = 1  # só exigido pelo allauth — volta junto com ele
+SITE_ID = 1  # exigido pelo allauth
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -141,7 +139,7 @@ AUTHENTICATION_BACKENDS = [
     # a senha — é o que impede a enumeração por tempo de resposta
     "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",  # e-mail/senha — cliente e interno
-    # "allauth.account.auth_backends.AuthenticationBackend",  # Google — desativado por enquanto
+    "allauth.account.auth_backends.AuthenticationBackend",  # Google
 ]
 
 # 12 caracteres e três classes: é o que segura ataque de dicionário sem
@@ -189,39 +187,39 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.axes.bloqueado"
 AXES_CLIENT_IP_CALLABLE = "apps.accounts.sessions.client_ip"
 AXES_VERBOSE = False  # o histórico de tentativas fica em AccessEvent, não no log
 
-# --- allauth (Google OAuth) — desativado por enquanto, ver THIRD_PARTY_APPS ---
-# Clientes não se auto-cadastram (convite); a ideia é internos entrarem por
-# Google OAuth restrito à allowlist de domínios do Workspace (regras nos
-# adapters, apps/accounts/adapters.py) — por ora todo mundo entra por
-# e-mail/senha em /login/cliente (ver apps.accounts.views.LoginView).
-# ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
-# SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
-# ACCOUNT_LOGIN_METHODS = {"email"}
-# ACCOUNT_SIGNUP_FIELDS = ["email*"]
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-# ACCOUNT_EMAIL_VERIFICATION = "none"  # internos: verificado pelo Google; clientes: convite
-# SOCIALACCOUNT_AUTO_SIGNUP = True
+# --- allauth (Google OAuth) ---
+# Clientes não se auto-cadastram (convite); internos entram por Google OAuth
+# restrito à allowlist de domínios do Workspace (regras nos adapters,
+# apps/accounts/adapters.py) OU por e-mail/senha, igual ao cliente — as duas
+# portas ficam abertas (ver apps.accounts.views.LoginView).
+ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = "none"  # internos: verificado pelo Google; clientes: convite
+SOCIALACCOUNT_AUTO_SIGNUP = True
 # rotas da SPA — LOGIN_URL segue em uso pelo DRF (401 -> redireciona pra cá)
 LOGIN_URL = "/login"
-LOGIN_REDIRECT_URL = "/app"
-# ACCOUNT_LOGOUT_REDIRECT_URL = "/login"
+LOGIN_REDIRECT_URL = "/inicio"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/login"
 
-# GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
-# GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
 # allowlist de domínios aceitos no SSO — vazia bloqueia o login interno
-# GOOGLE_OAUTH_ALLOWED_DOMAINS = env.list("GOOGLE_OAUTH_ALLOWED_DOMAINS", default=[])
+GOOGLE_OAUTH_ALLOWED_DOMAINS = env.list("GOOGLE_OAUTH_ALLOWED_DOMAINS", default=[])
 
-# SOCIALACCOUNT_PROVIDERS = {
-#     "google": {
-#         "APP": {
-#             "client_id": GOOGLE_OAUTH_CLIENT_ID,
-#             "secret": GOOGLE_OAUTH_CLIENT_SECRET,
-#             "key": "",
-#         },
-#         "SCOPE": ["profile", "email"],
-#         "AUTH_PARAMS": {"access_type": "online"},
-#     }
-# }
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": GOOGLE_OAUTH_CLIENT_ID,
+            "secret": GOOGLE_OAUTH_CLIENT_SECRET,
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
 
 
 # --------------------------------------------------------------------------- #

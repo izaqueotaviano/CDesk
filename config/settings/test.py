@@ -28,6 +28,14 @@ AXES_ENABLED = False
 # quarentena ligam com override_settings e mockam o daemon (test_antivirus).
 CLAMAV_ENABLED = False
 
+# Login por Google desligado por padrão na suíte, mesmo que o `.env` local
+# de quem roda os testes tenha um domínio de verdade configurado (developer
+# machine) — sem isto, `login_por_google_ativo()` mudava de resultado
+# dependendo de QUEM rodava a suíte, não do teste. Quem quer exercitar
+# "Google ativo" liga com o fixture `settings` (ver test_google_adapter.py,
+# test_admin_api.py::test_refused_for_google_only_account).
+GOOGLE_OAUTH_ALLOWED_DOMAINS = []
+
 # Expurgo real jamais roda em teste por acidente.
 RETENTION_DRY_RUN = True
 

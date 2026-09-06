@@ -280,10 +280,13 @@ profundidade, não substituto da API.)
 
 `/login` · `/sessao-expirada`
 
-(`/login/google` existiu como redirect para o fluxo allauth, mas nunca teve
-botão nenhum apontando pra ela e o allauth está desligado em `config/urls.py`
-— removida. Login por Google volta a existir aqui no dia em que a decisão de
-produto for tomada.)
+(`/login/google` existiu como rota própria da SPA, um redirect client-side
+sem nenhum botão apontando pra ela — removida. O login por Google voltou,
+mas não como rota da SPA: é um `<a href>` comum em `/login` para
+`{API_BASE_URL}/accounts/google/login/`, porque o handshake OAuth é redirect
+de navegador de ponta a ponta, allauth cuida dele por fora do React Router —
+ver `config/urls.py` e `apps/accounts/adapters.py`. Erro de volta chega como
+`/login?erro=dominio|inativo`, lido por `PaginaLogin.tsx`.)
 
 ### 4.6 Filtros em query params, não em estado
 

@@ -35,11 +35,11 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function montar(rota = '/login/cliente', state?: { de: string }) {
+function montar(rota = '/login/cliente', state?: { de: string }, search?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={[{ pathname: rota, state }]}>
+      <MemoryRouter initialEntries={[{ pathname: rota, search, state }]}>
         <Routes>
           <Route path="/login" element={<PaginaLogin />} />
           <Route path="/login/cliente" element={<PaginaLogin />} />
@@ -125,6 +125,31 @@ describe('PaginaLogin', () => {
     respostas['/api/v1/auth/login/'] = () => ({ status: 429, corpo: { detail: 'Pedido foi suprimido. Espera-se que esteja diponível em 2573 segundos.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(await screen.findByText('Muitas tentativas. Aguarde 43 minutos e tente de novo.')).toBeInTheDocument()
+  })
+
+  it('a equipe tem "Continuar com o Google"; o cliente não (não se auto-cadastra)', () => {
+    const { unmount } = montar('/login')
+    expect(screen.getByRole('link', { name: 'Continuar com o Google' })).toHaveAttribute(
+      'href',
+      'http://localhost:8000/accounts/google/login/',
+    )
+    unmount()
+    montar('/login/cliente')
+    expect(screen.queryByRole('link', { name: 'Continuar com o Google' })).not.toBeInTheDocument()
+  })
+
+  it('?erro=dominio (allauth recusou o domínio) mostra o motivo, só pra equipe', () => {
+    const { unmount } = montar('/login', undefined, '?erro=dominio')
+    expect(screen.getByText(/Esse e-mail do Google não tem acesso ao painel/)).toBeInTheDocument()
+    unmount()
+    // no /login/cliente o parâmetro é ignorado — não existe botão de Google ali
+    montar('/login/cliente', undefined, '?erro=dominio')
+    expect(screen.queryByText(/Esse e-mail do Google não tem acesso ao painel/)).not.toBeInTheDocument()
+  })
+
+  it('?erro=inativo mostra que a conta está desativada', () => {
+    montar('/login', undefined, '?erro=inativo')
+    expect(screen.getByText('Sua conta está inativa. Fale com um administrador.')).toBeInTheDocument()
   })
 
   it('valida antes de chamar a API', async () => {

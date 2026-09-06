@@ -325,11 +325,13 @@ class TestPasswordReset:
         assert resp.status_code == 403
 
     def test_refused_for_google_only_account(self, api, admin, agente, settings):
-        # com o Google ligado, um interno não tem senha nenhuma pra redefinir
+        # com o Google ligado E configurado (as duas — ver login_por_google_ativo),
+        # um interno não tem senha nenhuma pra redefinir
         settings.AUTHENTICATION_BACKENDS = [
             "django.contrib.auth.backends.ModelBackend",
             "allauth.account.auth_backends.AuthenticationBackend",
         ]
+        settings.GOOGLE_OAUTH_ALLOWED_DOMAINS = ["x.test"]
         resp = api(admin).post(self.URL.format(agente.pk))
         assert resp.status_code == 400
 

@@ -55,15 +55,25 @@ from apps.notifications.services import queue_email
 
 
 def login_por_google_ativo() -> bool:
-    """O Google Workspace está mesmo ligado nesta instalação?
+    """O Google Workspace está mesmo ligado nesta instalação — e USÁVEL?
 
     Interno "entra por Google" era premissa do código, não fato da
-    configuração: com o allauth comentado (o estado atual), quem era criado
-    como agente ficava sem senha utilizável E sem Google — trancado para fora
-    do sistema, sem nenhuma tela dizer isso a quem o cadastrou. Perguntar às
-    settings em vez de supor é o que faz o convite chegar a quem precisa dele.
+    configuração: com o allauth comentado, quem era criado como agente
+    ficava sem senha utilizável E sem Google — trancado para fora do sistema,
+    sem nenhuma tela dizer isso a quem o cadastrou. Perguntar às settings em
+    vez de supor é o que faz o convite chegar a quem precisa dele.
+
+    As DUAS condições importam, não só a primeira: o backend pode estar
+    registrado em código (allauth ligado) e ainda assim ninguém conseguir
+    entrar por Google, porque `GOOGLE_OAUTH_ALLOWED_DOMAINS` — a allowlist de
+    `apps.accounts.adapters.SocialAccountAdapter._domain_allowed` — está
+    vazia (o padrão até um admin configurar o domínio real do Workspace, e o
+    próprio adapter trata vazio como "bloqueia todo mundo", de propósito).
+    Checar só a primeira condição faria um agente recém-criado ficar sem
+    convite por e-mail E sem conseguir logar por Google — sem senha, sem
+    Google, sem aviso pra ninguém.
     """
-    return any(
+    return bool(settings.GOOGLE_OAUTH_ALLOWED_DOMAINS) and any(
         "allauth" in backend for backend in settings.AUTHENTICATION_BACKENDS
     )
 
