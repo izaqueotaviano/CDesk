@@ -20,6 +20,18 @@ const PEDIDO_ANONIMIZAR = {
   created_at: '2026-09-01T00:00:00Z',
 }
 
+const ACESSO = {
+  id: 1, ticket: 128, ticket_reference: 'CVZ-2026-000128', team: 'Financeiro', user: 9, user_name: 'Bruno',
+  was_granted: false, context: 'detail', ip_address: '203.0.113.9', created_at: '2026-09-02T00:00:00Z',
+}
+
+const CICLO_SIMULACAO = {
+  id: 3, dry_run: true, status: 'done', results: { audit_log: { matched: 12, applied: 0, sample: ['1', '2'] } },
+  error: '', finished_at: '2026-09-01T00:05:00Z', triggered_by: 1, triggered_by_name: 'Alice',
+  total_matched: 12, total_applied: 0, reviewed_by: null, reviewed_by_name: null, reviewed_at: null,
+  review_note: '', is_reviewed: false, created_at: '2026-09-01T00:00:00Z',
+}
+
 let me: Record<string, unknown>
 let chamadas: { url: string; metodo: string; corpo: unknown }[]
 
@@ -43,6 +55,10 @@ beforeEach(() => {
       if (u.pathname === '/api/v1/audit/lgpd/7/verify/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'approved' }))
       if (u.pathname === '/api/v1/audit/lgpd/7/reject/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'rejected' }))
       if (u.pathname === '/api/v1/audit/lgpd/7/execute/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'running' }))
+      if (u.pathname === '/api/v1/audit/ticket-access/') return Promise.resolve(jsonDe({ count: 1, next: null, previous: null, results: [ACESSO] }))
+      if (u.pathname === '/api/v1/audit/retention/' && metodo === 'GET') return Promise.resolve(jsonDe({ count: 1, next: null, previous: null, results: [CICLO_SIMULACAO] }))
+      if (u.pathname === '/api/v1/audit/retention/simulate/') return Promise.resolve(jsonDe({ ...CICLO_SIMULACAO, id: 4 }, 201))
+      if (u.pathname === '/api/v1/audit/retention/3/review/') return Promise.resolve(jsonDe({ ...CICLO_SIMULACAO, is_reviewed: true, reviewed_by_name: 'Alice' }))
       return Promise.resolve(jsonDe({}, 404))
     }),
   )
@@ -100,5 +116,27 @@ describe('PaginaAuditoria', () => {
     fireEvent.change(within(modal).getByLabelText('Motivo da negativa (obrigatório pela LGPD)'), { target: { value: 'Identidade não confirmada' } })
     fireEvent.click(within(modal).getByRole('button', { name: 'Rejeitar' }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/lgpd/7/reject/' && c.metodo === 'POST')).toBe(true))
+  })
+
+  it('aba "Acessos restritos" lista inclusive tentativa negada', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Acessos restritos' }))
+    expect(await screen.findByText('CVZ-2026-000128')).toBeInTheDocument()
+    expect(screen.getByText('Negado')).toBeInTheDocument()
+  })
+
+  it('aba "Retenção" roda simulação e revisa um ciclo', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Retenção' }))
+    expect(await screen.findByText('Simulação')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rodar simulação agora' }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/retention/simulate/' && c.metodo === 'POST')).toBe(true))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Revisar' }))
+    const modal = await screen.findByRole('dialog')
+    fireEvent.click(within(modal).getByRole('button', { name: 'Marcar como revisado' }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/retention/3/review/' && c.metodo === 'POST')).toBe(true))
+    expect(chamadas.find((c) => c.url === '/api/v1/audit/retention/3/review/')!.corpo).toEqual({ review_note: '' })
   })
 })
