@@ -63,7 +63,9 @@
     align-items: center;
     justify-content: center;
     background: var(--accent);
-    color: #fff;
+    // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
+    // no escuro (tokens.scss:77) e branco por cima reprova o AA.
+    color: var(--surface-card);
     border: none;
     border-radius: 2px;
     cursor: pointer;
@@ -83,12 +85,16 @@
     gap: 6px;
     height: 34px;
     padding: 0 12px;
-    background: var(--acento);
-    border: 0.7px solid var(--acento);
+    // --accent/--surface-card (paleta Resolv), nao --acento/--acento-sobre:
+    // aqueles dois nao existem em resolv/styles/tokens.scss e vinham por
+    // heranca de styles/tokens.css, o design system do portal. Era a unica
+    // superficie do Resolv pintada com o azul da outra paleta.
+    background: var(--accent);
+    border: 0.7px solid var(--accent);
     border-radius: 2px;
     font-size: 12px;
     font-weight: 500;
-    color: var(--acento-sobre);
+    color: var(--surface-card);
     cursor: pointer;
     i {
       font-size: 15px;
@@ -127,7 +133,9 @@
     }
     &:focus-within {
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.15);
+      // Anel de foco derivado do accent do tema: cravado no azul do claro ele
+      // some no escuro, e foco invisível é falha de acessibilidade.
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
     }
   }
 
@@ -142,8 +150,10 @@
     align-items: center;
     gap: 10px;
     padding: 8px 12px;
-    background: rgba(2, 117, 222, 0.04);
-    border: 0.7px solid rgba(2, 117, 222, 0.12);
+    // Barra de ação em lote: accent diluído. Em rgba cru ela ficava no azul
+    // escuro do tema claro e sumia sobre a superfície escura.
+    background: color-mix(in srgb, var(--accent) 4%, transparent);
+    border: 0.7px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: 2px;
     font-size: 12px;
     color: var(--text-secondary);
@@ -228,7 +238,7 @@
       margin-top: 4px;
       padding: 7px 16px;
       background: var(--accent);
-      color: #fff;
+      color: var(--surface-card);
       border: none;
       border-radius: 2px;
       font-size: 13px;
@@ -348,7 +358,7 @@
       color: var(--text-primary);
     }
     &--ativo {
-      background: rgba(2, 117, 222, 0.06);
+      background: color-mix(in srgb, var(--accent) 6%, transparent);
       border-left-color: var(--accent);
       color: var(--accent);
       font-weight: 500;

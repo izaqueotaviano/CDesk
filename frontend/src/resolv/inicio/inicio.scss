@@ -45,7 +45,9 @@
     border: none;
     border-radius: 2px;
     background: var(--accent);
-    color: #fff;
+    // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
+    // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
+    color: var(--surface-card);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -292,7 +294,7 @@
     border: none;
     border-radius: 2px;
     background: var(--accent);
-    color: #fff;
+    color: var(--surface-card);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

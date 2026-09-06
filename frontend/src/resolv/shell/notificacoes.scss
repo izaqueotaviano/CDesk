@@ -17,7 +17,11 @@
     height: 14px;
     padding: 0 4px;
     background: var(--danger);
-    color: #fff;
+    // No escuro --danger clareia para salmão (tokens.scss:78) e branco por cima
+    // reprova o AA. --surface-card é a mesma regra que menu-presenca.scss:51 já
+    // usa sobre o accent — no claro continua sendo branco puro, no escuro
+    // escurece junto com o resto.
+    color: var(--surface-card);
     font-size: 9px;
     font-weight: 600;
     line-height: 14px;

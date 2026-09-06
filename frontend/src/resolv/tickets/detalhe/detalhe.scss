@@ -3,19 +3,14 @@
 //
 // Estrutura: abas · cabeçalho do ticket · 3 colunas (Propriedades · Conversa ·
 // Cliente). Borda 0.7px, raio 2px nos controles, raio total nas pílulas, mono
-// nas referências, um acento só (#0275DE). Tudo aqui vive sob .resolv-scope
-// (tokens.scss) — os tons abaixo são derivados dos tokens, não cores novas.
+// nas referências, um acento só. Tudo aqui vive sob .resolv-scope, e é de lá
+// (tokens.scss) que vêm --tom-*, --anel-foco e --sombra-flutuante: eram oito
+// declarações copiadas linha a linha entre este arquivo e novo.scss, escritas
+// em rgba() cru — ou seja, presas ao tema claro e duplicadas.
 // ============================================================================
 
 .detalhe {
-  --tom-acento: rgba(2, 117, 222, 0.08);
-  --tom-acento-forte: rgba(2, 117, 222, 0.16);
-  --tom-ok: rgba(29, 122, 76, 0.1);
-  --tom-alerta: #fef3cd;
-  --tom-alerta-borda: rgba(138, 93, 15, 0.28);
-  --tom-perigo: rgba(179, 38, 30, 0.08);
-  --anel-foco: 0 0 0 2px rgba(2, 117, 222, 0.22);
-  --sombra-flutuante: 0 12px 32px rgba(59, 53, 50, 0.14), 0 0 0 0.7px var(--stroke);
+  // Só o que é geometria desta tela; a cor mora nos tokens.
   --largura-props: 272px;
   --largura-cliente: 296px;
 
@@ -102,7 +97,10 @@
     &--primario {
       background: var(--accent);
       border-color: var(--accent);
-      color: #fff;
+      // Token de superfície sobre fundo de marca: o --accent clareia no tema
+      // escuro (tokens.scss:77) e branco por cima cai para 2.45:1. Vale para
+      // todo botão --primario deste arquivo.
+      color: var(--surface-card);
       &:hover {
         filter: brightness(1.06);
       }
@@ -119,7 +117,8 @@
     gap: 8px;
     padding: 8px 20px;
     background: var(--tom-perigo);
-    border-bottom: 0.7px solid rgba(179, 38, 30, 0.25);
+    // Borda e hover derivam do --danger do tema em vez do vermelho do claro.
+    border-bottom: 0.7px solid color-mix(in srgb, var(--danger) 25%, transparent);
     font-size: 12px;
     color: var(--danger);
     i {
@@ -139,7 +138,7 @@
       border-radius: 2px;
       cursor: pointer;
       &:hover {
-        background: rgba(179, 38, 30, 0.12);
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
       }
     }
   }
@@ -150,7 +149,10 @@
     inset: 0;
     z-index: 5;
     border: none;
-    background: rgba(59, 53, 50, 0.24);
+    // Véu por token: no claro é o marrom do texto diluído, no escuro vira preto
+    // mais opaco (tokens.scss), porque 24% de qualquer coisa sobre uma tela já
+    // escura mal escurece.
+    background: var(--veu-suave);
     cursor: pointer;
   }
 
@@ -350,7 +352,7 @@
     }
     &--ativo {
       background: var(--tom-acento);
-      border-color: rgba(2, 117, 222, 0.3);
+      border-color: var(--tom-acento-borda);
       color: var(--accent);
       i {
         color: var(--accent);
@@ -359,9 +361,9 @@
     &--primario {
       background: var(--accent);
       border-color: var(--accent);
-      color: #fff;
+      color: var(--surface-card);
       i {
-        color: #fff;
+        color: var(--surface-card);
       }
       &:hover {
         background: var(--accent);
@@ -397,7 +399,7 @@
     }
     &--ativa {
       background: var(--tom-acento);
-      border-color: rgba(2, 117, 222, 0.3);
+      border-color: var(--tom-acento-borda);
       color: var(--accent);
     }
   }
@@ -469,7 +471,7 @@
     white-space: nowrap;
     &--ok {
       background: var(--tom-ok);
-      border-color: rgba(29, 122, 76, 0.25);
+      border-color: color-mix(in srgb, var(--ok) 25%, transparent);
       color: var(--ok);
     }
     &--alerta {
@@ -479,7 +481,7 @@
     }
     &--perigo {
       background: var(--tom-perigo);
-      border-color: rgba(179, 38, 30, 0.3);
+      border-color: color-mix(in srgb, var(--danger) 30%, transparent);
       color: var(--danger);
     }
   }
@@ -840,7 +842,9 @@
     border-left: 2px solid var(--accent);
   }
   &--interna {
-    background: #fffbea;
+    // Creme da nota interna por token: o valor sólido do claro escureceria o
+    // texto do tema escuro contra um fundo luminoso (tokens.scss cuida do par).
+    background: var(--tom-nota);
     border-color: var(--tom-alerta-borda);
     border-left: 2px solid var(--away);
   }
@@ -1041,12 +1045,13 @@
     &--primario {
       background: var(--accent);
       border-color: var(--accent);
-      color: #fff;
+      color: var(--surface-card);
     }
     &--perigo {
       background: var(--danger);
       border-color: var(--danger);
-      color: #fff;
+      // Mesma regra do accent: no escuro --danger é salmão claro (tokens.scss:78).
+      color: var(--surface-card);
     }
   }
   &__erro {
@@ -1167,7 +1172,7 @@
   transition: background 0.18s ease;
 
   &--interna {
-    background: #fffbea;
+    background: var(--tom-nota);
   }
   &--bloqueado {
     flex-direction: row;
@@ -1283,7 +1288,8 @@
   }
   &--interna &__texto:focus {
     border-color: var(--away);
-    box-shadow: 0 0 0 2px rgba(138, 93, 15, 0.18);
+    // Variante âmbar do --anel-foco, para o compositor em modo nota interna.
+    box-shadow: var(--anel-foco-alerta);
   }
 
   &__anexos {
@@ -1337,7 +1343,7 @@
   &__fechamento {
     margin: 0;
     padding: 10px 12px 12px;
-    border: 0.7px solid rgba(29, 122, 76, 0.3);
+    border: 0.7px solid color-mix(in srgb, var(--ok) 30%, transparent);
     border-radius: 2px;
     background: var(--surface-card);
     legend {
@@ -1572,7 +1578,7 @@
     border: none;
     border-radius: 2px;
     background: var(--accent);
-    color: #fff;
+    color: var(--surface-card);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -1583,7 +1589,9 @@
       font-size: 10px;
       line-height: 1;
       padding: 3px 4px;
-      border: 0.7px solid rgba(255, 255, 255, 0.4);
+      // Borda diluída da PRÓPRIA cor do texto do botão: um branco a 40% some
+      // quando o --accent clareia no escuro.
+      border: 0.7px solid color-mix(in srgb, var(--surface-card) 40%, transparent);
       border-radius: 2px;
       opacity: 0.8;
     }
@@ -1821,7 +1829,7 @@
 // global.scss do cvz está carregado. Sob o shell Resolv isso não é garantido —
 // sem esta âncora o painel fica transparente sobre a conversa.
 .detalhe .modal-overlay {
-  background: rgba(59, 53, 50, 0.42);
+  background: var(--veu);
 }
 .detalhe .modal {
   background: var(--surface-card);
@@ -1836,7 +1844,10 @@
   &__intro {
     font-size: 12px;
     line-height: 1.5;
-    color: var(--text-secondary, #79706a);
+    // Sem fallback literal: o fallback era a cor do tema CLARO, então num
+    // eventual portal para fora do .resolv-scope o texto voltaria clara no
+    // escuro — falhar sem cor é mais honesto do que falhar com a cor errada.
+    color: var(--text-secondary);
     margin: 0;
   }
   &__campo {
@@ -1849,18 +1860,18 @@
     }
     input,
     textarea {
-      border: 0.7px solid var(--stroke, #e3e1df);
+      border: 0.7px solid var(--stroke);
       border-radius: 2px;
       padding: 7px 10px;
       font-family: inherit;
       font-size: 13px;
       &:focus {
         outline: none;
-        border-color: var(--accent, #0275de);
-        box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.22);
+        border-color: var(--accent);
+        box-shadow: var(--anel-foco);
       }
       &[aria-invalid='true'] {
-        border-color: var(--danger, #b3261e);
+        border-color: var(--danger);
       }
     }
     textarea {
@@ -1869,16 +1880,16 @@
   }
   &__opcional {
     font-weight: 400;
-    color: var(--text-secondary, #79706a);
+    color: var(--text-secondary);
   }
   &__contador {
     align-self: flex-end;
     font-size: 11px;
-    color: var(--text-secondary, #79706a);
+    color: var(--text-secondary);
   }
   &__erro {
     font-size: 12px;
-    color: var(--danger, #b3261e);
+    color: var(--danger);
     margin: 0;
   }
 }

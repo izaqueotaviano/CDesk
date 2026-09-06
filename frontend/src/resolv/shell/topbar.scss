@@ -1,4 +1,21 @@
-// Topbar Glass — 56px. Portada da referência, cores via tokens Resolv.
+// Topbar Glass — a barra do shell Resolv. Daqui pra baixo só o que é da
+// COMPOSIÇÃO: o contador de conversas, os botões de ícone, os divisores e a
+// forma que a barra toma em cada largura. Busca, presença e notificações
+// trazem o visual delas dos próprios arquivos (busca-global.scss,
+// menu-presenca.scss, notificacoes.scss).
+//
+// Cor SEMPRE por token: o tema escuro troca o valor das custom properties em
+// resolv/styles/tokens.scss, então um hex/rgba cru aqui continuaria com a cor
+// do tema claro depois da troca. Era o caso do `--scrolled` (um cinza-claro
+// que viraria uma faixa branca sobre o app escuro) e do chip de conversas —
+// os dois viraram color-mix sobre token.
+//
+// Breakpoints iguais aos do resto da casa (cvz/styles/_tokens.scss:130-131),
+// copiados em vez de importados: nenhum .scss de resolv/ usa @use hoje e o
+// único ganho do import seriam dois números.
+$bp-md: 768px; // abaixo: mobile — a barra ganha uma segunda linha
+$bp-lg: 1024px; // abaixo: tablet — a busca perde a largura própria
+
 .topbar-glass {
   position: sticky;
   top: 0;
@@ -11,83 +28,76 @@
   background: var(--surface-alt);
   border-bottom: 0.7px solid var(--stroke);
   transition: backdrop-filter 0.25s ease;
+  // Nada de overflow aqui: os três dropdowns da barra (busca, sino, avatar)
+  // são absolutos e sairiam cortados.
 
   &--scrolled {
     backdrop-filter: blur(16px) saturate(1.4);
     -webkit-backdrop-filter: blur(16px) saturate(1.4);
-    background: rgba(245, 243, 242, 0.72);
+    // 72% do próprio fundo da barra: no claro dá o mesmo cinza translúcido de
+    // sempre, e no escuro acompanha o token em vez de ficar branco.
+    background: color-mix(in srgb, var(--surface-alt) 72%, transparent);
   }
 
+  // Espaçador vazio: base 0 e cresce igual à direita, que é o que deixa a
+  // busca no centro da TELA e não no centro do que sobrou. Quando não há folga
+  // ele já vale 0, então nunca é ele quem empurra a linha para fora.
   &__left {
-    flex: 1;
+    flex: 1 1 0;
     min-width: 0;
   }
+
+  // Pede os 420px da busca, mas CEDE antes de estourar a linha: a 1024px, com
+  // um nome longo no avatar, os 420 + os controles passam do que a barra tem, e
+  // quem sobra vira rolagem horizontal (o reflow da 1.4.10 proíbe). Como o
+  // espaçador da esquerda tem base 0, o déficit cai todo aqui — que é a peça
+  // certa para encolher, já que ela é a única elástica.
   &__center {
-    flex: 0 0 auto;
-  }
-  &__right {
-    flex: 1;
+    flex: 0 1 420px;
     min-width: 0;
+  }
+
+  &__right {
+    // Sem `min-width: 0` de propósito: os controles são conteúdo de verdade e
+    // o piso automático (min-content) é o que impede que um encoste no outro
+    // quando a barra aperta. Quem encolhe no lugar deles é a busca, acima.
+    flex: 1 1 auto;
     display: flex;
     align-items: center;
     justify-content: flex-end;
     gap: 12px;
   }
 
-  &__search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 420px;
-    height: 40px;
-    padding: 0 14px;
-    background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    cursor: text;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    &:hover {
-      border-color: var(--stroke-hover);
-    }
-  }
-  &__search-icon {
-    font-size: 16px;
-    color: var(--text-muted);
-  }
-  &__search-placeholder {
-    font-size: 13px;
-    color: var(--text-muted);
-    user-select: none;
-    flex: 1;
-  }
-  &__search-kbd {
-    font-family: var(--f-mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 2px 6px;
-    line-height: 1.4;
-  }
-
   &__chats {
     display: flex;
     align-items: center;
     gap: 6px;
+    min-height: 28px; // alvo clicável acima dos 24px da WCAG 2.5.8
     padding: 6px 10px;
-    border: none; // é um <button> agora (leva pro console) — sem a moldura nativa
+    border: none; // é um <button> (leva pro console) — sem a moldura nativa
     border-radius: 2px;
-    background: rgba(232, 226, 221, 0.45);
+    // Chip levemente mais escuro que a barra, derivado do traço em vez de um
+    // cinza fixo — o mesmo motivo do `--scrolled` acima.
+    background: color-mix(in srgb, var(--stroke) 45%, transparent);
     font: inherit;
     cursor: pointer;
+
     i {
       font-size: 14px;
       color: var(--text-secondary);
     }
+    &:hover {
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
   }
   &__chats-label {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
@@ -105,10 +115,13 @@
     flex-shrink: 0;
   }
 
+  // Compartilhada com PainelNotificacoes.tsx e BotaoTema.tsx — os três botões
+  // só-ícone da barra têm o mesmo alvo (34px) e o mesmo hover.
   &__icon-btn {
     position: relative;
     width: 34px;
     height: 34px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -124,58 +137,133 @@
       background: var(--stroke);
       color: var(--text-primary);
     }
+    // O outline do navegador aparece, mas não é o mesmo anel do resto do shell
+    // (busca-global.scss e menu-presenca.scss já usam --accent). Padronizado
+    // aqui porque é a classe que os três botões dividem.
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
   }
 
-  &__user {
-    display: flex;
-    align-items: center;
+  // ───────────────────────────────────────────────────────────────────────
+  // Tablet (< 1024px) — a busca deixa de medir 420px e passa a ocupar a sobra
+  // ───────────────────────────────────────────────────────────────────────
+  // Os controles da direita pedem ~470px fixos. Abaixo de 1024px os 420px da
+  // busca já não cabem junto com eles, então em vez de deixá-la ser espremida
+  // por acidente (encolher a partir de uma medida que não vale mais), ela passa
+  // a ser fluida por definição: o espaçador some, o respiro das bordas diminui
+  // de 24 para 16px, e o que sobra da linha é dela.
+  @media (max-width: $bp-lg - 1px) {
+    padding: 0 16px;
+    gap: 12px;
+
+    &__left {
+      display: none;
+    }
+
+    &__center {
+      // Base 0: a busca não pede largura nenhuma, fica com a sobra. Sem piso
+      // artificial de propósito — um piso que não coubesse viraria rolagem
+      // horizontal, e o campo apertado já tem solução própria: abaixo de 768px
+      // ele ganha a linha inteira.
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    &__right {
+      flex: 0 0 auto;
+    }
+
+    // A busca nasce com 420px fixos no arquivo dela (busca-global.scss). Quem
+    // decide quanto ela ocupa DENTRO da barra é a composição, não a peça: a
+    // mesma busca mede diferente conforme a barra aperta.
+    .busca-global {
+      width: 100%;
+    }
+  }
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Mobile (< 768px) — duas linhas
+  // ───────────────────────────────────────────────────────────────────────
+  // A busca ganha a linha inteira embaixo, os controles ficam na de cima.
+  //
+  // O outro caminho possível era a busca virar um botão de lupa. Foi
+  // descartado por dois motivos: o campo é um <input> de verdade e fazê-lo
+  // abrir/fechar exigiria estado dentro de BuscaGlobal.tsx (que não é desta
+  // lista de arquivos), e a 320px o que sobraria de largura inline seriam
+  // ~40px — nem a lupa e o placeholder cabem. Barra de duas linhas custa ~46px
+  // de altura; um campo de 40px custa a busca inteira.
+  @media (max-width: $bp-md - 1px) {
+    height: auto;
+    flex-wrap: wrap;
+    padding: 8px 12px;
     gap: 8px;
-    padding: 4px 8px 4px 4px;
-    border: none;
-    background: transparent;
-    border-radius: 2px;
-    cursor: pointer;
-    &:hover {
-      background: var(--stroke);
+
+    &__right {
+      order: 1;
+      flex: 1 1 auto;
+      // Sem o espaçador da esquerda os controles se amontoariam num canto da
+      // linha: espalhá-los usa a largura que já é deles e afasta um alvo de
+      // toque do vizinho.
+      justify-content: space-between;
+      gap: 4px;
     }
-  }
-  &__avatar {
-    position: relative;
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    background: var(--accent);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 2px var(--surface);
-  }
-  &__avatar-initials {
-    font-size: 11px;
-    font-weight: 600;
-    color: #fff;
-    letter-spacing: 0.02em;
-    user-select: none;
-  }
-  &__presence {
-    position: absolute;
-    bottom: -1px;
-    right: -1px;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 2px solid var(--surface);
-    &--available {
-      background: var(--ok);
+
+    &__center {
+      order: 2;
+      // A base de 100% é o que força a quebra — é ela que faz as duas linhas.
+      flex: 1 0 100%;
+      min-width: 0;
     }
-  }
-  &__user-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-    white-space: nowrap;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+
+    // Divisores decorativos: com os controles espalhados o agrupamento já vem
+    // do espaço, e a 320px cada pixel da linha conta.
+    &__sep {
+      display: none;
+    }
+
+    &__chats {
+      min-height: 34px; // no toque, o mesmo alvo dos botões de ícone ao lado
+    }
+    // Sobra o número. O nome acessível do botão não depende desta palavra —
+    // está no aria-label, em Topbar.tsx.
+    &__chats-palavra {
+      display: none;
+    }
+
+    // O nome ao lado do avatar sai, o avatar (com o ponto de presença) fica.
+    // O rótulo acessível do gatilho já é "<nome> · <status>…" em
+    // MenuPresenca.tsx, então nada se perde para quem usa leitor de tela.
+    .menu-presenca__nome {
+      display: none;
+    }
+
+    // Sem teclado físico o badge "Ctrl K" só rouba largura do campo.
+    .busca-global__atalho {
+      display: none;
+    }
+
+    // Os painéis do sino (340px) e do avatar (240px) são ancorados à direita
+    // do GATILHO (Popover da cvzdesk, align="end"). Com os controles
+    // espalhados, o sino fica no meio da linha e um painel de 340px sairia
+    // pela esquerda da tela — rolagem horizontal, exatamente o que o reflow da
+    // 1.4.10 proíbe. Tirando o `position: relative` do wrapper, o painel passa
+    // a se ancorar na própria barra (que é `sticky`, logo posicionada) e desce
+    // colado na borda direita dela, limitado à largura que a barra tem.
+    .popover {
+      position: static;
+    }
+    .popover__panel {
+      left: auto;
+      right: 0;
+      width: min(100%, 340px);
+    }
+    // Soltar as larguras fixas do conteúdo: sem isto o painel encolhe e o que
+    // está dentro dele vaza pela direita, que é pior que o painel largo.
+    .painel-notif,
+    .menu-presenca {
+      width: 100%;
+    }
   }
 }

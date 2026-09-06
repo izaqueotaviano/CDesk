@@ -39,7 +39,7 @@
     border: 0.7px solid var(--stroke-hover);
     border-bottom: none;
     border-radius: 4px 4px 0 0;
-    box-shadow: 0 -2px 16px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 -2px 16px var(--sombra-forte);
     overflow: hidden;
     font-family: var(--f-ui);
     color: var(--text-primary);
@@ -77,7 +77,10 @@
     gap: 8px;
     padding: 8px 8px 8px 12px;
     background: var(--text-primary);
-    color: #fff;
+    // Cabeçalho INVERTIDO: pinta com o token de texto e escreve com o de
+    // superfície. Os dois trocam de lado juntos no escuro; #fff aqui virava
+    // branco sobre off-branco e o cabeçalho inteiro sumia.
+    color: var(--surface);
   }
   &__painel-titulo {
     flex: 1;
@@ -114,7 +117,9 @@
     font-size: 15px;
 
     &:hover {
-      background: rgba(255, 255, 255, 0.14);
+      // Véu na cor do texto deste cabeçalho (--surface), não branco fixo: no
+      // escuro o cabeçalho é claro e um branco por cima não muda nada.
+      background: color-mix(in srgb, var(--surface) 14%, transparent);
     }
   }
 
@@ -127,7 +132,7 @@
     border: 0.7px solid var(--stroke-hover);
     border-bottom: none;
     border-radius: 4px 4px 0 0;
-    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 -2px 12px var(--sombra-suave);
     font-family: var(--f-ui);
   }
   &__contador {
@@ -182,9 +187,11 @@
     font-size: 9px;
     font-weight: 600;
 
+    // Este avatar mora no cabeçalho invertido, então segue a cor DELE — não a
+    // do corpo do widget, como a variante base logo acima.
     &--ativo {
-      background: rgba(255, 255, 255, 0.18);
-      color: #fff;
+      background: color-mix(in srgb, var(--surface) 18%, transparent);
+      color: var(--surface);
     }
   }
   &__badge {
@@ -193,7 +200,10 @@
     padding: 0 5px;
     border-radius: 7px;
     background: var(--accent);
-    color: #fff;
+    // Sobre fundo de marca, o texto é o token de superfície (branco no claro,
+    // escuro no escuro): o --accent CLAREIA no tema escuro (tokens.scss:77) e
+    // branco por cima cai para 2.45:1.
+    color: var(--surface-card);
   }
   &__fila {
     margin-left: 4px;

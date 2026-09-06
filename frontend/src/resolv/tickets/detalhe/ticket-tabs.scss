@@ -99,7 +99,9 @@
     flex-shrink: 0;
     border: none;
     background: var(--accent);
-    color: #fff;
+    // Token de superfície sobre fundo de marca: --accent clareia no escuro
+    // (tokens.scss:77) e branco por cima reprova o AA.
+    color: var(--surface-card);
     cursor: pointer;
     i {
       font-size: 18px;

@@ -160,7 +160,10 @@
     padding: 0 5px;
     border-radius: 7px;
     background: var(--accent);
-    color: #fff;
+    // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
+    // no escuro (tokens.scss:77) e branco por cima reprova o AA. Vale para os
+    // quatro botões/badges deste arquivo que sentam no accent.
+    color: var(--surface-card);
   }
   &__meta,
   &__preview {
@@ -176,7 +179,7 @@
     border: none;
     border-radius: 2px;
     background: var(--accent);
-    color: #fff;
+    color: var(--surface-card);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
@@ -322,7 +325,7 @@
       border: none;
       border-radius: 2px;
       background: var(--accent);
-      color: #fff;
+      color: var(--surface-card);
       padding: 6px 12px;
       font-size: 12px;
       font-weight: 500;
@@ -428,8 +431,10 @@
     }
   }
   &--agente &__balao {
-    background: rgba(2, 117, 222, 0.06);
-    border-color: rgba(2, 117, 222, 0.16);
+    // O balão do agente é o accent diluído. Cravado em rgba ele ficava no azul
+    // ESCURO do tema claro e desaparecia sobre a superfície escura.
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    border-color: color-mix(in srgb, var(--accent) 16%, transparent);
   }
   &__anexos {
     display: flex;
@@ -476,7 +481,9 @@
     &:focus {
       outline: none;
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.15);
+      // Anel de foco: acompanha o --accent do tema. Preso ao azul do claro ele
+      // quase não aparecia no escuro, que é falha de acessibilidade, não estética.
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
     }
   }
   &__rodape {
@@ -504,7 +511,9 @@
   &__enviar {
     padding: 8px 18px;
     background: var(--text-primary);
-    color: #fff;
+    // Botão invertido (mesma dupla do cabeçalho do MiniChat): pinta com o token
+    // de texto, escreve com o de superfície.
+    color: var(--surface);
     border: none;
     border-radius: 2px;
     font-size: 13px;
@@ -610,7 +619,7 @@
     border: none;
     border-radius: 2px;
     background: var(--accent);
-    color: #fff;
+    color: var(--surface-card);
     padding: 7px 12px;
     font-size: 12px;
     font-weight: 500;

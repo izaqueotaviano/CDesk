@@ -34,6 +34,118 @@
   --ok: #1d7a4c;
   --away: #8a5d0f;
 
+  // ── Tons (washes de fundo e de borda) ──
+  // Estavam duplicados declaração por declaração em tickets/detalhe/detalhe.scss
+  // e tickets/novo/novo.scss, como rgba() cru — e rgba() cru não acompanha o
+  // tema. Cada um daqueles valores era a semântica acima com alfa, então
+  // derivar por color-mix devolve EXATAMENTE a mesma cor no claro e passa a
+  // seguir o escuro sozinho: nenhum destes precisa de par escuro.
+  --tom-acento: color-mix(in srgb, var(--accent) 8%, transparent);
+  --tom-acento-forte: color-mix(in srgb, var(--accent) 16%, transparent);
+  --tom-acento-borda: color-mix(in srgb, var(--accent) 30%, transparent);
+  --tom-ok: color-mix(in srgb, var(--ok) 10%, transparent);
+  --tom-alerta-borda: color-mix(in srgb, var(--away) 28%, transparent);
+  --tom-perigo: color-mix(in srgb, var(--danger) 8%, transparent);
+
+  // As duas exceções da família: cremes SÓLIDOS, não o --away diluído. O --away
+  // do claro é um âmbar escuro (#8a5d0f) e diluí-lo dá bege acinzentado, não
+  // este creme — por isso os dois têm valor próprio por tema (ver a paleta
+  // escura abaixo, onde viram wash e param de brilhar).
+  --tom-alerta: #fef3cd; // pílula de SLA em risco
+  --tom-nota: #fffbea; // fundo da nota interna, um degrau mais claro que a pílula
+
+  // ── Foco ──
+  // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em
+  // toda a base e quem usa não deveria ter que lembrar do "0 0 0 2px".
+  --anel-foco: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  --anel-foco-alerta: 0 0 0 2px color-mix(in srgb, var(--away) 18%, transparent);
+
+  // ── Elevação e véus ──
+  // Não existia token de sombra — busca-global.scss:9 registra a falta — e cada
+  // peça cravava o próprio rgba preto ou marrom. Sombra é justamente o caso em
+  // que derivar do token NÃO serve: no claro ela é o --text-primary diluído,
+  // mas no escuro esse token é off-branco e a sombra viraria brilho. Daí o par
+  // por tema logo abaixo.
+  --sombra-suave: rgba(59, 53, 50, 0.08);
+  --sombra-forte: rgba(59, 53, 50, 0.14);
+  --sombra-flutuante: 0 12px 32px var(--sombra-forte), 0 0 0 0.7px var(--stroke);
+  --veu: rgba(59, 53, 50, 0.42);
+  --veu-suave: rgba(59, 53, 50, 0.24);
+
+  color-scheme: light;
   font-family: var(--f-ui);
   color: var(--text-primary);
+}
+
+// ============================================================================
+// Tema escuro
+// ============================================================================
+// Redefine as MESMAS custom properties: nenhum componente troca de seletor por
+// causa do tema. O corolário é que quem pinta com hex cru fica claro no escuro;
+// a varredura que fechou o tema tirou os últimos (o `--scrolled` da topbar e o
+// `color: #fff` do tooltip da sidebar eram os piores) e o que sobra de literal
+// mora AQUI, que é o único lugar onde cor literal tem valor por tema.
+//
+// Off-black/off-white de propósito: contra #000 puro a borda de 0.7px do
+// design system some, e #fff puro sobre fundo escuro brilha demais para uma
+// tela de fila que a equipe encara o dia inteiro.
+//
+// A ordem de luminância das superfícies é a MESMA do claro
+// (surface-alt < surface < surface-card): o cromo (sidebar + topbar) continua
+// recuado em relação ao corpo e o cartão continua saltando dos dois, só que
+// espelhado para o escuro.
+@mixin paleta-escura {
+  color-scheme: dark;
+
+  --surface: #1d1b19;
+  --surface-alt: #171514;
+  --surface-card: #24211f;
+  --stroke: #35312e;
+  --stroke-hover: #4f4943;
+  --stroke-subtle: #3d3936;
+
+  --text-primary: #e9e5e1;
+  --text-secondary: #b3aaa3;
+  --text-muted: #948b84;
+
+  // Mesmo azul de marca (matiz ~209°, o do #0275de), só clareado o bastante
+  // para brilhar no escuro: o #0275de original sobre --surface dá 3.76:1 e
+  // reprova AA como texto; este dá 7.0:1. Vale para as quatro semânticas —
+  // elas são usadas como COR DE TEXTO (inicio.scss pinta prazo em --danger e
+  // --ok), então todas passam 4.5:1 nas três superfícies, inclusive na clara.
+  --accent: #5cabf2;
+  --danger: #f08a82;
+  --ok: #4fbf85;
+  --away: #d9a53d;
+
+  // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 8–14% não
+  // aparece, e a peça flutuante perde a separação do fundo — que é a única
+  // função dela. O véu sobe pelo mesmo motivo: 42% de marrom claro sobre uma
+  // tela já escura mal escurece.
+  --sombra-suave: rgba(0, 0, 0, 0.45);
+  --sombra-forte: rgba(0, 0, 0, 0.62);
+  --veu: rgba(0, 0, 0, 0.62);
+  --veu-suave: rgba(0, 0, 0, 0.45);
+
+  // Os dois cremes sólidos do claro viram wash do próprio --away: sólidos aqui
+  // eles brilhariam e o texto por cima sumiria (a pílula escreve em --away, a
+  // nota em --text-primary). 16% deixa --away sobre a pílula em 5.3:1.
+  --tom-alerta: color-mix(in srgb, var(--away) 16%, transparent);
+  --tom-nota: color-mix(in srgb, var(--away) 10%, transparent);
+}
+
+// A escolha explícita mora no atributo carimbado por useTema.ts no <html> e
+// ganha da preferência do SO nos DOIS sentidos: quem escolheu claro num sistema
+// escuro não casa com o `:not([data-tema])` abaixo e continua claro.
+html[data-tema='escuro'] .resolv-scope {
+  @include paleta-escura;
+}
+
+// Só para quem nunca escolheu — e, na prática, só até o useTema montar e
+// carimbar o atributo. É o que evita o flash claro no primeiro paint de quem
+// usa o sistema no escuro.
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema]) .resolv-scope {
+    @include paleta-escura;
+  }
 }

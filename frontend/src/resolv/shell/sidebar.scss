@@ -97,7 +97,10 @@
       left: calc(100% + 10px);
       top: 50%;
       background: var(--text-primary);
-      color: #fff;
+      // --surface é o PAR de --text-primary: os dois trocam de lado juntos no
+      // escuro. Com #fff aqui o tooltip virava branco sobre o off-branco que
+      // --text-primary vira (tokens.scss:68) e sumia.
+      color: var(--surface);
       font-family: var(--f-ui);
       font-size: 12px;
       font-weight: 500;

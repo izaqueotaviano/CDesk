@@ -4,18 +4,13 @@
 // É "o detalhe antes de o ticket existir": cabeçalho (.ticket-cab), painel de
 // triagem à esquerda (.props) e, no lugar da conversa, a mensagem de abertura
 // (controles do .compositor). Tudo isso vem de detalhe.scss; aqui só o que é
-// próprio da abertura. Mesmos tons derivados dos tokens — nenhuma cor nova.
+// próprio da abertura. Os tons (--tom-*, --anel-foco, --sombra-flutuante) eram
+// oito declarações copiadas de detalhe.scss em rgba() cru; agora são um bloco
+// só em tokens.scss, derivado das semânticas e portanto vivo nos dois temas.
 // ============================================================================
 
 .novo {
-  --tom-acento: rgba(2, 117, 222, 0.08);
-  --tom-acento-forte: rgba(2, 117, 222, 0.16);
-  --tom-ok: rgba(29, 122, 76, 0.1);
-  --tom-alerta: #fef3cd;
-  --tom-alerta-borda: rgba(138, 93, 15, 0.28);
-  --tom-perigo: rgba(179, 38, 30, 0.08);
-  --anel-foco: 0 0 0 2px rgba(2, 117, 222, 0.22);
-  --sombra-flutuante: 0 12px 32px rgba(59, 53, 50, 0.14), 0 0 0 0.7px var(--stroke);
+  // Só o que é geometria desta tela; a cor mora nos tokens.
   --largura-props: 288px;
 
   display: flex;
@@ -249,7 +244,7 @@
     }
     &--ligada {
       background: var(--tom-acento);
-      border-color: rgba(2, 117, 222, 0.3);
+      border-color: var(--tom-acento-borda);
       color: var(--accent);
     }
   }

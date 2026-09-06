@@ -374,7 +374,9 @@
 // -------------------------------------------------------------------- modal
 .kb-modal-fechar__intro {
   font-size: 12px;
-  color: var(--text-secondary, #555);
+  // Sem fallback literal: o fallback era um cinza que nem pertence à paleta e,
+  // fora do .resolv-scope, devolveria a cor do tema claro no escuro.
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 .kb-modal-fechar__campo {
@@ -388,7 +390,7 @@
     font-weight: 500;
   }
   input {
-    border: 1px solid var(--stroke, #d9d9d9);
+    border: 1px solid var(--stroke);
     border-radius: 4px;
     padding: 6px 8px;
     font-size: 13px;
@@ -396,7 +398,7 @@
 }
 .kb-modal-fechar__erro {
   font-size: 12px;
-  color: var(--danger, #b3261e);
+  color: var(--danger);
   margin-top: 2px;
 }
 

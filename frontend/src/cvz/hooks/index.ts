@@ -9,6 +9,7 @@
  * open)`, `useIsMobile()` → boolean) e do que o DESIGN.md descreve em prosa.
  */
 import { useEffect, useRef, useState } from 'react'
+import { useTemaResolvido } from '@/stores/prefs'
 
 /** Espelha os `$bp-*` do SCSS (`_tokens.scss`) — mesmos valores, um só lugar. */
 export const BP = {
@@ -45,40 +46,25 @@ export function useIsBelowDesktop(): boolean {
 }
 
 export type Theme = 'light' | 'dark'
-const THEME_KEY = 'cvz-theme'
-
-function temaInicial(): Theme {
-  try {
-    const salvo = localStorage.getItem(THEME_KEY)
-    if (salvo === 'light' || salvo === 'dark') return salvo
-  } catch {
-    // localStorage indisponível (modo privado, preview sem storage) — cai
-    // no prefers-color-scheme abaixo, nunca quebra a leitura do tema.
-  }
-  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
 
 /**
- * Tema claro/escuro — o atributo `data-theme` no `<html>`, persistido em
- * localStorage. É uma ESCOLHA explícita (o botão sol/lua da Topbar), não um
- * terceiro estado "sistema": a preferência do SO só decide o valor inicial.
+ * Tema claro/escuro do shell cvz — hoje uma ADAPTAÇÃO da preferência única do
+ * app (`stores/prefs`), não um tema próprio.
+ *
+ * Era um tema separado: chave `cvz-theme` no localStorage e escrita direta no
+ * `data-theme`. Como as telas do shell cvz (/clientes, /configuracoes,
+ * /relatorios) são alcançadas pela sidebar do shell Resolv, duas preferências
+ * independentes significavam ligar o escuro na topbar e a tela clarear ao
+ * navegar. Quem carimba os atributos agora é `aplicarTema` em stores/prefs; a
+ * assinatura aqui não mudou, então AppShell/Topbar continuam iguais.
+ *
+ * O que se perde de propósito: o "sistema" do portal não tem representação
+ * neste alternador de dois estados — ele aparece como o valor que estiver na
+ * tela, e alternar fixa uma escolha explícita.
  */
 export function useTheme(): { theme: Theme; toggle: () => void } {
-  const [theme, setTheme] = useState<Theme>(temaInicial)
-
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme)
-    try {
-      localStorage.setItem(THEME_KEY, theme)
-    } catch {
-      // melhor esforço — tema ainda funciona na aba atual sem persistir
-    }
-  }, [theme])
-
-  return {
-    theme,
-    toggle: () => setTheme((t) => (t === 'dark' ? 'light' : 'dark')),
-  }
+  const { tema, alternar } = useTemaResolvido()
+  return { theme: tema === 'escuro' ? 'dark' : 'light', toggle: alternar }
 }
 
 const FOCAVEIS =

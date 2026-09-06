@@ -1,0 +1,264 @@
+// Busca global do Topbar — campo + dropdown de resultados.
+//
+// A linguagem visual é a mesma da caixa decorativa que ocupava este lugar
+// (40px de altura, borda 0.7px, radius 2px, 13px): o que mudou é que agora é
+// um <input> de verdade. Cor SÓ por token — esta rodada introduz tema escuro,
+// e um hex/rgba cru aqui é exatamente o que sobreviveria à troca de tema
+// aparecendo errado.
+//
+// Sem box-shadow no painel de propósito: a linguagem do design system já separa
+// superfícies por borda de 0.7px. (Quando esta linha foi escrita não existia
+// token de sombra; hoje existe — --sombra-suave/--sombra-forte em tokens.scss —,
+// mas a decisão de não usar sombra aqui continua valendo: é desenho, não cor.)
+
+.busca-global {
+  position: relative;
+  width: 420px;
+  // Sem largura fixa: a responsividade vem depois e o campo precisa poder
+  // encolher junto com o Topbar sem estourar.
+  max-width: 100%;
+
+  &__caixa {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 8px 0 14px;
+    background: var(--surface-card);
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    transition: border-color 0.15s ease;
+
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    // O anel de foco vive aqui, não no <input>: o campo não tem borda própria,
+    // então o foco visível precisa ser o da caixa inteira.
+    &:focus-within {
+      border-color: var(--accent);
+    }
+  }
+
+  &__lupa {
+    font-size: 16px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  &__campo {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    color: var(--text-primary);
+
+    // --text-secondary, nao --text-muted: o placeholder e o rotulo que a
+    // pessoa le antes de digitar, e --text-muted da 2,63:1 sobre a superficie
+    // clara (reprova o AA de 4,5:1). Mesmo motivo nos titulos de grupo e nos
+    // textos de estado abaixo.
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // substituído pelo :focus-within da caixa, acima
+    }
+  }
+
+  &__atalho {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 500;
+    // Texto, nao decoracao: e a dica do atalho. --text-muted daria 2,4:1
+    // sobre a superficie alternativa.
+    color: var(--text-secondary);
+    background: var(--surface-alt);
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    padding: 2px 6px;
+    line-height: 1.4;
+    margin-right: 6px;
+    white-space: nowrap;
+    user-select: none;
+  }
+
+  &__limpar {
+    flex-shrink: 0;
+    // 24px é o alvo mínimo do WCAG 2.5.8 — o ícone é menor que isso, a área
+    // clicável não pode ser.
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 2px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
+  &__painel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    // Acima do próprio Topbar (z-index 90 em topbar.scss), senão o painel
+    // desliza por baixo do cabeçalho seguinte ao rolar.
+    z-index: 100;
+    max-height: 420px;
+    overflow-y: auto;
+    background: var(--surface-card);
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+  }
+
+  &__grupo + &__grupo {
+    border-top: 0.7px solid var(--stroke);
+  }
+
+  &__grupo-titulo {
+    margin: 0;
+    padding: 8px 14px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  &__linha {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 14px;
+    text-align: left;
+    font-family: var(--f-ui);
+    cursor: pointer;
+
+    &--ativa {
+      background: var(--surface-alt);
+    }
+    // Solicitante sem empresa: aparece porque casou com a busca, mas não abre
+    // nada. Sem `opacity` de propósito — ela derrubava o e-mail para 2,5:1 no
+    // claro, ou seja, a linha ficava ilegível justamente para quem mais
+    // precisaria da explicação. Quem diz que não abre é o texto ao lado.
+    &--inerte {
+      cursor: default;
+    }
+  }
+
+  // O porquê da linha inerte, alinhado à direita: some do fluxo do título para
+  // não competir com ele, mas continua sendo texto de verdade.
+  &__motivo {
+    flex-shrink: 0;
+    align-self: center;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  &__icone {
+    margin-top: 2px;
+    font-size: 15px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__titulo {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__ref {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  &__detalhe {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__estado {
+    margin: 0;
+    padding: 20px 14px;
+    text-align: center;
+    font-size: 13px;
+    // Sao as UNICAS frases que dizem o que aconteceu com a busca; nao podem
+    // ficar abaixo do AA.
+    color: var(--text-secondary);
+
+    &--erro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-secondary);
+
+      i {
+        font-size: 18px;
+        color: var(--danger);
+      }
+      p {
+        margin: 0;
+      }
+    }
+  }
+
+  &__tentar {
+    min-height: 24px;
+    padding: 4px 10px;
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--stroke-hover);
+    }
+    &:disabled {
+      color: var(--text-muted);
+      cursor: default;
+    }
+  }
+}
