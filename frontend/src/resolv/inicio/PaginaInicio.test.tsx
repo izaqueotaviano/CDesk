@@ -37,7 +37,7 @@ beforeEach(() => {
         return Promise.resolve(jsonDe({ welcome_message: '', score_min: 0, score_max: 10, low_score_threshold: 5, queue_open: filaAberta, queue_opens_at: queueOpensAt }))
       }
       if (u.pathname === '/api/v1/reports/indicators/') {
-        return Promise.resolve(jsonDe({ kpis: [{ key: 'resolved', label: 'Tickets resolvidos', description: '', unit: 'count', direction: 'up', value: 8, variation: 0.14 }] }))
+        return Promise.resolve(jsonDe({ kpis: [{ key: 'resolved', label: 'Tickets resolvidos', description: '', unit: 'count', direction: 'up', value: 8, variation: 14 }] }))
       }
       if (u.pathname === '/api/v1/tickets/' && u.searchParams.get('view') === 'meus-nao-resolvidos') {
         return Promise.resolve(jsonDe(pagina([linhaTicket(1)])))

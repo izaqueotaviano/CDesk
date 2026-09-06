@@ -8,9 +8,9 @@ let chamadas: { url: string; search: string; metodo: string }[]
 const ESTATISTICAS = {
   period: { key: 'month', label: 'Este mês' },
   by_agent: [
-    { agent_id: 9, agent_name: 'Bruno', value: 6, variation: 0.5 },
+    { agent_id: 9, agent_name: 'Bruno', value: 6, variation: 50 },
     { agent_id: 11, agent_name: 'Ana', value: 3, variation: null },
-    { agent_id: null, label: 'Total', value: 9, variation: 0.5, is_total: true },
+    { agent_id: null, label: 'Total', value: 9, variation: 50, is_total: true },
   ],
   granularity: 'day',
   timeline: [

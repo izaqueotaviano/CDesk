@@ -20,16 +20,16 @@ const INDICADORES = {
     { key: 'month', label: 'Este mês' },
   ],
   summaries: [
-    { key: 'opened', label: 'Resumo de tickets abertos', rows: [{ key: 'total', label: 'Total', cells: { today: CELULA_VAZIA, week: CELULA_VAZIA, month: { value: 555, variation: 0.1 } } }] },
+    { key: 'opened', label: 'Resumo de tickets abertos', rows: [{ key: 'total', label: 'Total', cells: { today: CELULA_VAZIA, week: CELULA_VAZIA, month: { value: 555, variation: 10 } } }] },
     { key: 'pending', label: 'Resumo de tickets pendentes', rows: [{ key: 'total', label: 'Total', cells: { month: CELULA_VAZIA } }] },
     { key: 'resolved', label: 'Resumo de tickets resolvidos', rows: [{ key: 'total', label: 'Total', cells: { month: CELULA_VAZIA } }] },
   ],
   kpis: [
-    { key: 'opened', label: 'Tickets abertos', description: 'Total de tickets abertos no período.', unit: 'count', direction: null, value: 20, variation: 0.1 },
-    { key: 'resolved', label: 'Tickets resolvidos', description: 'Fechados no período.', unit: 'count', direction: 'up', value: 15, variation: 0.05 },
+    { key: 'opened', label: 'Tickets abertos', description: 'Total de tickets abertos no período.', unit: 'count', direction: null, value: 20, variation: 10 },
+    { key: 'resolved', label: 'Tickets resolvidos', description: 'Fechados no período.', unit: 'count', direction: 'up', value: 15, variation: 5 },
     { key: 'resolved_on_time', label: 'Tickets resolvidos no prazo', description: 'Antes do vencimento do SLA.', unit: 'count', direction: 'up', value: 12, variation: null },
-    { key: 'first_response', label: 'Tempo médio de primeira resposta', description: 'Da abertura à primeira resposta.', unit: 'seconds', direction: 'down', value: 1800, variation: -0.2 },
-    { key: 'resolution', label: 'Tempo médio de resolução', description: 'Da abertura ao fechamento.', unit: 'seconds', direction: 'down', value: 7200, variation: 0.3 },
+    { key: 'first_response', label: 'Tempo médio de primeira resposta', description: 'Da abertura à primeira resposta.', unit: 'seconds', direction: 'down', value: 1800, variation: -20 },
+    { key: 'resolution', label: 'Tempo médio de resolução', description: 'Da abertura ao fechamento.', unit: 'seconds', direction: 'down', value: 7200, variation: 30 },
     { key: 'csat', label: 'Nota média de satisfação', description: 'Média das respostas (0 a 10).', unit: 'score', direction: 'up', value: 8.6, variation: null },
   ],
   by_requester: [{ label: 'Ana', value: 4 }],
@@ -41,8 +41,8 @@ const INDICADORES = {
   first_response: [{ key: 'on_time', label: 'No prazo', value: 8 }],
   resolution: [{ key: 'on_time', label: 'No prazo', value: 12 }],
   agent_list: [
-    { label: 'Bruno', value: 6, variation: 0.2, teams: [{ name: 'Suporte', value: 6 }], on_time_rate: 0.9, first_response_seconds: 600, score: 9 },
-    { label: 'Total', value: 6, variation: 0.2, is_total: true, teams: [], on_time_rate: 0.9, first_response_seconds: 600, score: 9 },
+    { label: 'Bruno', value: 6, variation: 20, teams: [{ name: 'Suporte', value: 6 }], on_time_rate: 0.9, first_response_seconds: 600, score: 9 },
+    { label: 'Total', value: 6, variation: 20, is_total: true, teams: [], on_time_rate: 0.9, first_response_seconds: 600, score: 9 },
   ],
   timeline: [
     { date: '2026-09-01', opened: 2, resolved: 1, resolved_on_time: 1, reopened: 0 },

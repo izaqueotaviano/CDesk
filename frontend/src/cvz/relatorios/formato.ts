@@ -23,10 +23,21 @@ export function formatarNota(nota: number | null): string {
   return nota == null ? '—' : nota.toFixed(1)
 }
 
-/** Variação percentual já pronta para exibir, com sinal — "+12%", "−8%". */
+/**
+ * Variação já pronta para exibir, com sinal — "+12%", "-8%".
+ *
+ * A entrada JÁ É PERCENTUAL, não fração: `indicators.variation()` devolve
+ * `(atual - anterior) / anterior * 100` (testado lá como
+ * `variation(6, 4) == 50.0`). Multiplicar por 100 de novo aqui rendia
+ * "+5000%" — o painel mostrava "+20000%" com dado real.
+ *
+ * Não confundir com `formatarPercentual`, que recebe FRAÇÃO 0–1 (é o contrato
+ * de `on_time_rate`) e por isso multiplica. São dois contratos diferentes
+ * vindos do mesmo backend, cada um com o seu formatador.
+ */
 export function formatarVariacao(variacao: number | null): string {
   if (variacao == null) return ''
-  const arredondado = Math.round(variacao * 100)
+  const arredondado = Math.round(variacao)
   return `${arredondado > 0 ? '+' : ''}${arredondado}%`
 }
 
