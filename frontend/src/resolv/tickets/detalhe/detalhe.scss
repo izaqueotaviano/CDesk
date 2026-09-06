@@ -452,6 +452,40 @@
     }
   }
 
+  // Mesma linguagem do .detalhe__erro-acao, sem a borda de baixo: aqui ele é
+  // uma TERCEIRA LINHA dentro do cabeçalho, não uma faixa entre seções.
+  &__aviso {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 2px;
+    background: var(--tom-perigo);
+    font-size: 12px;
+    color: var(--danger);
+    i {
+      font-size: 15px;
+    }
+    span {
+      flex: 1;
+    }
+    button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      color: var(--danger);
+      border-radius: 2px;
+      cursor: pointer;
+      &:hover {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+    }
+  }
+
   &__slas {
     display: inline-flex;
     gap: 6px;
@@ -688,6 +722,33 @@
     color: var(--text-primary);
     &--pessoa {
       padding-left: 3px;
+    }
+    // Chip que liga/desliga uma etiqueta. min-height 24px é alvo de toque
+    // mínimo (WCAG 2.5.8) — o chip só de leitura tem ~21px e não é alvo.
+    &--acionavel {
+      min-height: 24px;
+      font-family: inherit;
+      cursor: pointer;
+      &:hover:not(:disabled) {
+        border-color: var(--stroke-hover);
+      }
+      &:focus-visible {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: var(--anel-foco);
+      }
+      &:disabled {
+        opacity: 0.55;
+        cursor: progress;
+      }
+    }
+    // Ligada: o estado tem que ler sem depender do aria-pressed nem só da cor
+    // do ponto da etiqueta, que é do cadastro e pode ser qualquer uma.
+    &--ligada {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+      font-weight: 500;
     }
   }
   &__mini-avatar {
@@ -1810,11 +1871,61 @@
   &__ate {
     color: var(--text-secondary);
   }
-  &__email {
+  // Era `__email`; virou genérico quando o número do pedido passou a usar o
+  // mesmo par "valor + botão de copiar".
+  &__copiavel {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     max-width: 100%;
+  }
+  &__pedido {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  // ---- nota de satisfação ----
+  &__nota {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  &__nota-valor {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 2px;
+    // Neutro de propósito: não existe faixa de "nota boa/ruim" no backend, e
+    // pintar de verde/vermelho aqui inventaria uma (ver PainelCliente.tsx).
+    background: var(--surface-alt);
+    border: 0.7px solid var(--stroke);
+    font-family: var(--f-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__nota-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  &__nota-escala {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  &__nota-comentario {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  &__nota-ajuda {
+    font-size: 11px;
+    color: var(--text-secondary);
   }
   &__link {
     color: var(--accent);

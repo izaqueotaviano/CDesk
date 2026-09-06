@@ -342,6 +342,12 @@
   }
 
   &__item {
+    // Flex por causa da contagem: o número vai pra direita e o rótulo fica
+    // com o resto, truncando em vez de empurrar o número pra fora.
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     text-align: left;
     padding: 9px 16px;
     border: none;
@@ -362,6 +368,9 @@
       border-left-color: var(--accent);
       color: var(--accent);
       font-weight: 500;
+      .views-panel__contagem {
+        color: var(--accent);
+      }
     }
     &--inerte {
       color: var(--text-muted);
@@ -371,6 +380,33 @@
         color: var(--text-muted);
       }
     }
+  }
+
+  &__rotulo {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Contagem da visão (GET /tickets/resumo/). Mono como todo número da tela.
+  &__contagem {
+    flex-shrink: 0;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    // Gaveta vazia continua sendo informação — só não compete com as que
+    // têm trabalho dentro.
+    &--zero {
+      opacity: 0.45;
+    }
+  }
+
+  &__aviso {
+    padding: 2px 16px 8px;
+    font-size: 11px;
+    color: var(--text-muted);
   }
 
   &__sep {
@@ -400,6 +436,23 @@
       border-color: var(--stroke-hover);
       color: var(--text-primary);
     }
+  }
+
+  // Controles que ainda não fazem nada (ver ViewsPanel): mesmo tratamento das
+  // visões pessoais inertes — aria-disabled + title "em breve". O hover de
+  // convite sai, senão o controle continua prometendo com o ponteiro o que
+  // não cumpre no clique.
+  &__busca input[aria-disabled='true'] {
+    cursor: default;
+  }
+  &__recolher[aria-disabled='true'],
+  &__personalizar[aria-disabled='true'] {
+    cursor: default;
+    opacity: 0.55;
+  }
+  &__personalizar[aria-disabled='true']:hover {
+    border-color: var(--stroke);
+    color: var(--text-secondary);
   }
 }
 
@@ -490,7 +543,22 @@
     input {
       cursor: pointer;
       accent-color: var(--accent);
+      // O desenho é 16px; quem tem os 24px de alvo do WCAG 2.5.8 é o <label>
+      // em volta (a exceção de espaçamento não valeria: a linha inteira também
+      // é clicável e envolve a caixa).
+      width: 16px;
+      height: 16px;
+      margin: 0;
     }
+  }
+
+  .col-check__alvo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
   }
   .col-protocolo {
     width: 150px;
@@ -517,6 +585,9 @@
   }
   .col-status {
     width: 150px;
+  }
+  .col-sla {
+    width: 120px;
   }
   .col-just {
     min-width: 170px;
@@ -594,6 +665,17 @@
     display: block;
     font-size: 12px;
     color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  // A COR vem do estado (corEstadoSla), como nas listas da Início; o texto diz
+  // o mesmo em palavras ("Estourado", "em risco"), então quem não distingue a
+  // cor não perde a informação.
+  &__sla {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

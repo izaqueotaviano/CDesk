@@ -1,6 +1,6 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/api/client'
-import type { Prioridade } from './tipos'
+import type { Prioridade, ResumoFila } from './tipos'
 
 /** Resposta das 3 ações em lote (`bulk-assign`/`bulk-priority`/`bulk-close`,
  *  ver `_BulkTicketIdsSerializer` no backend): sucesso é por-ticket, não
@@ -20,7 +20,11 @@ export interface ResultadoLote {
  */
 export function useAcoesEmLote() {
   const qc = useQueryClient()
-  const invalidar = () => qc.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+  // Invalida `['tickets']` inteiro, não só `['tickets','lista']`: desde que a
+  // barra lateral mostra contagem (`useResumoFila`), atribuir 10 chamados em
+  // lote muda a lista E os números das gavetas. Deixar o resumo de fora faria
+  // a tela mostrar "Não atribuídos 40" logo depois de esvaziar a gaveta.
+  const invalidar = () => qc.invalidateQueries({ queryKey: ['tickets'] })
 
   const atribuir = useMutation({
     mutationFn: (dados: { ticket_ids: number[]; assignee_id: number | null }) =>
@@ -35,4 +39,22 @@ export function useAcoesEmLote() {
   })
 
   return { atribuir, mudarPrioridade }
+}
+
+/**
+ * Contagem de cada visão salva numa chamada só (`GET /tickets/resumo/`,
+ * action `resumo` em apps/tickets/views.py). É o backend que soma: uma query
+ * por gaveta a partir do navegador faria os números aparecerem um a um e a
+ * lateral dançaria a cada troca de tela — foi por isso que o endpoint nasceu
+ * assim, e nenhuma tela o chamava.
+ *
+ * `staleTime` de 30s igual ao dos KPIs da Início (`useKpis`): número de apoio
+ * não precisa ser mais fresco que a lista que ele descreve.
+ */
+export function useResumoFila() {
+  return useQuery({
+    queryKey: ['tickets', 'resumo'],
+    queryFn: () => api.get<ResumoFila>('/api/v1/tickets/resumo/'),
+    staleTime: 30_000,
+  })
 }

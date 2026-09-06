@@ -1,7 +1,22 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
+import { ConfirmDialog } from '@/cvz/components'
+// A transcrição em PDF já estava escrita para o portal e vai por fetch+blob de
+// propósito: o endpoint devolve 501 quando o gerador não está instalado
+// (apps/tickets/views.py, `export`), e um <a download> transformaria isso numa
+// aba em branco. Reusar > reescrever — resolv/conta já importa de @/portal.
+import { baixarPdfDoTicket } from '@/portal/api/tickets'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE, formatarDataHora } from '../format'
-import { ICONE_CANAL, ROTULO_CANAL, ROTULO_SLA, TOM_SLA, tempoSla } from './linhaDoTempo'
+import {
+  ICONE_CANAL,
+  ROTULO_CANAL,
+  ROTULO_SLA,
+  TOM_SLA,
+  mensagemDeErro,
+  tempoSla,
+} from './linhaDoTempo'
 import type { RelogioSla, TicketDetalhe } from './tiposDetalhe'
 
 export type PainelLateral = 'propriedades' | 'cliente'
@@ -49,12 +64,44 @@ export function CabecalhoTicket({
   onAlternarPainel,
 }: Props) {
   const navigate = useNavigate()
+  const [confirmarAssumir, setConfirmarAssumir] = useState(false)
+  const [exportando, setExportando] = useState(false)
+  const [avisoExport, setAvisoExport] = useState<string | null>(null)
   const perms = me?.permissions ?? []
   const fechado = ticket.status === 'closed'
   const souOResponsavel = me != null && ticket.assignee_id === me.id
   const podeAssumir = !fechado && !souOResponsavel && perms.includes('ticket.be_assigned')
   const podeFechar = perms.includes('ticket.close')
   const podeReabrir = perms.includes('ticket.reply_public')
+
+  // `assignee_id` é quem manda: o nome é derivado dele no serializer, e ler o
+  // nome primeiro faria um responsável sem nome cadastrado sumir da tela.
+  const nomeDoResponsavel =
+    ticket.assignee_id != null ? (ticket.assignee_name ?? 'outro responsável') : null
+
+  // Assumir com dono é TIRAR de um colega, não pegar um chamado solto — o
+  // botão diz de quem e pergunta antes. Sem dono continua sendo um clique só:
+  // confirmar o que não tem custo é só atrito.
+  const donoAtual = souOResponsavel ? null : nomeDoResponsavel
+  // Primeiro nome no botão, que divide a barra com "Fechar ticket…"; o nome
+  // inteiro fica no diálogo, onde há espaço para não haver dúvida de quem é.
+  const primeiroNome = donoAtual?.trim().split(/\s+/)[0] ?? ''
+
+  async function exportarPdf() {
+    setExportando(true)
+    setAvisoExport(null)
+    try {
+      await baixarPdfDoTicket(ticket.id, ticket.reference)
+    } catch (e) {
+      setAvisoExport(
+        e instanceof ApiError && e.status === 501
+          ? 'A exportação em PDF não está disponível neste servidor. Nada foi baixado.'
+          : `${mensagemDeErro(e, 'Não foi possível gerar o PDF.')} Nada foi baixado.`,
+      )
+    } finally {
+      setExportando(false)
+    }
+  }
 
   return (
     <header className="ticket-cab">
@@ -84,13 +131,24 @@ export function CabecalhoTicket({
             <button
               type="button"
               className="ticket-cab__botao"
-              onClick={onAssumir}
+              onClick={() => (donoAtual ? setConfirmarAssumir(true) : onAssumir())}
               disabled={assumindo}
             >
-              <i className="ti ti-user-check" />
-              {assumindo ? 'Assumindo…' : 'Assumir'}
+              <i className="ti ti-user-check" aria-hidden="true" />
+              {assumindo ? 'Assumindo…' : donoAtual ? `Assumir de ${primeiroNome}` : 'Assumir'}
             </button>
           )}
+
+          <button
+            type="button"
+            className="ticket-cab__botao"
+            onClick={exportarPdf}
+            disabled={exportando || ticket.content_hidden}
+            title="Baixar a transcrição da conversa em PDF"
+          >
+            <i className="ti ti-download" aria-hidden="true" />
+            {exportando ? 'Gerando…' : 'Exportar PDF'}
+          </button>
           {fechado
             ? podeReabrir && (
                 <button type="button" className="ticket-cab__botao" onClick={onReabrir}>
@@ -162,6 +220,19 @@ export function CabecalhoTicket({
             {ticket.team.name}
           </span>
         )}
+        {/* Abaixo de 900px o painel de propriedades vira gaveta (detalhe.scss) e
+            era o único lugar com o nome do responsável — em tela estreita dava
+            para assumir sem saber que havia dono. Aqui não sai nunca. */}
+        <span className="ticket-cab__meta">
+          <i className="ti ti-headset" aria-hidden="true" />
+          {nomeDoResponsavel ? (
+            <>
+              Responsável <strong>{nomeDoResponsavel}</strong>
+            </>
+          ) : (
+            'Sem responsável'
+          )}
+        </span>
         <span className="ticket-cab__meta">
           <i className={ICONE_CANAL[ticket.source] ?? 'ti ti-mail'} />
           {ROTULO_CANAL[ticket.source] ?? ticket.source}
@@ -177,6 +248,27 @@ export function CabecalhoTicket({
           <RelogioSlaChip rotulo="Resolução" relogio={ticket.sla.resolution} />
         </span>
       </div>
+
+      {avisoExport && (
+        <p className="ticket-cab__aviso" role="alert">
+          <i className="ti ti-alert-circle" aria-hidden="true" />
+          <span>{avisoExport}</span>
+          <button type="button" onClick={() => setAvisoExport(null)} aria-label="Fechar aviso">
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </p>
+      )}
+
+      {confirmarAssumir && donoAtual && (
+        <ConfirmDialog
+          open
+          onClose={() => setConfirmarAssumir(false)}
+          onConfirm={onAssumir}
+          title={`Assumir de ${donoAtual}?`}
+          description={`${donoAtual} deixa de ser o responsável por ${ticket.reference} e o chamado sai da fila dele. A troca fica registrada no histórico.`}
+          confirmLabel="Assumir mesmo assim"
+        />
+      )}
     </header>
   )
 }

@@ -75,7 +75,9 @@ export function useAcoesTicket(id: number) {
   const qc = useQueryClient()
   const gravar = (t: TicketDetalhe) => {
     qc.setQueryData(chaveDetalhe(id), t)
-    qc.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+    // Prefixo `['tickets']`: transferir de equipe ou mexer em etiquetas muda a
+    // fila E as contagens da barra lateral (`['tickets', 'resumo']`).
+    qc.invalidateQueries({ queryKey: ['tickets'] })
   }
 
   const responder = useMutation({
@@ -129,6 +131,23 @@ export function useAcoesTicket(id: number) {
     onSuccess: gravar,
   })
 
+  /** Transferir de equipe é o MESMO PATCH de triagem de prioridade e categoria
+   *  (`partial_update` em apps/tickets/views.py). Quem recusa equipe interna
+   *  para chamado de cliente é o serviço, que também escreve "equipe → X" no
+   *  histórico — a tela manda e mostra o motivo que voltar. */
+  const mudarEquipe = useMutation({
+    mutationFn: (team: number) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { team }),
+    onSuccess: gravar,
+  })
+
+  /** A lista SUBSTITUI o conjunto de etiquetas, e lista vazia limpa — contrato
+   *  do `TicketReclassifySerializer.tags` (apps/tickets/serializers.py). Por
+   *  isso a tela manda sempre o conjunto inteiro, nunca "adicione esta". */
+  const mudarEtiquetas = useMutation({
+    mutationFn: (tags: number[]) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { tags }),
+    onSuccess: gravar,
+  })
+
   /** Grava só os campos de triagem da macro (categoria/urgência/responsável/
    *  etiquetas). O texto pronto é responsabilidade do compositor. */
   const aplicarMacro = useMutation({
@@ -164,6 +183,8 @@ export function useAcoesTicket(id: number) {
     seguir,
     deixarDeSeguir,
     mudarPrioridade,
+    mudarEquipe,
+    mudarEtiquetas,
     aplicarMacro,
     fechar,
     editarMensagem,

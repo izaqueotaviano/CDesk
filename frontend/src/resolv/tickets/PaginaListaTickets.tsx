@@ -29,6 +29,7 @@ const VIEW_INICIAL = 'nao-resolvidos' // a mesma que está ativa no print
 
 const ROTULO_VIEW: Record<string, string> = {
   'meus-nao-resolvidos': 'Meus tickets não resolvidos',
+  'aguardando-voce': 'Aguardando você',
   todos: 'Todos os tickets',
   prioritario: 'Tickets Prioritário',
   'sem-atendimento': 'Tickets Sem Atendimento',
@@ -62,9 +63,17 @@ export function PaginaListaTickets() {
     return () => clearTimeout(t)
   }, [busca])
 
+  // "Tickets Prioritário" = urgente E ainda não resolvido. Sem o recorte de
+  // status a gaveta trazia todo chamado urgente da história (o queryset base
+  // não filtra status — selectors.visible_tickets), e o contador do subtítulo
+  // inflava junto: quem abre isto pergunta "o que eu ataco agora", não "o que
+  // já foi urgente algum dia". O nome fica como está — "Tickets Sem
+  // Atendimento" também é recortado por não-resolvido sem dizer no rótulo
+  // (SAVED_VIEWS em apps/tickets/views.py); é o padrão da lateral, não uma
+  // exceção deste item.
   const ehPrioritario = viewAtiva === 'prioritario'
   const params: ParamsListagem = {
-    view: ehPrioritario ? undefined : viewAtiva,
+    view: ehPrioritario ? 'nao-resolvidos' : viewAtiva,
     priority: ehPrioritario ? 'urgent' : undefined,
     q: buscaDebounced,
     ordering,
@@ -87,7 +96,17 @@ export function PaginaListaTickets() {
 
   function selecionarView(v: Visualizacao) {
     setViewAtiva(v.id === 'prioritario' ? 'prioritario' : (v.view ?? v.id))
-    setOffset(0)
+    trocarRecorte(0)
+  }
+
+  /** Toda troca de RECORTE (visão, busca, página) zera a seleção: agir em
+   *  lote sobre uma linha que saiu da tela é ação às cegas — a pessoa marca
+   *  3 na página 1, vira a página e a barra continua dizendo "3
+   *  selecionado(s)" de chamados que ela não vê mais. O aviso da última
+   *  tentativa parcial vai junto, porque ele fala dos ids que acabaram de
+   *  sair de vista. */
+  function trocarRecorte(novoOffset: number) {
+    setOffset(novoOffset)
     setSelecionados(new Set())
     setAvisoLote(null)
   }
@@ -125,7 +144,10 @@ export function PaginaListaTickets() {
 
   function ordenar(chave: ColunaOrdenavel) {
     setOrdering((atual) => (atual === chave ? `-${chave}` : chave))
-    setOffset(0)
+    // Reordenar mantém o mesmo conjunto, mas troca QUEM está nesta página —
+    // as marcadas escorregam para outra e a barra passaria a falar de linhas
+    // que ninguém vê. Mesma razão de virar página.
+    trocarRecorte(0)
   }
 
   function alternarSelecao(id: number) {
@@ -186,7 +208,7 @@ export function PaginaListaTickets() {
                 value={busca}
                 onChange={(e) => {
                   setBusca(e.target.value)
-                  setOffset(0)
+                  trocarRecorte(0)
                 }}
               />
             </div>
@@ -306,7 +328,7 @@ export function PaginaListaTickets() {
             <button
               type="button"
               disabled={offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - LIMITE))}
+              onClick={() => trocarRecorte(Math.max(0, offset - LIMITE))}
             >
               <i className="ti ti-chevron-left" />
               Anterior
@@ -317,7 +339,7 @@ export function PaginaListaTickets() {
             <button
               type="button"
               disabled={fim >= total}
-              onClick={() => setOffset(offset + LIMITE)}
+              onClick={() => trocarRecorte(offset + LIMITE)}
             >
               Próxima
               <i className="ti ti-chevron-right" />

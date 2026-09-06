@@ -1,6 +1,12 @@
-import { useId, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import type { UseMutationResult } from '@tanstack/react-query'
 import type { Me } from '@/api/types'
+// ConfirmDialog do design system em vez de um `confirm()` ou de um modal novo:
+// é o padrão único de "tem certeza" da casa, e a pasta já importa cvz aqui
+// (ModalFecharTicket.tsx). `useEquipes`/`useEtiquetas` são os mesmos hooks que
+// a tela de abertura usa — cadastro é um só (cvz/tickets/dados.ts).
+import { ConfirmDialog } from '@/cvz/components'
+import { useEquipes, useEtiquetas } from '@/cvz/tickets/dados'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
 import { useAcoesTicket, useAlvosMencao, useCategorias } from './dados'
@@ -122,8 +128,31 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
   const idBase = useId()
   const { data: alvos } = useAlvosMencao(ticket.id)
   const { data: categorias } = useCategorias()
-  const { atribuir, definirDono, mudarCategoria, mudarPrioridade, seguir, deixarDeSeguir } =
-    useAcoesTicket(ticket.id)
+  const {
+    data: equipes,
+    isLoading: carregandoEquipes,
+    isError: falhouCatalogoEquipes,
+  } = useEquipes()
+  const {
+    data: etiquetas,
+    isLoading: carregandoEtiquetas,
+    isError: falhouCatalogoEtiquetas,
+  } = useEtiquetas()
+  const {
+    atribuir,
+    definirDono,
+    mudarCategoria,
+    mudarPrioridade,
+    mudarEquipe,
+    mudarEtiquetas,
+    seguir,
+    deixarDeSeguir,
+  } = useAcoesTicket(ticket.id)
+
+  // Equipe escolhida no seletor mas ainda NÃO confirmada. Enquanto ela existe o
+  // seletor mostra o destino (senão o campo voltaria sozinho e pareceria bug) e
+  // o diálogo está aberto; cancelar joga fora e o campo volta ao ticket.
+  const [equipeAlvo, setEquipeAlvo] = useState<number | null>(null)
 
   const perms = me?.permissions ?? []
   const podeEditar = perms.includes('ticket.edit_properties')
@@ -145,6 +174,53 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           </option>
         ))}
       </>
+    )
+  }
+
+  const nomeDaEquipe = (id: number | null) =>
+    (equipes ?? []).find((e) => e.id === id)?.name ??
+    (id === ticket.team?.id ? ticket.team.name : '')
+
+  const catalogoEtiquetas = etiquetas ?? []
+  const idsAplicados = ticket.tags.map((t) => t.id)
+  const podeEtiquetar = podeEditar && catalogoEtiquetas.length > 0
+
+  // Por que o catálogo pode não estar disponível — carregando, falhou ou
+  // ninguém cadastrou. Sem isto a pessoa com permissão veria a mesma lista
+  // morta de sempre e não saberia se o problema é dela.
+  /** Todo chamado tem solicitante CLIENTE (o backend recusa requester interno),
+   *  e equipe interna não pode receber chamado de cliente — então ela nunca é
+   *  destino válido de transferência. Omitir aqui evita a recusa que só
+   *  apareceria depois da confirmação. */
+  const equipesElegiveis = (equipes ?? []).filter((e) => !e.internal_only)
+
+  /** Mesmo tratamento que as etiquetas logo abaixo: sem o cadastro, um seletor
+   *  com uma opção só afirmaria "esta é a única equipe", que é falso. */
+  const avisoEquipes = !podeEditar
+    ? null
+    : carregandoEquipes
+      ? 'Carregando as equipes…'
+      : falhouCatalogoEquipes
+        ? 'Não foi possível carregar as equipes — dá para ver a atual, não para transferir.'
+        : equipesElegiveis.length <= 1
+          ? 'Não há outra equipe para onde transferir.'
+          : null
+
+  const avisoEtiquetas = !podeEditar
+    ? null
+    : carregandoEtiquetas
+      ? 'Carregando o cadastro de etiquetas…'
+      : falhouCatalogoEtiquetas
+        ? 'Não foi possível carregar o cadastro de etiquetas — dá para ver as aplicadas, não para mudar.'
+        : catalogoEtiquetas.length === 0
+          ? 'Nenhuma etiqueta cadastrada — o cadastro fica em Configurações.'
+          : 'A fila e o quadro filtram por etiqueta.'
+
+  /** O PATCH substitui o conjunto inteiro (ver `mudarEtiquetas` em dados.ts),
+   *  então ligar/desligar um chip manda a lista resultante — não um delta. */
+  function alternarEtiqueta(id: number) {
+    mudarEtiquetas.mutate(
+      idsAplicados.includes(id) ? idsAplicados.filter((x) => x !== id) : [...idsAplicados, id],
     )
   }
 
@@ -196,10 +272,40 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           <EstadoCampo m={definirDono} padrao="Não foi possível mudar o dono técnico." />
         </Campo>
 
-        <Campo rotulo="Equipe">
-          <ValorFixo icone="ti ti-users-group" vazio={!ticket.team}>
-            {ticket.team?.name ?? '—'}
-          </ValorFixo>
+        {/* Transferir muda QUEM ENXERGA o chamado (o escopo por equipe é do
+            backend), então esta é a única troca do painel que passa por
+            confirmação — as outras mexem em quem trabalha, não em quem vê. */}
+        <Campo rotulo="Equipe" htmlFor={podeEditar && !avisoEquipes ? `${idBase}-equipe` : undefined}>
+          {podeEditar && !avisoEquipes ? (
+            <Seletor
+              id={`${idBase}-equipe`}
+              icone="ti ti-users-group"
+              value={String(equipeAlvo ?? ticket.team?.id ?? '')}
+              onChange={(v) => {
+                const alvo = Number(v)
+                if (alvo && alvo !== ticket.team?.id) setEquipeAlvo(alvo)
+              }}
+              disabled={mudarEquipe.isPending}
+            >
+              {!ticket.team && <option value="">Sem equipe</option>}
+              {ticket.team && !equipesElegiveis.some((e) => e.id === ticket.team?.id) && (
+                <option value={ticket.team.id}>{ticket.team.name}</option>
+              )}
+              {equipesElegiveis.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.name}
+                </option>
+              ))}
+            </Seletor>
+          ) : (
+            <ValorFixo icone="ti ti-users-group" vazio={!ticket.team}>
+              {ticket.team?.name ?? '—'}
+            </ValorFixo>
+          )}
+          {podeEditar && (
+            <span className="props__ajuda">{avisoEquipes ?? 'Transferir muda quem enxerga'}</span>
+          )}
+          <EstadoCampo m={mudarEquipe} padrao="Não foi possível transferir o chamado." />
         </Campo>
       </section>
 
@@ -261,8 +367,41 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           <EstadoCampo m={mudarCategoria} padrao="Não foi possível mudar a categoria." />
         </Campo>
 
+        {/* Etiquetar depois da abertura: o mesmo PATCH que a criação já usava
+            (cvz/tickets/dados.ts), agora onde a etiqueta faz falta. Chips que
+            ligam/desligam, mesmo padrão da abertura — sem confirmação, porque
+            o custo de errar é um clique de volta. */}
         <Campo rotulo="Etiquetas">
-          {ticket.tags.length > 0 ? (
+          {podeEtiquetar ? (
+            <ul className="props__chips" aria-label="Etiquetas">
+              {catalogoEtiquetas.map((t) => {
+                const ligada = idsAplicados.includes(t.id)
+                return (
+                  <li key={t.id}>
+                    <button
+                      type="button"
+                      className={
+                        'props__chip props__chip--acionavel' +
+                        (ligada ? ' props__chip--ligada' : '')
+                      }
+                      aria-pressed={ligada}
+                      disabled={mudarEtiquetas.isPending}
+                      onClick={() => alternarEtiqueta(t.id)}
+                    >
+                      {t.color && (
+                        <span
+                          className="props__cor"
+                          style={{ background: t.color }}
+                          aria-hidden="true"
+                        />
+                      )}
+                      {t.name}
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          ) : ticket.tags.length > 0 ? (
             <ul className="props__chips" aria-label="Etiquetas">
               {ticket.tags.map((t) => (
                 <li key={t.id} className="props__chip">
@@ -280,6 +419,8 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           ) : (
             <p className="props__vazio">Nenhuma etiqueta — as macros podem aplicar.</p>
           )}
+          {avisoEtiquetas && <span className="props__ajuda">{avisoEtiquetas}</span>}
+          <EstadoCampo m={mudarEtiquetas} padrao="Não foi possível salvar as etiquetas." />
         </Campo>
       </section>
 
@@ -340,6 +481,25 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           </blockquote>
           <span className="props__ajuda">Registrada na última mudança de status</span>
         </section>
+      )}
+
+      {equipeAlvo != null && (
+        <ConfirmDialog
+          open
+          onClose={() => setEquipeAlvo(null)}
+          onConfirm={() =>
+            // O erro fica com a mutação (a linha de estado do campo o mostra);
+            // engolir aqui é só para o diálogo fechar em vez de travar com uma
+            // promessa rejeitada — ConfirmDialog fecha depois do await.
+            mudarEquipe.mutateAsync(equipeAlvo).then(
+              () => undefined,
+              () => undefined,
+            )
+          }
+          title={`Transferir para ${nomeDaEquipe(equipeAlvo)}?`}
+          description={`O chamado sai da fila de ${ticket.team?.name ?? 'nenhuma equipe'} e passa a ser visto por quem atende ${nomeDaEquipe(equipeAlvo)}. A troca fica registrada no histórico.`}
+          confirmLabel="Transferir"
+        />
       )}
     </aside>
   )

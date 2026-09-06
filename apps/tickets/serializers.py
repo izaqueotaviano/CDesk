@@ -63,7 +63,14 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ["id", "name", "slug", "visibility", "order"]
+        # `internal_only` entra porque o seletor de TRANSFERIR equipe (o painel
+        # do detalhe) precisa saber quais equipes podem receber chamado de
+        # cliente: sem isso a tela oferece a equipe interna, o agente confirma a
+        # transferência e só então toma 400 de
+        # `ticket_service` ("Equipe interna não pode receber chamado de
+        # cliente."). Não é dado sensível — `TeamViewSet.get_queryset` já
+        # esconde a equipe inteira de quem é cliente.
+        fields = ["id", "name", "slug", "visibility", "order", "internal_only"]
 
 
 class ServiceSerializer(serializers.ModelSerializer):

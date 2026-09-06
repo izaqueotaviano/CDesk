@@ -78,7 +78,10 @@ function invalidou(chave: unknown[]): boolean {
     .mock.calls.some(([filtro]) => JSON.stringify(filtro?.queryKey) === JSON.stringify(chave))
 }
 
-const CHAVE_DA_FILA = ['tickets', 'lista'] // prefixo de `useTicketsList.ts`
+// Prefixo `['tickets']`: cobre a fila (`['tickets','lista',params]`) E as
+// contagens da barra lateral (`['tickets','resumo']`). Invalidar só a lista
+// deixava a gaveta dizendo "Não atribuídos 40" com a fila já esvaziada.
+const CHAVE_DA_FILA = ['tickets']
 
 describe('canal pessoal — a fila de tickets acompanha o que o sino avisa', () => {
   beforeEach(() => conectarCanalPessoal(queryClientFalso))

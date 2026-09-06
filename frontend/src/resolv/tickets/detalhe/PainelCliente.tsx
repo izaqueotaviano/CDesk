@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { formatarDataHora } from '../format'
 import { ICONE_CANAL, ROTULO_CANAL, ROTULO_SLA, TOM_SLA, iniciais, tempoSla } from './linhaDoTempo'
-import type { RelogioSla, TicketDetalhe } from './tiposDetalhe'
+import type { Avaliacao, RelogioSla, TicketDetalhe } from './tiposDetalhe'
 
 const ROTULO_IDIOMA: Record<string, string> = {
   'pt-br': 'Português (Brasil)',
@@ -46,7 +46,9 @@ function Linha({
   )
 }
 
-function BotaoCopiar({ texto }: { texto: string }) {
+/** `rotulo` entra no aria-label: o botão é só ícone e agora serve mais de um
+ *  dado, então "Copiar" sozinho não diria o quê. */
+function BotaoCopiar({ texto, rotulo }: { texto: string; rotulo: string }) {
   const [copiado, setCopiado] = useState(false)
   useEffect(() => {
     if (!copiado) return
@@ -63,7 +65,7 @@ function BotaoCopiar({ texto }: { texto: string }) {
           .then(() => setCopiado(true))
           .catch(() => {})
       }}
-      aria-label={copiado ? 'E-mail copiado' : 'Copiar e-mail'}
+      aria-label={copiado ? `${rotulo} copiado` : `Copiar ${rotulo}`}
       title={copiado ? 'Copiado' : 'Copiar'}
     >
       <i className={copiado ? 'ti ti-check' : 'ti ti-copy'} aria-hidden="true" />
@@ -86,6 +88,39 @@ function LinhaSla({ rotulo, relogio }: { rotulo: string; relogio: RelogioSla }) 
 }
 
 /**
+ * Nota do CSAT deste chamado. O docstring de `get_satisfaction`
+ * (apps/tickets/serializers.py) diz para que ele existe: "quem atendeu nunca
+ * via a avaliação que recebeu". Aqui é onde quem atendeu vê.
+ *
+ * O número NÃO é pintado por faixa. A escala é 0–10 e o backend só devolve
+ * distribuição e média (`services/satisfaction.summarize`) — não existe corte
+ * de "boa/ruim" definido em lugar nenhum, e inventar um aqui viraria uma
+ * classificação que nenhum relatório usa. Cor neutra, o número fala.
+ */
+function BlocoAvaliacao({ avaliacao }: { avaliacao: Avaliacao }) {
+  return (
+    <span className="cliente__nota">
+      <span className="cliente__nota-valor" aria-hidden="true">
+        {avaliacao.score}
+      </span>
+      <span className="cliente__nota-corpo">
+        <span className="cliente__nota-escala">Nota {avaliacao.score} de 10</span>
+        {avaliacao.comment ? (
+          <q className="cliente__nota-comentario">{avaliacao.comment}</q>
+        ) : (
+          <span className="cliente__nota-ajuda">Sem comentário</span>
+        )}
+        {avaliacao.responded_at && (
+          <span className="cliente__nota-ajuda">
+            respondida em {formatarDataHora(avaliacao.responded_at)}
+          </span>
+        )}
+      </span>
+    </span>
+  )
+}
+
+/**
  * Painel do cliente — quem está do outro lado e o resumo objetivo deste
  * ticket (datas, solução, SLA). O histórico de status saiu daqui: ele agora
  * conta a história junto das mensagens, na conversa. A caixa "Observações"
@@ -97,6 +132,10 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
   const hora = horaLocal(req?.timezone ?? null, agoraMs)
   const idioma = req ? (ROTULO_IDIOMA[req.ui_language] ?? req.ui_language) : null
   const reaberturas = ticket.reopen_count ?? 0
+  // A pesquisa nasce no fechamento (services/satisfaction.create_for_ticket),
+  // então antes disso "sem avaliação" não é informação — é cedo. Depois passa
+  // a ser, e a linha aparece dizendo que a pesquisa segue sem resposta.
+  const fechado = ticket.status === 'closed'
 
   return (
     <aside className="cliente" aria-label="Cliente e resumo do ticket">
@@ -120,11 +159,11 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
         <dl className="cliente__lista">
           <Linha rotulo="E-mail" vazio={!req?.email}>
             {req?.email ? (
-              <span className="cliente__email">
+              <span className="cliente__copiavel">
                 <a href={`mailto:${req.email}`} className="cliente__link">
                   {req.email}
                 </a>
-                <BotaoCopiar texto={req.email} />
+                <BotaoCopiar texto={req.email} rotulo="e-mail" />
               </span>
             ) : (
               '—'
@@ -142,6 +181,19 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
       <section className="cliente__grupo">
         <h2 className="cliente__titulo">Este ticket</h2>
         <dl className="cliente__lista">
+          {/* Sempre visível, mesmo vazio: o número do pedido é a chave do ERP
+              num B2B, e quem não o encontra aqui vai caçá-lo dentro da primeira
+              mensagem. "Não informado" encerra a busca; a ausência da linha não. */}
+          <Linha rotulo="Nº do pedido" vazio={!ticket.order_number}>
+            {ticket.order_number ? (
+              <span className="cliente__copiavel">
+                <span className="cliente__pedido">{ticket.order_number}</span>
+                <BotaoCopiar texto={ticket.order_number} rotulo="número do pedido" />
+              </span>
+            ) : (
+              'não informado na abertura'
+            )}
+          </Linha>
           <Linha rotulo="Aberto em">{formatarDataHora(ticket.created_at)}</Linha>
           <Linha rotulo="Canal">
             <i className={ICONE_CANAL[ticket.source] ?? 'ti ti-mail'} aria-hidden="true" />{' '}
@@ -169,6 +221,19 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
                 ? ` · última ${formatarDataHora(ticket.last_reopened_at)}`
                 : ''}
             </Linha>
+          )}
+          {/* `satisfaction` nulo é "pesquisa não respondida", nunca nota zero —
+              por isso o teste é no objeto, não no número (ver tiposDetalhe.ts). */}
+          {ticket.satisfaction ? (
+            <Linha rotulo="Avaliação">
+              <BlocoAvaliacao avaliacao={ticket.satisfaction} />
+            </Linha>
+          ) : (
+            fechado && (
+              <Linha rotulo="Avaliação" vazio>
+                pesquisa ainda sem resposta
+              </Linha>
+            )
           )}
         </dl>
       </section>

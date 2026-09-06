@@ -53,8 +53,7 @@ export const ROTULO_STATUS: Record<StatusTicket, string> = {
 /** Cor do relógio de SLA (`RelogioSla.state`) — mesma semântica de
  *  `COR_PRIORIDADE`: vermelho estourou, âmbar em risco, cinza sem prazo,
  *  verde no prazo. Usado nas listas da Início ("Seus próximos",
- *  "Vencendo na equipe") e reaproveitável na tabela de tickets no dia em
- *  que ela ganhar uma coluna de SLA. */
+ *  "Vencendo na equipe") e na coluna SLA da fila (TicketsTable.tsx). */
 export function corEstadoSla(sla: RelogioSla): string {
   if (sla.state === 'breached') return 'var(--danger)'
   if (sla.state === 'at_risk') return 'var(--away)'
@@ -66,8 +65,27 @@ export function corEstadoSla(sla: RelogioSla): string {
 export function textoEstadoSla(sla: RelogioSla): string {
   if (sla.state === 'breached') return 'Estourado'
   if (sla.state === 'none') return 'Sem SLA'
+  // `met` antes da conta de tempo: o relógio parou quando o prazo foi
+  // cumprido, e `minutes_left` continua correndo pro passado no serializer
+  // (apps/tickets/serializers.py, `_sla_clock` calcula sempre due_at - agora).
+  // Sem este ramo, um ticket resolvido lia "-3h restantes" — a fila mostra
+  // fechados nas visões "Todos" e "Resolvidos", que é onde isso aparecia.
+  if (sla.state === 'met') return 'Cumprido'
   if (sla.minutes_left == null) return 'No prazo'
   const h = Math.floor(sla.minutes_left / 60)
   const restante = h > 0 ? `${h}h` : `${sla.minutes_left}min`
   return sla.state === 'at_risk' ? `${restante} — em risco` : `${restante} restantes`
+}
+
+/**
+ * "38min" / "2h" / "3d" a partir de MINUTOS — a unidade em que o resumo da
+ * fila manda a espera mais longa (`nao_atribuidos.espera_mais_longa_min`,
+ * apps/tickets/views.py). Mesma escala de `esperaEmFila` para as duas
+ * durações da tela não se lerem com vocabulário diferente.
+ */
+export function duracaoEmMinutos(min: number): string {
+  if (min < 60) return `${Math.max(0, Math.round(min))}min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
 }

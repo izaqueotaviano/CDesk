@@ -60,6 +60,8 @@ const TICKET: TicketDetalhe = {
   id: 42,
   reference: '#1042',
   subject: 'Impressora fiscal não emite',
+  order_number: '',
+  satisfaction: null,
   status: 'open',
   stage: null,
   stage_name: 'Aberto',

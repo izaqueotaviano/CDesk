@@ -61,3 +61,26 @@ export interface ParamsListagem {
   limit: number
   offset: number
 }
+
+/**
+ * Resposta de `GET /api/v1/tickets/resumo/` (apps/tickets/views.py, action
+ * `resumo`) — conferida chave a chave no `Response(...)` de lá, não de
+ * memória. A fila usa só `visoes` e `nao_atribuidos`; o resto do payload
+ * fica declarado porque é o mesmo contrato e quem for ligar a Visão geral
+ * não precisa redescobri-lo.
+ */
+export interface ResumoFila {
+  /** Contagem de CADA visão salva, pela chave de `?view=` (SAVED_VIEWS). */
+  visoes: Record<string, number>
+  abertos: { total: number; hoje: number; variacao_dia: number }
+  /** `espera_mais_longa_min` é nulo quando não há ninguém na fila — nulo, e
+   *  não zero, que leria como "chegou agora" (test_visao_geral.py). */
+  nao_atribuidos: { total: number; espera_mais_longa_min: number | null }
+  sla_em_risco: {
+    total: number
+    estouram_em_1h: number
+    por_plano: { plan: string; label: string; count: number }[]
+  }
+  meus: { total: number; aguardando_voce: number }
+  resolvidos_hoje: { total: number; media_resolucao_min: number | null }
+}

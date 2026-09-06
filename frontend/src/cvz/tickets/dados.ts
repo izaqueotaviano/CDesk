@@ -18,6 +18,10 @@ export interface Equipe {
   slug: string
   visibility: string
   order: number
+  /** Equipe de uso interno: NUNCA pode receber chamado de cliente
+   *  (`ticket_service.update_fields`). Quem oferece transferência de equipe
+   *  precisa omiti-las, senão a recusa só aparece depois da confirmação. */
+  internal_only: boolean
 }
 
 /** `ServiceSerializer` — o nível acima de categoria. */

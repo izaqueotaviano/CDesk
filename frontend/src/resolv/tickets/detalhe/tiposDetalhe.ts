@@ -71,10 +71,25 @@ export interface RelogioSla {
   minutes_left: number | null
 }
 
+/**
+ * Nota do CSAT deste chamado (`get_satisfaction` em apps/tickets/serializers.py).
+ * O objeto INTEIRO é nulo enquanto a pesquisa não foi respondida — e isso não é
+ * nota zero: a escala do backend é 0–10 (`services/satisfaction.answer`), então
+ * 0 é uma nota legítima e quem lê tem que testar o objeto, nunca o número.
+ */
+export interface Avaliacao {
+  score: number
+  comment: string
+  responded_at: string | null
+}
+
 export interface TicketDetalhe {
   id: number
   reference: string
   subject: string
+  /** Chave do pedido no ERP, capturada na abertura. Sempre presente; vem ""
+   *  quando ninguém informou (CharField(blank=True) em apps/tickets/models.py). */
+  order_number: string
   status: StatusTicket
   stage: number | null
   stage_name: string
@@ -99,6 +114,7 @@ export interface TicketDetalhe {
   restriction_reason?: string
   sla: { first_response: RelogioSla; resolution: RelogioSla }
   tags: Etiqueta[]
+  satisfaction: Avaliacao | null
   created_at: string
   updated_at?: string
   first_response_at: string | null

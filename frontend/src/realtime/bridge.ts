@@ -90,10 +90,12 @@ function aplicarEventoPessoal(evento: EventoServidorPessoal, queryClient: QueryC
   switch (evento.type) {
     case 'notification':
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      // prefixo da chave de `resolv/tickets/useTicketsList.ts`
-      // (`['tickets', 'lista', params]`) — pega a fila em qualquer filtro
+      // `['tickets']` e não `['tickets', 'lista']`: o prefixo cobre a fila em
+      // qualquer filtro (`['tickets', 'lista', params]`) E as contagens da
+      // barra lateral (`['tickets', 'resumo']`). Invalidar só a lista deixava
+      // a gaveta dizendo "Não atribuídos 40" com a fila já vazia.
       if (KINDS_QUE_MUDAM_A_FILA.has(evento.kind)) {
-        queryClient.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+        queryClient.invalidateQueries({ queryKey: ['tickets'] })
       }
       if (evento.kind === 'chat_message' || evento.kind === 'chat_transferred' || evento.kind === 'chat_converted') {
         // badge/preview nas listas — a conversa aberta já recebe pela sala
@@ -109,7 +111,7 @@ function aplicarEventoPessoal(evento: EventoServidorPessoal, queryClient: QueryC
       // verdade: revalida o detalhe do ticket que mudou e a fila. A resposta
       // do cliente por e-mail aparece na conversa sem F5.
       queryClient.invalidateQueries({ queryKey: ['ticket', evento.ticket_id] })
-      queryClient.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
       break
     }
     case 'chat_queued':
