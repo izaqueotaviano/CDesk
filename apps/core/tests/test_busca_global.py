@@ -71,6 +71,19 @@ class TestBuscaGlobal:
         resp = api(agente_suporte).get("/api/v1/search/?q=ana")
         assert [r["id"] for r in resp.json()["requesters"]] == [ana.pk]
 
+    def test_solicitante_inativo_aparece_marcado(self, api, agente_suporte, ana):
+        """Busca não filtra por `is_active` de propósito — achar o histórico
+        de um cliente desativado é legítimo. Quem NÃO pode ignorar o campo é
+        a tela de abertura de chamado: `create_ticket` exige solicitante
+        ativo, e sem este sinal o 400 do servidor ("Cliente não encontrado")
+        mentiria sobre alguém que existe, só está inativo."""
+        ana.is_active = False
+        ana.save(update_fields=["is_active"])
+
+        resp = api(agente_suporte).get("/api/v1/search/?q=ana")
+        linha = next(r for r in resp.json()["requesters"] if r["id"] == ana.pk)
+        assert linha["is_active"] is False
+
     def test_admin_alcanca_qualquer_equipe(
         self, api, admin, ana, financeiro, make_ticket,
     ):

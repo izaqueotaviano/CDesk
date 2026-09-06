@@ -736,7 +736,7 @@ def reclassify(*, ticket: Ticket, actor, priority=None, category=_NAO_INFORMADO,
 
         if priority is not None and priority != ticket.priority:
             ticket.priority = priority
-            mudancas.append(f"urgência → {ticket.get_priority_display()}")
+            mudancas.append(f"prioridade → {ticket.get_priority_display()}")
             campos.append("priority")
 
         if category is not _NAO_INFORMADO and category != ticket.category:
@@ -813,7 +813,7 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
         if macro.priority and macro.priority != ticket.priority:
             ticket.priority = macro.priority
             campos.append("priority")
-            mudancas.append(f"urgência → {ticket.get_priority_display()}")
+            mudancas.append(f"prioridade → {ticket.get_priority_display()}")
         if macro.assignee_id and macro.assignee_id != ticket.assignee_id:
             ticket.assignee_id = macro.assignee_id
             campos.append("assignee")

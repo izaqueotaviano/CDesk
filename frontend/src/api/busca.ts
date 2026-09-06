@@ -33,6 +33,11 @@ export interface SolicitanteEncontrado {
    *  `null` juntos nesse caso (`u.company_id` / `u.company.name`). */
   company_id: number | null
   company_name: string | null
+  /** `create_ticket` exige solicitante ativo — quem oferece este resultado
+   *  como "Para" de um chamado novo precisa poder recusar antes do clique,
+   *  não deixar o servidor devolver "Cliente não encontrado" sobre alguém
+   *  que existe, só está inativo. */
+  is_active: boolean
 }
 
 export interface ResultadoBusca {

@@ -354,6 +354,16 @@ class GlobalSearchView(APIView):
                 {
                     "id": u.pk, "full_name": u.full_name, "email": u.email,
                     "company_id": u.company_id, "company_name": u.company.name if u.company else None,
+                    # `create_ticket` exige solicitante ATIVO (views.py) — sem
+                    # este campo, a tela de abertura não tem como distinguir
+                    # "achei" de "achei, mas o servidor vai recusar" antes de
+                    # tentar, e o 400 que voltaria (`{"requester_id": "Cliente
+                    # não encontrado."}`) mentiria: o cliente existe, só está
+                    # inativo. A consulta em si NÃO filtra `is_active`: um
+                    # solicitante inativo ainda é resultado válido de busca
+                    # (ex.: achar o histórico dele), só não serve para abrir
+                    # chamado novo em nome dele.
+                    "is_active": u.is_active,
                 }
                 for u in requesters
             ],
