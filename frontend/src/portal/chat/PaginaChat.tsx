@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlertCircle, Clock, MessageCircle, MessageSquarePlus } from 'lucide-react'
+import { AlertCircle, Clock, History, MessageCircle, MessageSquarePlus } from 'lucide-react'
 import {
   pendentesDoErro,
   useAbrirChat,
@@ -11,6 +11,7 @@ import {
 } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useHistoricoChats } from '../api/chats'
+import { cn } from '../lib/cn'
 import { dataHora, useAgora } from '../lib/formato'
 import { Alert } from '../ui/alert'
 import { Button, buttonVariants } from '../ui/button'
@@ -19,15 +20,22 @@ import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { CartaoConversa } from './componentes'
 import { Conversa } from './Conversa'
+import { ConversaContinua } from './ConversaContinua'
 import { ModalAvaliacao } from './ModalAvaliacao'
+
+/** Sentinela de `?chat=` pra ver a linha do tempo costurada em vez de uma
+ *  sessão só — nunca colide com um id real (`/^\d+$/`). */
+const PARAM_CONTINUA = 'continua'
 
 function Lista({
   vivo,
   historico,
   carregandoHistorico,
   selecionado,
+  mostrandoContinua,
   agoraMs,
   onSelecionar,
+  onVerContinua,
   onIniciar,
   iniciando,
   travado,
@@ -37,8 +45,10 @@ function Lista({
   historico: Chat[] | undefined
   carregandoHistorico: boolean
   selecionado: number | null
+  mostrandoContinua: boolean
   agoraMs: number
   onSelecionar: (id: number) => void
+  onVerContinua: () => void
   onIniciar: () => void
   iniciando: boolean
   travado: boolean
@@ -53,11 +63,25 @@ function Lista({
         </Button>
       </div>
 
+      {historico && historico.length > 0 && (
+        <button
+          type="button"
+          onClick={onVerContinua}
+          aria-current={mostrandoContinua || undefined}
+          className={cn(
+            'mx-2 mt-2 flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-pequeno font-medio text-tinta-secundaria transition-colors hover:bg-navegacao hover:text-tinta',
+            mostrandoContinua && 'border-acento/30 bg-acento-suave text-tinta hover:bg-acento-suave',
+          )}
+        >
+          <History className="size-4" aria-hidden="true" /> Ver conversa completa
+        </button>
+      )}
+
       <div className="flex-1 overflow-y-auto p-2">
         {vivo && (
           <div className="mb-2">
             <p className="px-2 py-1 text-legenda font-medio uppercase tracking-rotulo text-tinta-secundaria">Conversa atual</p>
-            <CartaoConversa chat={vivo} agoraMs={agoraMs} ativo={selecionado === vivo.id} onClick={() => onSelecionar(vivo.id)} />
+            <CartaoConversa chat={vivo} agoraMs={agoraMs} ativo={selecionado === vivo.id && !mostrandoContinua} onClick={() => onSelecionar(vivo.id)} />
           </div>
         )}
 
@@ -71,7 +95,7 @@ function Lista({
         ) : historico && historico.length > 0 ? (
           <div className="flex flex-col">
             {historico.map((c) => (
-              <CartaoConversa key={c.id} chat={c} agoraMs={agoraMs} ativo={selecionado === c.id} onClick={() => onSelecionar(c.id)} />
+              <CartaoConversa key={c.id} chat={c} agoraMs={agoraMs} ativo={selecionado === c.id && !mostrandoContinua} onClick={() => onSelecionar(c.id)} />
             ))}
           </div>
         ) : (
@@ -112,11 +136,15 @@ export function PaginaChat() {
   const [erroAbrir, setErroAbrir] = useState<{ detail: string; code?: string } | null>(null)
 
   const chatParam = params.get('chat')
+  const mostrandoContinua = chatParam === PARAM_CONTINUA
   const selecionadoId = chatParam && /^\d+$/.test(chatParam) ? Number(chatParam) : null
   const pendente = pendentes.data?.[0] ?? pendentesDoAbrir[0] ?? null
 
   function selecionar(id: number) {
     setParams({ chat: String(id) }, { replace: true })
+  }
+  function verContinua() {
+    setParams({ chat: PARAM_CONTINUA }, { replace: true })
   }
   function voltarParaLista() {
     setParams({}, { replace: true })
@@ -155,18 +183,21 @@ export function PaginaChat() {
       : undefined
 
   const conversaSelecionada = selecionadoId ?? vivo.data?.id ?? null
+  const algoAberto = mostrandoContinua || conversaSelecionada != null
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4 md:h-[calc(100vh-6rem)]">
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xl border border-divisoria bg-superficie shadow-elevacao-1 md:grid-cols-[320px_1fr]">
-        <div className={conversaSelecionada != null ? 'hidden border-divisoria md:block md:border-r' : 'border-divisoria md:block md:border-r'}>
+        <div className={algoAberto ? 'hidden border-divisoria md:block md:border-r' : 'border-divisoria md:block md:border-r'}>
           <Lista
             vivo={vivo.data}
             historico={historico.data}
             carregandoHistorico={historico.isLoading}
             selecionado={conversaSelecionada}
+            mostrandoContinua={mostrandoContinua}
             agoraMs={agora}
             onSelecionar={selecionar}
+            onVerContinua={verContinua}
             onIniciar={iniciar}
             iniciando={abrir.isPending}
             travado={travado}
@@ -174,8 +205,10 @@ export function PaginaChat() {
           />
         </div>
 
-        <div className={conversaSelecionada != null ? 'min-h-0' : 'hidden min-h-0 md:block'}>
-          {conversaSelecionada != null ? (
+        <div className={algoAberto ? 'min-h-0' : 'hidden min-h-0 md:block'}>
+          {mostrandoContinua ? (
+            <ConversaContinua onVoltar={voltarParaLista} />
+          ) : conversaSelecionada != null ? (
             <Conversa chatId={conversaSelecionada} onVoltar={voltarParaLista} />
           ) : filaFechada && !bloqueadoPorAvaliacao ? (
             <EstadoVazio

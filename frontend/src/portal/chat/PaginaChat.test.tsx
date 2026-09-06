@@ -83,6 +83,7 @@ beforeEach(() => {
         return Promise.resolve(jsonDe(alvo ?? chat(id)))
       }
       if (/\/messages\/$/.test(u.pathname)) return Promise.resolve(jsonDe([]))
+      if (u.pathname === '/api/v1/chat/timeline/') return Promise.resolve(jsonDe({ messages: [], sessions: [], has_more: false }))
       return Promise.resolve(jsonDe([]))
     }),
   )
@@ -157,5 +158,19 @@ describe('PaginaChat (cliente)', () => {
     expect(await screen.findByText('Fátima')).toBeInTheDocument()
     expect(screen.getByText('Encerrada')).toBeInTheDocument()
     expect(screen.queryByText('Conversa atual')).not.toBeInTheDocument()
+  })
+
+  it('"Ver conversa completa" só aparece com histórico, e abre a linha do tempo costurada', async () => {
+    montar()
+    await screen.findByText('Nenhuma conversa ainda')
+    expect(screen.queryByRole('button', { name: /Ver conversa completa/ })).not.toBeInTheDocument()
+  })
+
+  it('com histórico, "Ver conversa completa" abre a linha do tempo', async () => {
+    historico = [chat(3, { status: 'closed', closed_at: '2026-09-01T12:00:00Z', agent_name: 'Fátima' })]
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /Ver conversa completa/ }))
+    expect(await screen.findByText('Conversa completa')).toBeInTheDocument()
+    await waitFor(() => expect(chamadas.some((c) => c.url.startsWith('/api/v1/chat/timeline/'))).toBe(true))
   })
 })
