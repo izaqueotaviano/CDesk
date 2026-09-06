@@ -9,9 +9,9 @@ import './styles/global.scss'
 
 /**
  * Ponte entre o AppShell real (cvzdesk) e os dados/rotas do Resolv. Hoje só
- * `inicio`, `tickets`, `clientes` e `configuracoes` têm tela — os demais itens
- * da sidebar disparam um toast "em construção" em vez de navegar para lugar
- * nenhum (nunca um link morto silencioso).
+ * `inicio`, `tickets`, `clientes`, `avisos` e `configuracoes` têm tela — os
+ * demais itens da sidebar disparam um toast "em construção" em vez de
+ * navegar para lugar nenhum (nunca um link morto silencioso).
  *
  * `conversations`/`notifications` ficam em 0 de propósito: inventar um número
  * ali seria o mesmo erro que a barra "3 conversas" fixa da base anterior — a
@@ -21,11 +21,13 @@ const ROTA_POR_NAV: Partial<Record<NavId, string>> = {
   inicio: '/inicio',
   tickets: '/chamados',
   clientes: '/clientes',
+  avisos: '/avisos',
   configuracoes: '/configuracoes',
 }
 
 function navIdAtivo(pathname: string): NavId {
   if (pathname.startsWith('/clientes')) return 'clientes'
+  if (pathname.startsWith('/avisos')) return 'avisos'
   if (pathname.startsWith('/configuracoes')) return 'configuracoes'
   if (pathname.startsWith('/chamados')) return 'tickets'
   return 'inicio'
@@ -82,6 +84,7 @@ function CvzAppShellBridge({
         if (cmd.id === 'nav-inicio') navigate('/inicio')
         else if (cmd.id === 'nav-tickets') navigate('/chamados')
         else if (cmd.id === 'nav-clientes') navigate('/clientes')
+        else if (cmd.id === 'nav-avisos') navigate('/avisos')
         else if (cmd.id === 'nav-configuracoes') navigate('/configuracoes')
         else if (cmd.id !== 'advanced')
           push({ tone: 'info', title: 'Em construção', description: 'Esta área ainda não existe.' })

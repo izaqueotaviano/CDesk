@@ -29,6 +29,7 @@ import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
 import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
+import { PaginaAvisos } from '@/cvz/avisos/PaginaAvisos'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
 import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
 
@@ -148,6 +149,20 @@ export const router = createBrowserRouter([
           <RotaProtegida>
             <CvzAppLayout>
               <PaginaDetalheEmpresa />
+            </CvzAppLayout>
+          </RotaProtegida>
+        ),
+      },
+
+      // ---- Avisos — mural, backend já pronto (apps/announcements), primeira
+      // tela consumindo. Escrita gateada por Perm.ANNOUNCEMENT_MANAGE no
+      // próprio backend; a tela só esconde o botão pra quem não tem ----
+      {
+        path: '/avisos',
+        element: (
+          <RotaProtegida>
+            <CvzAppLayout>
+              <PaginaAvisos />
             </CvzAppLayout>
           </RotaProtegida>
         ),

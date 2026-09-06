@@ -1,0 +1,33 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+// Texto de apoio sob o título do aviso, na coluna "Aviso" da lista.
+.avisos-meta {
+  @include type($fs-meta, $w-regular);
+  color: $text-muted;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.avisos-vazio {
+  @include type($fs-ui, $w-regular);
+  color: $text-muted;
+  padding: $sp-2 0;
+}
+
+.avisos-erro-meta {
+  @include type($fs-meta, $w-regular);
+  color: $danger;
+}
+
+.avisos-toggle-historico {
+  @include type($fs-ui, $w-regular);
+  display: inline-flex;
+  align-items: center;
+  gap: $sp-2;
+  margin-top: $sp-4;
+  color: $text-muted;
+  cursor: pointer;
+}

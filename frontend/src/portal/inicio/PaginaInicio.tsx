@@ -13,6 +13,7 @@ import { Button, buttonVariants } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
 import { EstadoVazio } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
+import { MuralAvisos } from './MuralAvisos'
 
 interface CartaoResumoProps {
   rotulo: string
@@ -144,6 +145,8 @@ export function PaginaInicio() {
           )}
         </div>
       </header>
+
+      <MuralAvisos />
 
       {pendentesChat > 0 && (
         <Alert

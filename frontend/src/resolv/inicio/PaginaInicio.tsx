@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useMe } from '@/api/queries/useMe'
+import { MuralAvisos } from './MuralAvisos'
 import { useKpis } from './useKpis'
 import './inicio.scss'
 
@@ -23,6 +24,8 @@ export function PaginaInicio() {
         <h1 className="inicio__titulo">Olá, {me?.full_name?.split(' ')[0] ?? '—'}</h1>
         <p className="inicio__sub">Visão geral do atendimento</p>
       </header>
+
+      <MuralAvisos />
 
       <div className="inicio__kpis">
         {kpis.map((k) => (
