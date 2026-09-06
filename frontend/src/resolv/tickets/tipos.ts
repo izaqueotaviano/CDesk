@@ -53,6 +53,10 @@ export interface ParamsListagem {
   view?: string
   q?: string
   priority?: Prioridade
+  /** Mesmo filtro que alimenta os cards de SLA da Início (`useKpis`) —
+   *  sozinho já implica "não resolvido" (um ticket fechado não tem relógio
+   *  de SLA vivo), por isso não precisa combinar com `view=`. */
+  sla?: 'at_risk' | 'breached'
   ordering?: string // ex.: '-criado'
   limit: number
   offset: number

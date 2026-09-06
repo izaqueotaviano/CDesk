@@ -1,4 +1,4 @@
-import type { Prioridade, StatusTicket } from './tipos'
+import type { Prioridade, RelogioSla, StatusTicket } from './tipos'
 
 /** "03/09/2026 15:51" — formato da coluna "Aberto em" do print. */
 export function formatarDataHora(iso: string): string {
@@ -48,4 +48,26 @@ export const ROTULO_STATUS: Record<StatusTicket, string> = {
   open: 'Aberto',
   pending_customer: 'Aguardando retorno',
   closed: 'Fechado',
+}
+
+/** Cor do relógio de SLA (`RelogioSla.state`) — mesma semântica de
+ *  `COR_PRIORIDADE`: vermelho estourou, âmbar em risco, cinza sem prazo,
+ *  verde no prazo. Usado nas listas da Início ("Seus próximos",
+ *  "Vencendo na equipe") e reaproveitável na tabela de tickets no dia em
+ *  que ela ganhar uma coluna de SLA. */
+export function corEstadoSla(sla: RelogioSla): string {
+  if (sla.state === 'breached') return 'var(--danger)'
+  if (sla.state === 'at_risk') return 'var(--away)'
+  if (sla.state === 'none') return 'var(--text-muted)'
+  return 'var(--ok)'
+}
+
+/** Texto curto do relógio — "2h restantes", "Estourado", "Sem SLA". */
+export function textoEstadoSla(sla: RelogioSla): string {
+  if (sla.state === 'breached') return 'Estourado'
+  if (sla.state === 'none') return 'Sem SLA'
+  if (sla.minutes_left == null) return 'No prazo'
+  const h = Math.floor(sla.minutes_left / 60)
+  const restante = h > 0 ? `${h}h` : `${sla.minutes_left}min`
+  return sla.state === 'at_risk' ? `${restante} — em risco` : `${restante} restantes`
 }

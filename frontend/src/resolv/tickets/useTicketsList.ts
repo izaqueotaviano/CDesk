@@ -7,6 +7,7 @@ function montarQuery(p: ParamsListagem): string {
   if (p.view) q.set('view', p.view)
   if (p.q && p.q.length >= 3) q.set('q', p.q) // backend/print pedem 3+ caracteres
   if (p.priority) q.set('priority', p.priority)
+  if (p.sla) q.set('sla', p.sla)
   if (p.ordering) q.set('ordering', p.ordering)
   q.set('limit', String(p.limit))
   q.set('offset', String(p.offset))

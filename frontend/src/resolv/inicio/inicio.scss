@@ -6,6 +6,13 @@
   flex-direction: column;
   gap: 20px;
 
+  &__cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
   &__titulo {
     font-size: 20px;
     font-weight: 600;
@@ -16,6 +23,63 @@
     margin-top: 2px;
     font-size: 13px;
     color: var(--text-muted);
+  }
+  &__fila-estado {
+    color: var(--away);
+    font-weight: 500;
+    &--aberta {
+      color: var(--ok);
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 2px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+
+    i {
+      font-size: 15px;
+    }
+    &:hover {
+      filter: brightness(1.08);
+    }
+    &--secundario {
+      background: var(--surface-card);
+      color: var(--text-primary);
+      border: 0.7px solid var(--stroke);
+      &:hover {
+        filter: none;
+        border-color: var(--stroke-hover);
+        background: var(--surface);
+      }
+    }
+  }
+
+  // Duas colunas no desktop (fila de prioridade/vencimentos à esquerda,
+  // chat/equipe à direita); uma coluna abaixo de 900px — mesmo ponto de
+  // quebra do mini chat, que já some nessa largura.
+  &__grade {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+
+    @media (max-width: 899px) {
+      grid-template-columns: 1fr;
+    }
   }
 
   &__kpis {
@@ -71,6 +135,224 @@
     &--ok {
       color: var(--ok);
     }
+  }
+
+  // "Resolvidos hoje" — mesmo cartão, mais a variação vs a mesma hora
+  // ontem (apps/reports/services/indicators.py::variation, período "today").
+  &__kpi--tendencia {
+    cursor: default;
+    &:hover {
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+  }
+  &__kpi-delta {
+    font-size: 11px;
+    font-weight: 500;
+    &--up {
+      color: var(--ok);
+    }
+    &--down {
+      color: var(--danger);
+    }
+    &--flat {
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ============================================================================
+// Listas da Início — fila de prioridade, vencimentos de SLA, fila de chat,
+// equipe online. Um cartão por widget, mesma borda/raio do resto do design
+// system; cada linha é o item de verdade (clicável), não um resumo.
+// ============================================================================
+.inicio-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface-card);
+  border: 0.7px solid var(--stroke);
+  border-radius: 2px;
+  min-width: 0;
+
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+  &__contador {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  &__ver-tudo {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  &__vazio {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 8px 2px;
+  }
+
+  &__itens {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 6px;
+    border: none;
+    border-radius: 2px;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      background: var(--surface);
+    }
+    &--chat {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+    }
+  }
+  &__barra {
+    width: 3px;
+    align-self: stretch;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  &__assunto {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__meta {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__sla {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+.inicio-chat {
+  &__avatar {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  &__pegar {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border: none;
+    border-radius: 2px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+.inicio-online {
+  &__grade {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    list-style: none;
+    margin: 0;
+    padding: 4px 2px;
+  }
+  &__pessoa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 52px;
+  }
+  &__avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-card);
+    &--available {
+      background: var(--ok);
+    }
+    &--away {
+      background: var(--away);
+    }
+  }
+  &__nome {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
   }
 }
 
