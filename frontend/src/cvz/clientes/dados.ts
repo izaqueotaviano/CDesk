@@ -170,3 +170,44 @@ export function useConvidarUsuario(empresaId: number) {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId, 'usuarios'] }),
   })
 }
+
+// --------------------------------------------------------------------------
+// Chat embutido (embed-widget) — `@action`s de CompanyAdminViewSet,
+// apps/customers/admin_api.py. Não é aparência (cor/saudação/posição): não
+// existe nenhum campo de tema no backend — é liga/desliga por empresa,
+// origens autorizadas a exibir o iframe (CSP) e a chave que o site do
+// cliente usa pra assinar a sessão.
+// --------------------------------------------------------------------------
+
+export interface ChatEmbed {
+  enabled: boolean
+  /** `scheme://host[:porta]`, sem caminho — normalizado pelo backend (minúsculo, sem barra final). */
+  origins: string[]
+  rotated_at: string
+}
+
+export function useChatEmbed(empresaId: number, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['empresa', empresaId, 'chat-embed'],
+    queryFn: () => api.get<ChatEmbed>(`/api/v1/settings/companies/${empresaId}/chat-embed/`),
+    enabled: habilitado && Number.isFinite(empresaId),
+  })
+}
+
+export function useAtualizarChatEmbed(empresaId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: { enabled?: boolean; origins?: string[] }) =>
+      api.patch<ChatEmbed>(`/api/v1/settings/companies/${empresaId}/chat-embed/`, dados),
+    onSuccess: (embed) => qc.setQueryData(['empresa', empresaId, 'chat-embed'], embed),
+  })
+}
+
+/** A chave crua só sai AQUI, uma vez — a leitura (`useChatEmbed`) nunca a devolve. */
+export function useRegenerarSegredoChatEmbed(empresaId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<{ secret: string }>(`/api/v1/settings/companies/${empresaId}/chat-embed/regenerate-secret/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId, 'chat-embed'] }),
+  })
+}

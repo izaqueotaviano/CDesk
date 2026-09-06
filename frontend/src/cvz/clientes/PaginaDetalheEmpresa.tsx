@@ -24,6 +24,7 @@ import {
 } from '@/cvz/components'
 import { ApiError } from '@/api/client'
 import { ModalConvidarUsuario } from './ModalConvidarUsuario'
+import { PainelChatEmbed } from './PainelChatEmbed'
 import {
   useAtualizarEmpresa,
   useEmpresa,
@@ -391,6 +392,11 @@ export function PaginaDetalheEmpresa() {
                   />
                 </>
               ),
+            },
+            {
+              id: 'chat-embed',
+              label: 'Chat embutido',
+              content: <PainelChatEmbed empresaId={id} habilitado={abaAtiva === 'chat-embed'} />,
             },
           ]}
           onChange={setAbaAtiva}

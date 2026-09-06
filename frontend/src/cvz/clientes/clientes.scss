@@ -50,3 +50,23 @@
   gap: $sp-2;
   margin-bottom: $sp-3;
 }
+
+// Chave de assinatura do embed, revelada uma única vez após regenerar
+// (PainelChatEmbed) — precisa ficar selecionável e óbvia, não escondida
+// atrás de estilo de texto corrido.
+.clientes-chave-gerada {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $sp-3;
+
+  code {
+    @include type($fs-ui, $w-medium);
+    font-family: $f-mono;
+    padding: $sp-1 $sp-2;
+    border: $border;
+    border-radius: $radius;
+    background-color: $chrome;
+    word-break: break-all;
+  }
+}
