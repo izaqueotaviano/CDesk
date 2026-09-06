@@ -1,7 +1,6 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 import { App } from '@/App'
 import { PaginaLogin } from '@/features/auth/PaginaLogin'
-import { PaginaLoginGoogle } from '@/features/auth/PaginaLoginGoogle'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { PaginaKanban } from '@/features/kanban/PaginaKanban'
@@ -60,7 +59,6 @@ export const router = createBrowserRouter([
 
       { path: '/login', element: <PaginaLogin /> },
       { path: '/login/cliente', element: <PaginaLogin /> },
-      { path: '/login/google', element: <PaginaLoginGoogle /> },
       { path: '/sessao-expirada', element: <PaginaSessaoExpirada /> },
 
       // ---- Minha conta (equipe): verificação em duas etapas ----

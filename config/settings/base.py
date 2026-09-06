@@ -322,7 +322,10 @@ WORDPRESS_KB_POST_TYPE = env("WORDPRESS_KB_POST_TYPE", default="suporte")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        # A de índice 0 é quem decide 401 vs 403 pro backend inteiro — ver o
+        # docstring de `SessionAuthenticationComCabecalho`. Trocar a ordem
+        # aqui muda esse comportamento global, não só para quem usa sessão.
+        "apps.core.authentication.SessionAuthenticationComCabecalho",
         # Só entra em jogo quando a requisição NÃO trouxe cookie de sessão —
         # é o caso do mini chat embutido em outra plataforma (docs/14 §10).
         # Depois da de sessão de propósito: o app autenticado de sempre nem
@@ -537,16 +540,9 @@ RETENTION_DAYS = {
     "outbound_email": 180,
 }
 
-# D3: período civil (semana ISO / mês calendário) no fuso da empresa.
-QUOTA_PERIOD_MODE = "calendar"
-
 # D12: prefixo da numeração interna (`TD-00001`). Configurável porque é rótulo
 # de negócio, não regra de código; a sequência atrás dele é a mesma.
 TICKET_REFERENCE_PREFIX = env("TICKET_REFERENCE_PREFIX", default="TD")
-
-# F-E: minutos sem sinal de vida do cliente para considerar a sessão abandonada
-# Piso de fallback; o valor efetivo vem de `core.SystemConfig`.
-CHAT_ABANDON_MINUTES = env.int("CHAT_ABANDON_MINUTES", 10)
 
 # Máximo de sessões (navegadores/dispositivos) vivas por usuário. Ao logar a
 # N+1, a mais antiga cai. Zero desliga o limite.

@@ -70,6 +70,15 @@ export function PaginaKanban() {
   const [paraFechar, setParaFechar] = useState<CartaoTipo | null>(null)
   const [novaColuna, setNovaColuna] = useState(false)
   const [nomeNovaColuna, setNomeNovaColuna] = useState('')
+  // Este diretório não tem toast — um banner local e dispensável é o que as
+  // outras telas do resolv/ já usam para erro de mutação (ver kb-pagina--erro
+  // acima). Sem ele, mover/criar/apagar coluna ou definir prazo falhava em
+  // silêncio (só console.error) e o card/coluna só "voltava" sem explicação.
+  const [avisoErro, setAvisoErro] = useState<string | null>(null)
+
+  function mensagemDoErro(err: unknown, padrao: string): string {
+    return err instanceof ApiError ? (err.detail ?? padrao) : padrao
+  }
 
   const sensors = useSensors(
     // distância mínima antes de virar arraste: sem isso, todo clique no
@@ -115,6 +124,7 @@ export function PaginaKanban() {
     const coluna = quadro?.columns.find((c) => c.key === over.id)
     if (!coluna) return
 
+    setAvisoErro(null)
     try {
       await place.mutateAsync({
         boardId: quadroAtivo,
@@ -130,9 +140,8 @@ export function PaginaKanban() {
         return
       }
       // qualquer outra recusa (equipe interna, coluna de outro quadro etc.)
-      // — o card só volta pro lugar; a tela não tem onde exibir o motivo
-      // sem um toast, que este diretório ainda não usa
-      console.error(err)
+      // — o card volta pro lugar, e agora com o motivo à vista
+      setAvisoErro(mensagemDoErro(err, 'Não foi possível mover o chamado.'))
     }
   }
 
@@ -144,11 +153,13 @@ export function PaginaKanban() {
 
   function criarColuna() {
     if (!nomeNovaColuna.trim()) return
+    setAvisoErro(null)
     criarLane.mutate(nomeNovaColuna.trim(), {
       onSuccess: () => {
         setNomeNovaColuna('')
         setNovaColuna(false)
       },
+      onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível criar a coluna.')),
     })
   }
 
@@ -208,6 +219,16 @@ export function PaginaKanban() {
         )}
       </header>
 
+      {avisoErro && (
+        <div className="kb-aviso-erro" role="alert">
+          <i className="ti ti-alert-triangle" aria-hidden="true" />
+          <span>{avisoErro}</span>
+          <button type="button" onClick={() => setAvisoErro(null)} aria-label="Dispensar">
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -225,11 +246,16 @@ export function PaginaKanban() {
               onAbrirTicket={(id) => navigate(`/chamados/${id}`)}
               onDefinirPrazo={(ticketId, iso) =>
                 quadroAtivo != null &&
-                definirPrazo.mutate({ boardId: quadroAtivo, ticketId, due_at: iso })
+                definirPrazo.mutate(
+                  { boardId: quadroAtivo, ticketId, due_at: iso },
+                  { onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível definir o prazo.')) },
+                )
               }
               onApagarLane={(laneId) => {
                 if (window.confirm('Apagar esta coluna? Os chamados fixados nela voltam para a coluna de status — nenhum é apagado.')) {
-                  apagarLane.mutate(laneId)
+                  apagarLane.mutate(laneId, {
+                    onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível apagar a coluna.')),
+                  })
                 }
               }}
               idArrastando={arrastandoId}

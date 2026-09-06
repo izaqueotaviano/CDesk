@@ -125,21 +125,6 @@
       color: var(--text-primary);
     }
   }
-  &__badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 14px;
-    height: 14px;
-    padding: 0 4px;
-    background: var(--danger);
-    color: #fff;
-    font-size: 9px;
-    font-weight: 600;
-    line-height: 14px;
-    text-align: center;
-    border-radius: 7px;
-  }
 
   &__user {
     display: flex;

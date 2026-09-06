@@ -42,6 +42,10 @@ export const usePrefs = create<PrefsState>()(
       onRehydrateStorage: () => (estado) => {
         if (estado) aplicarTema(estado.tema)
       },
+      // Baseline explícita — mesmo motivo de `stores/tabs.ts`: sem version,
+      // um formato futuro de `tema`/`densidade` herdaria o localStorage
+      // antigo sem chance de migrar.
+      version: 1,
     },
   ),
 )

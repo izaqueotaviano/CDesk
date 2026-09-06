@@ -45,6 +45,22 @@ export function conectarCanalPessoal(queryClient: QueryClient): Socket {
   return canalPessoal
 }
 
+/**
+ * Chame no logout (explícito ou pela sessão expirando — `useLogout` e o
+ * `aoDeslogar` de `client.ts`, os dois pontos de saída). Sem isto o
+ * singleton acima sobrevivia à troca de usuário NA MESMA ABA: a pessoa B
+ * logava por cima da pessoa A e `conectarCanalPessoal` devolvia o socket
+ * antigo (autenticado pelo cookie que já não existe, tentando reconectar
+ * sozinho) em vez de abrir um novo — o canal pessoal de B só voltava a
+ * funcionar num F5. `ouvintes` fica intacto de propósito: quem assinou
+ * ainda está montado (o shell só desmonta ao navegar pro /login) e cancela
+ * a própria assinatura no cleanup do efeito dele.
+ */
+export function desconectarCanalPessoal(): void {
+  canalPessoal?.desconectar()
+  canalPessoal = null
+}
+
 function aplicarEventoPessoal(evento: EventoServidorPessoal, queryClient: QueryClient) {
   switch (evento.type) {
     case 'notification':

@@ -20,7 +20,6 @@ Três responsabilidades, nesta ordem de importância:
 from __future__ import annotations
 
 import re
-import unicodedata
 
 from apps.accounts.models import Team, User, UserKind
 
@@ -209,12 +208,6 @@ def resumir(body: str) -> str:
 
 # --------------------------------------------------------------------------- #
 # Autocomplete
-
-
-def normalizar(texto: str) -> str:
-    """Minúsculas e sem acento — `@iza` precisa achar "Izaque" e "Ízaque"."""
-    sem_acento = unicodedata.normalize("NFKD", texto or "")
-    return "".join(c for c in sem_acento if not unicodedata.combining(c)).casefold()
 
 
 def alvos_de_mencao(*, ticket, requester) -> list[dict]:

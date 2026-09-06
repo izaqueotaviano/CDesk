@@ -98,28 +98,6 @@
     }
   }
 
-  &__opcoes {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 12px;
-    background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    i {
-      font-size: 15px;
-    }
-    &:hover {
-      border-color: var(--stroke-hover);
-      color: var(--text-primary);
-    }
-  }
-
   &__search {
     display: flex;
     align-items: center;
@@ -181,6 +159,49 @@
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
+    }
+  }
+
+  &__lote-select {
+    height: 28px;
+    padding: 0 8px;
+    background: var(--surface-card);
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  &__aviso-erro {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0.7px solid var(--danger);
+    border-radius: 2px;
+    padding: 8px 12px;
+    color: var(--danger);
+    font-size: 13px;
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    span {
+      flex: 1;
+    }
+    button {
+      display: grid;
+      place-items: center;
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
     }
   }
 

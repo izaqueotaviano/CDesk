@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Button,
@@ -19,44 +19,32 @@ import { useEmpresas, type Empresa } from './dados'
 import './clientes.scss'
 
 const TAMANHO_PAGINA = 20
-// A API de admin não expõe busca textual (só is_active + paginação) — busca
-// aqui é sobre um lote real de até 100 registros, filtrado no cliente. Além
-// disso o resultado passa a ser parcial; para uma base maior o backend
-// precisaria ganhar `?q=` de verdade.
-const LOTE_SERVIDOR = 100
 
 export function PaginaListaEmpresas() {
   const navigate = useNavigate()
   const [busca, setBusca] = useState('')
+  const [buscaDebounced, setBuscaDebounced] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<'' | 'true' | 'false'>('')
   const [pagina, setPagina] = useState(1)
   const [modalAberto, setModalAberto] = useState(false)
 
+  // 300ms parado de digitar antes de bater no servidor — sem isso cada tecla
+  // vira uma requisição (e a resposta de uma tecla anterior podia chegar
+  // depois e "desfazer" a busca mais recente na tela).
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca.trim()), 300)
+    return () => clearTimeout(t)
+  }, [busca])
+
   const { data, isLoading, isError, error, refetch } = useEmpresas({
+    q: buscaDebounced || undefined,
     is_active: statusFiltro === '' ? undefined : statusFiltro === 'true',
-    limit: LOTE_SERVIDOR,
-    offset: 0,
+    limit: TAMANHO_PAGINA,
+    offset: (pagina - 1) * TAMANHO_PAGINA,
   })
 
-  const todas = data?.results ?? []
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
-    if (!termo) return todas
-    return todas.filter(
-      (e) =>
-        e.name.toLowerCase().includes(termo) ||
-        e.legal_name.toLowerCase().includes(termo) ||
-        e.slug.toLowerCase().includes(termo) ||
-        e.domains.some((d) => d.includes(termo)),
-    )
-    // `data?.results` (não `todas`) é a dependência real — o `?? []` de fallback
-    // cria um array novo a cada render e faria o memo recalcular sempre.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.results, busca])
-
-  const totalFiltrado = filtradas.length
-  const pagina1 = (pagina - 1) * TAMANHO_PAGINA
-  const paginaAtual = filtradas.slice(pagina1, pagina1 + TAMANHO_PAGINA)
+  const paginaAtual = data?.results ?? []
+  const totalFiltrado = data?.count ?? 0
 
   const colunas: Column<Empresa>[] = [
     {

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
 
 export type LimitPeriod = 'weekly' | 'monthly'
@@ -99,9 +99,7 @@ export interface ParamsListaEmpresas {
 
 function montarQuery(p: ParamsListaEmpresas): string {
   const q = new URLSearchParams()
-  // A API admin não documenta busca textual própria — filtragem por nome
-  // roda no cliente sobre a página carregada (ver useEmpresas). `is_active`
-  // e paginação são os únicos parâmetros reais que valem mandar ao servidor.
+  if (p.q) q.set('q', p.q)
   if (p.is_active !== undefined) q.set('is_active', String(p.is_active))
   q.set('limit', String(p.limit))
   q.set('offset', String(p.offset))
@@ -113,6 +111,9 @@ export function useEmpresas(params: ParamsListaEmpresas) {
     queryKey: ['empresas', params],
     queryFn: () => api.get<Paginado<Empresa>>(`/api/v1/settings/companies/?${montarQuery(params)}`),
     staleTime: 15_000,
+    // evita o pisca-branco ao trocar de página/busca — a tabela antiga fica
+    // visível enquanto a nova página carrega (mesmo padrão da fila de tickets)
+    placeholderData: keepPreviousData,
   })
 }
 

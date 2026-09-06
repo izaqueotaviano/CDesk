@@ -43,9 +43,9 @@ class EmbedTokenAuthentication(BaseAuthentication):
 
     Só autentica nas views que o próprio widget chama (`_views_permitidas`)
     — em qualquer outra, `authenticate()` devolve `None` como se o header
-    não existisse, e a requisição segue anônima (vira 403 de
-    `IsAuthenticated`, não um 401/403 "de autenticação", porque para
-    QUALQUER outra view este token nunca prova nada).
+    não existisse, e a requisição segue anônima (vira o 401 de sempre de
+    `IsAuthenticated` sem sessão, porque para QUALQUER outra view este
+    token nunca prova nada).
 
     Sem CSRF: `SessionAuthentication` é quem exige CSRF, e só quando ELA é a
     autenticadora que teve sucesso — como esta requisição não carrega cookie
@@ -84,10 +84,11 @@ class EmbedTokenAuthentication(BaseAuthentication):
 
     def authenticate_header(self, request):
         # O DRF só consulta a autenticadora de ÍNDICE 0 da lista pra decidir
-        # entre 401 e 403 em qualquer falha de autenticação — a de sessão,
-        # que não define header nenhum. Então tanto sem token quanto com
-        # token ruim, a resposta desta API continua sendo 403 (não 401),
-        # exatamente como já era pro app inteiro antes deste arquivo
-        # existir. Implementado mesmo assim porque é o certo pelo contrato
-        # HTTP — e um dia a ordem pode mudar.
+        # entre 401 e 403 em qualquer falha de autenticação — a de sessão
+        # (`apps.core.authentication.SessionAuthenticationComCabecalho`),
+        # não esta. Este método nunca é o que decide na prática (esta classe
+        # é sempre índice 1+), mas continua implementado porque é o certo
+        # pelo contrato HTTP — e o widget herda de tabela o 401 correto
+        # quando chama sem token nenhum, já que a de índice 0 agora define
+        # cabeçalho.
         return "Bearer"

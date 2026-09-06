@@ -16,8 +16,12 @@ const NAV: Item[] = [
   { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
-  { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/empresas', enabled: false },
-  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/admin', enabled: false },
+  // As duas rotas abaixo existem de verdade — só ficam noutra base do design
+  // system (cvzdesk, CvzAppLayout): clicar troca de visual, mas leva a uma
+  // tela real, não a um 404 (o mesmo padrão que a própria sidebar da cvzdesk
+  // usa hoje pra "clientes"/"configuracoes" em `AppLayout.tsx`).
+  { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
+  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
   { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: false },
   { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },
   { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: false },

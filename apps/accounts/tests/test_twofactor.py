@@ -373,7 +373,7 @@ class TestCodigoMestreDeDesenvolvimento:
         resp = client.post("/api/v1/auth/2fa/", {"code": "123456"}, format="json")
         assert resp.status_code == 400
         # e a sessão não nasceu
-        assert client.get("/api/v1/auth/me/").status_code == 403
+        assert client.get("/api/v1/auth/me/").status_code == 401
 
     def test_vale_em_dev(self, settings, cliente_2fa_email):
         settings.DEBUG = True

@@ -4,9 +4,14 @@
  * Contrato inteiro documentado em docs/10-frontend-novo.md (verificado contra
  * a API rodando, não escrito de memória — vale reler antes de mexer aqui):
  *
- *   - Sessão em COOKIE, não JWT. 2FA obrigatório: login só cria sessão
- *     PENDENTE; a sessão vira autenticada (e o cookie csrftoken aparece)
- *     só depois do POST /auth/2fa/.
+ *   - Sessão em COOKIE, não JWT. A verificação em duas etapas é opcional por
+ *     conta (`portal/api/conta.ts`): quem a tem ligada passa por uma sessão
+ *     PENDENTE até o POST /auth/2fa/; quem não tem, a senha certa já cria a
+ *     sessão autenticada (e o cookie csrftoken aparece) na hora.
+ *   - Sem sessão válida, toda view autenticada devolve 401 de verdade
+ *     (`apps.core.authentication.SessionAuthenticationComCabecalho`) — é o
+ *     que `aoDeslogar` escuta abaixo. 403 continua sendo "autenticado, mas
+ *     sem permissão para isto".
  *   - Toda chamada precisa de `credentials: 'include'` — backend e frontend
  *     são origens diferentes (CORS com credenciais, não proxy same-origin).
  *   - Toda escrita autenticada (POST/PUT/PATCH/DELETE) exige o header
@@ -84,7 +89,11 @@ async function requisitar<T>(path: string, opcoes: Opcoes = {}): Promise<T> {
     body: body === undefined ? undefined : ehFormData ? (body as FormData) : JSON.stringify(body),
   })
 
-  if (resp.status === 401) {
+  // `/auth/me/` fica de fora: `RotaProtegida` já trata o 401 dela sozinha
+  // (e sabe se manda para /login ou /login/cliente, o que este handler
+  // global não sabe). Disparar os dois pro mesmo 401 mandaria a pessoa pro
+  // login errado quando o portal expira.
+  if (resp.status === 401 && !path.endsWith('/auth/me/')) {
     aoReceber401?.()
   }
 

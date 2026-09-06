@@ -278,7 +278,12 @@ profundidade, não substituto da API.)
 
 ### 4.5 Públicas
 
-`/login` · `/login/google` (redireciona para o fluxo allauth) · `/sessao-expirada`
+`/login` · `/sessao-expirada`
+
+(`/login/google` existiu como redirect para o fluxo allauth, mas nunca teve
+botão nenhum apontando pra ela e o allauth está desligado em `config/urls.py`
+— removida. Login por Google volta a existir aqui no dia em que a decisão de
+produto for tomada.)
 
 ### 4.6 Filtros em query params, não em estado
 

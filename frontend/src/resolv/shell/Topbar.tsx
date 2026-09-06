@@ -6,6 +6,7 @@
  */
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLogout } from '@/api/mutations/useLogout'
 import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import './topbar.scss'
@@ -18,6 +19,7 @@ function iniciais(nome: string): string {
 export function Topbar() {
   const navigate = useNavigate()
   const { data: usuario } = useMe()
+  const logout = useLogout()
   // o contador é real: fila + meus atendimentos, atualizado pelo socket
   // (a bridge invalida as duas chaves a cada chat_queued/chat_taken)
   const { data: fila } = useFilaChat(usuario?.is_internal === true)
@@ -40,7 +42,9 @@ export function Topbar() {
       <div className="topbar-glass__left" />
 
       <div className="topbar-glass__center">
-        <div className="topbar-glass__search" role="button" tabIndex={0}>
+        {/* Decorativa até o Ctrl+K existir de verdade — sem role/tabIndex:
+            um "botão" que não reage a Enter/clique era pior que nenhum. */}
+        <div className="topbar-glass__search">
           <i className="ti ti-search topbar-glass__search-icon" />
           <span className="topbar-glass__search-placeholder">Buscar…</span>
           <span className="topbar-glass__search-kbd">⌘K</span>
@@ -60,9 +64,12 @@ export function Topbar() {
           </span>
         </button>
         <div className="topbar-glass__sep" />
+        {/* Sem badge de contagem: "2" era um número inventado, não a
+            quantidade real de notificações (não existe painel ainda — ver
+            item pendente de produto). Mentir um número é pior que não
+            mostrar nenhum. */}
         <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações">
           <i className="ti ti-bell" />
-          <span className="topbar-glass__badge">2</span>
         </button>
         <div className="topbar-glass__sep" />
         <button type="button" className="topbar-glass__user" onClick={() => navigate('/conta')} title="Minha conta">
@@ -71,6 +78,16 @@ export function Topbar() {
             <span className="topbar-glass__presence topbar-glass__presence--available" />
           </span>
           <span className="topbar-glass__user-name">{nome}</span>
+        </button>
+        <button
+          type="button"
+          className="topbar-glass__icon-btn"
+          aria-label="Sair"
+          title="Sair"
+          disabled={logout.isPending}
+          onClick={() => logout.mutate()}
+        >
+          <i className="ti ti-logout-2" />
         </button>
       </div>
     </header>

@@ -399,3 +399,31 @@
   color: var(--danger, #b3261e);
   margin-top: 2px;
 }
+
+// Aviso de erro de mutação (mover/criar/apagar coluna, definir prazo) —
+// dispensável, some sozinho na próxima ação que der certo.
+.kb-aviso-erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 0.7px solid var(--danger);
+  border-radius: 2px;
+  padding: 8px 12px;
+  color: var(--danger);
+  font-size: 13px;
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+
+  span {
+    flex: 1;
+  }
+
+  button {
+    display: grid;
+    place-items: center;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 2px;
+  }
+}

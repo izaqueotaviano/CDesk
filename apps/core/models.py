@@ -73,8 +73,8 @@ class SystemConfig(TimeStampedModel):
 
     Antes destes campos viverem aqui, cada um era uma variável de ambiente: mudar
     o limite de anexo exigia deploy. Isso é aceitável para segredo e endereço de
-    serviço, e errado para número que a operação ajusta — o limite de anexo e o
-    tempo de abandono do chat mudam com o uso, não com a infraestrutura.
+    serviço, e errado para número que a operação ajusta — o limite de anexo
+    muda com o uso, não com a infraestrutura.
 
     As settings do Django continuam existindo como **piso de fallback**: se a
     linha ainda não foi criada (banco novo, migration recém-aplicada), o sistema

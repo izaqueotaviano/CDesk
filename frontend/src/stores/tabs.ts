@@ -165,6 +165,11 @@ export const useTabs = create<TabsState>()(
       // reconciliando nunca persiste — cada carga da página começa
       // reconciliando de novo, mesmo com abas já hidratadas do localStorage.
       partialize: (s) => ({ tabs: s.tabs, active: s.active }),
+      // Baseline explícita: no dia em que o formato de `Aba` mudar, um
+      // `migrate` aqui decide o que fazer com o localStorage antigo — sem
+      // version, o zustand assume tudo compatível e a mudança de formato
+      // vira dado corrompido em silêncio, não uma migração.
+      version: 1,
     },
   ),
 )
