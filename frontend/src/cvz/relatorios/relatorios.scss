@@ -383,6 +383,73 @@
   text-decoration: none;
 }
 
+// --- exportação assíncrona (XLSX/PDF) -----------------------------------------
+
+.relatorios-exportacoes {
+  border-top: $border;
+  padding-top: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.relatorios-exportacoes__titulo {
+  @include type($fs-title, $w-semibold);
+  color: $text;
+  margin: 0;
+}
+
+.relatorios-exportacoes__legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-exportacoes__acoes {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.relatorios-exportacoes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-exportacoes__item {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  background-color: $chrome;
+}
+
+.relatorios-exportacoes__formato {
+  @include type($fs-ui, $w-medium);
+  color: $text;
+}
+
+.relatorios-exportacoes__quando {
+  @include type($fs-meta);
+  color: $text-muted;
+}
+
+.relatorios-exportacoes__erro {
+  @include type($fs-meta);
+  color: $danger;
+}
+
+.relatorios-exportacoes__baixar {
+  margin-left: auto;
+  text-decoration: none;
+}
+
 @include mobile {
   .relatorios-satisfacao {
     align-items: stretch;

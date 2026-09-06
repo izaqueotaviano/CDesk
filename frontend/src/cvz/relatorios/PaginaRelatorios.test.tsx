@@ -1,9 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ToastProvider } from '@/cvz/components/Toast/Toast'
 import { PaginaRelatorios } from './PaginaRelatorios'
 
-let chamadas: { url: string; search: string }[]
+let chamadas: { url: string; search: string; metodo: string; corpo: unknown }[]
+let exportacoes: Record<string, unknown>[]
 
 const CELULA_VAZIA = { value: 0, variation: null }
 
@@ -68,16 +70,25 @@ function jsonDe(body: unknown, status = 200) {
 
 beforeEach(() => {
   chamadas = []
+  exportacoes = []
   vi.stubGlobal(
     'fetch',
-    vi.fn((url: string) => {
+    vi.fn((url: string, init?: RequestInit) => {
       const u = new URL(String(url), 'http://x')
-      chamadas.push({ url: u.pathname, search: u.search })
+      const metodo = init?.method ?? 'GET'
+      const corpo = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+      chamadas.push({ url: u.pathname, search: u.search, metodo, corpo })
       if (u.pathname === '/api/v1/reports/indicators/') return Promise.resolve(jsonDe(INDICADORES))
       if (u.pathname === '/api/v1/reports/tickets/') return Promise.resolve(jsonDe(RELATORIO_TICKETS))
       if (u.pathname === '/api/v1/teams/') return Promise.resolve(jsonDe([{ id: 1, name: 'Suporte', slug: 'suporte', visibility: 'public', order: 0 }]))
       if (u.pathname === '/api/v1/users/') return Promise.resolve(jsonDe([{ id: 9, full_name: 'Bruno', email: 'b@x.test', kind: 'internal', internal_role: 'agent', company: null, presence: 'online' }]))
       if (u.pathname === '/api/v1/companies/') return Promise.resolve(jsonDe([{ id: 3, name: 'Empresa X', slug: 'empresa-x', plan_name: 'Pro', is_active: true }]))
+      if (u.pathname === '/api/v1/reports/exports/' && metodo === 'GET') return Promise.resolve(jsonDe({ count: exportacoes.length, next: null, previous: null, results: exportacoes }))
+      if (u.pathname === '/api/v1/reports/exports/' && metodo === 'POST') {
+        const nova = { id: exportacoes.length + 1, report_key: 'tickets', format: corpo.format, status: 'pending', params: corpo.params, row_count: null, error: '', created_at: '2026-09-06T00:00:00Z', expires_at: null, download_url: null }
+        exportacoes = [nova, ...exportacoes]
+        return Promise.resolve(jsonDe(nova, 201))
+      }
       return Promise.resolve(jsonDe({}, 404))
     }),
   )
@@ -88,7 +99,9 @@ function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <PaginaRelatorios />
+      <ToastProvider>
+        <PaginaRelatorios />
+      </ToastProvider>
     </QueryClientProvider>,
   )
 }
@@ -133,5 +146,17 @@ describe('PaginaRelatorios', () => {
 
     const link = await screen.findByRole('link', { name: /Baixar CSV/ })
     expect(link.getAttribute('href')).toContain('agent=9')
+  })
+
+  it('gerar exportação em XLSX manda o POST certo e aparece "Na fila" na lista', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Relatório detalhado' }))
+    await screen.findByText('Tickets no recorte')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar Excel (XLSX)' }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/reports/exports/' && c.metodo === 'POST')).toBe(true))
+    expect(chamadas.find((c) => c.url === '/api/v1/reports/exports/' && c.metodo === 'POST')!.corpo).toEqual({ format: 'xlsx', params: {} })
+
+    expect(await screen.findByText('Na fila')).toBeInTheDocument()
   })
 })

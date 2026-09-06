@@ -1,5 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
-import { API_BASE_URL, api } from '@/api/client'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { API_BASE_URL, api, type Paginado } from '@/api/client'
 
 /**
  * Contrato de `apps/reports/services/indicators.py::build_indicators` — uma
@@ -174,4 +174,55 @@ export function useRelatorioTickets(filtros: FiltrosRelatorio) {
 export function urlExportarCsv(filtros: FiltrosRelatorio): string {
   const qs = queryStringFiltros(filtros)
   return `${API_BASE_URL}/api/v1/reports/tickets/export/${qs ? `?${qs}` : ''}`
+}
+
+// --------------------------------------------------------------------------
+// Exportação assíncrona (XLSX/PDF) — ReportExportViewSet, apps/reports/tasks.py
+// --------------------------------------------------------------------------
+
+export type FormatoExportacao = 'xlsx' | 'pdf'
+export type StatusExportacao = 'pending' | 'running' | 'done' | 'failed'
+
+export interface ExportacaoRelatorio {
+  id: number
+  report_key: string
+  format: FormatoExportacao
+  status: StatusExportacao
+  params: FiltrosRelatorio
+  row_count: number | null
+  error: string
+  created_at: string
+  expires_at: string | null
+  /** Caminho relativo, só quando `status === 'done'` — prefixar com API_BASE_URL pra baixar. */
+  download_url: string | null
+}
+
+const CHAVE_EXPORTACOES = ['relatorios', 'exportacoes']
+
+/** Some exportação em `pending`/`running`? Continua perguntando de perto —
+ *  o job roda no Celery, fora do controle desta aba. Some quando resolve. */
+function temExportacaoEmAndamento(paginas: Paginado<ExportacaoRelatorio> | undefined): boolean {
+  return (paginas?.results ?? []).some((e) => e.status === 'pending' || e.status === 'running')
+}
+
+export function useExportacoesRelatorio() {
+  return useQuery({
+    queryKey: CHAVE_EXPORTACOES,
+    queryFn: () => api.get<Paginado<ExportacaoRelatorio>>('/api/v1/reports/exports/?limit=20'),
+    staleTime: 5_000,
+    refetchInterval: (query) => (temExportacaoEmAndamento(query.state.data) ? 3_000 : false),
+  })
+}
+
+export function useCriarExportacao() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (input: { format: FormatoExportacao; params: FiltrosRelatorio }) =>
+      api.post<ExportacaoRelatorio>('/api/v1/reports/exports/', input),
+    onSuccess: () => qc.invalidateQueries({ queryKey: CHAVE_EXPORTACOES }),
+  })
+}
+
+export function urlBaixarExportacao(downloadUrl: string): string {
+  return `${API_BASE_URL}${downloadUrl}`
 }

@@ -2,15 +2,18 @@ import { useState } from 'react'
 import { ApiError } from '@/api/client'
 import { ErrorState, Select, StatCard, TextInput } from '@/cvz/components'
 import { useAgentes, useEmpresasOpcoes } from '@/cvz/tickets/dados'
+import { PainelExportacoes } from './PainelExportacoes'
 import { formatarDuracao } from './formato'
 import { urlExportarCsv, useRelatorioTickets, type FiltrosRelatorio } from './dados'
 
 /**
  * O mesmo dado do painel acima, num recorte livre — período e agente/empresa,
- * exportado em CSV para abrir na planilha. Não repete a lista de tickets
- * ticket a ticket: essa já existe em /chamados com os próprios filtros; aqui
- * é só o resumo do recorte + o link de exportação (`TicketReportExportView`,
- * download síncrono — sem fetch/blob).
+ * exportado em CSV (na hora) ou em XLSX/PDF (assíncrono, `PainelExportacoes`
+ * logo abaixo). Não repete a lista de tickets ticket a ticket: essa já existe
+ * em /chamados com os próprios filtros; aqui é só o resumo do recorte + os
+ * dois jeitos de exportar (`TicketReportExportView`, download síncrono sem
+ * fetch/blob, e `ReportExportViewSet`, fila do Celery pros formatos mais
+ * pesados de montar).
  */
 export function PainelDetalhado() {
   const [filtros, setFiltros] = useState<FiltrosRelatorio>({})
@@ -69,6 +72,8 @@ export function PainelDetalhado() {
           <a className="btn btn--secondary btn--sm relatorios-detalhado__csv" href={urlExportarCsv(filtros)}>
             <span className="btn__label">Baixar CSV ({relatorio.data.rows.length} linha(s))</span>
           </a>
+
+          <PainelExportacoes filtros={filtros} />
         </>
       )}
     </div>
