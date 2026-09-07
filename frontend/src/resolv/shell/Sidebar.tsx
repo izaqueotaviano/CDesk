@@ -2,9 +2,11 @@
  * Sidebar Rail (56px) — design system Resolv. Portada da referência
  * (resolvdesignsystem.zip), com uma diferença honesta: só os itens que têm
  * rota real neste app navegam; os demais ficam visíveis mas inertes
- * (`enabled: false`) com tooltip "em breve", em vez de levar a um 404. Tickets,
- * Quadro e Chats são as entregas até aqui — o resto do shell está aqui para dar
- * o enquadramento visual correto, não para prometer telas que ainda não existem.
+ * (`enabled: false`) com tooltip "em breve", em vez de levar a um 404. Só
+ * Calendário e Notas seguem sem tela (fora do escopo até aqui) — todo o
+ * resto já navega, inclusive o conteúdo ainda construído com cvz/components
+ * (Clientes, Avisos, Auditoria, Relatórios, Configurações), que desde a
+ * Fase 1 da unificação de shell roda dentro deste mesmo shell.
  */
 import { useLocation, useNavigate } from 'react-router-dom'
 import './sidebar.scss'
@@ -16,11 +18,14 @@ const NAV: Item[] = [
   { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
-  // As três rotas abaixo existem de verdade — só ficam noutra base do design
-  // system (cvzdesk, CvzAppLayout): clicar troca de visual, mas leva a uma
-  // tela real, não a um 404 (o mesmo padrão que a própria sidebar da cvzdesk
-  // usa hoje pra "clientes"/"configuracoes"/"relatorios" em `AppLayout.tsx`).
+  // As cinco rotas abaixo têm conteúdo construído com cvz/components (o
+  // design system cvzdesk), mas desde a Fase 1 da unificação de shell rodam
+  // dentro deste MESMO shell — sem troca de visual ao clicar. O que muda de
+  // uma pra outra é só o "surface" do conteúdo (SuperficieCvz.tsx), nunca a
+  // sidebar/topbar (routes.tsx).
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
+  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
+  { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
   { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
   { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: true },
   { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },

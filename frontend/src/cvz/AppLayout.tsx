@@ -7,7 +7,10 @@ import { MiniChat } from '@/resolv/chat/MiniChat'
 // caminho profundo") — inclusive ToastProvider/useToast e initialsFrom, que
 // antes vinham de caminhos internos dos componentes.
 import { AppShell, Popover, ToastProvider, initialsFrom, useToast, type NavId } from './components'
-import './styles/global.scss'
+// O reset/tokens (`--cvz-*`) agora carrega em App.tsx, na raiz — não só
+// aqui. Ver o comentário lá: componentes cvz já são usados por rotas que
+// não passam por este layout (Topbar, detalhe de ticket), então a folha não
+// podia mais depender só deste import para existir.
 
 /**
  * Ponte entre o AppShell real (cvzdesk) e os dados/rotas do Resolv. Hoje só

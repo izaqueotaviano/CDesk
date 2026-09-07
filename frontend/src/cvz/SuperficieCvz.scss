@@ -1,0 +1,19 @@
+@use './styles/tokens' as *;
+@use './styles/mixins' as *;
+
+// Equivalente a `.surface.surface--dashboard` (AppShell.scss), sem o
+// `.app-shell` que a envolvia lá — ver comentário em SuperficieCvz.tsx.
+.cvz-superficie {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: $surface;
+  color: $text;
+  padding: $sp-5;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+
+  @include below-desktop { padding: $sp-4; }
+  @include mobile { padding: $sp-3; }
+}

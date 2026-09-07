@@ -22,7 +22,7 @@ import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets
 import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
 import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
 import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
-import { CvzAppLayout } from '@/cvz/AppLayout'
+import { SuperficieCvz } from '@/cvz/SuperficieCvz'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
 import { PaginaAvisos } from '@/cvz/avisos/PaginaAvisos'
@@ -140,14 +140,19 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ---- Clientes/Empresas — primeira tela na base real do design system cvzdesk ----
+      // ---- Clientes/Empresas — conteúdo é 100% cvz (cvz/components), mas o
+      // shell (sidebar/topbar) é o NovoShell desde a Fase 1 da unificação de
+      // shell: SuperficieCvz é só o "surface" (fundo/respiro/rolagem) que o
+      // AppShell antigo dava de graça, ver o comentário lá ----
       {
         path: '/clientes',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaListaEmpresas />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaListaEmpresas />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
@@ -155,9 +160,11 @@ export const router = createBrowserRouter([
         path: '/clientes/:id',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaDetalheEmpresa />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaDetalheEmpresa />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
@@ -169,9 +176,11 @@ export const router = createBrowserRouter([
         path: '/avisos',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaAvisos />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaAvisos />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
@@ -183,9 +192,11 @@ export const router = createBrowserRouter([
         path: '/auditoria',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaAuditoria />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaAuditoria />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
@@ -197,9 +208,11 @@ export const router = createBrowserRouter([
         path: '/relatorios',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaRelatoriosResolv />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaRelatoriosResolv />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
@@ -211,9 +224,11 @@ export const router = createBrowserRouter([
         path: '/configuracoes',
         element: (
           <RotaProtegida>
-            <CvzAppLayout>
-              <PaginaConfiguracoes />
-            </CvzAppLayout>
+            <NovoShell>
+              <SuperficieCvz>
+                <PaginaConfiguracoes />
+              </SuperficieCvz>
+            </NovoShell>
           </RotaProtegida>
         ),
       },
