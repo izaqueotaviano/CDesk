@@ -31,28 +31,19 @@
 #
 #        0 23 * * * . /etc/resolv/.env && /srv/resolv/scripts/backup_postgres.sh >> /var/log/resolv/backup.log 2>&1
 #
-#   2) systemd timer, no mesmo estilo dos .service em deploy/systemd/ —
-#      crie os dois arquivos abaixo (não incluídos neste diretório: só as
-#      três unidades do processo da aplicação estão em deploy/systemd/) e
-#      rode `systemctl enable --now resolv-backup.timer`:
+#   2) systemd timer (recomendado — mesmo padrão dos outros três .service
+#      deste projeto: histórico consultável com `journalctl`, e recupera
+#      sozinho um horário perdido se o servidor estava desligado às 23h,
+#      via `Persistent=true`). Os dois arquivos já existem prontos em
+#      deploy/systemd/resolv-backup.service e resolv-backup.timer — instale
+#      com:
 #
-#        # /etc/systemd/system/resolv-backup.service
-#        [Unit]
-#        Description=Backup do PostgreSQL do resolv
-#        [Service]
-#        Type=oneshot
-#        User=resolv
-#        EnvironmentFile=/etc/resolv/.env
-#        ExecStart=/srv/resolv/scripts/backup_postgres.sh
+#        cp deploy/systemd/resolv-backup.service deploy/systemd/resolv-backup.timer /etc/systemd/system/
+#        systemctl daemon-reload
+#        systemctl enable --now resolv-backup.timer
 #
-#        # /etc/systemd/system/resolv-backup.timer
-#        [Unit]
-#        Description=Dispara o backup do resolv às 23h
-#        [Timer]
-#        OnCalendar=*-*-* 23:00:00
-#        Persistent=true
-#        [Install]
-#        WantedBy=timers.target
+#      Testar sem esperar até 23h:
+#        systemctl start resolv-backup.service && journalctl -u resolv-backup.service -n 30
 #
 # Falha alta de propósito: `set -eu` mais a checagem explícita do pg_dump
 # abaixo. Um script de backup que engole o erro do pg_dump e sai com 0

@@ -153,12 +153,25 @@ Agendamento — escolha uma das duas formas (ambas documentadas com exemplo
 completo no topo do próprio script):
 
 - **cron**, no crontab do usuário `resolv`, lendo `/etc/resolv/.env`;
-- **systemd timer**: um `resolv-backup.service` (`Type=oneshot`) +
-  `resolv-backup.timer` (`OnCalendar=*-*-* 23:00:00`, batendo com o D21-B —
-  "diário às 23h") — não incluídos como arquivos separados neste diretório
-  (só as três unidades do *processo da aplicação* estão em
-  `deploy/systemd/`), mas o exemplo completo dos dois arquivos está no
-  comentário do script, pronto para copiar.
+- **systemd timer** (recomendado — mesmo padrão dos outros três `.service`
+  deste diretório): `deploy/systemd/resolv-backup.service` (`Type=oneshot`)
+  + `resolv-backup.timer` (`OnCalendar=*-*-* 23:00:00`, batendo com o D21-B
+  — "diário às 23h", `Persistent=true` recupera sozinho um horário perdido
+  se o servidor estava desligado). Instale com o mesmo par de comandos dos
+  outros três:
+
+  ```sh
+  cp deploy/systemd/resolv-backup.service deploy/systemd/resolv-backup.timer /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable --now resolv-backup.timer
+  ```
+
+  Testado ao vivo (rehearsal completo, não só leitura): como o usuário
+  `resolv`, com as mesmas variáveis do `EnvironmentFile`, o script gerou um
+  `.sql.gz` íntegro com o dono e a permissão corretos (`resolv:resolv`,
+  `600`) — o mecanismo funciona; só falta rodar num systemd de verdade
+  (`systemctl enable --now`) no servidor real, algo que nenhum sandbox de
+  desenvolvimento consegue simular (não roda com systemd como PID 1).
 
 **Isto substitui o item "Backup cifrado, restore testado..." do checklist
 de `docs/14-seguranca.md` §9 por um script que roda sozinho** — mas troca só

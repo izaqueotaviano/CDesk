@@ -1,0 +1,34 @@
+# Dispara scripts/backup_postgres.sh — chamado só pelo timer irmão
+# (resolv-backup.timer), nunca direto pelo boot do sistema.
+#
+# Mesma suposição dos outros três .service deste diretório: existe um
+# usuário/grupo de sistema "resolv" sem privilégio (ver o comentário de
+# resolv-web.service). O `pg_dump` roda com o papel de APLICAÇÃO
+# (resolv_app, lido de DATABASE_URL em /etc/resolv/.env) — nunca o dono do
+# schema — porque um dump só precisa ler tabela, não alterar o schema.
+#
+# Instalar (uma vez, como root):
+#   cp deploy/systemd/resolv-backup.service deploy/systemd/resolv-backup.timer /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now resolv-backup.timer
+# Testar sem esperar até 23h:
+#   systemctl start resolv-backup.service && journalctl -u resolv-backup.service -n 30
+
+[Unit]
+Description=Backup do PostgreSQL do resolv (pg_dump + gzip + rotação)
+Documentation=file:///srv/resolv/docs/15-deploy-producao.md
+
+[Service]
+Type=oneshot
+User=resolv
+Group=resolv
+EnvironmentFile=/etc/resolv/.env
+ExecStart=/srv/resolv/scripts/backup_postgres.sh
+
+# Mesmo endurecimento dos outros processos: o backup só precisa ler o
+# próprio script e escrever em BACKUP_DIR.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/var/backups/resolv
+UMask=0077
