@@ -453,6 +453,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.chat.tasks.convert_unattended_chats",
         "schedule": 60.0,
     },
+    # chat esquecido na fila (ninguém pegou ainda) → sino + e-mail pros
+    # agentes com vaga, sempre ANTES do timeout acima converter em ticket —
+    # frequente pelo mesmo motivo do timeout: janela curta de reação
+    "chat-incoming-notify": {
+        "task": "apps.chat.tasks.notify_queued_chats",
+        "schedule": 30.0,
+    },
     "sla-scan": {
         "task": "apps.notifications.tasks.sla_scan",
         "schedule": 300.0,  # docs/01 §5
@@ -491,6 +498,12 @@ CELERY_BEAT_SCHEDULE = {
     "sync-knowledge-base": {
         "task": "apps.knowledge.tasks.sync_knowledge_base",
         "schedule": crontab(minute=15),
+    },
+    # aviso do mural (docs/02 §announcements) → sino + e-mail pra audiência
+    # que ainda não sabe. Não precisa da cadência do chat: mural muda pouco.
+    "announcement-notify": {
+        "task": "apps.announcements.tasks.notify_announcements",
+        "schedule": 300.0,
     },
 }
 

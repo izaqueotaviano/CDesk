@@ -350,6 +350,44 @@ export function useDesativarAgenteCfg(userId: number) {
   })
 }
 
+/** Troca o avatar de OUTRA pessoa — o gêmeo admin de `POST me/avatar/`
+ *  (`AvatarUploadView`), para o caso comum de um admin ajudar alguém a
+ *  trocar a própria foto por telefone ou chat. O backend recodifica o
+ *  arquivo (ver `avatars.guardar`) e devolve o agente já com a `avatar_url`
+ *  nova — não precisa de um PATCH separado depois. */
+export function useEnviarAvatarAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<AgenteCfg>(`/api/v1/settings/users/${userId}/avatar/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** Volta às iniciais — o gêmeo admin de `DELETE me/avatar/`. */
+export function useRemoverAvatarAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<AgenteCfg>(`/api/v1/settings/users/${userId}/avatar/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Substitui o conjunto INTEIRO de equipes do agente — `set_teams` não é
+ *  incremental, então quem chama manda a lista final (todas as equipes que
+ *  o agente deve atender depois de salvar), nunca um delta. */
+export function useDefinirEquipesAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (teamIds: number[]) =>
+      api.put<{ team_ids: number[] }>(`/api/v1/settings/users/${userId}/teams/`, { team_ids: teamIds }),
+    onSuccess: invalidar,
+  })
+}
+
 export interface EventoAcessoAgente {
   kind: string
   kind_label: string

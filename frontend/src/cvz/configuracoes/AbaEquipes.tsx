@@ -29,6 +29,7 @@ import {
   useCalendariosCfg,
   useChoicesCfg,
   useCriarEquipeCfg,
+  useDefinirEquipesAgente,
   useRosterCfg,
   type AgenteCfg,
   type EquipeCfg,
@@ -60,6 +61,7 @@ export function AbaEquipes() {
   const [equipeEmEdicao, setEquipeEmEdicao] = useState<EquipeCfg | null>(null)
   const [equipeParaAdicionarAgente, setEquipeParaAdicionarAgente] = useState<EquipeRosterCfg | null>(null)
   const [agenteHistorico, setAgenteHistorico] = useState<AgenteCfg | null>(null)
+  const [agenteEquipes, setAgenteEquipes] = useState<AgenteCfg | null>(null)
 
   const nomeAgente = useMemo(() => {
     const m = new Map((agentes ?? []).map((a) => [a.id, a.full_name]))
@@ -128,7 +130,9 @@ export function AbaEquipes() {
         key: 'acoes',
         header: '',
         mobile: 'hidden',
-        render: (a) => <AcoesAgenteCfg agente={a} onVerHistorico={setAgenteHistorico} />,
+        render: (a) => (
+          <AcoesAgenteCfg agente={a} onVerHistorico={setAgenteHistorico} onEditarEquipes={setAgenteEquipes} />
+        ),
       },
     ],
     [rotuloPapel],
@@ -242,6 +246,13 @@ export function AbaEquipes() {
       />
 
       <ModalHistoricoAcessoAgente agente={agenteHistorico} onClose={() => setAgenteHistorico(null)} />
+
+      <ModalEquipesAgente
+        agente={agenteEquipes}
+        equipes={roster.data?.teams ?? []}
+        onClose={() => setAgenteEquipes(null)}
+        onSalvo={(a) => push({ tone: 'success', title: 'Equipes atualizadas', description: a.full_name })}
+      />
     </div>
   )
 }
@@ -435,6 +446,96 @@ function ModalEquipe({
         {equipe && (
           <p className="cfg-meta-form">
             Supervisor atual: {nomeAgente(equipe.supervisor)} · {equipe.agent_count} agente(s) · {equipe.ticket_count} ticket(s)
+          </p>
+        )}
+
+        {erro && <p className="cfg-erro-form">{erro}</p>}
+      </FormRow>
+    </Modal>
+  )
+}
+
+/**
+ * "Editar equipes" fora do fluxo "+ Adicionar agente" — para quando a pessoa
+ * já existe e só precisa mudar de equipe (promovida, trocou de time, cobre
+ * duas filas). `set_teams` substitui o conjunto INTEIRO, então a pré-marcação
+ * tem que ser exatamente o que o agente atende hoje — daí ler de
+ * `agente.team_ids`, o mesmo campo que o roster já calcula a partir do
+ * vínculo (`UserAdminSerializer.get_team_ids`); recomputar isso varrendo
+ * `equipes` de novo seria uma segunda fonte pro mesmo dado.
+ */
+function ModalEquipesAgente({
+  agente,
+  equipes,
+  onClose,
+  onSalvo,
+}: {
+  agente: AgenteCfg | null
+  equipes: EquipeCfg[]
+  onClose: () => void
+  onSalvo: (agente: AgenteCfg) => void
+}) {
+  const definirEquipes = useDefinirEquipesAgente(agente?.id ?? 0)
+  const [selecionadas, setSelecionadas] = useState<string[]>([])
+  const [erro, setErro] = useState<string | null>(null)
+  // Mesmo ajuste durante o render de `equipeSemeada` (ModalEquipe, acima):
+  // trocar de agente sem fechar o modal (duas linhas seguidas na tabela) não
+  // pode arrastar a seleção do agente anterior.
+  const [agenteSemeado, setAgenteSemeado] = useState<number | null>(null)
+  if (agente && agente.id !== agenteSemeado) {
+    setAgenteSemeado(agente.id)
+    setSelecionadas(agente.team_ids.map(String))
+    setErro(null)
+  }
+
+  const opcoesEquipe = useMemo(
+    () => equipes.map((e) => ({ value: String(e.id), label: e.is_active ? e.name : `${e.name} (inativa)` })),
+    [equipes],
+  )
+
+  async function salvar() {
+    if (!agente) return
+    setErro(null)
+    try {
+      await definirEquipes.mutateAsync(selecionadas.map(Number))
+      onSalvo(agente)
+      onClose()
+    } catch (e) {
+      setErro(e instanceof ApiError ? (e.detail ?? Object.values(e.fieldErrors ?? {})[0]?.[0]) : 'Não foi possível salvar.')
+    }
+  }
+
+  return (
+    <Modal
+      open={agente !== null}
+      onClose={onClose}
+      title={agente ? `Equipes de ${agente.full_name}` : 'Equipes'}
+      size="sm"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose} disabled={definirEquipes.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={definirEquipes.isPending}>
+            {definirEquipes.isPending ? 'Salvando…' : 'Salvar'}
+          </Button>
+        </>
+      }
+    >
+      <FormRow columns={1}>
+        <Combobox
+          multiple
+          label="Equipes"
+          placeholder="Buscar equipe"
+          emptyLabel="Nenhuma equipe encontrada."
+          options={opcoesEquipe}
+          value={selecionadas}
+          onChange={setSelecionadas}
+        />
+
+        {selecionadas.length === 0 && (
+          <p className="cfg-meta-form">
+            Sem nenhuma equipe marcada, o agente não enxerga ticket algum ao salvar.
           </p>
         )}
 

@@ -1,19 +1,31 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Button, ConfirmDialog, IconButton, Modal, Popover } from '@/cvz/components'
 import { useToast } from '@/cvz/components/Toast/Toast'
 import { IconMore } from '@/cvz/components/icons'
 import { ApiError } from '@/api/client'
 import {
   useDesativarAgenteCfg,
+  useEnviarAvatarAgente,
   useReenviarConviteAgente,
+  useRemoverAvatarAgente,
   useResetar2faAgente,
   useResetarSenhaAgente,
   useRevogarTodasSessoesAgente,
   type AgenteCfg,
 } from './dados'
 
+// Espelha `avatars.py` (MAX_BYTES, e os três formatos que `guardar()`
+// aceita) — validar aqui evita a viagem de rede só para o backend recusar
+// um arquivo grande demais ou de um formato que ele nunca vai aceitar.
+const LIMITE_AVATAR_MB = 2
+const TIPOS_AVATAR_ACEITOS = 'image/png,image/jpeg,image/webp'
+
 function mensagemDeErro(e: unknown, padrao: string): string {
   return e instanceof ApiError ? (e.detail ?? padrao) : padrao
+}
+
+function mensagemDeErroArquivo(e: unknown, padrao: string): string {
+  return e instanceof ApiError ? (e.fieldErrors?.file?.[0] ?? e.detail ?? padrao) : padrao
 }
 
 type Confirmacao = 'senha' | '2fa' | 'sessoes' | 'desativar'
@@ -64,14 +76,20 @@ const TEXTOS: Record<Confirmacao, {
  * já é a prova de identidade, ver `reset_password`/`reset_2fa` no backend),
  * então "cliquei sem querer" não pode custar uma sessão derrubada ou uma
  * senha trocada. "Reenviar convite" e "Ver histórico" ficam de fora: a
- * primeira só reenvia um e-mail, a segunda só lê.
+ * primeira só reenvia um e-mail, a segunda só lê. Trocar/remover foto e
+ * editar equipes também ficam de fora da confirmação: são reversíveis (envia
+ * de novo, marca de novo) e não mexem em credencial nem em sessão de
+ * ninguém — o mesmo raciocínio, aplicado às duas ações que a rodada anterior
+ * deixou de fora por não estarem na lista priorizada.
  */
 export function AcoesAgenteCfg({
   agente,
   onVerHistorico,
+  onEditarEquipes,
 }: {
   agente: AgenteCfg
   onVerHistorico: (agente: AgenteCfg) => void
+  onEditarEquipes: (agente: AgenteCfg) => void
 }) {
   const { push } = useToast()
   const reenviarConvite = useReenviarConviteAgente(agente.id)
@@ -79,17 +97,53 @@ export function AcoesAgenteCfg({
   const resetar2fa = useResetar2faAgente(agente.id)
   const revogarTudo = useRevogarTodasSessoesAgente(agente.id)
   const desativar = useDesativarAgenteCfg(agente.id)
+  const enviarAvatar = useEnviarAvatarAgente(agente.id)
+  const removerAvatar = useRemoverAvatarAgente(agente.id)
 
   const [confirmando, setConfirmando] = useState<Confirmacao | null>(null)
   // Só existe UMA vez — a resposta de `reset-password` — por isso é estado à
   // parte do resto do menu, nunca reconstruída a partir de outra coisa.
   const [senhaGerada, setSenhaGerada] = useState<string | null>(null)
+  // O <input type="file"> fica FORA do painel do Popover de propósito: o
+  // painel só existe no DOM enquanto `open` (ver Popover.tsx), então um
+  // input plantado lá dentro sumiria antes do seletor nativo do sistema
+  // operacional abrir — o clique em "Trocar foto" fecha o menu no mesmo
+  // gesto que aciona o input.
+  const arquivoAvatarRef = useRef<HTMLInputElement>(null)
 
   function enviarConvite() {
     reenviarConvite.mutate(undefined, {
       onSuccess: () => push({ tone: 'success', title: 'Convite reenviado', description: agente.email }),
       onError: (e) =>
         push({ tone: 'danger', title: 'Não foi possível reenviar o convite', description: mensagemDeErro(e, '') }),
+    })
+  }
+
+  // Mesma validação client-side de `AbaTelaDeLogin` (imagem do painel de
+  // login): confere tipo e tamanho antes de gastar uma viagem de rede com um
+  // arquivo que `avatars.guardar` ia recusar de qualquer jeito.
+  function escolherAvatar(arquivo: File | undefined) {
+    if (!arquivo) return
+    if (!arquivo.type.startsWith('image/')) {
+      push({ tone: 'danger', title: 'Escolha uma imagem (PNG, JPEG ou WebP).' })
+      return
+    }
+    if (arquivo.size > LIMITE_AVATAR_MB * 1024 * 1024) {
+      push({ tone: 'danger', title: `A imagem precisa ter até ${LIMITE_AVATAR_MB} MB.` })
+      return
+    }
+    enviarAvatar.mutate(arquivo, {
+      onSuccess: () => push({ tone: 'success', title: 'Foto atualizada', description: agente.full_name }),
+      onError: (e) =>
+        push({ tone: 'danger', title: 'Não foi possível enviar a foto', description: mensagemDeErroArquivo(e, '') }),
+    })
+  }
+
+  function removerFoto() {
+    removerAvatar.mutate(undefined, {
+      onSuccess: () => push({ tone: 'success', title: 'Foto removida', description: agente.full_name }),
+      onError: (e) =>
+        push({ tone: 'danger', title: 'Não foi possível remover a foto', description: mensagemDeErro(e, '') }),
     })
   }
 
@@ -161,6 +215,41 @@ export function AcoesAgenteCfg({
       >
         {(fechar) => (
           <div className="cfg-roster__menu" role="menu" aria-label={`Ações para ${agente.full_name}`}>
+            <button
+              type="button"
+              role="menuitem"
+              className="cfg-roster__menu-item"
+              onClick={() => {
+                fechar()
+                arquivoAvatarRef.current?.click()
+              }}
+            >
+              Trocar foto
+            </button>
+            {agente.avatar_url && (
+              <button
+                type="button"
+                role="menuitem"
+                className="cfg-roster__menu-item"
+                onClick={() => {
+                  fechar()
+                  removerFoto()
+                }}
+              >
+                Remover foto
+              </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              className="cfg-roster__menu-item"
+              onClick={() => {
+                fechar()
+                onEditarEquipes(agente)
+              }}
+            >
+              Editar equipes
+            </button>
             {podeConvite && (
               <button
                 type="button"
@@ -238,6 +327,18 @@ export function AcoesAgenteCfg({
           </div>
         )}
       </Popover>
+
+      <input
+        ref={arquivoAvatarRef}
+        type="file"
+        accept={TIPOS_AVATAR_ACEITOS}
+        className="sr-only"
+        aria-label={`Escolher foto de ${agente.full_name}`}
+        onChange={(e) => {
+          escolherAvatar(e.target.files?.[0])
+          e.target.value = ''
+        }}
+      />
 
       <ConfirmDialog
         open={confirmando !== null}

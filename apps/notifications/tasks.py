@@ -177,6 +177,25 @@ EMAIL_TEMPLATES = {
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
+    # --- os 2 últimos NotificationKind que nunca tiveram emissor nenhum,
+    # nem in-app nem e-mail (a rodada anterior cobriu os 9 de agente acima;
+    # estes dois não tinham NADA disparando `notify()`/`queue_email()`) ----
+    "announcement": (
+        "Olá, {full_name}.\n\n"
+        "Novo aviso no mural: {title}\n\n"
+        "{resumo}\n\n"
+        "Veja o mural completo:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "chat_incoming": (
+        "Olá, {agent_name}.\n\n"
+        "{client_name} ({company}) está aguardando atendimento no chat há "
+        "um tempo e ainda não foi atendido.\n\n"
+        "Acesse o sistema para atender:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
 }
 
 

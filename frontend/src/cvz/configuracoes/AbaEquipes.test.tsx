@@ -131,6 +131,11 @@ interface Chamada {
   corpo: unknown
 }
 
+// Marcador para corpo multipart (upload de avatar): não dá pra `JSON.parse`
+// um FormData, mas o teste ainda precisa provar que a chamada carregou um
+// arquivo, não um JSON — daí este objeto no lugar do corpo de verdade.
+const CORPO_FORMDATA = { __formData: true }
+
 let chamadas: Chamada[]
 let roster: ReturnType<typeof rosterBase>
 let historico: ReturnType<typeof historicoBase>
@@ -148,7 +153,8 @@ beforeEach(() => {
     vi.fn((url: string, init?: RequestInit) => {
       const u = new URL(String(url), 'http://x')
       const metodo = init?.method ?? 'GET'
-      const corpo = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined
+      const ehFormData = typeof FormData !== 'undefined' && init?.body instanceof FormData
+      const corpo = typeof init?.body === 'string' ? JSON.parse(init.body) : ehFormData ? CORPO_FORMDATA : undefined
       chamadas.push({ url: u.pathname, metodo, corpo })
 
       if (u.pathname === '/api/v1/auth/me/') return Promise.resolve(jsonDe(ME_ADMIN))
@@ -165,6 +171,15 @@ beforeEach(() => {
       }
       if (u.pathname === '/api/v1/settings/users/10/access-history/' && metodo === 'GET') {
         return Promise.resolve(jsonDe(historico))
+      }
+      if (u.pathname === '/api/v1/settings/users/10/avatar/' && metodo === 'POST') {
+        return Promise.resolve(jsonDe({ ...ANA, avatar_url: '/api/v1/avatars/novafoto.png' }))
+      }
+      if (u.pathname === '/api/v1/settings/users/10/avatar/' && metodo === 'DELETE') {
+        return Promise.resolve(jsonDe({ ...ANA, avatar_url: '' }))
+      }
+      if (u.pathname === '/api/v1/settings/users/10/teams/' && metodo === 'PUT') {
+        return Promise.resolve(jsonDe({ team_ids: (corpo as { team_ids?: number[] })?.team_ids ?? [] }))
       }
       return Promise.resolve(jsonDe({ detail: `sem mock para ${metodo} ${u.pathname}` }, 404))
     }),
@@ -286,5 +301,119 @@ describe('AbaEquipes — ações do agente', () => {
     await waitFor(() =>
       expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/' && c.metodo === 'DELETE')).toBe(true),
     )
+  })
+})
+
+describe('AbaEquipes — foto do agente', () => {
+  async function abrirMenu(nome: string) {
+    fireEvent.click(await screen.findByRole('button', { name: `Ações para ${nome}` }))
+    return screen.getByRole('menu', { name: `Ações para ${nome}` })
+  }
+
+  it('troca a foto do agente com um upload multipart, sem pedir confirmação', async () => {
+    montar()
+    const menu = await abrirMenu('Ana Souza')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Trocar foto' }))
+
+    const arquivo = new File(['conteudo-fake'], 'foto.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('Escolher foto de Ana Souza'), { target: { files: [arquivo] } })
+
+    await waitFor(() =>
+      expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/avatar/' && c.metodo === 'POST')).toBe(true),
+    )
+    const chamada = escritas().find((c) => c.url === '/api/v1/settings/users/10/avatar/')!
+    expect(chamada.corpo).toEqual(CORPO_FORMDATA) // prova que foi multipart, não JSON
+    expect(await screen.findByText('Foto atualizada')).toBeInTheDocument()
+  })
+
+  it('recusa no cliente um arquivo maior que o limite do backend, sem chamar a API', async () => {
+    montar()
+    const menu = await abrirMenu('Ana Souza')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Trocar foto' }))
+
+    // avatars.py: MAX_BYTES = 2 MiB — este arquivo passa disso.
+    const grande = new File([new Uint8Array(3 * 1024 * 1024)], 'foto-grande.png', { type: 'image/png' })
+    fireEvent.change(screen.getByLabelText('Escolher foto de Ana Souza'), { target: { files: [grande] } })
+
+    expect(await screen.findByText('A imagem precisa ter até 2 MB.')).toBeInTheDocument()
+    expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/avatar/')).toBe(false)
+  })
+
+  it('recusa no cliente um arquivo que não é imagem', async () => {
+    montar()
+    const menu = await abrirMenu('Ana Souza')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Trocar foto' }))
+
+    const pdf = new File(['%PDF-1.4'], 'documento.pdf', { type: 'application/pdf' })
+    fireEvent.change(screen.getByLabelText('Escolher foto de Ana Souza'), { target: { files: [pdf] } })
+
+    expect(await screen.findByText('Escolha uma imagem (PNG, JPEG ou WebP).')).toBeInTheDocument()
+    expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/avatar/')).toBe(false)
+  })
+
+  it('"Remover foto" só aparece para quem já tem avatar', async () => {
+    roster.teams[0].agents = [{ ...ANA, avatar_url: '/api/v1/avatars/atual.png' }]
+    montar()
+
+    const menuComFoto = await abrirMenu('Ana Souza')
+    fireEvent.click(within(menuComFoto).getByRole('menuitem', { name: 'Remover foto' }))
+    await waitFor(() =>
+      expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/avatar/' && c.metodo === 'DELETE')).toBe(true),
+    )
+
+    // Bruno (fixture BRUNO) nunca teve avatar_url — a ação nem aparece pra ele.
+    const menuSemFoto = await abrirMenu('Bruno Lima')
+    expect(within(menuSemFoto).queryByRole('menuitem', { name: 'Remover foto' })).not.toBeInTheDocument()
+  })
+})
+
+describe('AbaEquipes — editar equipes do agente', () => {
+  async function abrirMenu(nome: string) {
+    fireEvent.click(await screen.findByRole('button', { name: `Ações para ${nome}` }))
+    return screen.getByRole('menu', { name: `Ações para ${nome}` })
+  }
+
+  it('pré-marca as equipes atuais (lidas do roster) e salva o conjunto novo via set_teams', async () => {
+    // Ana atende DUAS equipes (`team_ids: [1, 2]`), mas só precisa aparecer
+    // uma vez na tabela pro teste — a pré-marcação lê `team_ids`, não "em
+    // quantos `equipe.agents` ela aparece".
+    roster.teams.push({
+      id: 2,
+      name: 'Suporte N2',
+      slug: 'suporte-n2',
+      is_active: true,
+      order: 1,
+      supervisor: null,
+      supervisor_name: null,
+      visibility: 'company_wide',
+      mask_subject_for_others: true,
+      internal_only: false,
+      chat_calendar: null,
+      notification_email: '',
+      description: '',
+      agent_count: 0,
+      ticket_count: 0,
+      agents: [],
+    })
+    roster.teams[0].agents = [{ ...ANA, team_ids: [1, 2] }]
+    montar()
+
+    const menu = await abrirMenu('Ana Souza')
+    fireEvent.click(within(menu).getByRole('menuitem', { name: 'Editar equipes' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Equipes de Ana Souza' })
+    expect(within(dialog).getByText('Suporte N1')).toBeInTheDocument()
+    expect(within(dialog).getByText('Suporte N2')).toBeInTheDocument()
+
+    // tira Suporte N1 da seleção — fica só com a N2
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Remover Suporte N1' }))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Salvar' }))
+
+    await waitFor(() =>
+      expect(escritas().some((c) => c.url === '/api/v1/settings/users/10/teams/' && c.metodo === 'PUT')).toBe(true),
+    )
+    const chamada = escritas().find((c) => c.url === '/api/v1/settings/users/10/teams/')!
+    expect(chamada.corpo).toEqual({ team_ids: [2] })
+    expect(await screen.findByText('Equipes atualizadas')).toBeInTheDocument()
   })
 })
