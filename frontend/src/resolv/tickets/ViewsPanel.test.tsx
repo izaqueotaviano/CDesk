@@ -30,6 +30,7 @@ function jsonDe(body: unknown, status = 200) {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   resumoResponde = () => jsonDe(RESUMO)
   vi.stubGlobal(
     'fetch',
@@ -41,6 +42,18 @@ beforeEach(() => {
   )
 })
 afterEach(() => vi.unstubAllGlobals())
+
+/** jsdom não implementa `matchMedia` (mesma nota de BotaoTema.test.tsx) —
+ *  simula a consulta de largura que `useJanelaEstreita` (ViewsPanel.tsx) faz,
+ *  pra testar o padrão de quem nunca clicou no botão de recolher. */
+function estadoDaJanela(estreita: boolean) {
+  vi.stubGlobal('matchMedia', (consulta: string) => ({
+    matches: estreita,
+    media: consulta,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }))
+}
 
 function montar(onSelecionar = vi.fn(), ativa = 'nao-resolvidos') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -132,7 +145,8 @@ describe('ViewsPanel — visões salvas oferecidas', () => {
 })
 
 describe('ViewsPanel — controles que ainda não fazem nada', () => {
-  it('filtro, recolher e personalizar avisam "em breve" em vez de fingir que funcionam', () => {
+  it('filtro e personalizar avisam "em breve" em vez de fingir que funcionam', () => {
+    // Recolher SAIU desta lista nesta rodada — ver describe abaixo: agora liga de verdade.
     montar()
 
     const filtro = screen.getByLabelText('Filtrar visualizações')
@@ -140,12 +154,66 @@ describe('ViewsPanel — controles que ainda não fazem nada', () => {
     expect(filtro).toHaveAttribute('readonly')
     expect(filtro).toHaveAttribute('title', 'Filtrar visualizações — em breve')
 
-    const recolher = screen.getByRole('button', { name: 'Recolher painel' })
-    expect(recolher).toHaveAttribute('aria-disabled', 'true')
-    expect(recolher).toHaveAttribute('title', 'Recolher painel — em breve')
-
     const personalizar = screen.getByRole('button', { name: 'Personalizar visualizações' })
     expect(personalizar).toHaveAttribute('aria-disabled', 'true')
     expect(personalizar).toHaveAttribute('title', 'Personalizar visualizações — em breve')
+  })
+})
+
+describe('ViewsPanel — recolher o painel (item da rodada 3)', () => {
+  it('clicar em "Recolher painel" esconde a lista de visualizações e oferece um jeito de expandir de novo', async () => {
+    montar()
+    await screen.findByText('40') // resumo carregado, painel expandido de verdade
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher painel' }))
+
+    expect(screen.queryByRole('button', { name: /Aguardando você/ })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Filtrar visualizações')).not.toBeInTheDocument()
+    const expandir = screen.getByRole('button', { name: 'Expandir painel de visualizações' })
+    expect(expandir).toBeInTheDocument()
+
+    fireEvent.click(expandir)
+
+    expect(await screen.findByRole('button', { name: /Aguardando você/ })).toBeInTheDocument()
+  })
+
+  it('a escolha de recolher persiste (localStorage) — sobrevive a uma nova montagem', async () => {
+    // `montar()` não expõe `unmount` (as outras describe usam o retorno como
+    // o mock de `onSelecionar`) — monta direto aqui só pra ter acesso a ele.
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const primeira = render(
+      <QueryClientProvider client={client}>
+        <ViewsPanel ativa="nao-resolvidos" onSelecionar={vi.fn()} />
+      </QueryClientProvider>,
+    )
+    await screen.findByText('40')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher painel' }))
+    expect(screen.getByRole('button', { name: 'Expandir painel de visualizações' })).toBeInTheDocument()
+    primeira.unmount()
+
+    montar()
+    // Sem esperar o resumo (não tem nada pra mostrar de conteúdo): o painel
+    // já nasce recolhido nesta montagem nova, sem precisar clicar de novo.
+    expect(screen.getByRole('button', { name: 'Expandir painel de visualizações' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Recolher painel' })).not.toBeInTheDocument()
+  })
+
+  it('janela estreita (breakpoint de tablet) começa recolhida quando ninguém escolheu ainda', () => {
+    estadoDaJanela(true) // (max-width: 1024px) bate — janela dividida ou notebook pequeno
+
+    montar()
+
+    expect(screen.getByRole('button', { name: 'Expandir painel de visualizações' })).toBeInTheDocument()
+  })
+
+  it('escolha explícita de expandir vence a janela estreita', async () => {
+    estadoDaJanela(true)
+    localStorage.setItem('resolv-fila-painel-recolhido', 'nao')
+
+    montar()
+
+    expect(await screen.findByRole('button', { name: /Aguardando você/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Expandir painel de visualizações' })).not.toBeInTheDocument()
   })
 })

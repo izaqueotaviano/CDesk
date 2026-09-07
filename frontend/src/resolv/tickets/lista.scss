@@ -17,6 +17,21 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    transition: width 0.12s ease;
+
+    // Recolhida (ViewsPanel.tsx): o botão da rodada 2 estava inerte e os
+    // 256px eram fixos em QUALQUER largura — quem trabalha com a janela
+    // dividida ou notebook pequeno não tinha saída. Vira uma faixa só com o
+    // botão de expandir; o PADRÃO (sem escolha salva) já nasce assim abaixo
+    // do breakpoint de tablet — ver `useJanelaEstreita` em ViewsPanel.tsx,
+    // mesmo número de resolv/shell/topbar.scss:17 ($bp-lg), copiado pelo
+    // mesmo motivo de lá (nenhum .scss de resolv/ usa @use hoje).
+    &--recolhido {
+      width: 44px;
+      align-items: center;
+      padding-top: 8px;
+      overflow: visible;
+    }
   }
 
   // ---------------------------------------------------------------- coluna main
@@ -46,6 +61,11 @@
     margin-top: 4px;
     font-size: 12px;
     font-weight: 400;
+    color: var(--text-muted);
+  }
+  // "· Atualizado às HH:MM" ao lado da contagem — mesmo tom (--text-muted),
+  // não pede destaque próprio, só diz QUANDO é o dado da tabela abaixo.
+  &__atualizado {
     color: var(--text-muted);
   }
 
@@ -191,16 +211,14 @@
     }
   }
 
-  &__aviso-erro {
+  &__aviso-erro,
+  &__aviso-sucesso {
     display: flex;
     align-items: center;
     gap: 8px;
-    border: 0.7px solid var(--danger);
     border-radius: 2px;
     padding: 8px 12px;
-    color: var(--danger);
     font-size: 13px;
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
     span {
       flex: 1;
     }
@@ -213,6 +231,19 @@
       cursor: pointer;
       padding: 2px;
     }
+  }
+  &__aviso-erro {
+    border: 0.7px solid var(--danger);
+    color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+  }
+  // Caminho feliz da ação em lote (rodada 3): mesmo desenho do erro acima,
+  // trocando --danger por --ok — a mesma dupla de tokens que já cobre o
+  // resto da tela (COR_PRIORIDADE/corEstadoSla em format.ts).
+  &__aviso-sucesso {
+    border: 0.7px solid var(--ok);
+    color: var(--ok);
+    background: var(--tom-ok);
   }
 
   // ---------------------------------------------------------------- estados
@@ -329,9 +360,38 @@
     border-radius: 2px;
     color: var(--text-secondary);
     cursor: pointer;
+    flex-shrink: 0;
     i {
       font-size: 14px;
       color: var(--text-secondary);
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  // Único conteúdo da faixa recolhida (`.lista-tickets__views--recolhido`) —
+  // mesmo desenho de `__recolher`, só que sozinho e centralizado na faixa de
+  // 44px, sem o resto do painel (busca, lista de views, personalizar) que
+  // some junto: é assim que a janela estreita ganha os 212px de volta.
+  &__expandir {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 0.7px solid var(--stroke);
+    background: var(--surface-card);
+    border-radius: 2px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
     }
   }
 

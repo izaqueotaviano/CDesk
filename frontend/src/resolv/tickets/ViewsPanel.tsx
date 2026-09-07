@@ -1,5 +1,69 @@
+import { useEffect, useState } from 'react'
 import { useResumoFila } from './dados'
 import { duracaoEmMinutos } from './format'
+
+// --------------------------------------------------------------------------
+// painel recolhido — item (rodada 3)
+// --------------------------------------------------------------------------
+
+/** localStorage direto com try/catch, não um store novo pra uma chave só —
+ *  mesmo padrão de preferência POR DISPOSITIVO já usado em
+ *  realtime/avisos.ts (`escolhaSalva`/`salvarEscolha`): "painel recolhido
+ *  neste computador" não é dado de conta, é do aparelho/janela em que a
+ *  pessoa está agora. */
+const CHAVE_RECOLHIDO = 'resolv-fila-painel-recolhido'
+
+function escolhaRecolhidoSalva(): 'sim' | 'nao' | null {
+  try {
+    const salvo = localStorage.getItem(CHAVE_RECOLHIDO)
+    return salvo === 'sim' || salvo === 'nao' ? salvo : null
+  } catch {
+    return null // aba anônima/preview sem storage: cai no padrão do breakpoint
+  }
+}
+
+function salvarEscolhaRecolhido(valor: 'sim' | 'nao') {
+  try {
+    localStorage.setItem(CHAVE_RECOLHIDO, valor)
+  } catch {
+    // melhor esforço: sem persistir, o estado ainda vale nesta sessão
+  }
+}
+
+/** Mesmo breakpoint de tablet do resto da casa — resolv/shell/topbar.scss:17
+ *  ($bp-lg, "a busca perde a largura própria"), copiado em vez de importado
+ *  pelo mesmo motivo de lá: nenhum .scss/.ts de resolv/ usa @use ou import
+ *  cruzado entre módulos hoje, e o único ganho seria um número.
+ *
+ *  1023px, não 1024px: topbar.scss usa `max-width: $bp-lg - 1px` (a query CSS
+ *  de lá), e copiar só o número sem o "- 1px" faria os dois discordarem
+ *  exatamente na largura 1024px — a topbar ainda desktop, este painel já
+ *  recolhido por padrão. */
+const CONSULTA_JANELA_ESTREITA = '(max-width: 1023px)'
+
+/**
+ * Só decide o PADRÃO de quem nunca clicou no botão de recolher — a escolha
+ * salva (acima) manda em qualquer largura. Reage a redimensionamento de
+ * verdade (não só a carga inicial): é o caso de quem arrasta a borda da
+ * janela pra dividir a tela com outra coisa enquanto trabalha, o motivo
+ * citado na auditoria — não só de quem já abre em notebook pequeno.
+ *
+ * jsdom/SSR sem `matchMedia`: cai em "não é estreita", mesma tolerância de
+ * `sistemaPrefereEscuro` (stores/prefs.ts).
+ */
+function useJanelaEstreita(): boolean {
+  const [estreita, setEstreita] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia?.(CONSULTA_JANELA_ESTREITA).matches === true,
+  )
+  useEffect(() => {
+    const consulta = window.matchMedia?.(CONSULTA_JANELA_ESTREITA)
+    if (!consulta) return
+    const aoMudar = (e: MediaQueryListEvent) => setEstreita(e.matches)
+    consulta.addEventListener('change', aoMudar)
+    return () => consulta.removeEventListener('change', aoMudar)
+  }, [])
+  return estreita
+}
 
 /**
  * Painel do agente — as "visualizações salvas" da lateral do print. Cada uma
@@ -69,11 +133,45 @@ export function ViewsPanel({
   const contagens = resumo?.visoes
   const esperaMaisLonga = resumo?.nao_atribuidos.espera_mais_longa_min ?? null
 
+  // Escolha explícita (localStorage) manda em qualquer largura; sem ela, o
+  // padrão segue a janela — ver comentário de `useJanelaEstreita` acima.
+  const [escolha, setEscolha] = useState<'sim' | 'nao' | null>(() => escolhaRecolhidoSalva())
+  const janelaEstreita = useJanelaEstreita()
+  const recolhido = escolha != null ? escolha === 'sim' : janelaEstreita
+
+  function alternarRecolhido() {
+    const novo: 'sim' | 'nao' = recolhido ? 'nao' : 'sim'
+    setEscolha(novo)
+    salvarEscolhaRecolhido(novo)
+  }
+
   /** Contexto que o resumo já traz de graça e cabe no `title` sem virar
    *  widget: quanto tempo o mais antigo da fila sem dono está esperando. */
   function tituloDaVisao(v: Visualizacao): string | undefined {
     if (v.id !== 'nao-atribuidos' || esperaMaisLonga == null) return undefined
     return `O mais antigo espera há ${duracaoEmMinutos(esperaMaisLonga)}`
+  }
+
+  // Recolhido: só a faixa com o botão de expandir — busca, lista de views,
+  // pessoais e "personalizar" somem juntos. Cedo aqui em vez de esconder por
+  // CSS porque isto também tira as ~15 linhas da ordem de tabulação; ninguém
+  // tabula por controles que não estão visíveis (mesmo raciocínio do
+  // `readOnly` do campo de busca logo abaixo, só que para sumiço, não pra
+  // "em breve").
+  if (recolhido) {
+    return (
+      <aside className="lista-tickets__views lista-tickets__views--recolhido" aria-label="Visualizações">
+        <button
+          type="button"
+          className="views-panel__expandir"
+          aria-label="Expandir painel de visualizações"
+          title="Expandir painel"
+          onClick={alternarRecolhido}
+        >
+          <i className="ti ti-chevron-right" />
+        </button>
+      </aside>
+    )
   }
 
   return (
@@ -92,12 +190,14 @@ export function ViewsPanel({
           aria-disabled="true"
           readOnly
         />
+        {/* Item (rodada 3): era o botão "em breve" da rodada 2 — agora liga
+            de verdade (estado + persistência acima). */}
         <button
           type="button"
           aria-label="Recolher painel"
-          title="Recolher painel — em breve"
-          aria-disabled="true"
+          title="Recolher painel"
           className="views-panel__recolher"
+          onClick={alternarRecolhido}
         >
           <i className="ti ti-chevron-left" />
         </button>

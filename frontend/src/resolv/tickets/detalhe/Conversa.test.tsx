@@ -4,8 +4,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '@/api/types'
 import { useTabs } from '@/stores/tabs'
 import { Conversa } from './Conversa'
-import type { Mensagem, TicketDetalhe } from './tiposDetalhe'
+import type { Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
 import './detalhe.scss'
+
+/** Chave real usada por Conversa.tsx — mesma constante, não importada (o
+ *  módulo não a exporta: é implementação interna). */
+const CHAVE_MOSTRAR_EVENTOS = 'resolv-conversa-mostrar-eventos'
 
 // O espelho no servidor é irrelevante aqui — `atualizarScroll` nunca chama
 // `sincronizarComServidor` (contrato em stores/tabs.ts: scroll é local), mas
@@ -49,6 +53,20 @@ const ME: Me = {
   phone: '',
   ui_density: 'comfortable',
   signature: '',
+}
+
+function evento(extra: Partial<Evento> = {}): Evento {
+  return {
+    id: 900,
+    from_status: 'new',
+    to_status: 'open',
+    actor_name: 'Samuel Suporte',
+    is_reopen: false,
+    is_automatic: false,
+    note: '',
+    created_at: '2026-09-06T11:00:00Z',
+    ...extra,
+  }
 }
 
 function mensagem(extra: Partial<Mensagem> = {}): Mensagem {
@@ -131,6 +149,7 @@ function montar(t: TicketDetalhe, hash = '') {
 }
 
 beforeEach(() => {
+  localStorage.clear()
   chamadasScroll = []
   // Um só spy global, mas registrando o `this` (o elemento real que recebeu a
   // chamada) — é o único jeito de diferenciar "rolou até a mensagem X" de
@@ -149,6 +168,7 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers()
   useTabs.setState({ tabs: [], active: null, reconciliando: false })
+  localStorage.clear()
 })
 
 describe('Conversa — id da mensagem e âncora de notificação de menção (item 22)', () => {
@@ -310,5 +330,110 @@ describe('Conversa — lista de mensagens anuncia chegada por realtime (item 31)
     const lista = screen.getByRole('log', { name: 'Mensagens' })
     expect(lista).toHaveAttribute('aria-live', 'polite')
     expect(lista).toHaveAttribute('aria-relevant', 'additions')
+  })
+})
+
+describe('Conversa — "Mostrar eventos" lembra a preferência do dispositivo', () => {
+  it('sem preferência salva, nasce marcado e mostra eventos — comportamento de sempre', () => {
+    montar(ticket({ messages: [mensagem()], events: [evento()] }))
+
+    expect(screen.getByRole('checkbox', { name: 'Mostrar eventos' })).toBeChecked()
+    expect(screen.getByText('Samuel Suporte moveu para Aberto')).toBeInTheDocument()
+  })
+
+  it('com "nao" salvo no localStorage, nasce desmarcado — não é o `useState(true)` de antes', () => {
+    localStorage.setItem(CHAVE_MOSTRAR_EVENTOS, 'nao')
+
+    montar(ticket({ messages: [mensagem()], events: [evento()] }))
+
+    expect(screen.getByRole('checkbox', { name: 'Mostrar eventos' })).not.toBeChecked()
+    expect(screen.queryByText('Samuel Suporte moveu para Aberto')).not.toBeInTheDocument()
+  })
+
+  it('desmarcar grava a escolha, para o próximo chamado (troca de aba) já nascer sem eventos', () => {
+    montar(ticket({ messages: [mensagem()], events: [evento()] }))
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Mostrar eventos' }))
+
+    expect(localStorage.getItem(CHAVE_MOSTRAR_EVENTOS)).toBe('nao')
+  })
+
+  it('sem localStorage disponível, cai no padrão (mostrar) em vez de quebrar', () => {
+    const original = window.localStorage
+    Object.defineProperty(window, 'localStorage', {
+      configurable: true,
+      get() {
+        throw new Error('sem storage nesta aba')
+      },
+    })
+
+    try {
+      montar(ticket({ messages: [mensagem()], events: [evento()] }))
+      expect(screen.getByRole('checkbox', { name: 'Mostrar eventos' })).toBeChecked()
+    } finally {
+      Object.defineProperty(window, 'localStorage', { configurable: true, value: original })
+    }
+  })
+})
+
+describe('Conversa — contagem de públicas/notas vira filtro clicável', () => {
+  function ticketMisto() {
+    return ticket({
+      messages: [
+        mensagem({ id: 1, is_public: true, body: 'Mensagem pública 1' }),
+        mensagem({ id: 2, is_public: false, body: 'Nota interna 1' }),
+        mensagem({ id: 3, is_public: true, body: 'Mensagem pública 2' }),
+      ],
+    })
+  }
+
+  it('sem nota nenhuma, a contagem continua texto simples — nada para filtrar', () => {
+    montar(ticket({ messages: [mensagem({ id: 1, is_public: true })] }))
+
+    expect(screen.queryByRole('group', { name: 'Filtrar mensagens por tipo' })).not.toBeInTheDocument()
+    expect(screen.getByText('1 mensagem')).toBeInTheDocument()
+  })
+
+  it('com públicas e notas, aparecem os três filtros e "Todas" começa ativo', () => {
+    montar(ticketMisto())
+
+    expect(screen.getByRole('button', { name: 'Todas' })).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Mensagem pública 1')).toBeInTheDocument()
+    expect(screen.getByText('Nota interna 1')).toBeInTheDocument()
+  })
+
+  it('clicar em "2 mensagens" restringe a lista às públicas', () => {
+    montar(ticketMisto())
+
+    fireEvent.click(screen.getByRole('button', { name: '2 mensagens' }))
+
+    expect(screen.getByText('Mensagem pública 1')).toBeInTheDocument()
+    expect(screen.getByText('Mensagem pública 2')).toBeInTheDocument()
+    expect(screen.queryByText('Nota interna 1')).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '2 mensagens' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+  })
+
+  it('clicar em "1 nota interna" restringe a lista às notas', () => {
+    montar(ticketMisto())
+
+    fireEvent.click(screen.getByRole('button', { name: '1 nota interna' }))
+
+    expect(screen.getByText('Nota interna 1')).toBeInTheDocument()
+    expect(screen.queryByText('Mensagem pública 1')).not.toBeInTheDocument()
+    expect(screen.queryByText('Mensagem pública 2')).not.toBeInTheDocument()
+  })
+
+  it('voltar para "Todas" mostra tudo de novo', () => {
+    montar(ticketMisto())
+
+    fireEvent.click(screen.getByRole('button', { name: '1 nota interna' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Todas' }))
+
+    expect(screen.getByText('Mensagem pública 1')).toBeInTheDocument()
+    expect(screen.getByText('Nota interna 1')).toBeInTheDocument()
+    expect(screen.getByText('Mensagem pública 2')).toBeInTheDocument()
   })
 })

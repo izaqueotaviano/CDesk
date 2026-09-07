@@ -126,6 +126,59 @@ describe('PaginaListaTickets — ações em lote', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Ticket de outra equipe.')
     expect(screen.getByText('1', { selector: 'strong' })).toBeInTheDocument() // seleção continua
   })
+
+  // `tratarResultadoLote` é if/else: os dois avisos são mutuamente
+  // exclusivos por construção, mas nada travava isso contra regressão — o
+  // caso MISTO (parte deu certo, parte não) é o único onde os dois
+  // poderiam, em tese, aparecer juntos.
+  it('lote misto (parte deu certo, parte falhou) mostra só o erro, nunca os dois avisos', async () => {
+    respostaDoBulkAssign = () =>
+      jsonDe({ updated: [7], failed: [{ id: 8, detail: 'Ticket de outra equipe.' }] })
+    montar()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
+    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ticket de outra equipe.')
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.queryByText(/certo\.$/)).not.toBeInTheDocument()
+  })
+
+  // Item (rodada 3): antes deste item, sucesso TOTAL na ação em lote (20
+  // chamados reatribuídos, por exemplo) não dizia nada — só o `role="alert"`
+  // do teste acima tinha voz, e só quando algo dava errado.
+  it('atribuir com sucesso total AVISA que deu certo (antes não dizia nada)', async () => {
+    respostaDoBulkAssign = () => jsonDe({ updated: [7], failed: [] })
+    montar()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
+
+    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+
+    // role="status" (não "alert"): confirmação, não precisa interromper o
+    // leitor de tela como o erro parcial do teste acima interrompe.
+    expect(await screen.findByRole('status')).toHaveTextContent('1 atribuídos certo.')
+  })
+
+  it('trocar de visão limpa o aviso de sucesso do lote anterior', async () => {
+    respostaDoBulkAssign = () => jsonDe({ updated: [7], failed: [] })
+    montar()
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
+    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+    expect(await screen.findByText('1 atribuídos certo.')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Tickets Resolvidos/ }))
+
+    expect(screen.queryByText('1 atribuídos certo.')).not.toBeInTheDocument()
+  })
+})
+
+describe('PaginaListaTickets — "atualizado às" (item da rodada 3)', () => {
+  it('mostra a que horas os dados na tela foram buscados', async () => {
+    montar()
+
+    await screen.findByText('T-0007')
+
+    expect(screen.getByText(/Atualizado às \d{2}:\d{2}/)).toBeInTheDocument()
+  })
 })
 
 /** Último GET da listagem — é onde o recorte pedido ao servidor aparece. */

@@ -19,6 +19,13 @@ interface Props {
   describedBy?: string
   /** Texto quando a busca não acha ninguém. */
   vazio?: string
+  /** O texto digitado, a cada tecla — quem chama decide o que fazer com ele
+   *  (aqui, PaginaNovoTicket.tsx debounca e manda pro servidor: a busca de
+   *  verdade não é mais em memória sobre `opcoes`, que agora chega PRONTA de
+   *  fora). `aoDigitar` já filtra `opcoes` internamente por conta própria —
+   *  isso continua valendo mesmo com busca no servidor: estreita na hora o
+   *  resultado da consulta anterior enquanto a nova ainda não chegou. */
+  aoMudarTermo?: (texto: string) => void
   /** A CONSULTA que alimenta `opcoes` falhou (rede, 500) — sem isto o
    *  componente não tem como saber a diferença entre "ninguém com esse nome"
    *  e "não consegui nem perguntar", e mentia a primeira frase pela segunda. */
@@ -31,10 +38,7 @@ const MAX_RESULTADOS = 8
 
 /** "Joao" acha "João"; "ACME" acha "acme". */
 function normalizar(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
 /**
@@ -43,9 +47,11 @@ function normalizar(s: string): string {
  * escolhe, Esc fecha. Escolhido, o campo mostra o nome e ganha um "×" para
  * limpar; digitar de novo volta a ser busca.
  *
- * A lista é filtrada aqui porque o diretório não tem busca no servidor
- * (UserViewSet só filtra por `kind`/`company`) — quem chama traz a lista
- * inteira e este componente a mantém legível.
+ * `opcoes` chega PRONTA de fora — quem chama (PaginaNovoTicket.tsx) busca no
+ * servidor (`GET /api/v1/search/`, sem teto de 500 do diretório antigo) e
+ * debounca via `aoMudarTermo`; o filtro em memória aqui dentro (`resultados`)
+ * é só a última milha, pra estreitar a resposta anterior sem esperar a nova
+ * chegar — não é mais a busca inteira.
  */
 export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPessoa(
   {
@@ -61,6 +67,7 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
     vazio,
     erro,
     aoTentarDeNovo,
+    aoMudarTermo,
   },
   ref,
 ) {
@@ -85,12 +92,14 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
   function escolher(o: Pessoa) {
     onChange(o.id)
     setTexto('')
+    aoMudarTermo?.('')
     setAberto(false)
   }
 
   function limpar() {
     onChange(null)
     setTexto('')
+    aoMudarTermo?.('')
     setAberto(true)
   }
 
@@ -98,6 +107,7 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
     // digitar em cima de alguém escolhido é começar outra busca
     if (escolhido) onChange(null)
     setTexto(v)
+    aoMudarTermo?.(v)
     setAtivo(0)
     setAberto(true)
   }
@@ -145,7 +155,9 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
           aria-expanded={listaVisivel}
           aria-controls={idLista}
           aria-autocomplete="list"
-          aria-activedescendant={listaVisivel && resultados[ativo] ? idOpcao(resultados[ativo]) : undefined}
+          aria-activedescendant={
+            listaVisivel && resultados[ativo] ? idOpcao(resultados[ativo]) : undefined
+          }
           aria-invalid={invalido || undefined}
           aria-describedby={describedBy}
           placeholder={placeholder}
@@ -197,7 +209,8 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
           // blur fechar a lista antes do clique), então o botão usa `onClick`
           // normal, igual às opções da lista.
           <li className="busca-pessoa__vazio busca-pessoa__vazio--erro" role="presentation">
-            <i className="ti ti-alert-circle" aria-hidden="true" /> Não foi possível carregar as pessoas.
+            <i className="ti ti-alert-circle" aria-hidden="true" /> Não foi possível carregar as
+            pessoas.
             {aoTentarDeNovo && (
               <button type="button" className="busca-pessoa__retentar" onClick={aoTentarDeNovo}>
                 Tentar de novo

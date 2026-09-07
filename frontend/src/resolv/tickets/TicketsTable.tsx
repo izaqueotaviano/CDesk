@@ -25,7 +25,12 @@ const COLUNAS: Coluna[] = [
   { chave: 'cliente', rotulo: 'Cliente (Completo)', className: 'col-cliente' },
   { chave: 'responsavel', rotulo: 'Responsável', className: 'col-resp' },
   { chave: 'categoria', rotulo: 'Categoria', className: 'col-cat' },
-  { chave: 'urgencia', rotulo: 'Urgência', className: 'col-urg' },
+  // Rótulo "Prioridade", não "Urgência": o detalhe (CabecalhoTicket.tsx,
+  // PainelPropriedades.tsx) e o histórico do backend (ticket_service.py) já
+  // dizem "prioridade" para o mesmo campo — nome duplo pra mesma coisa é o
+  // achado transversal desta rodada. Chave/classe ficam "urgencia"/"col-urg":
+  // são nome interno, não o que a pessoa lê.
+  { chave: 'urgencia', rotulo: 'Prioridade', className: 'col-urg' },
   { chave: 'status', rotulo: 'Status', className: 'col-status' },
   // O prazo já vinha em toda linha (`sla` no TicketListSerializer) e a fila
   // era a única tela que não o mostrava — quem decide o que atender AGORA

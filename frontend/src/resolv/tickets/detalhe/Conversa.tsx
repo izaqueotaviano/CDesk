@@ -321,6 +321,35 @@ interface Props {
  *  está (item 21). */
 const LIMIAR_PERTO_DO_FIM_PX = 80
 
+/** "Mostrar eventos" é preferência de DISPOSITIVO, não de conta — mesmo
+ *  padrão de realtime/avisos.ts (localStorage direto com try/catch, sem
+ *  store novo para uma chave só). Sem isto o componente reseta para "true" a
+ *  cada `key={ticket.id}` (PaginaDetalheTicket remonta por ticket/aba), e
+ *  quem prefere ler sem eventos desmarcava em CADA chamado. */
+const CHAVE_MOSTRAR_EVENTOS = 'resolv-conversa-mostrar-eventos'
+
+function preferenciaMostrarEventos(): boolean {
+  try {
+    return localStorage.getItem(CHAVE_MOSTRAR_EVENTOS) !== 'nao'
+  } catch {
+    return true // aba anônima/preview sem storage: cai no padrão (mostrar)
+  }
+}
+
+function salvarPreferenciaMostrarEventos(valor: boolean) {
+  try {
+    localStorage.setItem(CHAVE_MOSTRAR_EVENTOS, valor ? 'sim' : 'nao')
+  } catch {
+    // melhor esforço: sem persistir, a escolha ainda vale nesta sessão
+  }
+}
+
+/** Filtro de tipo de mensagem na thread (item de redução/apontamento):
+ *  "todas" é o comportamento de sempre; "publicas"/"notas" restringem a
+ *  linha do tempo ao subconjunto — pensado para o chamado de duas semanas
+ *  onde quem assume no meio precisa achar rápido o que já foi combinado. */
+type FiltroMensagens = 'todas' | 'publicas' | 'notas'
+
 /** Debounce de gravação da posição de rolagem — "razoável", não a cada pixel
  *  (item 21): local e síncrono (`atualizarScroll`, stores/tabs.ts, nunca vai
  *  para o servidor), então não precisa dos 2s do sync com o backend
@@ -330,7 +359,8 @@ const DEBOUNCE_SCROLL_MS = 400
 
 export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
   const { editarMensagem, apagarMensagem } = useAcoesTicket(ticket.id)
-  const [mostrarEventos, setMostrarEventos] = useState(true)
+  const [mostrarEventos, setMostrarEventos] = useState(preferenciaMostrarEventos)
+  const [filtro, setFiltro] = useState<FiltroMensagens>('todas')
   const [editandoId, setEditandoId] = useState<number | null>(null)
   const fimRef = useRef<HTMLDivElement>(null)
   const listaRef = useRef<HTMLDivElement>(null)
@@ -349,10 +379,35 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
   // fim da conversa (ou a mensagem ancorada — ver o efeito de montagem).
   const pertoDoFimRef = useRef(true)
 
+  const publicas = ticket.messages.filter((m) => m.is_public && !m.is_deleted).length
+  const notas = ticket.messages.filter((m) => !m.is_public && !m.is_deleted).length
+
+  // Derivado, não estado corrigido em efeito: se o balde do filtro ativo
+  // esvaziar no meio da sessão (a última nota foi apagada, por exemplo —
+  // chega por refetch/realtime, não por gesto da pessoa), o botão daquele
+  // filtro some junto (só aparece com notas > 0) — sem isto a pessoa ficaria
+  // presa numa lista vazia sem como voltar para "Todas". `filtro` (o estado)
+  // continua guardando a ÚLTIMA ESCOLHA da pessoa; só a leitura cai de volta
+  // para "todas" enquanto o balde estiver vazio.
+  const filtroEfetivo: FiltroMensagens = filtro === 'notas' && notas === 0 ? 'todas' : filtro
+
+  // O filtro restringe as MENSAGENS antes de mesclar com os eventos — um
+  // evento de status continua aparecendo mesmo em "só notas"/"só públicas",
+  // porque ele não é nem uma coisa nem outra (mesclarLinhaDoTempo trata os
+  // dois como trilhas independentes).
+  const mensagensFiltradas = useMemo(() => {
+    if (filtroEfetivo === 'publicas') return ticket.messages.filter((m) => m.is_public)
+    if (filtroEfetivo === 'notas') return ticket.messages.filter((m) => !m.is_public)
+    return ticket.messages
+  }, [ticket.messages, filtroEfetivo])
+
   const grupos = useMemo(
     () =>
-      agruparPorDia(mesclarLinhaDoTempo(ticket.messages, ticket.events, mostrarEventos), agoraMs),
-    [ticket.messages, ticket.events, mostrarEventos, agoraMs],
+      agruparPorDia(
+        mesclarLinhaDoTempo(mensagensFiltradas, ticket.events, mostrarEventos),
+        agoraMs,
+      ),
+    [mensagensFiltradas, ticket.events, mostrarEventos, agoraMs],
   )
 
   // Só na MONTAGEM (o componente remonta por ticket — PaginaDetalheTicket usa
@@ -408,24 +463,63 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
     }, DEBOUNCE_SCROLL_MS)
   }
 
-  const publicas = ticket.messages.filter((m) => m.is_public && !m.is_deleted).length
-  const notas = ticket.messages.filter((m) => !m.is_public && !m.is_deleted).length
   const semMensagens = ticket.messages.length === 0
+  // Filtro ativo esvaziou a lista (ex.: "só notas" num chamado 100% público)
+  // — distinto de `semMensagens` (chamado sem NENHUMA mensagem), que tem seu
+  // próprio estado vazio mais abaixo com CTA para responder/anotar.
+  const semResultadoNoFiltro = !semMensagens && filtroEfetivo !== 'todas' && grupos.length === 0
 
   return (
     <section className="conversa" aria-label="Conversa">
       <header className="conversa__topo">
         <h2 className="conversa__titulo">Conversa</h2>
-        <span className="conversa__contagem">
-          {publicas} {publicas === 1 ? 'mensagem' : 'mensagens'}
-          {notas > 0 && ` · ${notas} ${notas === 1 ? 'nota interna' : 'notas internas'}`}
-        </span>
+        {notas > 0 ? (
+          // Os mesmos números que antes eram só texto agora SÃO o filtro —
+          // "menor movimento com maior efeito" num chamado de duas semanas
+          // onde quem assume no meio rolava tudo pra achar o que já foi
+          // combinado (auditoria desta rodada).
+          <div className="conversa__filtros" role="group" aria-label="Filtrar mensagens por tipo">
+            <button
+              type="button"
+              className={'conversa__filtro' + (filtro === 'todas' ? ' conversa__filtro--ativo' : '')}
+              aria-pressed={filtro === 'todas'}
+              onClick={() => setFiltro('todas')}
+            >
+              Todas
+            </button>
+            <button
+              type="button"
+              className={
+                'conversa__filtro' + (filtro === 'publicas' ? ' conversa__filtro--ativo' : '')
+              }
+              aria-pressed={filtro === 'publicas'}
+              onClick={() => setFiltro('publicas')}
+            >
+              {publicas} {publicas === 1 ? 'mensagem' : 'mensagens'}
+            </button>
+            <button
+              type="button"
+              className={'conversa__filtro' + (filtro === 'notas' ? ' conversa__filtro--ativo' : '')}
+              aria-pressed={filtro === 'notas'}
+              onClick={() => setFiltro('notas')}
+            >
+              {notas} {notas === 1 ? 'nota interna' : 'notas internas'}
+            </button>
+          </div>
+        ) : (
+          <span className="conversa__contagem">
+            {publicas} {publicas === 1 ? 'mensagem' : 'mensagens'}
+          </span>
+        )}
         {ticket.events.length > 0 && (
           <label className="conversa__interruptor">
             <input
               type="checkbox"
               checked={mostrarEventos}
-              onChange={(e) => setMostrarEventos(e.target.checked)}
+              onChange={(e) => {
+                setMostrarEventos(e.target.checked)
+                salvarPreferenciaMostrarEventos(e.target.checked)
+              }}
             />
             <span>Mostrar eventos</span>
           </label>
@@ -483,6 +577,14 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
               resposta — ou registre uma nota interna para a equipe.
             </p>
           </div>
+        )}
+
+        {semResultadoNoFiltro && (
+          <p className="conversa__filtro-vazio" role="status">
+            {filtroEfetivo === 'publicas'
+              ? 'Nenhuma mensagem pública nesta conversa.'
+              : 'Nenhuma nota interna nesta conversa.'}
+          </p>
         )}
         <div ref={fimRef} />
       </div>

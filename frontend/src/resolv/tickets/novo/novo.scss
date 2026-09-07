@@ -286,6 +286,28 @@
     }
   }
 
+  // ---- aviso de possível duplicata: chamado(s) aberto(s) do mesmo cliente —
+  // tom de alerta como `__feito-pendencia`, mas fora do fluxo de confirmação
+  // (aparece já na escolha do solicitante, sem bloquear nada) ----
+  &__duplicidade {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: 2px;
+    background: var(--tom-alerta);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    i {
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-size: 14px;
+      color: var(--away);
+    }
+  }
+
   // ---- etiquetas como chips que ligam/desligam ----
   &__chip {
     cursor: pointer;

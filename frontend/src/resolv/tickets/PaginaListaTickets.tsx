@@ -24,6 +24,27 @@ function resumoLote(res: ResultadoLote, verbo: string): string | null {
   return `${okTrecho}${res.failed.length} não pôde ser alterado: ${motivo}${resto}`
 }
 
+/** Item (rodada 3): o caminho feliz da ação em lote não dizia NADA — só
+ *  `resumoLote` acima tinha voz, e só quando algo dava errado. Reatribuir 20
+ *  chamados de uma vez e a tela ficar muda é indistinguível, pra quem clicou,
+ *  de "o clique não saiu". Mesmo fragmento "N verbo certo." que já existia
+ *  dentro de `resumoLote`, só que sozinho — a frase de sucesso continua
+ *  falando a mesma língua da de erro parcial. */
+function resumoSucessoLote(res: ResultadoLote, verbo: string): string | null {
+  if (res.updated.length === 0) return null
+  return `${res.updated.length} ${verbo} certo.`
+}
+
+/** "15:51" a partir de epoch ms — `dataUpdatedAt` do React Query, não ISO.
+ *  Mesma leitura de `horaCurta` (detalhe/linhaDoTempo.ts), que recebe string;
+ *  aqui o `Date` já está pronto e não vale ir e voltar de ISO só pra reusar
+ *  aquela função. */
+function horaCurtaDoEpoch(ms: number): string {
+  const d = new Date(ms)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
 const LIMITE = 25
 const VIEW_INICIAL = 'nao-resolvidos' // a mesma que está ativa no print
 
@@ -66,6 +87,7 @@ export function PaginaListaTickets() {
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const [avisoLote, setAvisoLote] = useState<string | null>(null)
+  const [avisoSucessoLote, setAvisoSucessoLote] = useState<string | null>(null)
 
   const podeLote = (me?.permissions ?? []).includes('ticket.bulk_actions')
   const { data: agentes } = useAgentes()
@@ -106,6 +128,7 @@ export function PaginaListaTickets() {
     definir(mudancas, opcoes)
     setSelecionados(new Set())
     setAvisoLote(null)
+    setAvisoSucessoLote(null)
   }
 
   // Busca bruta (cada tecla) fica só no estado local — nunca vai direto pra
@@ -174,17 +197,25 @@ export function PaginaListaTickets() {
     trocarRecorte({ view: v.id === 'prioritario' ? 'prioritario' : (v.view ?? v.id) })
   }
 
-  // Resposta parcial (`updated`/`failed`): sem falhas, limpa a seleção; com
-  // alguma, mantém os selecionados (a pessoa pode tentar de novo ou olhar a
-  // tabela) e mostra o motivo.
+  // Resposta parcial (`updated`/`failed`): sem falhas, limpa a seleção e diz
+  // que deu certo (item desta rodada — antes o sucesso total ficava mudo);
+  // com alguma falha, mantém os selecionados (a pessoa pode tentar de novo ou
+  // olhar a tabela) e mostra o motivo, sem sobrepor com o aviso de sucesso.
   function tratarResultadoLote(res: ResultadoLote, verbo: string) {
-    const resumo = resumoLote(res, verbo)
-    if (resumo) setAvisoLote(resumo)
-    else setSelecionados(new Set())
+    const falha = resumoLote(res, verbo)
+    if (falha) {
+      setAvisoLote(falha)
+      setAvisoSucessoLote(null)
+    } else {
+      setSelecionados(new Set())
+      setAvisoLote(null)
+      setAvisoSucessoLote(resumoSucessoLote(res, verbo))
+    }
   }
 
   function atribuirEmLote(assigneeId: number | null) {
     setAvisoLote(null)
+    setAvisoSucessoLote(null)
     atribuir.mutate(
       { ticket_ids: Array.from(selecionados), assignee_id: assigneeId },
       {
@@ -196,6 +227,7 @@ export function PaginaListaTickets() {
 
   function mudarPrioridadeEmLote(priority: Prioridade) {
     setAvisoLote(null)
+    setAvisoSucessoLote(null)
     mudarPrioridade.mutate(
       { ticket_ids: Array.from(selecionados), priority },
       {
@@ -247,6 +279,14 @@ export function PaginaListaTickets() {
                 : isLoading
                   ? 'Carregando…'
                   : 'Nenhum registro'}
+              {/* Item (rodada 3): sem `refetchInterval` (useTicketsList.ts) a
+                  fila só atualizava em ação própria ou socket — e nada dizia
+                  QUANDO é o dado na tela. `agoraMs` é `dataUpdatedAt` do
+                  próprio React Query (0 antes do primeiro fetch terminar, daí
+                  o `> 0` escondendo isto no carregamento inicial). */}
+              {agoraMs > 0 && (
+                <span className="lista-tickets__atualizado"> · Atualizado às {horaCurtaDoEpoch(agoraMs)}</span>
+              )}
             </p>
           </div>
 
@@ -342,6 +382,7 @@ export function PaginaListaTickets() {
               onClick={() => {
                 setSelecionados(new Set())
                 setAvisoLote(null)
+                setAvisoSucessoLote(null)
               }}
             >
               Limpar
@@ -354,6 +395,19 @@ export function PaginaListaTickets() {
             <i className="ti ti-alert-triangle" aria-hidden="true" />
             <span>{avisoLote}</span>
             <button type="button" onClick={() => setAvisoLote(null)} aria-label="Dispensar">
+              <i className="ti ti-x" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        {/* Item (rodada 3): caminho feliz da ação em lote sem voz nenhuma —
+            `role="status"` (não `alert`): é uma confirmação, não precisa
+            interromper leitor de tela como o erro acima interrompe. */}
+        {avisoSucessoLote && (
+          <div className="lista-tickets__aviso-sucesso" role="status">
+            <i className="ti ti-circle-check" aria-hidden="true" />
+            <span>{avisoSucessoLote}</span>
+            <button type="button" onClick={() => setAvisoSucessoLote(null)} aria-label="Dispensar">
               <i className="ti ti-x" aria-hidden="true" />
             </button>
           </div>

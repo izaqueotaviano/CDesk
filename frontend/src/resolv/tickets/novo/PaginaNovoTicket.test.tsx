@@ -8,17 +8,43 @@ import { PaginaNovoTicket } from './PaginaNovoTicket'
 const abrirMock = vi.hoisted(() => vi.fn())
 const recarregarEquipesMock = vi.hoisted(() => vi.fn())
 const recarregarCategoriasMock = vi.hoisted(() => vi.fn())
-const recarregarClientesMock = vi.hoisted(() => vi.fn())
+const recarregarBuscaMock = vi.hoisted(() => vi.fn())
+/** `api.get` de `@/api/client` — as duas consultas que esta tela faz direto
+ *  (sem hook em `cvz/tickets/dados`, que é de outro agente): reidratar o
+ *  solicitante do rascunho (`/users/{id}/`) e o aviso de chamados abertos
+ *  (`/tickets/?company=...`). Implementação fixada uma vez (lê `servidor.*`
+ *  a cada chamada); só o HISTÓRICO de chamadas é limpo entre testes. */
+const apiGetMock = vi.hoisted(() => vi.fn())
+vi.mock('@/api/client', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/api/client')>()
+  return { ...real, api: { ...real.api, get: apiGetMock } }
+})
+
 /** Mutável: cada teste diz o que o servidor respondeu — inclusive "ainda não
  *  respondeu" (`sistema`) e "respondeu com erro" (`*Erro`, item 17: um 500
  *  não pode ficar indistinguível de "ainda carregando"). */
 const servidor = vi.hoisted(() => ({
   me: undefined as unknown,
   sistema: undefined as unknown,
-  clientes: [] as { id: number; full_name: string }[],
+  solicitantes: [] as {
+    id: number
+    full_name: string
+    email: string
+    company_id: number | null
+    company_name: string | null
+    is_active: boolean
+  }[],
   equipesErro: false,
   categoriasErro: false,
-  clientesErro: false,
+  buscaSolicitantesErro: false,
+  // `/api/v1/tickets/?company=...` — resposta padrão é "nenhum aberto"
+  // (Paginado<{id,reference}>); cada teste do aviso de duplicidade troca.
+  chamadosAbertos: {
+    count: 0,
+    next: null,
+    previous: null,
+    results: [] as { id: number; reference: string }[],
+  },
 }))
 
 const MB = 1024 * 1024
@@ -54,17 +80,74 @@ const EMPRESAS = [
   { id: 1, name: 'Acme Marketing', slug: 'acme', plan_name: 'Pro', is_active: true },
   { id: 2, name: 'Bravo Educação', slug: 'bravo', plan_name: 'Start', is_active: true },
 ]
-const CLIENTES = [
-  { id: 2, full_name: 'Beto Barros', email: 'beto@acme.test', kind: 'client', internal_role: null, company: 1, presence: 'offline' },
-  { id: 4, full_name: 'Ana Almeida', email: 'ana@acme.test', kind: 'client', internal_role: null, company: 1, presence: 'offline' },
-  { id: 5, full_name: 'Carla Costa', email: 'carla@bravo.test', kind: 'client', internal_role: null, company: 2, presence: 'offline' },
+/** Formato de `SolicitanteEncontrado` (frontend/src/api/busca.ts) — o que
+ *  `GET /api/v1/search/` devolve em `requesters`. `id: 6` fica inativa de
+ *  propósito: prova que a tela filtra fora quem `create_ticket` recusaria. */
+const SOLICITANTES = [
+  {
+    id: 2,
+    full_name: 'Beto Barros',
+    email: 'beto@acme.test',
+    company_id: 1,
+    company_name: 'Acme Marketing',
+    is_active: true,
+  },
+  {
+    id: 4,
+    full_name: 'Ana Almeida',
+    email: 'ana@acme.test',
+    company_id: 1,
+    company_name: 'Acme Marketing',
+    is_active: true,
+  },
+  {
+    id: 5,
+    full_name: 'Carla Costa',
+    email: 'carla@bravo.test',
+    company_id: 2,
+    company_name: 'Bravo Educação',
+    is_active: true,
+  },
+  {
+    id: 6,
+    full_name: 'Duda Desativada',
+    email: 'duda@acme.test',
+    company_id: 1,
+    company_name: 'Acme Marketing',
+    is_active: false,
+  },
 ]
 const AGENTES = [
-  { id: 3, full_name: 'Samuel Suporte', email: 'samuel@demo.test', kind: 'internal', internal_role: 'agent', company: null, presence: 'available' },
-  { id: 9, full_name: 'Fátima Financeiro', email: 'fatima@demo.test', kind: 'internal', internal_role: 'agent', company: null, presence: 'available' },
+  {
+    id: 3,
+    full_name: 'Samuel Suporte',
+    email: 'samuel@demo.test',
+    kind: 'internal',
+    internal_role: 'agent',
+    company: null,
+    presence: 'available',
+  },
+  {
+    id: 9,
+    full_name: 'Fátima Financeiro',
+    email: 'fatima@demo.test',
+    kind: 'internal',
+    internal_role: 'agent',
+    company: null,
+    presence: 'available',
+  },
 ]
 const MACROS = [
-  { id: 1, name: 'Boas-vindas', body: 'Olá, {{solicitante}}! Recebemos o pedido da {{empresa}}.', priority: 'high', category: null, assignee: null, tags: [], is_active: true },
+  {
+    id: 1,
+    name: 'Boas-vindas',
+    body: 'Olá, {{solicitante}}! Recebemos o pedido da {{empresa}}.',
+    priority: 'high',
+    category: null,
+    assignee: null,
+    tags: [],
+    is_active: true,
+  },
 ]
 const ETIQUETAS = [{ id: 1, name: 'Urgente-VIP', color: '#e00' }]
 
@@ -83,10 +166,6 @@ vi.mock('@/cvz/tickets/dados', () => ({
       ? { data: undefined, isError: true, refetch: recarregarCategoriasMock }
       : { data: [], isError: false, refetch: recarregarCategoriasMock },
   useEmpresasOpcoes: () => ({ data: EMPRESAS }),
-  useClientes: () =>
-    servidor.clientesErro
-      ? { data: undefined, isLoading: false, isError: true, refetch: recarregarClientesMock }
-      : { data: servidor.clientes, isLoading: false, isError: false, refetch: recarregarClientesMock },
   useAgentes: () => ({ data: AGENTES }),
   useEtiquetas: () => ({ data: ETIQUETAS }),
   useEstimativaResposta: (slug: string | null) => ({
@@ -95,6 +174,56 @@ vi.mock('@/cvz/tickets/dados', () => ({
   useAbrirTicket: () => ({ mutateAsync: abrirMock, isPending: false }),
 }))
 vi.mock('../detalhe/dados', () => ({ useMacros: () => ({ data: MACROS }) }))
+// Mesmo hook do cabeçalho (frontend/src/api/busca.ts) — BuscaPessoa não busca
+// mais em memória, então quem alimenta o campo "Para" aqui é este mock, não
+// mais `useClientes`. Filtro por nome/e-mail replica o que a VIEW real faz
+// (`full_name`/`email`, `icontains`); `MINIMO_PARA_BUSCAR` replica o corte de
+// 2 caracteres — abaixo disso a consulta real nem sai (`enabled`), então o
+// mock devolve `data: undefined` do mesmo jeito, com ou sem erro configurado.
+vi.mock('@/api/busca', () => ({
+  MINIMO_PARA_BUSCAR: 2,
+  useBuscaGlobal: (termo: string) => {
+    const q = termo.trim().toLowerCase()
+    if (q.length < 2) {
+      return { data: undefined, isLoading: false, isError: false, refetch: recarregarBuscaMock }
+    }
+    if (servidor.buscaSolicitantesErro) {
+      return { data: undefined, isLoading: false, isError: true, refetch: recarregarBuscaMock }
+    }
+    const requesters = servidor.solicitantes.filter(
+      (s) => s.full_name.toLowerCase().includes(q) || s.email.toLowerCase().includes(q),
+    )
+    return {
+      data: { tickets: [], companies: [], requesters },
+      isLoading: false,
+      isError: false,
+      refetch: recarregarBuscaMock,
+    }
+  },
+}))
+
+apiGetMock.mockImplementation((path: string) => {
+  if (path.startsWith('/api/v1/tickets/')) {
+    return Promise.resolve(servidor.chamadosAbertos)
+  }
+  const usuario = path.match(/^\/api\/v1\/users\/(\d+)\/$/)
+  if (usuario) {
+    // UserViewSet.get_queryset só devolve `is_active=True` — id sumido ou
+    // desativado dá 404, mesmo caso de "sumiu do diretório" de antes.
+    const s = servidor.solicitantes.find((x) => x.id === Number(usuario[1]) && x.is_active)
+    if (!s) return Promise.reject(new ApiError(404, { detail: 'Não encontrado.' }))
+    return Promise.resolve({
+      id: s.id,
+      full_name: s.full_name,
+      email: s.email,
+      kind: 'client',
+      internal_role: null,
+      company: s.company_id,
+      presence: 'offline',
+    })
+  }
+  return Promise.reject(new Error(`GET não mockado neste teste: ${path}`))
+})
 
 function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -138,10 +267,13 @@ function idsRepetidos(): string[] {
   return repetidos
 }
 
-async function preencherObrigatorios(cliente = /Beto Barros/) {
+/** Busca (2+ letras — abaixo disso a consulta nem sai, ver o mock acima) e
+ *  escolhe pelo NOME completo. As 4 primeiras letras bastam pra achar cada
+ *  pessoa do mock sem ambiguidade. */
+async function preencherObrigatorios(nomeCliente = 'Beto Barros') {
   fireEvent.change(screen.getByLabelText(/^Equipe/), { target: { value: '1' } })
-  fireEvent.change(campoPara(), { target: { value: 'a' } })
-  fireEvent.click(await screen.findByRole('option', { name: cliente }))
+  fireEvent.change(campoPara(), { target: { value: nomeCliente.slice(0, 4) } })
+  fireEvent.click(await screen.findByRole('option', { name: new RegExp(nomeCliente) }))
   fireEvent.change(screen.getByLabelText(/^Assunto/), { target: { value: 'Boleto errado' } })
   fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Olá, segue.' } })
 }
@@ -150,13 +282,15 @@ beforeEach(() => {
   abrirMock.mockReset()
   recarregarEquipesMock.mockReset()
   recarregarCategoriasMock.mockReset()
-  recarregarClientesMock.mockReset()
+  recarregarBuscaMock.mockReset()
+  apiGetMock.mockClear()
   servidor.me = ME
   servidor.sistema = CFG_SISTEMA
-  servidor.clientes = CLIENTES
+  servidor.solicitantes = SOLICITANTES
   servidor.equipesErro = false
   servidor.categoriasErro = false
-  servidor.clientesErro = false
+  servidor.buscaSolicitantesErro = false
+  servidor.chamadosAbertos = { count: 0, next: null, previous: null, results: [] }
   // o rascunho é o mesmo localStorage entre testes — sem isto, o formulário
   // do teste anterior volta preenchido no seguinte
   localStorage.clear()
@@ -194,6 +328,9 @@ describe('PaginaNovoTicket', () => {
   it('navega a lista de pessoas pelo teclado', async () => {
     montar()
     fireEvent.change(campoPara(), { target: { value: 'ana' } })
+    // espera o resultado do servidor chegar (debounce de 250ms) antes de
+    // navegar — antes disso a lista ainda é a de um termo anterior (vazio).
+    await screen.findByRole('option', { name: /Ana Almeida/ })
     fireEvent.keyDown(campoPara(), { key: 'ArrowDown' })
     fireEvent.keyDown(campoPara(), { key: 'Enter' })
     expect(campoPara()).toHaveValue('Ana Almeida')
@@ -221,8 +358,8 @@ describe('PaginaNovoTicket', () => {
     fireEvent.change(campoPara(), { target: { value: 'carla' } })
     fireEvent.click(await screen.findByRole('option', { name: /Carla Costa/ }))
     expect(texto).toHaveValue('Olá, Carla! Recebemos o pedido da Bravo Educação.')
-    // a macro também trouxe a urgência
-    expect(screen.getByLabelText('Urgência')).toHaveValue('high')
+    // a macro também trouxe a prioridade
+    expect(screen.getByLabelText('Prioridade')).toHaveValue('high')
   })
 
   it('envia o chamado com assinatura e cai no detalhe', async () => {
@@ -233,7 +370,9 @@ describe('PaginaNovoTicket', () => {
     fireEvent.change(campoPara(), { target: { value: 'beto' } })
     fireEvent.click(await screen.findByRole('option', { name: /Beto Barros/ }))
     fireEvent.change(screen.getByLabelText(/^Assunto/), { target: { value: 'Boleto errado' } })
-    fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Olá, segue o boleto.' } })
+    fireEvent.change(screen.getByLabelText(/^Mensagem/), {
+      target: { value: 'Olá, segue o boleto.' },
+    })
 
     fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
 
@@ -261,7 +400,7 @@ describe('PaginaNovoTicket', () => {
       pendencias: ['o responsável não foi atribuído'],
     })
     montar()
-    await preencherObrigatorios(/Ana Almeida/)
+    await preencherObrigatorios('Ana Almeida')
     fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
 
     expect(await screen.findByRole('button', { name: 'Abrir TD-00007' })).toBeInTheDocument()
@@ -278,10 +417,12 @@ describe('PaginaNovoTicket', () => {
       pendencias: ['as etiquetas não foram aplicadas'],
     })
     montar()
-    await preencherObrigatorios(/Ana Almeida/)
+    await preencherObrigatorios('Ana Almeida')
     fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Abrir outro chamado para Ana Almeida' }))
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Abrir outro chamado para Ana Almeida' }),
+    )
 
     expect(campoPara()).toHaveValue('Ana Almeida')
     expect(screen.getByLabelText(/^Equipe/)).toHaveValue('1')
@@ -301,19 +442,27 @@ describe('PaginaNovoTicket', () => {
 
     anexar([arquivoDe('manual.pdf', 12 * MB)])
     expect(screen.getByText(/“manual\.pdf”.*limite por arquivo é 10 MB/)).toBeInTheDocument()
-    expect(screen.queryByText('manual.pdf', { selector: '.compositor__anexo-nome' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('manual.pdf', { selector: '.compositor__anexo-nome' }),
+    ).not.toBeInTheDocument()
 
     anexar([arquivoDe('boleto.pdf', 9 * MB)])
-    expect(screen.getByText('boleto.pdf', { selector: '.compositor__anexo-nome' })).toBeInTheDocument()
+    expect(
+      screen.getByText('boleto.pdf', { selector: '.compositor__anexo-nome' }),
+    ).toBeInTheDocument()
   })
 
   it('com a configuração ainda carregando, não recusa anexo por um limite inventado', () => {
     servidor.sistema = undefined
     montar()
-    expect(screen.getByText(/o limite de tamanho vem da configuração do sistema/)).toBeInTheDocument()
+    expect(
+      screen.getByText(/o limite de tamanho vem da configuração do sistema/),
+    ).toBeInTheDocument()
 
     anexar([arquivoDe('video.pdf', 30 * MB)])
-    expect(screen.getByText('video.pdf', { selector: '.compositor__anexo-nome' })).toBeInTheDocument()
+    expect(
+      screen.getByText('video.pdf', { selector: '.compositor__anexo-nome' }),
+    ).toBeInTheDocument()
     expect(screen.queryByText(/acima de/)).not.toBeInTheDocument()
   })
 
@@ -324,7 +473,9 @@ describe('PaginaNovoTicket', () => {
     anexar([arquivoDe('a.pdf', 1024), arquivoDe('b.pdf', 1024), arquivoDe('c.pdf', 1024)])
 
     expect(screen.getByText(/Máximo de 2 arquivo\(s\) por mensagem/)).toBeInTheDocument()
-    expect(screen.getAllByRole('listitem').filter((li) => li.className.includes('compositor__anexo'))).toHaveLength(2)
+    expect(
+      screen.getAllByRole('listitem').filter((li) => li.className.includes('compositor__anexo')),
+    ).toHaveLength(2)
     expect(screen.getByRole('button', { name: /Anexar/ })).toBeDisabled()
   })
 
@@ -336,7 +487,9 @@ describe('PaginaNovoTicket', () => {
 
     expect(screen.getByText(/o total passaria de 15 MB por mensagem/)).toBeInTheDocument()
     expect(screen.getByText('a.pdf', { selector: '.compositor__anexo-nome' })).toBeInTheDocument()
-    expect(screen.queryByText('b.pdf', { selector: '.compositor__anexo-nome' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByText('b.pdf', { selector: '.compositor__anexo-nome' }),
+    ).not.toBeInTheDocument()
   })
 
   // ------------------------------------------------------------------
@@ -372,7 +525,9 @@ describe('PaginaNovoTicket', () => {
   })
 
   it('erro que não é de campo desta tela vira mensagem geral, em vez de sumir', async () => {
-    abrirMock.mockRejectedValue(new ApiError(400, { non_field_errors: ['Equipe sem agente ativo.'] }))
+    abrirMock.mockRejectedValue(
+      new ApiError(400, { non_field_errors: ['Equipe sem agente ativo.'] }),
+    )
     montar()
     await preencherObrigatorios()
     fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
@@ -387,8 +542,12 @@ describe('PaginaNovoTicket', () => {
   it('volta com o que estava escrito quando a tela é reaberta, e deixa descartar', async () => {
     const tela = montar()
     fireEvent.change(screen.getByLabelText(/^Equipe/), { target: { value: '2' } })
-    fireEvent.change(screen.getByLabelText(/^Assunto/), { target: { value: 'Boleto em duplicidade' } })
-    fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Segue o comprovante.' } })
+    fireEvent.change(screen.getByLabelText(/^Assunto/), {
+      target: { value: 'Boleto em duplicidade' },
+    })
+    fireEvent.change(screen.getByLabelText(/^Mensagem/), {
+      target: { value: 'Segue o comprovante.' },
+    })
     fireEvent.change(screen.getByLabelText(/^Nº do pedido/), { target: { value: 'PED-9' } })
 
     // a gravação tem folga; só depois dela a saída da tela é segura
@@ -396,7 +555,9 @@ describe('PaginaNovoTicket', () => {
     tela.unmount()
 
     montar()
-    expect(await screen.findByText(/Recuperamos o chamado que você tinha começado/)).toBeInTheDocument()
+    expect(
+      await screen.findByText(/Recuperamos o chamado que você tinha começado/),
+    ).toBeInTheDocument()
     expect(screen.getByLabelText(/^Assunto/)).toHaveValue('Boleto em duplicidade')
     expect(screen.getByLabelText(/^Mensagem/)).toHaveValue('Segue o comprovante.')
     expect(screen.getByLabelText(/^Equipe/)).toHaveValue('2')
@@ -409,6 +570,24 @@ describe('PaginaNovoTicket', () => {
     expect(screen.queryByText(/Recuperamos o chamado/)).not.toBeInTheDocument()
   })
 
+  it('rascunho com solicitante que continua válido busca a pessoa por id e repõe o cartão', async () => {
+    const tela = montar()
+    fireEvent.change(campoPara(), { target: { value: 'carla' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Carla Costa/ }))
+    await waitFor(() => expect(localStorage.length).toBeGreaterThan(0))
+    tela.unmount()
+
+    montar()
+    // só o id sobrevive no rascunho — o nome vem de `GET /api/v1/users/5/`
+    // (`useSolicitantePorId`), não de uma lista que a tela não carrega mais
+    expect(
+      await screen.findByText('carla@bravo.test · Bravo Educação', {
+        selector: '.novo__cliente-meta',
+      }),
+    ).toBeInTheDocument()
+    expect(campoPara()).toHaveValue('Carla Costa')
+  })
+
   it('rascunho com solicitante que sumiu do diretório volta pedindo a escolha, sem id fantasma', async () => {
     const tela = montar()
     fireEvent.change(campoPara(), { target: { value: 'carla' } })
@@ -417,14 +596,20 @@ describe('PaginaNovoTicket', () => {
     await waitFor(() => expect(localStorage.length).toBeGreaterThan(0))
     tela.unmount()
 
-    // desativada entre uma visita e outra
-    servidor.clientes = CLIENTES.filter((c) => c.id !== 5)
+    // desativada entre uma visita e outra: `GET /users/5/` passa a dar 404
+    // (UserViewSet.get_queryset só traz is_active=True)
+    servidor.solicitantes = SOLICITANTES.filter((s) => s.id !== 5)
     montar()
 
     expect(screen.getByLabelText(/^Assunto/)).toHaveValue('Boleto')
     expect(campoPara()).toHaveValue('')
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
-    expect(await screen.findByText('Escolha para quem o chamado é aberto.')).toBeInTheDocument()
+    // sem equipe escolhida o botão já reprovaria por outro motivo — o que
+    // importa aqui é que o clique NUNCA chega a mandar `requester_id: 5`;
+    // `waitFor` reclica até o 404 assentar e a mensagem certa aparecer.
+    await waitFor(() => {
+      fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+      expect(screen.getByText('Escolha para quem o chamado é aberto.')).toBeInTheDocument()
+    })
     expect(abrirMock).not.toHaveBeenCalled()
   })
 
@@ -524,6 +709,24 @@ describe('PaginaNovoTicket', () => {
   })
 
   // ------------------------------------------------------------------
+  // Equipe única: pré-seleciona (item da vez — evita o primeiro campo a
+  // reprovar quando não há alternativa nenhuma pra escolher)
+  // ------------------------------------------------------------------
+
+  it('com uma equipe só, o campo já nasce preenchido e a estimativa aparece sem precisar selecionar', async () => {
+    servidor.me = { ...ME, is_admin: false, teams: ['suporte'] }
+    montar()
+
+    expect(screen.getByLabelText(/^Equipe/)).toHaveValue('1')
+    expect(await screen.findByText('Primeira resposta costuma sair em 2 h.')).toBeInTheDocument()
+  })
+
+  it('com mais de uma equipe disponível, o campo continua nascendo vazio', () => {
+    montar() // ME (admin) enxerga as 2 equipes do mock
+    expect(screen.getByLabelText(/^Equipe/)).toHaveValue('')
+  })
+
+  // ------------------------------------------------------------------
   // Permissão: responsável e etiquetas exigem ticket.edit_properties (item 12)
   // ------------------------------------------------------------------
 
@@ -583,27 +786,126 @@ describe('PaginaNovoTicket', () => {
     expect(abrirMock.mock.calls[0][0]).toMatchObject({ category_id: null })
   })
 
-  it('clientes em erro mostram falha real no campo "Para", não a mentira de "ninguém encontrado"', () => {
-    servidor.clientesErro = true
-    montar() // a tela já abre com foco em "Para", que abre a lista
+  it('busca de solicitante em erro mostra falha real no campo "Para", não a mentira de "ninguém encontrado"', async () => {
+    servidor.buscaSolicitantesErro = true
+    montar() // a tela já abre com foco em "Para"
 
+    fireEvent.change(campoPara(), { target: { value: 'ana' } })
     // duas cópias de propósito: uma visível na lista (`--erro`), outra só
-    // para leitor de tela no `aria-live` — por isso `getAllByText`.
-    expect(screen.getAllByText('Não foi possível carregar as pessoas.').length).toBeGreaterThan(0)
+    // para leitor de tela no `aria-live` — por isso `findAllByText`.
+    expect(
+      (await screen.findAllByText('Não foi possível carregar as pessoas.')).length,
+    ).toBeGreaterThan(0)
     expect(screen.getByText('Não foi possível carregar os clientes.')).toBeInTheDocument()
     expect(screen.queryByText(/Ninguém com esse nome/)).not.toBeInTheDocument()
 
     // duas ofertas de retry (a de dentro da lista e a de baixo do campo) —
     // as duas chamam a mesma função, então clicar qualquer uma serve.
     fireEvent.click(screen.getAllByRole('button', { name: 'Tentar de novo' })[0])
-    expect(recarregarClientesMock).toHaveBeenCalledTimes(1)
+    expect(recarregarBuscaMock).toHaveBeenCalledTimes(1)
   })
 
-  it('Enter no campo "Para" também aciona o "tentar de novo" — o foco nunca sai do input (combobox ARIA)', () => {
-    servidor.clientesErro = true
+  it('Enter no campo "Para" também aciona o "tentar de novo" — o foco nunca sai do input (combobox ARIA)', async () => {
+    servidor.buscaSolicitantesErro = true
     montar()
+    fireEvent.change(campoPara(), { target: { value: 'ana' } })
+    await screen.findAllByText('Não foi possível carregar as pessoas.')
 
     fireEvent.keyDown(campoPara(), { key: 'Enter' })
-    expect(recarregarClientesMock).toHaveBeenCalledTimes(1)
+    expect(recarregarBuscaMock).toHaveBeenCalledTimes(1)
+  })
+
+  // ------------------------------------------------------------------
+  // Busca de solicitante no SERVIDOR (item da vez): sem teto de 500, sem
+  // oferecer quem o servidor sempre recusaria
+  // ------------------------------------------------------------------
+
+  it('com menos de 2 letras, avisa que precisa digitar mais, sem chamar de "ninguém encontrado"', () => {
+    montar()
+    fireEvent.change(campoPara(), { target: { value: 'a' } })
+    expect(screen.getByText('Digite ao menos 2 letras para buscar.')).toBeInTheDocument()
+    expect(screen.queryByText(/Ninguém com esse nome/)).not.toBeInTheDocument()
+  })
+
+  it('solicitante inativo não aparece na busca — create_ticket sempre recusaria a abertura por ele', async () => {
+    montar()
+    fireEvent.change(campoPara(), { target: { value: 'duda' } })
+    expect(await screen.findByText(/Ninguém com esse nome/)).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /Duda Desativada/ })).not.toBeInTheDocument()
+  })
+
+  // ------------------------------------------------------------------
+  // Aviso de possível duplicata: cliente já com chamado aberto (item da vez)
+  // ------------------------------------------------------------------
+
+  it('avisa que o cliente já tem chamado aberto, buscando pela empresa DELE, sem bloquear o envio', async () => {
+    servidor.chamadosAbertos = {
+      count: 2,
+      next: null,
+      previous: null,
+      results: [
+        { id: 101, reference: 'TCK-0101' },
+        { id: 102, reference: 'TCK-0102' },
+      ],
+    }
+    montar()
+    fireEvent.change(campoPara(), { target: { value: 'beto' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Beto Barros/ }))
+
+    const aviso = await screen.findByRole('status')
+    expect(aviso).toHaveTextContent(/Beto Barros já tem 2 chamados abertos que você enxerga/)
+    expect(screen.getByRole('link', { name: 'TCK-0101' })).toHaveAttribute('href', '/chamados/101')
+    expect(screen.getByRole('link', { name: 'TCK-0101' })).toHaveAttribute('target', '_blank')
+
+    // company DELE (1, de Beto/Acme), não um filtro solto
+    const chamadaTickets = apiGetMock.mock.calls
+      .map((c) => String(c[0]))
+      .find((p) => p.startsWith('/api/v1/tickets/'))
+    expect(chamadaTickets).toContain('company=1')
+    expect(chamadaTickets).toContain('status=new,open,pending_customer')
+
+    // é aviso, não trava: o envio continua livre
+    abrirMock.mockResolvedValue({ ticket: { id: 9, reference: 'TD-00009' }, pendencias: [] })
+    fireEvent.change(screen.getByLabelText(/^Equipe/), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/^Assunto/), { target: { value: 'Outro caso' } })
+    fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Mais um.' } })
+    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
+  })
+
+  it('sem chamado aberto, fica em silêncio — 0 é diferente de "não dá pra checar"', async () => {
+    montar()
+    fireEvent.change(campoPara(), { target: { value: 'beto' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Beto Barros/ }))
+
+    await waitFor(() =>
+      expect(apiGetMock.mock.calls.some((c) => String(c[0]).startsWith('/api/v1/tickets/'))).toBe(
+        true,
+      ),
+    )
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+
+  it('solicitante sem empresa: não dá pra checar chamado aberto, e por isso não mostra nada', async () => {
+    servidor.solicitantes = [
+      ...SOLICITANTES,
+      {
+        id: 7,
+        full_name: 'Elis Sem Empresa',
+        email: 'elis@semempresa.test',
+        company_id: null,
+        company_name: null,
+        is_active: true,
+      },
+    ]
+    montar()
+    fireEvent.change(campoPara(), { target: { value: 'Elis' } })
+    fireEvent.click(await screen.findByRole('option', { name: /Elis Sem Empresa/ }))
+
+    await screen.findByText(/aberto por você/)
+    expect(apiGetMock.mock.calls.some((c) => String(c[0]).startsWith('/api/v1/tickets/'))).toBe(
+      false,
+    )
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 })

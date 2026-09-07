@@ -7,20 +7,22 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { ApiError } from '@/api/client'
+import { api, ApiError, type Paginado } from '@/api/client'
+import { MINIMO_PARA_BUSCAR, useBuscaGlobal, type SolicitanteEncontrado } from '@/api/busca'
 import { useMe } from '@/api/queries/useMe'
 import { useSistemaCfg } from '@/cvz/configuracoes/dados'
 import {
   useAbrirTicket,
   useAgentes,
   useCategorias,
-  useClientes,
   useEmpresasOpcoes,
   useEquipes,
   useEstimativaResposta,
   useEtiquetas,
   useServicos,
+  type UsuarioDiretorio,
 } from '@/cvz/tickets/dados'
 import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
@@ -54,14 +56,55 @@ const TIPOS_ACEITOS =
  *  texto (a assinatura sozinha não conta como "mensagem preenchida"). */
 const SEP_ASSINATURA = '\n\n--\n'
 
+/** Só o que o aviso de duplicidade (abaixo) mostra. */
+interface ChamadoResumo {
+  id: number
+  reference: string
+}
+
+/**
+ * Chamados abertos que ESTE agente enxerga para a empresa do solicitante —
+ * mesmos filtros que a listagem já aceita (`company`, `status` separado por
+ * vírgula: apps/tickets/views.py `TicketViewSet.list`, parâmetros documentados
+ * nas linhas 254-266). `Ticket.visible_to` (apps/tickets/models.py) já recorta
+ * por equipe/atribuição ANTES desse filtro — por isso o aviso mais abaixo diz
+ * "que você enxerga", nunca "ao todo": um agente sem escopo `ALL` pode não ver
+ * tudo que o cliente tem aberto, e prometer a lista inteira seria mentira.
+ * `enabled` some quando o solicitante não tem empresa: não tem `company` para
+ * filtrar, e isso é "não dá para checar", não "não tem nenhum".
+ */
+function useChamadosAbertosDaEmpresa(empresaId: number | null) {
+  return useQuery({
+    queryKey: ['chamados-abertos-empresa', empresaId],
+    queryFn: () =>
+      api.get<Paginado<ChamadoResumo>>(
+        `/api/v1/tickets/?company=${empresaId}&status=new,open,pending_customer&limit=3`,
+      ),
+    enabled: empresaId != null,
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Um rascunho (`./rascunho.ts`) só guarda o ID do solicitante — sem nome,
+ * e-mail ou empresa para mostrar no cartão (o formato gravado é fixo, e mudar
+ * isso é mexer num arquivo que não é meu). Busca a pessoa por id
+ * (`GET /api/v1/users/{id}/`, o mesmo `UserViewSet` de `useClientes`/
+ * `useAgentes`, aqui direto porque é UMA pessoa, não uma lista) só quando a
+ * tela abre com um id herdado — depois que o estado local guarda o objeto
+ * inteiro (escolha feita na própria visita), esta consulta nem roda.
+ */
+function useSolicitantePorId(id: number | null) {
+  return useQuery({
+    queryKey: ['solicitante-por-id', id],
+    queryFn: () => api.get<UsuarioDiretorio>(`/api/v1/users/${id}/`),
+    enabled: id != null,
+    retry: false,
+  })
+}
+
 type NomeCampo =
-  | 'requester_id'
-  | 'team_id'
-  | 'subject'
-  | 'body'
-  | 'files'
-  | 'category_id'
-  | 'order_number'
+  'requester_id' | 'team_id' | 'subject' | 'body' | 'files' | 'category_id' | 'order_number'
 
 /** Ordem em que os campos aparecem na tela — o foco vai para o PRIMEIRO
  *  inválido nessa ordem (WCAG 3.3.1: erro identificado e alcançável). O painel
@@ -213,6 +256,12 @@ export function PaginaNovoTicket() {
   const { data: macros } = useMacros()
   const { data: configSistema } = useSistemaCfg()
 
+  // Só depende de `empresas` (carregado acima) — vem cedo porque a busca de
+  // solicitante (mais abaixo) e o cartão do cliente escolhido usam os dois.
+  const empresaPorId = useMemo(() => new Map((empresas ?? []).map((e) => [e.id, e])), [empresas])
+  const nomeEmpresa = (id: number | null | undefined) =>
+    id != null ? (empresaPorId.get(id)?.name ?? '') : ''
+
   // Rascunho da visita anterior, lido UMA vez: cada campo abaixo já nasce com
   // o que estava escrito, sem um efeito que sobrescreveria o que a pessoa
   // digitar enquanto as queries chegam.
@@ -222,6 +271,16 @@ export function PaginaNovoTicket() {
   const [solicitanteId, setSolicitanteId] = useState<number | null>(
     rascunhoSalvo?.solicitanteId ?? null,
   )
+  // O objeto inteiro de quem foi escolhido NESTA visita — o rascunho só grava
+  // o id (rascunho.ts), e a busca no servidor (abaixo) não mantém uma lista
+  // viva de todo mundo pra procurar depois nela: quem escolhe guarda o que
+  // precisa mostrar (nome, e-mail, empresa) na hora da escolha, não relê de
+  // uma lista que já pode ter mudado (ou ter zerado, se o campo "Para" está
+  // vazio de novo). Um id herdado do rascunho (visita anterior) NÃO entra
+  // aqui — vira `solicitante` (mais abaixo) por outro caminho, sem precisar
+  // de um efeito só para copiar o resultado da consulta pra este estado.
+  const [solicitanteEscolhidoManualmente, setSolicitanteEscolhidoManualmente] =
+    useState<SolicitanteEncontrado | null>(null)
   const [equipeId, setEquipeId] = useState(rascunhoSalvo?.equipeId ?? '')
   const [assunto, setAssunto] = useState(rascunhoSalvo?.assunto ?? '')
   const [texto, setTexto] = useState(rascunhoSalvo?.texto ?? '')
@@ -256,12 +315,113 @@ export function PaginaNovoTicket() {
    *  isto não deve provocar um render por si. */
   const focoPedidoRef = useRef<string | null>(null)
 
+  // Busca de solicitante no SERVIDOR (`GET /api/v1/search/`, o mesmo endpoint
+  // e HOOK do cabeçalho — `useBuscaGlobal`, frontend/src/api/busca.ts): o
+  // diretório inteiro (`useClientes`) tinha teto de 500 pessoas — acima
+  // disso, quem estivesse depois da 500ª posição alfabética simplesmente não
+  // existia pra esta tela. `termoSolicitante` é o que a pessoa está digitando
+  // agora (via `BuscaPessoa`); `termoSolicitanteBuscado` é a versão com 250ms
+  // de folga — MESMO idioma do debounce de `BuscaGlobal.tsx` (o próprio hook
+  // não debounca; quem chama é que segura a tecla antes de gastar requisição).
+  const [termoSolicitante, setTermoSolicitante] = useState('')
+  const [termoSolicitanteBuscado, setTermoSolicitanteBuscado] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setTermoSolicitanteBuscado(termoSolicitante), 250)
+    return () => clearTimeout(t)
+  }, [termoSolicitante])
   const {
-    data: clientes,
-    isLoading: carregandoClientes,
-    isError: falhouClientes,
-    refetch: recarregarClientes,
-  } = useClientes(empresaId)
+    data: buscaSolicitantes,
+    isLoading: carregandoBuscaSolicitantes,
+    isError: falhouBuscaSolicitantes,
+    refetch: refazerBuscaSolicitantes,
+  } = useBuscaGlobal(termoSolicitanteBuscado)
+  const termoSolicitanteLimpo = termoSolicitante.trim()
+  const podeBuscarSolicitante = termoSolicitanteLimpo.length >= MINIMO_PARA_BUSCAR
+  // Cobre os dois silêncios — debounce contando e requisição em voo — do
+  // ponto de vista de quem digitou, não da query (mesma ideia de `esperando`
+  // em BuscaGlobal.tsx).
+  const carregandoSolicitantes =
+    podeBuscarSolicitante &&
+    (termoSolicitanteBuscado.trim() !== termoSolicitanteLimpo || carregandoBuscaSolicitantes)
+
+  // `create_ticket` exige solicitante ATIVO (apps/tickets/views.py) — um
+  // inativo aqui é uma opção que o servidor sempre recusaria (o motivo de
+  // `is_active` existir em `SolicitanteEncontrado`, ver frontend/src/api/
+  // busca.ts). A busca global não filtra por empresa (não é o contrato dela);
+  // o filtro de empresa acima do campo "Para" (`empresaId`) entra aqui como
+  // recorte LOCAL sobre o que a busca já trouxe — mais estreito do que o
+  // `useClientes(empresaId)` de antes (que perguntava ao servidor pela
+  // empresa inteira), mas é o que o endpoint de busca permite hoje.
+  const solicitantesAtivos = useMemo(
+    () =>
+      (buscaSolicitantes?.requesters ?? []).filter(
+        (r) => r.is_active && (empresaId == null || r.company_id === empresaId),
+      ),
+    [buscaSolicitantes, empresaId],
+  )
+
+  // Rascunho recuperado só tem o id (ver `useSolicitantePorId` acima) — busca
+  // a pessoa uma vez pra repor nome/e-mail/empresa no cartão. Só roda enquanto
+  // ninguém foi escolhido NESTA visita: uma escolha feita agora
+  // (`escolherSolicitante` abaixo) já tem o objeto inteiro e não precisa de
+  // rede pra se exibir.
+  const { data: solicitanteHerdado, error: erroSolicitanteHerdado } = useSolicitantePorId(
+    solicitanteEscolhidoManualmente == null ? solicitanteId : null,
+  )
+  // 404 = o id do rascunho não existe mais pra este agente (removido ou
+  // desativado — mesmo caso de antes, quando a pessoa sumia do diretório
+  // carregado). Um erro de REDE aqui não é o mesmo caso: `solicitanteId` (o
+  // valor CRU, usado no envio/rascunho abaixo) fica como estava, porque um id
+  // válido não pode virar "ninguém escolhido" só por uma falha passageira na
+  // reidratação — o `retry: false` do hook já cobre a segunda tentativa
+  // automática, isto aqui é só sobre CONFIAR ou não no id depois da resposta.
+  const solicitanteIdInexistente =
+    erroSolicitanteHerdado instanceof ApiError && erroSolicitanteHerdado.status === 404
+  const solicitanteIdValido = solicitanteIdInexistente ? null : solicitanteId
+
+  // `solicitante` é o que a tela MOSTRA: a escolha desta visita quando existe,
+  // senão o resultado da reidratação por id (mapeado pro mesmo formato de
+  // `SolicitanteEncontrado` — `busca.ts` — pra alimentar cartão, macro e o
+  // aviso de duplicidade de um jeito só, sem `if` espalhado). Derivado a cada
+  // render (não um `useEffect` copiando pra outro estado): o dado já mora no
+  // cache do react-query, e as duas fontes nunca ficam ativas ao mesmo tempo.
+  const solicitante = useMemo<SolicitanteEncontrado | null>(() => {
+    if (solicitanteEscolhidoManualmente) return solicitanteEscolhidoManualmente
+    if (!solicitanteHerdado) return null
+    return {
+      id: solicitanteHerdado.id,
+      full_name: solicitanteHerdado.full_name,
+      email: solicitanteHerdado.email,
+      company_id: solicitanteHerdado.company,
+      company_name: nomeEmpresa(solicitanteHerdado.company) || null,
+      is_active: true, // UserViewSet.get_queryset só devolve is_active=True
+    }
+    // `nomeEmpresa` fica de fora do jeito que `pessoas`/`empresaDoSolicitante`
+    // já fazem: função pura recriada a cada render, cujo resultado só muda
+    // com `empresaPorId` (já coberto abaixo).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solicitanteEscolhidoManualmente, solicitanteHerdado])
+
+  // O escolhido precisa continuar "encontrável" mesmo depois que o campo
+  // volta a ficar vazio (a escolha limpa `termoSolicitante`, e a busca por ''
+  // não roda) — sem isto `BuscaPessoa` não acha o id em `opcoes` e o campo
+  // mostra vazio para alguém que já foi escolhido.
+  const pessoas = useMemo(() => {
+    const base = solicitantesAtivos.map((s) => ({
+      id: s.id,
+      nome: s.full_name,
+      descricao: [s.email, s.company_name].filter(Boolean).join(' · '),
+    }))
+    if (solicitante && !base.some((p) => p.id === solicitante.id)) {
+      base.push({
+        id: solicitante.id,
+        nome: solicitante.full_name,
+        descricao: [solicitante.email, solicitante.company_name].filter(Boolean).join(' · '),
+      })
+    }
+    return base
+  }, [solicitantesAtivos, solicitante])
+
   const abrir = useAbrirTicket()
 
   const paraRef = useRef<HTMLInputElement>(null)
@@ -370,6 +530,23 @@ export function PaginaNovoTicket() {
   }, [equipes, me])
   const semEquipe = me != null && !me.is_admin && equipes != null && equipesDisponiveis.length === 0
 
+  // Com uma equipe só, ela é o ÚNICO valor que o backend aceita (mesma regra
+  // do filtro acima) — nascer vazio só adiava uma escolha sem alternativa
+  // para o momento do envio, sendo o primeiro campo a reprovar. O setter
+  // funcional lê o valor ATUAL sem entrar nas dependências: o efeito só
+  // dispara de novo quando `equipesDisponiveis` muda (equipes/`me` chegando),
+  // nunca por causa de uma limpeza manual do campo — a pessoa pode voltar a
+  // esvaziar o seletor e isso não briga de volta. Sincroniza estado local com
+  // o resultado assíncrono de duas queries (não deriva de props/estado já
+  // disponível no render), então é o próprio caso que `useEffect` existe para
+  // cobrir — mesmo escape hatch já usado em AppShell.tsx para "ajustar um
+  // estado uma vez, sem brigar com a escolha manual depois".
+  useEffect(() => {
+    if (equipesDisponiveis.length !== 1) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- ver acima
+    setEquipeId((atual) => (atual === '' ? String(equipesDisponiveis[0].id) : atual))
+  }, [equipesDisponiveis])
+
   // Beco sem saída de verdade (só um admin resolve, incluindo a pessoa numa
   // equipe — um "tentar de novo" não muda nada): a tela troca o formulário
   // inteiro pela explicação (ver o `return` mais abaixo), e o foco precisa ir
@@ -393,29 +570,16 @@ export function PaginaNovoTicket() {
    */
   const podeEditarPropriedades = (me?.permissions ?? []).includes('ticket.edit_properties')
 
-  const empresaPorId = useMemo(() => new Map((empresas ?? []).map((e) => [e.id, e])), [empresas])
-  const nomeEmpresa = (id: number | null | undefined) =>
-    id != null ? (empresaPorId.get(id)?.name ?? '') : ''
+  const empresaDoSolicitante = solicitante
+    ? empresaPorId.get(solicitante.company_id ?? -1)
+    : undefined
 
-  const pessoas = useMemo(
-    () =>
-      (clientes ?? []).map((c) => ({
-        id: c.id,
-        nome: c.full_name,
-        descricao: [c.email, nomeEmpresa(c.company)].filter(Boolean).join(' · '),
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [clientes, empresaPorId],
-  )
-  const solicitante = (clientes ?? []).find((c) => c.id === solicitanteId) ?? null
-  const empresaDoSolicitante = solicitante ? empresaPorId.get(solicitante.company ?? -1) : undefined
-
-  // Solicitante que veio do rascunho pode não existir mais (desativado, mudou
-  // de empresa). Quem manda é a lista carregada, não o id guardado: sem isto o
-  // combobox mostraria o campo VAZIO e o envio passaria assim mesmo, porque o
-  // id continua no estado — e o "Cliente não encontrado." só viria do servidor.
-  // Enquanto a lista não chega o id vale, senão o rascunho piscaria vazio.
-  const solicitanteEscolhido = clientes == null || solicitante != null ? solicitanteId : null
+  // Aviso de duplicidade: "fulano já tem chamado aberto" — só dá pra checar
+  // com a empresa REAL do solicitante (`company_id`), não com o filtro solto
+  // acima do campo "Para" (`empresaId`, que é só recorte de busca). Sem
+  // empresa vinculada o hook nem roda (`enabled` em `useChamadosAbertosDaEmpresa`):
+  // "não dá pra checar" é diferente de "não tem nenhum aberto".
+  const { data: chamadosAbertos } = useChamadosAbertosDaEmpresa(solicitante?.company_id ?? null)
 
   /** Categoria depende do serviço — o filtro é do frontend por decisão do
    *  backend (ServiceSerializer). Sem serviço escolhido, oferece todas. */
@@ -432,7 +596,7 @@ export function PaginaNovoTicket() {
   const rascunho: Rascunho = useMemo(
     () => ({
       empresaId,
-      solicitanteId: solicitanteEscolhido,
+      solicitanteId: solicitanteIdValido,
       equipeId,
       assunto,
       texto,
@@ -447,7 +611,7 @@ export function PaginaNovoTicket() {
     }),
     [
       empresaId,
-      solicitanteEscolhido,
+      solicitanteIdValido,
       equipeId,
       assunto,
       texto,
@@ -492,20 +656,26 @@ export function PaginaNovoTicket() {
     // quem estava escolhido pode não ser dessa empresa — limpar é mais
     // honesto do que mandar um par empresa/pessoa que não combina
     setSolicitanteId(null)
+    setSolicitanteEscolhidoManualmente(null)
   }
 
   function escolherSolicitante(id: number | null) {
     setSolicitanteId(id)
     limparErro('requester_id')
+    // Guarda o objeto INTEIRO agora, não só o id: `solicitantesAtivos` é o
+    // resultado da busca atual, que muda (e pode esvaziar) assim que o campo
+    // volta a ficar em branco — reler dali mais tarde não acharia mais
+    // ninguém.
+    const s = id != null ? solicitantesAtivos.find((x) => x.id === id) : undefined
+    setSolicitanteEscolhidoManualmente(s ?? null)
     // macro aplicada antes de escolher a pessoa deixou marcadores no texto:
     // agora dá para preenchê-los — só eles, nunca o que o agente digitou
-    const c = id != null ? (clientes ?? []).find((x) => x.id === id) : undefined
-    if (c) {
+    if (s) {
       setTexto((atual) =>
         marcadoresPendentes(atual).length
           ? interpolarMacro(atual, {
-              solicitante: c.full_name,
-              empresa: nomeEmpresa(c.company) || undefined,
+              solicitante: s.full_name,
+              empresa: s.company_name ?? undefined,
             })
           : atual,
       )
@@ -549,7 +719,7 @@ export function PaginaNovoTicket() {
     setMenuMacro(false)
     const corpo = interpolarMacro(m.body ?? '', {
       solicitante: solicitante?.full_name,
-      empresa: nomeEmpresa(solicitante?.company) || undefined,
+      empresa: solicitante?.company_name ?? undefined,
     })
     if (corpo) {
       setTexto((t) => (t.trim() ? `${t}\n${corpo}` : corpo))
@@ -576,7 +746,7 @@ export function PaginaNovoTicket() {
   function validar(): Partial<Record<NomeCampo, string>> {
     const e: Partial<Record<NomeCampo, string>> = {}
     if (!equipeId) e.team_id = 'Escolha a equipe que vai atender.'
-    if (solicitanteEscolhido == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
+    if (solicitanteIdValido == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
     if (!assunto.trim()) e.subject = 'Resuma o chamado em uma linha.'
     if (!texto.trim()) {
       e.body = 'Escreva a mensagem — ela abre o chamado para o cliente.'
@@ -625,6 +795,7 @@ export function PaginaNovoTicket() {
     limparFormulario()
     setEmpresaId(null)
     setSolicitanteId(null)
+    setSolicitanteEscolhidoManualmente(null)
     setEquipeId('')
     setAssinaturaLigada(true)
     setAvisoRascunho(false)
@@ -643,7 +814,9 @@ export function PaginaNovoTicket() {
     }
 
     const corpo =
-      assinaturaLigada && assinatura ? `${texto.trim()}${SEP_ASSINATURA}${assinatura}` : texto.trim()
+      assinaturaLigada && assinatura
+        ? `${texto.trim()}${SEP_ASSINATURA}${assinatura}`
+        : texto.trim()
 
     try {
       const { ticket, pendencias } = await abrir.mutateAsync({
@@ -651,7 +824,7 @@ export function PaginaNovoTicket() {
         subject: assunto.trim(),
         body: corpo,
         priority: prioridade,
-        requester_id: solicitanteEscolhido!,
+        requester_id: solicitanteIdValido!,
         category_id: categoriaId ? Number(categoriaId) : null,
         order_number: numeroPedido.trim(),
         arquivos: anexos,
@@ -961,7 +1134,7 @@ export function PaginaNovoTicket() {
           <section className="props__grupo">
             <h2 className="props__titulo">Classificação</h2>
 
-            <Campo rotulo="Urgência" htmlFor={ids.prio}>
+            <Campo rotulo="Prioridade" htmlFor={ids.prio}>
               <SeletorCampo
                 id={ids.prio}
                 cor={COR_PRIORIDADE[prioridade]}
@@ -1048,12 +1221,18 @@ export function PaginaNovoTicket() {
                       <li key={t.id}>
                         <button
                           type="button"
-                          className={'props__chip novo__chip' + (ligada ? ' novo__chip--ligada' : '')}
+                          className={
+                            'props__chip novo__chip' + (ligada ? ' novo__chip--ligada' : '')
+                          }
                           aria-pressed={ligada}
                           onClick={() => alternarEtiqueta(t.id)}
                         >
                           {t.color && (
-                            <span className="props__cor" style={{ background: t.color }} aria-hidden="true" />
+                            <span
+                              className="props__cor"
+                              style={{ background: t.color }}
+                              aria-hidden="true"
+                            />
                           )}
                           {t.name}
                         </button>
@@ -1146,17 +1325,24 @@ export function PaginaNovoTicket() {
               ref={paraRef}
               id={ids.para}
               opcoes={pessoas}
-              valor={solicitanteEscolhido}
+              valor={solicitanteIdValido}
               onChange={escolherSolicitante}
-              carregando={carregandoClientes}
+              aoMudarTermo={setTermoSolicitante}
+              carregando={carregandoSolicitantes}
               placeholder="Nome ou e-mail do cliente"
               invalido={Boolean(erros.requester_id)}
               describedBy={descreve('requester_id', `${ids.para}-ajuda`)}
-              vazio={empresaId != null ? 'Ninguém com esse nome nesta empresa.' : 'Ninguém com esse nome ou e-mail.'}
+              vazio={
+                !podeBuscarSolicitante
+                  ? `Digite ao menos ${MINIMO_PARA_BUSCAR} letras para buscar.`
+                  : empresaId != null
+                    ? 'Ninguém com esse nome nesta empresa.'
+                    : 'Ninguém com esse nome ou e-mail.'
+              }
               // BuscaPessoa troca sozinho o "Ninguém encontrado" (falso,
               // aqui seria falha de rede) por um erro de verdade com retry.
-              erro={falhouClientes}
-              aoTentarDeNovo={() => recarregarClientes()}
+              erro={falhouBuscaSolicitantes}
+              aoTentarDeNovo={() => refazerBuscaSolicitantes()}
             />
             {solicitante ? (
               <div className="novo__cliente" id={`${ids.para}-ajuda`}>
@@ -1171,22 +1357,57 @@ export function PaginaNovoTicket() {
                 </span>
                 <span className="novo__cliente-quota">
                   <i className="ti ti-shield-check" aria-hidden="true" />
-                  {empresaDoSolicitante?.plan_name ? `Plano ${empresaDoSolicitante.plan_name} · ` : ''}
+                  {empresaDoSolicitante?.plan_name
+                    ? `Plano ${empresaDoSolicitante.plan_name} · `
+                    : ''}
                   aberto por você, não consome a cota
                 </span>
               </div>
-            ) : falhouClientes ? (
+            ) : falhouBuscaSolicitantes ? (
               <ErroConsulta
                 id={`${ids.para}-ajuda`}
                 mensagem="Não foi possível carregar os clientes."
-                aoTentar={() => recarregarClientes()}
+                aoTentar={() => refazerBuscaSolicitantes()}
               />
             ) : (
               <span className="props__ajuda" id={`${ids.para}-ajuda`}>
-                O cliente em nome de quem o chamado é aberto. Ele recebe a mensagem abaixo por e-mail.
+                O cliente em nome de quem o chamado é aberto. Ele recebe a mensagem abaixo por
+                e-mail.
               </span>
             )}
             {erroDe('requester_id')}
+            {/* Aviso de possível duplicata — nunca bloqueia o envio (por isso
+                não é `erroDe`/`role="alert"`): quem liga de novo ou manda
+                e-mail depois de já ter aberto pelo portal é o caso comum, mas
+                a decisão de abrir mesmo assim é do agente. Só aparece com
+                empresa vinculada e ALGUM chamado aberto — 0 fica em silêncio
+                (é o estado normal, não precisa de aviso nenhum). */}
+            {solicitante && (chamadosAbertos?.count ?? 0) > 0 && (
+              <p className="novo__duplicidade" id={`${ids.para}-duplicidade`} role="status">
+                <i className="ti ti-alert-triangle" aria-hidden="true" />
+                <span>
+                  {solicitante.full_name} já tem {chamadosAbertos!.count}{' '}
+                  {chamadosAbertos!.count === 1 ? 'chamado aberto' : 'chamados abertos'} que você
+                  enxerga:{' '}
+                  {chamadosAbertos!.results.map((t, i) => (
+                    <span key={t.id}>
+                      {i > 0 && ', '}
+                      <a
+                        className="novo__link"
+                        href={`/chamados/${t.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {t.reference}
+                      </a>
+                    </span>
+                  ))}
+                  {chamadosAbertos!.count > chamadosAbertos!.results.length &&
+                    ` e mais ${chamadosAbertos!.count - chamadosAbertos!.results.length}`}
+                  .
+                </span>
+              </p>
+            )}
           </div>
 
           <div className="novo__bloco">
@@ -1306,7 +1527,10 @@ export function PaginaNovoTicket() {
                   <div className="compositor__macro" ref={menuRef}>
                     <button
                       type="button"
-                      className={'compositor__ferramenta' + (menuMacro ? ' compositor__ferramenta--ativa' : '')}
+                      className={
+                        'compositor__ferramenta' +
+                        (menuMacro ? ' compositor__ferramenta--ativa' : '')
+                      }
                       aria-haspopup="menu"
                       aria-expanded={menuMacro}
                       onClick={() => setMenuMacro((v) => !v)}
@@ -1320,13 +1544,16 @@ export function PaginaNovoTicket() {
                             <button type="button" role="menuitem" onClick={() => usarMacro(m)}>
                               <span className="compositor__macro-nome">{m.name}</span>
                               {m.body && (
-                                <span className="compositor__macro-previa">{m.body.split('\n')[0]}</span>
+                                <span className="compositor__macro-previa">
+                                  {m.body.split('\n')[0]}
+                                </span>
                               )}
                               {(m.category_name || m.priority || m.assignee_name) && (
                                 <span className="compositor__macro-triagem">
                                   {[
                                     m.category_name && `categoria → ${m.category_name}`,
-                                    m.priority && `urgência → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
+                                    m.priority &&
+                                      `prioridade → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
                                     m.assignee_name && `responsável → ${m.assignee_name}`,
                                   ]
                                     .filter(Boolean)
@@ -1348,7 +1575,12 @@ export function PaginaNovoTicket() {
               </div>
 
               <div className="compositor__enviar">
-                <button type="button" className="novo__cancelar" onClick={cancelar} disabled={abrir.isPending}>
+                <button
+                  type="button"
+                  className="novo__cancelar"
+                  onClick={cancelar}
+                  disabled={abrir.isPending}
+                >
                   Cancelar
                 </button>
                 <button
