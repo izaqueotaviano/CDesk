@@ -49,6 +49,17 @@ const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
  * Sem ponto final: o último caractere é um nome de arquivo, e um ponto colado
  * nele parece parte da extensão.
  */
+/** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme". Mesma função,
+ *  copiada — não importada — de novo/BuscaPessoa.tsx: a casa já aceita essa
+ *  duplicação (BuscaPessoa e resolv/shell/BuscaGlobal.tsx têm cada uma a
+ *  própria cópia) em vez de um utilitário compartilhado para três linhas. */
+function normalizar(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
+
 function corpoParaEnviar(texto: string, anexos: File[]): string {
   const escrito = texto.trim()
   if (escrito) return escrito
@@ -132,6 +143,12 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const [erro, setErro] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [menuMacro, setMenuMacro] = useState(false)
+  // Filtro do menu de macro: texto digitado + índice virtualmente "ativo"
+  // (o foco de verdade nunca sai do campo — mesmo padrão de
+  // novo/BuscaPessoa.tsx, combobox com aria-activedescendant). Limpo toda
+  // vez que o menu abre, no próprio botão que abre (abaixo).
+  const [filtroMacro, setFiltroMacro] = useState('')
+  const [macroAtiva, setMacroAtiva] = useState(0)
   const [tocouFechamento, setTocouFechamento] = useState(false)
   const [agoraMs, setAgoraMs] = useState(() => Date.now())
   const [inicioSolucao, setInicioSolucao] = useState(() => paraDatetimeLocal(ticket.created_at))
@@ -282,6 +299,8 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
 
   function usarMacro(m: Macro) {
     setMenuMacro(false)
+    setFiltroMacro('')
+    setMacroAtiva(0)
     const corpo = interpolarMacro(m.body ?? '', {
       solicitante: ticket.requester_display,
       empresa: ticket.company_name,
@@ -311,6 +330,19 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const idTexto = `${idBase}-texto`
   const idStatus = `${idBase}-status`
   const idErro = `${idBase}-erro`
+  const idMacroLista = `${idBase}-macro-lista`
+  const idOpcaoMacro = (m: Macro) => `${idMacroLista}-${m.id}`
+
+  // Filtra por nome E corpo — achar pelo texto que a macro escreve é tão
+  // comum quanto achar pelo nome dela. Índice ativo é CLAMPADO aqui, não
+  // corrigido num efeito: apagar/filtrar pode encolher a lista para menos
+  // que o índice que estava selecionado (mesma técnica de roving tabindex
+  // usada em TicketTabs.tsx — derivar durante o render, não sincronizar
+  // depois).
+  const macrosFiltradas = (macros ?? []).filter((m) =>
+    normalizar(`${m.name} ${m.body ?? ''}`).includes(normalizar(filtroMacro)),
+  )
+  const macroAtivaValida = Math.min(macroAtiva, Math.max(macrosFiltradas.length - 1, 0))
   const rotuloBotao = rotuloEnviar({
     publico,
     statusAtual: ticket.status,
@@ -561,37 +593,116 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
                 className={
                   'compositor__ferramenta' + (menuMacro ? ' compositor__ferramenta--ativa' : '')
                 }
-                aria-haspopup="menu"
+                aria-haspopup="listbox"
                 aria-expanded={menuMacro}
-                onClick={() => setMenuMacro((v) => !v)}
+                onClick={() => {
+                  // Abrir sempre começa sem filtro — reabrir com o texto da
+                  // última vez leria como "a macro que eu buscei antes
+                  // sumiu", já que a lista mostraria só o resultado antigo.
+                  if (!menuMacro) {
+                    setFiltroMacro('')
+                    setMacroAtiva(0)
+                  }
+                  setMenuMacro((v) => !v)
+                }}
               >
                 <i className="ti ti-bolt" aria-hidden="true" /> Aplicar macro…
               </button>
               {menuMacro && (
-                <ul className="compositor__macro-menu" role="menu" aria-label="Macros">
-                  {(macros ?? []).map((m) => (
-                    <li key={m.id} role="none">
-                      <button type="button" role="menuitem" onClick={() => usarMacro(m)}>
-                        <span className="compositor__macro-nome">{m.name}</span>
-                        {m.body && (
-                          <span className="compositor__macro-previa">{m.body.split('\n')[0]}</span>
-                        )}
-                        {(m.category_name || m.priority || m.assignee_name) && (
-                          <span className="compositor__macro-triagem">
-                            {[
-                              m.category_name && `categoria → ${m.category_name}`,
-                              m.priority &&
-                                `prioridade → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
-                              m.assignee_name && `responsável → ${m.assignee_name}`,
-                            ]
-                              .filter(Boolean)
-                              .join(' · ')}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                <div className="compositor__macro-painel">
+                  {/* Fora da área que rola (compositor__macro-menu, abaixo):
+                      um campo fixo que rola junto seria escondido pela
+                      própria lista que ele filtra. O foco fica AQUI o tempo
+                      todo — as opções não são tabuláveis, mesmo padrão de
+                      novo/BuscaPessoa.tsx (combobox com seleção virtual via
+                      aria-activedescendant, não uma navegação por Tab entre
+                      itens de um menu). */}
+                  <input
+                    type="text"
+                    autoFocus
+                    className="compositor__macro-filtro"
+                    role="combobox"
+                    aria-expanded="true"
+                    aria-controls={idMacroLista}
+                    aria-autocomplete="list"
+                    aria-activedescendant={
+                      macrosFiltradas[macroAtivaValida]
+                        ? idOpcaoMacro(macrosFiltradas[macroAtivaValida])
+                        : undefined
+                    }
+                    placeholder="Filtrar macros…"
+                    aria-label="Filtrar macros por nome ou texto"
+                    value={filtroMacro}
+                    onChange={(e) => {
+                      setFiltroMacro(e.target.value)
+                      setMacroAtiva(0)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault()
+                        setMacroAtiva((i) => Math.min(i + 1, macrosFiltradas.length - 1))
+                      } else if (e.key === 'ArrowUp') {
+                        e.preventDefault()
+                        setMacroAtiva((i) => Math.max(i - 1, 0))
+                      } else if (e.key === 'Enter') {
+                        const m = macrosFiltradas[macroAtivaValida]
+                        if (m) {
+                          e.preventDefault()
+                          usarMacro(m)
+                        }
+                      }
+                      // Escape: sem handler próprio — o mousedown/keydown de
+                      // documento logo acima (useEffect) já fecha o menu ao
+                      // ouvir Escape em qualquer lugar dentro dele.
+                    }}
+                  />
+                  <ul
+                    id={idMacroLista}
+                    className="compositor__macro-menu"
+                    role="listbox"
+                    aria-label="Macros"
+                  >
+                    {macrosFiltradas.length === 0 ? (
+                      <li className="compositor__macro-vazio" role="presentation">
+                        Nenhuma macro com “{filtroMacro}”.
+                      </li>
+                    ) : (
+                      macrosFiltradas.map((m, i) => (
+                        <li
+                          key={m.id}
+                          id={idOpcaoMacro(m)}
+                          role="option"
+                          aria-selected={i === macroAtivaValida}
+                          className={
+                            'compositor__macro-opcao' +
+                            (i === macroAtivaValida ? ' compositor__macro-opcao--ativa' : '')
+                          }
+                          onMouseEnter={() => setMacroAtiva(i)}
+                          onClick={() => usarMacro(m)}
+                        >
+                          <span className="compositor__macro-nome">{m.name}</span>
+                          {m.body && (
+                            <span className="compositor__macro-previa">
+                              {m.body.split('\n')[0]}
+                            </span>
+                          )}
+                          {(m.category_name || m.priority || m.assignee_name) && (
+                            <span className="compositor__macro-triagem">
+                              {[
+                                m.category_name && `categoria → ${m.category_name}`,
+                                m.priority &&
+                                  `prioridade → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
+                                m.assignee_name && `responsável → ${m.assignee_name}`,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
+                            </span>
+                          )}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
               )}
             </div>
           )}

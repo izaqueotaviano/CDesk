@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import type { ReactElement } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '@/api/types'
@@ -8,12 +8,18 @@ import type { DadosResposta } from './dados'
 import type { TicketDetalhe } from './tiposDetalhe'
 
 const responderMock = vi.hoisted(() => vi.fn())
+const aplicarMacroMock = vi.hoisted(() => vi.fn())
+
+// `let` para o menu de macro poder testar com uma lista de verdade — os
+// outros testes deste arquivo continuam sem macro nenhuma (o padrão), então
+// o valor volta para `[]` no beforeEach.
+let macros: import('./tiposDetalhe').Macro[] = []
 
 vi.mock('./dados', () => ({
-  useMacros: () => ({ data: [] }),
+  useMacros: () => ({ data: macros }),
   useAcoesTicket: () => ({
     responder: { mutate: responderMock, isPending: false },
-    aplicarMacro: { mutate: vi.fn() },
+    aplicarMacro: { mutate: aplicarMacroMock },
   }),
 }))
 
@@ -108,9 +114,13 @@ function arquivo(nome: string, bytes: number): File {
 
 const MB = 1024 * 1024
 
-function montar(pedidoReabrir = 0) {
-  return render(<Compositor ticket={TICKET} me={ME} pedidoReabrir={pedidoReabrir} />)
+function montar(pedidoReabrir = 0, me = ME) {
+  return render(<Compositor ticket={TICKET} me={me} pedidoReabrir={pedidoReabrir} />)
 }
+
+// `podeMacro` (Compositor.tsx) exige a permissão 'macro.use' — ME não tem
+// (é o fixture "sem macro" que o resto do arquivo usa de propósito).
+const ME_COM_MACRO: Me = { ...ME, permissions: [...ME.permissions, 'macro.use'] }
 
 function entradaDeArquivo(container: HTMLElement) {
   const input = container.querySelector('input[type="file"]')
@@ -126,7 +136,9 @@ const corpoEnviado = () => (responderMock.mock.calls[0]?.[0] as DadosResposta | 
 
 beforeEach(() => {
   responderMock.mockReset()
+  aplicarMacroMock.mockReset()
   config = CONFIG_PADRAO
+  macros = []
   useTabs.setState({ tabs: [], active: null, reconciliando: false })
 })
 
@@ -336,5 +348,129 @@ describe('Compositor — "Reabrir…" e a nota interna em curso', () => {
     expect(
       screen.queryByRole('button', { name: 'Manter como nota interna' }),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('Compositor — filtro do menu de macro', () => {
+  const MACROS = [
+    { id: 1, name: 'Pedido de nota fiscal', body: 'Poderia enviar a nota fiscal, por favor?' },
+    { id: 2, name: 'Encerramento padrão', body: 'Vamos encerrar por aqui — qualquer coisa, é só chamar.' },
+    { id: 3, name: 'Solicitação de acesso', body: 'Preciso que você confirme o acesso.' },
+  ]
+
+  function abrirMenu() {
+    fireEvent.click(screen.getByRole('button', { name: /Aplicar macro/ }))
+  }
+
+  function campoFiltro() {
+    // getByRole('combobox') sozinho colide com o <select> nativo "Ao enviar,
+    // deixar" — <select> tem role=combobox implícito.
+    return screen.getByRole('combobox', { name: 'Filtrar macros por nome ou texto' })
+  }
+
+  function listaDeMacros() {
+    return within(screen.getByRole('listbox', { name: 'Macros' }))
+  }
+
+  it('abre sem filtro nenhum, com as três macros visíveis', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    expect(listaDeMacros().getAllByRole('option')).toHaveLength(3)
+    expect(campoFiltro()).toHaveValue('')
+  })
+
+  it('filtra por nome', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    fireEvent.change(campoFiltro(), { target: { value: 'encerramento' } })
+
+    const opcoes = listaDeMacros().getAllByRole('option')
+    expect(opcoes).toHaveLength(1)
+    expect(opcoes[0]).toHaveTextContent('Encerramento padrão')
+  })
+
+  it('filtra também pelo corpo da macro, não só o nome', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    // "nota fiscal" só aparece no CORPO da macro "Pedido de nota fiscal" — o
+    // nome sozinho não bateria.
+    fireEvent.change(campoFiltro(), { target: { value: 'nota fiscal' } })
+
+    const opcoes = listaDeMacros().getAllByRole('option')
+    expect(opcoes).toHaveLength(1)
+    expect(opcoes[0]).toHaveTextContent('Pedido de nota fiscal')
+  })
+
+  it('acha sem acento — "solicitacao" encontra "Solicitação"', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    fireEvent.change(campoFiltro(), { target: { value: 'solicitacao' } })
+
+    expect(listaDeMacros().getAllByRole('option')).toHaveLength(1)
+  })
+
+  it('nenhuma macro bate: mensagem com o termo, e nenhuma opção alcançável', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    fireEvent.change(campoFiltro(), { target: { value: 'xpto' } })
+
+    expect(screen.getByText('Nenhuma macro com “xpto”.')).toBeInTheDocument()
+    expect(listaDeMacros().queryAllByRole('option')).toHaveLength(0)
+  })
+
+  it('Enter aplica a primeira macro (índice ativo começa em 0), inserindo o corpo dela', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    fireEvent.change(campoFiltro(), { target: { value: 'encerramento' } })
+    fireEvent.keyDown(campoFiltro(), { key: 'Enter' })
+
+    expect(screen.getByRole('textbox', { name: 'Resposta ao cliente' })).toHaveValue(
+      'Vamos encerrar por aqui — qualquer coisa, é só chamar.',
+    )
+    // aplicar fecha o menu — o campo de filtro não existe mais (o <select>
+    // de status continua lá, então a consulta precisa do nome específico)
+    expect(
+      screen.queryByRole('combobox', { name: 'Filtrar macros por nome ou texto' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('seta para baixo move a seleção antes de aplicar com Enter', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+
+    // sem filtrar: as 3 aparecem na ordem MACROS — Arrow duas vezes chega na 3ª
+    fireEvent.keyDown(campoFiltro(), { key: 'ArrowDown' })
+    fireEvent.keyDown(campoFiltro(), { key: 'ArrowDown' })
+    fireEvent.keyDown(campoFiltro(), { key: 'Enter' })
+
+    expect(screen.getByRole('textbox', { name: 'Resposta ao cliente' })).toHaveValue(
+      'Preciso que você confirme o acesso.',
+    )
+  })
+
+  it('reabrir o menu depois de aplicar uma macro começa sem o filtro anterior', () => {
+    macros = MACROS
+    montar(0, ME_COM_MACRO)
+    abrirMenu()
+    fireEvent.change(campoFiltro(), { target: { value: 'encerramento' } })
+    fireEvent.keyDown(campoFiltro(), { key: 'Enter' })
+
+    abrirMenu() // reabre
+
+    expect(campoFiltro()).toHaveValue('')
+    expect(listaDeMacros().getAllByRole('option')).toHaveLength(3)
   })
 })

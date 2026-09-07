@@ -1706,37 +1706,67 @@
   &__macro {
     position: relative;
   }
-  &__macro-menu {
+  // O painel inteiro (campo de filtro + lista) é o que fica posicionado
+  // sobre o compositor; a lista em si (abaixo) só rola por dentro dele.
+  // Antes o filtro não existia e `&__macro-menu` fazia as duas coisas —
+  // separar os dois é o que evita o campo rolar pra fora da vista junto
+  // com a lista que ele filtra.
+  &__macro-painel {
     position: absolute;
     bottom: calc(100% + 4px);
     left: 0;
     z-index: 500;
     width: 340px;
-    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border-radius: 2px;
+    box-shadow: var(--sombra-flutuante);
+    overflow: hidden;
+  }
+  &__macro-filtro {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-bottom: 0.7px solid var(--stroke);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o painel inteiro já se destaca com sombra; o campo não precisa de anel próprio aqui
+    }
+  }
+  &__macro-menu {
+    max-height: 260px;
     overflow-y: auto;
     list-style: none;
     margin: 0;
     padding: 4px;
-    background: var(--surface-card);
+  }
+  &__macro-vazio {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__macro-opcao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
     border-radius: 2px;
-    box-shadow: var(--sombra-flutuante);
-    button {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      padding: 8px 10px;
-      border: none;
-      background: transparent;
-      border-radius: 2px;
-      text-align: left;
-      cursor: pointer;
-      &:hover,
-      &:focus-visible {
-        background: var(--surface-alt);
-        outline: none;
-      }
+    cursor: pointer;
+    // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
+    // precisa do mesmo destaque visual do :hover, porque é o único sinal de
+    // "isto é o que Enter escolhe agora" — não há foco real na opção.
+    &:hover,
+    &--ativa {
+      background: var(--surface-alt);
     }
   }
   &__macro-nome {
