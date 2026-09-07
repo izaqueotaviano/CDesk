@@ -11,12 +11,12 @@ import { PaginaPendente } from '@/ui/PaginaPendente'
  */
 export function PaginaDetalheTicket() {
   const { id } = useParams<{ id: string }>()
-  const abrir = useTabs((s) => s.abrir)
+  const abrirTicket = useTabs((s) => s.abrirTicket)
   const ticketId = Number(id)
 
   useEffect(() => {
-    if (Number.isFinite(ticketId)) abrir(ticketId)
-    // abrir() só precisa rodar quando o id da rota muda
+    if (Number.isFinite(ticketId)) abrirTicket(ticketId)
+    // abrirTicket() só precisa rodar quando o id da rota muda
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 

@@ -3,22 +3,26 @@ import { persist } from 'zustand/middleware'
 import { getTabsServidor, putTabsServidor, type TicketResumo } from '@/api/tabs'
 
 /**
- * Abas de ticket — contrato em docs/06-abas-frontend.md e
- * docs/07-arquitetura-frontend.md.
+ * Abas do shell — contrato original em docs/06-abas-frontend.md, generalizado
+ * na Fase 2 da unificação de shell (a barra que hoje é só de tickets passou a
+ * cobrir também as seções da Sidebar — Tickets, Quadro, Chat, Clientes,
+ * Avisos, Auditoria, Configurações, Relatórios).
  *
- *   - Fonte primária: o FRONTEND. Abrir/fechar/trocar aba é local e síncrono,
- *     nunca espera rede.
- *   - localStorage (via `persist`) cobre o F5.
- *   - O servidor é o espelho durável: só a LISTA de tickets abertos e a aba
- *     ativa. Rascunho e posição de scroll NUNCA são enviados — são "voláteis
- *     e potencialmente sensíveis demais para persistir sem criptografia"
- *     (docs/06) — por isso `atualizarScroll`/`atualizarRascunho` não chamam
- *     `agendarSync`.
- *   - Reconciliação: o backend nunca devolve ticket fora de `visible_to(user)`;
- *     uma aba que perdeu acesso some em silêncio, inclusive na volta (GET).
+ * Duas espécies de aba, uma união marcada por `tipo`:
+ *   - `ticket`  — o contrato de sempre. Múltiplas por vez, espelhadas no
+ *     servidor (`/tickets/tabs/`), com rascunho e posição de scroll.
+ *   - `secao`   — nova. NUNCA vai para o servidor: é navegação ambiente
+ *     (qual área você tem aberta), não dado de trabalho — o mesmo raciocínio
+ *     que já mantinha rascunho/scroll fora do PUT. Uma por rota (reabrir a
+ *     mesma seção reaproveita a aba, nunca duplica).
+ *
+ * `chaveAba` é o identificador estável de UMA aba, dos dois tipos — é o que
+ * `active` guarda agora (string, não mais o `ticketId` cru), e o que a barra
+ * usa pra saber qual aba fechar/focar.
  */
 
-export interface Aba {
+export interface AbaTicket {
+  tipo: 'ticket'
   ticketId: number
   /** Resumo hidratado pelo servidor — undefined logo após abrir localmente,
    *  antes da próxima reconciliação preencher. */
@@ -27,16 +31,41 @@ export interface Aba {
   draft: string
 }
 
+export interface AbaSecao {
+  tipo: 'secao'
+  /** Rota canônica da seção (a mesma da Sidebar) — chave de dedup: abrir de
+   *  novo a mesma rota reaproveita esta aba, não duplica. */
+  rota: string
+  /** Rótulo fixo da aba — não muda com navegação interna à seção (o ?aba= de
+   *  Configurações, por exemplo): é sempre "Configurações". */
+  titulo: string
+  /** Classe `ti ti-*` — a mesma da Sidebar, pra ícone da aba bater com o da
+   *  navegação. */
+  icone: string
+}
+
+export type Aba = AbaTicket | AbaSecao
+
+export function chaveAba(aba: Aba): string {
+  return aba.tipo === 'ticket' ? `ticket:${aba.ticketId}` : `secao:${aba.rota}`
+}
+
+function ehTicket(aba: Aba): aba is AbaTicket {
+  return aba.tipo === 'ticket'
+}
+
 interface TabsState {
   tabs: Aba[]
-  active: number | null
-  /** true enquanto a reconciliação inicial (GET) não voltou — a TabBar deve
+  /** Chave da aba ativa (`chaveAba`) — string, não mais o ticketId cru. */
+  active: string | null
+  /** true enquanto a reconciliação inicial (GET) não voltou — a barra deve
    *  mostrar o que já tinha em localStorage, não esperar a rede (docs/06). */
   reconciliando: boolean
 
-  abrir: (ticketId: number, resumo?: TicketResumo) => void
-  fechar: (ticketId: number) => void
-  definirAtiva: (ticketId: number) => void
+  abrirTicket: (ticketId: number, resumo?: TicketResumo) => void
+  abrirSecao: (rota: string, titulo: string, icone: string) => void
+  fechar: (chave: string) => void
+  definirAtiva: (chave: string) => void
   atualizarScroll: (ticketId: number, scroll: number) => void
   atualizarRascunho: (ticketId: number, draft: string) => void
   reconciliar: () => Promise<void>
@@ -49,11 +78,19 @@ const DEBOUNCE_MS = 2000 // docs/06; o backend (UserTicketTabs) já tolera bem
 // clique de troca de aba em sequência rápida.
 let debounceHandle: ReturnType<typeof setTimeout> | undefined
 
+/** Só os tickets sincronizam — abas de seção nunca chegam perto do PUT
+ *  (comentário no topo do arquivo). `active` só viaja quando a aba ativa É um
+ *  ticket: ficar numa seção não deveria apagar "qual ticket eu tinha aberto
+ *  por último" no espelho do servidor. */
 function sincronizarComServidor() {
   clearTimeout(debounceHandle)
   debounceHandle = setTimeout(() => {
     const { tabs, active } = useTabs.getState()
-    putTabsServidor({ ticket_ids: tabs.map((t) => t.ticketId), active_ticket_id: active })
+    const idsTicket = tabs.filter(ehTicket).map((t) => t.ticketId)
+    const ativoTicket = tabs.find((a) => ehTicket(a) && chaveAba(a) === active) as
+      | AbaTicket
+      | undefined
+    putTabsServidor({ ticket_ids: idsTicket, active_ticket_id: ativoTicket?.ticketId ?? null })
       .then(aplicarVerdadeDoServidor)
       .catch(() => {
         // Melhor esforço — rede caiu, a próxima mudança de aba tenta de novo.
@@ -62,17 +99,32 @@ function sincronizarComServidor() {
   }, DEBOUNCE_MS)
 }
 
-/** A resposta do servidor (já filtrada por visibilidade) vira a verdade —
- *  mas preserva scroll/draft locais das abas que sobreviveram. */
+/** A resposta do servidor (já filtrada por visibilidade) vira a verdade para
+ *  as abas de TICKET — preserva scroll/draft locais das que sobreviveram e
+ *  NUNCA mexe nas abas de seção, que o servidor nem conhece. */
 function aplicarVerdadeDoServidor(resposta: { tabs: TicketResumo[]; active_ticket_id: number | null }) {
-  const locaisPorId = new Map(useTabs.getState().tabs.map((a) => [a.ticketId, a]))
-  const tabs: Aba[] = resposta.tabs.map((resumo) => ({
+  const locaisPorId = new Map(useTabs.getState().tabs.filter(ehTicket).map((a) => [a.ticketId, a]))
+  const abasSecao = useTabs.getState().tabs.filter((a): a is AbaSecao => a.tipo === 'secao')
+  const abasTicket: AbaTicket[] = resposta.tabs.map((resumo) => ({
+    tipo: 'ticket',
     ticketId: resumo.id,
     resumo,
     scroll: locaisPorId.get(resumo.id)?.scroll ?? 0,
     draft: locaisPorId.get(resumo.id)?.draft ?? '',
   }))
-  useTabs.setState({ tabs, active: resposta.active_ticket_id, reconciliando: false })
+  // Seção primeiro, depois ticket: só afeta a ORDEM da barra numa reconciliação
+  // (rara — login e reconexão), nunca o que está ativo.
+  const ativoAnterior = useTabs.getState().active
+  const eraSecaoAtiva = ativoAnterior?.startsWith('secao:') ?? false
+  useTabs.setState({
+    tabs: [...abasSecao, ...abasTicket],
+    active: eraSecaoAtiva
+      ? ativoAnterior
+      : resposta.active_ticket_id != null
+        ? `ticket:${resposta.active_ticket_id}`
+        : null,
+    reconciliando: false,
+  })
 }
 
 export const useTabs = create<TabsState>()(
@@ -82,47 +134,58 @@ export const useTabs = create<TabsState>()(
       active: null,
       reconciliando: true,
 
-      abrir: (ticketId, resumo) => {
-        const jaAberta = get().tabs.some((a) => a.ticketId === ticketId)
+      abrirTicket: (ticketId, resumo) => {
+        const jaAberta = get().tabs.some((a) => ehTicket(a) && a.ticketId === ticketId)
         set((s) => ({
           tabs: jaAberta
-            ? s.tabs.map((a) => (a.ticketId === ticketId && resumo ? { ...a, resumo } : a))
-            : [...s.tabs, { ticketId, resumo, scroll: 0, draft: '' }],
-          active: ticketId,
+            ? s.tabs.map((a) =>
+                ehTicket(a) && a.ticketId === ticketId && resumo ? { ...a, resumo } : a,
+              )
+            : [...s.tabs, { tipo: 'ticket', ticketId, resumo, scroll: 0, draft: '' }],
+          active: `ticket:${ticketId}`,
         }))
         sincronizarComServidor()
       },
 
-      fechar: (ticketId) => {
+      abrirSecao: (rota, titulo, icone) => {
+        const chave = `secao:${rota}`
+        const jaAberta = get().tabs.some((a) => a.tipo === 'secao' && a.rota === rota)
+        set((s) => ({
+          tabs: jaAberta ? s.tabs : [...s.tabs, { tipo: 'secao', rota, titulo, icone }],
+          active: chave,
+        }))
+        // Local apenas — seção nunca sincroniza (comentário no topo do arquivo).
+      },
+
+      fechar: (chave) => {
         set((s) => {
-          const tabs = s.tabs.filter((a) => a.ticketId !== ticketId)
-          const active =
-            s.active === ticketId ? (tabs.at(-1)?.ticketId ?? null) : s.active
+          const tabs = s.tabs.filter((a) => chaveAba(a) !== chave)
+          const active = s.active === chave ? (tabs.length > 0 ? chaveAba(tabs[tabs.length - 1]!) : null) : s.active
           return { tabs, active }
         })
         sincronizarComServidor()
       },
 
-      definirAtiva: (ticketId) => {
-        set({ active: ticketId })
+      definirAtiva: (chave) => {
+        set({ active: chave })
         sincronizarComServidor()
       },
 
       // Local apenas — nunca aciona sync com o servidor (docs/06).
       atualizarScroll: (ticketId, scroll) => {
         set((s) => ({
-          tabs: s.tabs.map((a) => (a.ticketId === ticketId ? { ...a, scroll } : a)),
+          tabs: s.tabs.map((a) => (ehTicket(a) && a.ticketId === ticketId ? { ...a, scroll } : a)),
         }))
       },
       atualizarRascunho: (ticketId, draft) => {
         set((s) => ({
-          tabs: s.tabs.map((a) => (a.ticketId === ticketId ? { ...a, draft } : a)),
+          tabs: s.tabs.map((a) => (ehTicket(a) && a.ticketId === ticketId ? { ...a, draft } : a)),
         }))
       },
 
       reconciliar: () => {
         // Dedup de chamada em voo: o StrictMode do React roda efeitos duas
-        // vezes em dev (TabBar chama reconciliar() no mount) — sem isto, cada
+        // vezes em dev (a barra chama reconciliar() no mount) — sem isto, cada
         // carga de tela dispara DOIS GET/PUT reais em /tickets/tabs/. Mesma
         // categoria do bug de socket duplicado que docs/07 mediu, só que aqui
         // com fetch: a correção é devolver a MESMA promise a quem chamar
@@ -130,16 +193,16 @@ export const useTabs = create<TabsState>()(
         if (reconciliacaoEmVoo) return reconciliacaoEmVoo
 
         reconciliacaoEmVoo = (async () => {
-          // NÃO capture `get().tabs` antes do await: abrir()/fechar() rodam
-          // enquanto o GET está em voo (é exatamente o que a Página de
-          // Detalhe faz ao montar junto com a TabBar) e são locais e
-          // síncronos por contrato (docs/06). Ler antes do await pegaria uma
-          // fotografia velha e a resposta do servidor apagaria a aba que
-          // acabou de abrir por cima dela.
+          // NÃO capture `get().tabs` antes do await: abrirTicket()/fechar()
+          // rodam enquanto o GET está em voo (é exatamente o que a Página de
+          // Detalhe faz ao montar junto com a barra) e são locais e síncronos
+          // por contrato (docs/06). Ler antes do await pegaria uma fotografia
+          // velha e a resposta do servidor apagaria a aba que acabou de abrir
+          // por cima dela.
           const servidor = await getTabsServidor()
-          const locais = get().tabs
+          const locaisTicket = get().tabs.filter(ehTicket)
           const idsServidor = new Set(servidor.tabs.map((t) => t.id))
-          const idsSoLocais = locais.map((a) => a.ticketId).filter((id) => !idsServidor.has(id))
+          const idsSoLocais = locaisTicket.map((a) => a.ticketId).filter((id) => !idsServidor.has(id))
 
           if (idsSoLocais.length === 0) {
             aplicarVerdadeDoServidor(servidor)
@@ -149,9 +212,12 @@ export const useTabs = create<TabsState>()(
           // "união = servidor ∪ (local que o servidor não conhece)" (docs/07)
           // — manda pro servidor validar/filtrar; a resposta do PUT vira a verdade.
           const uniao = [...servidor.tabs.map((t) => t.id), ...idsSoLocais]
+          const ativoTicket = get().tabs.find((a) => ehTicket(a) && chaveAba(a) === get().active) as
+            | AbaTicket
+            | undefined
           const respostaDoPut = await putTabsServidor({
             ticket_ids: uniao,
-            active_ticket_id: get().active ?? servidor.active_ticket_id,
+            active_ticket_id: ativoTicket?.ticketId ?? servidor.active_ticket_id,
           })
           aplicarVerdadeDoServidor(respostaDoPut)
         })().finally(() => {
@@ -165,11 +231,31 @@ export const useTabs = create<TabsState>()(
       // reconciliando nunca persiste — cada carga da página começa
       // reconciliando de novo, mesmo com abas já hidratadas do localStorage.
       partialize: (s) => ({ tabs: s.tabs, active: s.active }),
-      // Baseline explícita: no dia em que o formato de `Aba` mudar, um
-      // `migrate` aqui decide o que fazer com o localStorage antigo — sem
-      // version, o zustand assume tudo compatível e a mudança de formato
-      // vira dado corrompido em silêncio, não uma migração.
-      version: 1,
+      // v1→v2: `Aba` ganhou `tipo` (união ticket/seção) e `active` deixou de
+      // ser o ticketId cru para virar `chaveAba` (string). localStorage de
+      // antes da Fase 2 só tinha abas de ticket sem `tipo` e `active` numérico
+      // — sem esta migração, o zustand assumiria os dois formatos compatíveis
+      // e a troca de contrato virava dado corrompido em silêncio (abas sem
+      // `tipo` quebrando `ehTicket`/`chaveAba`, `active` numérico nunca batendo
+      // com nenhuma `chaveAba` string), não uma migração.
+      version: 2,
+      migrate: (persisted) => {
+        const antigo = persisted as { tabs?: unknown[]; active?: unknown } | undefined
+        if (!antigo || !Array.isArray(antigo.tabs)) return { tabs: [], active: null }
+        const tabs: Aba[] = antigo.tabs
+          .filter((a): a is { ticketId: number; resumo?: TicketResumo; scroll?: number; draft?: string } =>
+            typeof a === 'object' && a !== null && typeof (a as { ticketId?: unknown }).ticketId === 'number',
+          )
+          .map((a) => ({
+            tipo: 'ticket' as const,
+            ticketId: a.ticketId,
+            resumo: a.resumo,
+            scroll: a.scroll ?? 0,
+            draft: a.draft ?? '',
+          }))
+        const active = typeof antigo.active === 'number' ? `ticket:${antigo.active}` : null
+        return { tabs, active }
+      },
     },
   ),
 )

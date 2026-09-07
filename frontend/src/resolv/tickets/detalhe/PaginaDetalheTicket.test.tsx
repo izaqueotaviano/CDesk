@@ -14,11 +14,10 @@ vi.mock('./PainelPropriedades', () => ({
   PainelPropriedades: () => <div data-testid="propriedades" />,
 }))
 vi.mock('./ModalFecharTicket', () => ({ ModalFecharTicket: () => null }))
-vi.mock('./TicketTabs', () => ({ TicketTabs: () => <div data-testid="abas" /> }))
 
 vi.mock('@/api/queries/useMe', () => ({ useMe: () => ({ data: undefined }) }))
 vi.mock('@/stores/tabs', () => ({
-  useTabs: (seletor: (s: { abrir: () => void }) => unknown) => seletor({ abrir: vi.fn() }),
+  useTabs: (seletor: (s: { abrirTicket: () => void }) => unknown) => seletor({ abrirTicket: vi.fn() }),
 }))
 
 /** Estado que `useTicketDetalhe` devolve — mutado entre renders para simular

@@ -1,6 +1,8 @@
-// Menu de presença — dropdown do avatar no Topbar. O posicionamento, a sombra
+// Menu de presença — dropdown do avatar na zona utilitária da Sidebar (Fase
+// 2; antes vivia na Topbar, que não existe mais). O posicionamento, a sombra
 // e o fechamento vêm do Popover genérico da cvzdesk (mesmo caminho que
-// notificacoes.scss faz); daqui pra baixo é só o gatilho e o CONTEÚDO.
+// notificacoes.scss faz) — a DIREÇÃO do painel (abre pra direita, não pra
+// baixo) é sobrescrita em sidebar.scss, junto dos outros itens da zona.
 //
 // Cor sempre por token: `--ok`/`--away`/`--text-muted` são as três presenças, e
 // o tema escuro troca os tokens sem tocar neste arquivo. O `--gatilho` vive
@@ -13,13 +15,16 @@
   flex-direction: column;
   background: var(--surface-card);
 
-  // ── Gatilho (no Topbar, fora do painel) ──
+  // ── Gatilho (na Sidebar, fora do painel) — 40×40 como os outros ícones
+  // da zona utilitária (BotaoTema, PainelNotificacoes): só o avatar, sem
+  // nome ao lado (não cabe em 56px de rail; a dica ao passar o mouse cobre).
   &__gatilho {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 38px; // alvo clicável confortável, acima dos 24px do WCAG 2.5.8
-    padding: 4px 8px 4px 4px;
+    justify-content: center;
+    position: relative;
+    width: 40px;
+    height: 40px;
     border: none;
     background: transparent;
     border-radius: 2px;
@@ -52,23 +57,36 @@
     user-select: none;
   }
 
+  // Não cabe nos 40px do gatilho (era visível ao lado do avatar quando este
+  // menu ainda vivia numa barra horizontal) — o texto continua existindo
+  // para o nome acessível (aria-label) e para a dica CSS (data-tooltip), só
+  // não desenha mais.
   &__nome {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-    white-space: nowrap;
-    max-width: 140px;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none;
   }
 
+  // Selo sobreposto no canto do avatar — mesma ideia do badge de não-lidas
+  // de notificacoes.scss, só que para o estado da MUTAÇÃO de presença
+  // (salvando/erro), não uma contagem.
+  &__girando,
+  &__alerta {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-alt);
+    font-size: 10px;
+  }
   &__girando {
-    font-size: 14px;
     color: var(--text-muted);
     animation: menu-presenca-girar 0.9s linear infinite;
   }
   &__alerta {
-    font-size: 14px;
     color: var(--danger);
   }
 

@@ -135,4 +135,64 @@
       transform: translateY(-50%) translateX(0);
     }
   }
+
+  // Selo de conversas sobre o ícone de Chats — o chip de texto "N conversas"
+  // da Topbar antiga não tem mais barra pra caber; a contagem virou selo,
+  // mesma peça visual do badge de notificações não lidas
+  // (notificacoes.scss::painel-notif__badge).
+  &__badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--accent);
+    color: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  // ── Zona utilitária — busca, notificações, tema, presença/conta/sair.
+  // Vem DEPOIS de `&__nav` (que tem flex:1), então cai sozinha no rodapé da
+  // barra sem precisar de position:absolute. Fase 2: é tudo que a Topbar
+  // (removida nesta rodada) hospedava.
+  &__zona-utilitaria {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding-top: 8px;
+    flex-shrink: 0;
+
+    &::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 0.7px;
+      background: var(--stroke);
+      margin-bottom: 6px;
+    }
+
+    // Os popovers destes 3 itens (notificações, presença) nascem pensados
+    // pra uma barra HORIZONTAL — abrem pra baixo (Popover.scss:
+    // `top: calc(100% + 4px)`). Numa rail vertical de 56px isso empurraria o
+    // painel pra fora da tela pela direita; sobrescrito aqui pra abrir à
+    // DIREITA do próprio gatilho, ancorado embaixo (`bottom:0`) — o item mais
+    // ao fundo da zona (o avatar) é sempre o mais perto da borda inferior da
+    // tela, então "crescer pra cima a partir da base" é o que nunca estoura
+    // por baixo, em qualquer altura de viewport.
+    .popover__panel {
+      top: auto;
+      bottom: 0;
+      left: calc(100% + 8px);
+      right: auto;
+    }
+  }
 }

@@ -10,7 +10,6 @@ import { Conversa } from './Conversa'
 import { ModalFecharTicket } from './ModalFecharTicket'
 import { PainelCliente } from './PainelCliente'
 import { PainelPropriedades } from './PainelPropriedades'
-import { TicketTabs } from './TicketTabs'
 import { useAcoesTicket, useTicketDetalhe } from './dados'
 import { mensagemDeErro } from './linhaDoTempo'
 import type { TicketDetalhe } from './tiposDetalhe'
@@ -238,13 +237,13 @@ export function PaginaDetalheTicket() {
     dataUpdatedAt,
   } = useTicketDetalhe(ticketId)
   const { data: me } = useMe()
-  const abrir = useTabs((s) => s.abrir)
+  const abrirTicket = useTabs((s) => s.abrirTicket)
 
   // Registra/atualiza a aba deste ticket assim que os dados chegam — é o que
-  // alimenta a TicketTabs e o espelho no servidor (docs/06).
+  // alimenta a BarraDeAbas e o espelho no servidor (docs/06).
   useEffect(() => {
     if (!ticket) return
-    abrir(ticket.id, {
+    abrirTicket(ticket.id, {
       id: ticket.id,
       reference: ticket.reference,
       subject: ticket.subject,
@@ -259,14 +258,14 @@ export function PaginaDetalheTicket() {
 
   return (
     <div className="detalhe">
-      <TicketTabs idAtivo={ticketId} />
-
-      {/* O painel que a aba ativa controla — único elemento com esse papel
-          na árvore (trocar de aba navega para outra rota, não empilha um
-          segundo painel ao lado). `aria-labelledby` aponta para o id que
-          `TicketTabs` já expõe por aba (`aba-tab-${ticketId}`); o vínculo
-          completa o padrão WAI-ARIA de tabs que faltava — a aba já era
-          role="tab" e navegável, só não dizia qual painel ela abre. */}
+      {/* O painel que a aba ativa controla — único elemento com esse papel na
+          árvore (trocar de aba navega para outra rota, não empilha um segundo
+          painel ao lado). `aria-labelledby` aponta para o id que a barra de
+          abas do shell expõe por aba de ticket (`aba-tab-${ticketId}`,
+          resolv/shell/BarraDeAbas.tsx — a barra migrou pra lá na Fase 2, fora
+          desta página, porque agora cobre seções também, não só tickets); o
+          vínculo completa o padrão WAI-ARIA de tabs — a aba já era role="tab"
+          e navegável, só não dizia qual painel ela abre. */}
       <div
         role="tabpanel"
         id="detalhe-painel-ticket"

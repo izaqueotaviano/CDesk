@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Me } from '@/api/types'
-import { useTabs } from '@/stores/tabs'
+import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { Conversa } from './Conversa'
 import type { Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
 import './detalhe.scss'
@@ -14,7 +14,7 @@ const CHAVE_MOSTRAR_EVENTOS = 'resolv-conversa-mostrar-eventos'
 // O espelho no servidor é irrelevante aqui — `atualizarScroll` nunca chama
 // `sincronizarComServidor` (contrato em stores/tabs.ts: scroll é local), mas
 // o MÓDULO importa `@/api/tabs` de qualquer jeito; mesma precaução de
-// TicketTabs.test.tsx.
+// BarraDeAbas.test.tsx.
 vi.mock('@/api/tabs', () => ({
   getTabsServidor: vi.fn(() => new Promise(() => {})),
   putTabsServidor: vi.fn(() => new Promise(() => {})),
@@ -200,8 +200,8 @@ describe('Conversa — restaura posição de rolagem ao trocar de aba/voltar (it
 
   it('com posição salva na aba deste ticket, restaura o scrollTop em vez de ir pro fim', () => {
     useTabs.setState({
-      tabs: [{ ticketId: 42, resumo: undefined, scroll: 345, draft: '' }],
-      active: 42,
+      tabs: [{ tipo: 'ticket', ticketId: 42, resumo: undefined, scroll: 345, draft: '' }],
+      active: 'ticket:42',
       reconciliando: false,
     })
 
@@ -213,12 +213,12 @@ describe('Conversa — restaura posição de rolagem ao trocar de aba/voltar (it
   })
 
   it('salva a posição de rolagem com debounce, não a cada evento de scroll', () => {
-    // No fluxo real a aba já existe (PaginaDetalheTicket chama `abrir` antes
-    // de a Conversa montar) — `atualizarScroll` só ATUALIZA uma aba existente
-    // (stores/tabs.ts: `s.tabs.map(...)`), não cria uma do nada.
+    // No fluxo real a aba já existe (PaginaDetalheTicket chama `abrirTicket`
+    // antes de a Conversa montar) — `atualizarScroll` só ATUALIZA uma aba
+    // existente (stores/tabs.ts: `s.tabs.map(...)`), não cria uma do nada.
     useTabs.setState({
-      tabs: [{ ticketId: 42, resumo: undefined, scroll: 0, draft: '' }],
-      active: 42,
+      tabs: [{ tipo: 'ticket', ticketId: 42, resumo: undefined, scroll: 0, draft: '' }],
+      active: 'ticket:42',
       reconciliando: false,
     })
     vi.useFakeTimers()
@@ -229,10 +229,14 @@ describe('Conversa — restaura posição de rolagem ao trocar de aba/voltar (it
     fireEvent.scroll(lista, { target: { scrollTop: 120 } })
     // Ainda dentro da janela do debounce: nada gravado no store.
     vi.advanceTimersByTime(399)
-    expect(useTabs.getState().tabs.find((t) => t.ticketId === 42)?.scroll ?? 0).toBe(0)
+    expect(
+      useTabs.getState().tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === 42)?.scroll ?? 0,
+    ).toBe(0)
 
     vi.advanceTimersByTime(1)
-    expect(useTabs.getState().tabs.find((t) => t.ticketId === 42)?.scroll).toBe(120)
+    expect(
+      useTabs.getState().tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === 42)?.scroll,
+    ).toBe(120)
   })
 })
 

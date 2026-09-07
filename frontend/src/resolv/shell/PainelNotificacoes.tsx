@@ -145,7 +145,13 @@ export function PainelNotificacoes() {
     <Popover
       align="end"
       trigger={(props) => (
-        <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações" {...props}>
+        <button
+          type="button"
+          className="sidebar-rail__item"
+          aria-label="Notificações"
+          data-tooltip="Notificações"
+          {...props}
+        >
           <i className="ti ti-bell" />
           {naoLidas > 0 && <span className="painel-notif__badge">{naoLidas > 9 ? '9+' : naoLidas}</span>}
         </button>

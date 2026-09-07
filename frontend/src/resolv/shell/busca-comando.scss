@@ -1,0 +1,274 @@
+// Busca + navegação do shell — painel central sobre véu (Fase 2: fundiu o
+// campo inline da Topbar antiga com o CommandPalette do cvzdesk). Geometria
+// do overlay inspirada no CommandPalette (cvz/components), cor e linguagem
+// das linhas herdadas quase literais da antiga busca-global.scss — só a
+// casca virou modal, o conteúdo é o mesmo desenho.
+
+.busca-comando__veu {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 12vh 16px 16px;
+  background: var(--veu);
+}
+
+.busca-comando {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  max-height: 76vh;
+  overflow: hidden;
+  background: var(--surface-card);
+  border-radius: 2px;
+  box-shadow: var(--sombra-flutuante);
+  animation: busca-comando-entrar 0.15s ease;
+
+  &__caixa {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 56px;
+    padding: 0 16px;
+    flex-shrink: 0;
+    border-bottom: 0.7px solid var(--stroke);
+  }
+
+  &__lupa {
+    font-size: 18px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  &__campo {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: none;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 16px;
+    color: var(--text-primary);
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o painel inteiro já está no foco/trap — sem anel duplo
+    }
+  }
+
+  &__esc {
+    flex-shrink: 0;
+    padding: 3px 6px;
+    border-radius: 2px;
+    background: var(--surface-alt);
+    border: 0.7px solid var(--stroke);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  &__resultados {
+    overflow-y: auto;
+    padding: 6px;
+  }
+
+  &__grupo + &__grupo {
+    margin-top: 4px;
+    border-top: 0.7px solid var(--stroke);
+    padding-top: 4px;
+  }
+
+  &__grupo-titulo {
+    margin: 0;
+    padding: 8px 10px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  &__linha {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 8px 10px;
+    border-radius: 2px;
+    text-align: left;
+    font-family: var(--f-ui);
+    cursor: pointer;
+
+    &--ativa {
+      background: var(--surface-alt);
+    }
+    // Solicitante sem empresa: aparece porque casou com a busca, mas não abre
+    // nada. Sem `opacity` de propósito — ela derrubava o e-mail para 2,5:1 no
+    // claro, ou seja, a linha ficava ilegível justamente para quem mais
+    // precisaria da explicação. Quem diz que não abre é o texto ao lado.
+    &--inerte {
+      cursor: default;
+    }
+  }
+
+  &__motivo {
+    flex-shrink: 0;
+    align-self: center;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-secondary);
+  }
+
+  &__icone {
+    margin-top: 2px;
+    font-size: 15px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__titulo {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__ref {
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+  }
+
+  &__detalhe {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__estado {
+    margin: 0;
+    padding: 32px 14px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+
+    &--erro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+
+      i {
+        font-size: 18px;
+        color: var(--danger);
+      }
+      p {
+        margin: 0;
+      }
+    }
+  }
+
+  &__tentar {
+    min-height: 24px;
+    padding: 4px 10px;
+    border: 0.7px solid var(--stroke);
+    border-radius: 2px;
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--stroke-hover);
+    }
+    &:disabled {
+      color: var(--text-muted);
+      cursor: default;
+    }
+  }
+
+  &__rodape {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-top: 0.7px solid var(--stroke);
+    background: var(--surface-alt);
+    font-size: 11px;
+    color: var(--text-secondary);
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    kbd {
+      padding: 2px 5px;
+      border: 0.7px solid var(--stroke);
+      border-radius: 2px;
+      background: var(--surface-card);
+      font-family: var(--f-mono);
+      font-size: 10px;
+      line-height: 1;
+    }
+  }
+}
+
+@keyframes busca-comando-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Mobile: a busca ocupa a tela — um diálogo pequeno com teclado virtual
+// aberto sobra pouco espaço útil para os resultados.
+@media (max-width: 767px) {
+  .busca-comando__veu {
+    padding: 0;
+    align-items: stretch;
+  }
+  .busca-comando {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+
+    &__caixa {
+      height: 52px;
+    }
+    &__campo {
+      font-size: 15px;
+    }
+    &__rodape {
+      display: none;
+    }
+  }
+}

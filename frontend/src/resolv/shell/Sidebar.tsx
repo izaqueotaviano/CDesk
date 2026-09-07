@@ -7,13 +7,28 @@
  * resto já navega, inclusive o conteúdo ainda construído com cvz/components
  * (Clientes, Avisos, Auditoria, Relatórios, Configurações), que desde a
  * Fase 1 da unificação de shell roda dentro deste mesmo shell.
+ *
+ * Fase 2 acrescentou a "zona utilitária", embaixo do separador (`__nav` tem
+ * `flex: 1`, então o que vier depois dele cai sozinho no rodapé): busca,
+ * notificações, tema e presença/conta/sair — tudo que a Topbar (removida
+ * nesta rodada) hospedava. O contador de conversas de chat, que era um chip
+ * de texto na Topbar, virou um selo numérico sobre o próprio ícone de Chats
+ * — mesma informação, sem precisar de espaço extra.
  */
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { useFilaChat, useMeusChats } from '@/api/chat'
+import { useMe } from '@/api/queries/useMe'
+import { BotaoTema } from './BotaoTema'
+import { MenuPresenca } from './MenuPresenca'
+import { PainelNotificacoes } from './PainelNotificacoes'
 import './sidebar.scss'
 
-type Item = { id: string; label: string; icon: string; route: string; enabled: boolean }
+export type Item = { id: string; label: string; icon: string; route: string; enabled: boolean }
 
-const NAV: Item[] = [
+// Exportado: BarraDeAbas.tsx e BuscaComando.tsx reusam esta MESMA lista —
+// abas de seção e o grupo "Navegar" da busca vêm daqui, uma fonte só, sem
+// duplicar nome/ícone/rota em três lugares.
+export const NAV: Item[] = [
   { id: 'inicio', label: 'Início', icon: 'ti ti-home', route: '/inicio', enabled: true },
   { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
@@ -22,7 +37,7 @@ const NAV: Item[] = [
   // design system cvzdesk), mas desde a Fase 1 da unificação de shell rodam
   // dentro deste MESMO shell — sem troca de visual ao clicar. O que muda de
   // uma pra outra é só o "surface" do conteúdo (SuperficieCvz.tsx), nunca a
-  // sidebar/topbar (routes.tsx).
+  // sidebar (routes.tsx).
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
   { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
   { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
@@ -32,11 +47,19 @@ const NAV: Item[] = [
   { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: false },
 ]
 
-export function Sidebar() {
+export function Sidebar({ onAbrirBusca }: { onAbrirBusca: () => void }) {
   const navigate = useNavigate()
   const location = useLocation()
   const ativo = (r: string) =>
     r === '/inicio' ? location.pathname === '/inicio' : location.pathname.startsWith(r)
+
+  // O contador é real: fila + meus atendimentos, atualizado pelo socket (a
+  // bridge invalida as duas chaves a cada chat_queued/chat_taken) — mesma
+  // fonte que o chip "N conversas" da Topbar antiga usava.
+  const { data: usuario } = useMe()
+  const { data: fila } = useFilaChat(usuario?.is_internal === true)
+  const { data: meus } = useMeusChats(usuario?.is_internal === true)
+  const conversas = (fila?.length ?? 0) + (meus?.length ?? 0)
 
   return (
     <aside className="sidebar-rail" aria-label="Navegação principal">
@@ -59,25 +82,50 @@ export function Sidebar() {
       <div className="sidebar-rail__sep" />
 
       <nav className="sidebar-rail__nav">
-        {NAV.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={
-              'sidebar-rail__item' +
-              (ativo(item.route) ? ' sidebar-rail__item--ativo' : '') +
-              (item.enabled ? '' : ' sidebar-rail__item--inerte')
-            }
-            data-tooltip={item.enabled ? item.label : `${item.label} · em breve`}
-            aria-label={item.label}
-            aria-current={ativo(item.route) ? 'page' : undefined}
-            aria-disabled={item.enabled ? undefined : true}
-            onClick={() => item.enabled && navigate(item.route)}
-          >
-            <i className={item.icon} />
-          </button>
-        ))}
+        {NAV.map((item) => {
+          const badge = item.id === 'chat' && conversas > 0 ? (conversas > 9 ? '9+' : conversas) : null
+          const rotulo =
+            item.id === 'chat' && badge
+              ? `${item.label} — ${conversas} ${conversas === 1 ? 'conversa' : 'conversas'}`
+              : item.enabled
+                ? item.label
+                : `${item.label} · em breve`
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={
+                'sidebar-rail__item' +
+                (ativo(item.route) ? ' sidebar-rail__item--ativo' : '') +
+                (item.enabled ? '' : ' sidebar-rail__item--inerte')
+              }
+              data-tooltip={rotulo}
+              aria-label={rotulo}
+              aria-current={ativo(item.route) ? 'page' : undefined}
+              aria-disabled={item.enabled ? undefined : true}
+              onClick={() => item.enabled && navigate(item.route)}
+            >
+              <i className={item.icon} />
+              {badge != null && <span className="sidebar-rail__badge">{badge}</span>}
+            </button>
+          )
+        })}
       </nav>
+
+      <div className="sidebar-rail__zona-utilitaria">
+        <button
+          type="button"
+          className="sidebar-rail__item"
+          aria-label="Buscar e navegar"
+          data-tooltip="Buscar (Ctrl K)"
+          onClick={onAbrirBusca}
+        >
+          <i className="ti ti-search" />
+        </button>
+        <PainelNotificacoes />
+        <BotaoTema />
+        <MenuPresenca />
+      </div>
     </aside>
   )
 }

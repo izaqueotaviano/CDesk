@@ -1,5 +1,7 @@
-// Abas dos tickets abertos — 40px, sobre a surface-alt (design system §7.5).
-.ticket-tabs {
+// Barra de abas do shell — 40px, sobre a surface-alt (design system §7.5).
+// Ocupa o lugar da Topbar antiga (Fase 2 da unificação de shell); mistura
+// abas de ticket e de seção na mesma faixa, na ordem em que foram abertas.
+.barra-de-abas {
   display: flex;
   align-items: stretch;
   height: 40px;
@@ -7,6 +9,9 @@
   border-bottom: 0.7px solid var(--stroke);
   flex-shrink: 0;
   overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 90;
 
   &__tab {
     display: flex;
@@ -20,7 +25,7 @@
     // idênticos (#f9f8f7 vs #f5f3f2 do fundo da barra) e o contraste some — a
     // aba ativa precisa se destacar das outras à primeira vista, sem precisar
     // ler o texto.
-    &--ativo {
+    &--ativa {
       background: var(--surface-card);
       box-shadow: inset 0 -2px 0 var(--accent);
     }
@@ -52,9 +57,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+
+    // Ícone da aba de seção — mesma classe `ti ti-*` da Sidebar.
+    i {
+      font-size: 13px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
   }
-  // ponto com a cor da etapa — a pessoa vê de longe qual aba está fechada,
-  // aguardando cliente etc., sem abrir cada uma
+  // ponto com a cor da etapa (aba de ticket) — a pessoa vê de longe qual aba
+  // está fechada, aguardando cliente etc., sem abrir cada uma
   &__etapa {
     width: 7px;
     height: 7px;
@@ -72,7 +84,7 @@
     color: var(--away);
   }
 
-  // 24×24 — alvo mínimo de toque (WCAG 2.5.8); antes eram 18px
+  // 24×24 — alvo mínimo de toque (WCAG 2.5.8)
   &__fechar {
     width: 24px;
     height: 24px;
@@ -85,6 +97,7 @@
     border-radius: 2px;
     color: var(--text-secondary);
     cursor: pointer;
+    flex-shrink: 0;
     i {
       font-size: 13px;
     }
@@ -94,26 +107,8 @@
     }
   }
 
-  &__mais {
-    width: 40px;
-    flex-shrink: 0;
-    border: none;
-    background: var(--accent);
-    // Token de superfície sobre fundo de marca: --accent clareia no escuro
-    // (tokens.scss:77) e branco por cima reprova o AA.
-    color: var(--surface-card);
-    cursor: pointer;
-    i {
-      font-size: 18px;
-    }
-    &:hover {
-      filter: brightness(0.95);
-    }
-  }
-
   &__abrir:focus-visible,
-  &__fechar:focus-visible,
-  &__mais:focus-visible {
+  &__fechar:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
   }

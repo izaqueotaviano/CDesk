@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { Me } from '@/api/types'
 import { useSistemaCfg } from '@/cvz/configuracoes/dados'
-import { useTabs } from '@/stores/tabs'
+import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { ROTULO_PRIORIDADE, ROTULO_STATUS, formatarDataHora } from '../format'
 import type { StatusTicket } from '../tipos'
@@ -51,7 +51,7 @@ const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
  */
 /** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme". Mesma função,
  *  copiada — não importada — de novo/BuscaPessoa.tsx: a casa já aceita essa
- *  duplicação (BuscaPessoa e resolv/shell/BuscaGlobal.tsx têm cada uma a
+ *  duplicação (BuscaPessoa e resolv/shell/BuscaComando.tsx têm cada uma a
  *  própria cópia) em vez de um utilitário compartilhado para três linhas. */
 function normalizar(s: string): string {
   return s
@@ -103,7 +103,9 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const { data: cfgSistema } = useSistemaCfg()
   const limites = limitesDeAnexo(cfgSistema)
   const { responder, aplicarMacro } = useAcoesTicket(ticket.id)
-  const rascunhoInicial = useTabs((s) => s.tabs.find((t) => t.ticketId === ticket.id)?.draft ?? '')
+  const rascunhoInicial = useTabs(
+    (s) => s.tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === ticket.id)?.draft ?? '',
+  )
   const atualizarRascunho = useTabs((s) => s.atualizarRascunho)
 
   const perms = me?.permissions ?? []
@@ -337,8 +339,8 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   // comum quanto achar pelo nome dela. Índice ativo é CLAMPADO aqui, não
   // corrigido num efeito: apagar/filtrar pode encolher a lista para menos
   // que o índice que estava selecionado (mesma técnica de roving tabindex
-  // usada em TicketTabs.tsx — derivar durante o render, não sincronizar
-  // depois).
+  // usada em resolv/shell/BarraDeAbas.tsx — derivar durante o render, não
+  // sincronizar depois).
   const macrosFiltradas = (macros ?? []).filter((m) =>
     normalizar(`${m.name} ${m.body ?? ''}`).includes(normalizar(filtroMacro)),
   )

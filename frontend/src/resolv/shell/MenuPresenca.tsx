@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Popover } from '@/cvz/components'
+import { useLogout } from '@/api/mutations/useLogout'
 import { PRESENCAS, ROTULO_PRESENCA, useMudarPresenca } from '@/api/presenca'
 import { useMe } from '@/api/queries/useMe'
 import type { Presence } from '@/api/types'
@@ -19,6 +20,12 @@ const ICONE_PRESENCA: Record<Presence, string> = {
  * dos colegas ao lado, e não havia lugar nenhum no front para se marcar como
  * Ausente, embora POST /api/v1/me/presence/ já existisse.
  *
+ * Vive na zona utilitária da Sidebar desde a Fase 2 (a Topbar não existe
+ * mais) — o gatilho perdeu o nome ao lado do avatar (não cabe em 56px; a
+ * dica ao passar o mouse cobre isso) e o painel agora absorve "Sair", que
+ * antes era um ícone à parte na barra: este menu é o único lugar do shell
+ * com identidade de quem está logado, então é aqui que a sessão termina.
+ *
  * "Offline" aqui é escolha manual, e o backend trata como tal
  * (`apps/accounts/views.py::MyPresenceView`): é ficar logado mas invisível pra
  * fila — diferente do Offline do logout, que é forçado, não pedido. Por isso a
@@ -28,6 +35,7 @@ export function MenuPresenca() {
   const navigate = useNavigate()
   const { data: usuario } = useMe()
   const mudar = useMudarPresenca()
+  const logout = useLogout()
 
   const nome = usuario?.full_name ?? '—'
   const presenca = usuario?.presence
@@ -60,7 +68,7 @@ export function MenuPresenca() {
             // pelo nome acessível do botão — senão o menu é a única forma de
             // um leitor de tela descobrir o próprio status.
             aria-label={`${nome} · ${situacao}. Abrir menu de presença`}
-            title={`${nome} · ${rotuloAtual}`}
+            data-tooltip={`${nome} · ${rotuloAtual}`}
             {...props}
           >
             <span className="menu-presenca__avatar">
@@ -144,6 +152,22 @@ export function MenuPresenca() {
           >
             <i className="ti ti-user-cog" aria-hidden="true" />
             Minha conta
+          </button>
+
+          {/* Sair — morava na Topbar como ícone próprio; a Fase 2 tirou a
+              Topbar e este menu passou a ser o único lugar com identidade de
+              quem está logado, então é aqui que a sessão termina agora. */}
+          <button
+            type="button"
+            className="menu-presenca__conta"
+            disabled={logout.isPending}
+            onClick={() => {
+              fechar()
+              logout.mutate()
+            }}
+          >
+            <i className="ti ti-logout-2" aria-hidden="true" />
+            Sair
           </button>
         </div>
       )}

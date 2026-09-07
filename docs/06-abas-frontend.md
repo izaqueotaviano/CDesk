@@ -46,3 +46,15 @@ O backend **nunca devolve** id de ticket fora de `visible_to(user)`:
 
 A resposta do GET já vem **hidratada** (resumo de cada ticket na ordem das abas):
 a SPA restaura a TabBar com um único request, sem N chamadas de detalhe.
+
+## Abas de seção (Fase 2 da unificação de shell)
+
+A barra do shell (`resolv/shell/BarraDeAbas.tsx`) passou a mostrar, na mesma
+faixa, abas de **seção** — Tickets, Quadro, Chat, Clientes, Avisos, Auditoria,
+Configurações, Relatórios (uma por rota, dedup por prefixo, nunca duplica). O
+contrato acima **não muda para elas**: seção é navegação ambiente, não dado
+de trabalho, e nunca chega perto do PUT/GET — é puramente local
+(`stores/tabs.ts`, tipo `AbaSecao`), sem par no backend. O `Aba` do store
+virou uma união (`AbaTicket | AbaSecao`); `active` deixou de ser o
+`ticketId` cru e passou a ser a `chaveAba` (string, `ticket:ID` ou
+`secao:ROTA`) — só isso muda pra quem consumia o store direto.

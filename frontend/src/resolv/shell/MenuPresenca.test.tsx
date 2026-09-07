@@ -43,6 +43,9 @@ beforeEach(() => {
           ? Promise.resolve(jsonDe({ presence: presencaDeQuemEstaLogado }))
           : Promise.resolve(jsonDe({ presence: 'Use um de: available, away, offline.' }, statusDoPost))
       }
+      if (u.pathname === '/api/v1/auth/logout/') {
+        return Promise.resolve(new Response(null, { status: 204 }))
+      }
       return Promise.resolve(jsonDe({}, 404))
     }),
   )
@@ -57,6 +60,7 @@ function montar() {
         <Routes>
           <Route path="/inicio" element={<MenuPresenca />} />
           <Route path="/conta" element={<p>tela da minha conta</p>} />
+          <Route path="/login" element={<p>tela de login</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -114,6 +118,18 @@ describe('MenuPresenca', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Minha conta' }))
 
     expect(await screen.findByText('tela da minha conta')).toBeInTheDocument()
+  })
+
+  it('Sair encerra a sessão e leva para o login — absorveu o ícone que morava na Topbar', async () => {
+    montar()
+    await abrirMenu()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sair' }))
+
+    await waitFor(() =>
+      expect(chamadas).toContainEqual({ url: '/api/v1/auth/logout/', metodo: 'POST', corpo: undefined }),
+    )
+    expect(await screen.findByText('tela de login')).toBeInTheDocument()
   })
 
   it('avisa quando o backend recusa a mudança, em vez de falhar calado', async () => {

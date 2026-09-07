@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import type { Me } from '@/api/types'
-import { useTabs } from '@/stores/tabs'
+import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { formatarDataHora } from '../format'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
@@ -370,7 +370,8 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
   // então o valor lido aqui é só o desta aba neste navegador; correto para
   // "restaura ao trocar de aba/voltar" (item 21).
   const scrollSalvo = useTabs(
-    (s) => s.tabs.find((a) => a.ticketId === ticket.id)?.scroll ?? 0,
+    (s) =>
+      s.tabs.find((a): a is AbaTicket => a.tipo === 'ticket' && a.ticketId === ticket.id)?.scroll ?? 0,
   )
   const atualizarScroll = useTabs((s) => s.atualizarScroll)
   const debounceScrollRef = useRef<ReturnType<typeof setTimeout>>()
