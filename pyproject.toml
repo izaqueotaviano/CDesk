@@ -57,6 +57,9 @@ reports = [
     "openpyxl>=3.1",       # exportação XLSX
     "weasyprint>=62.0",    # exportação PDF
 ]
+monitoring = [
+    "sentry-sdk>=2.0",     # observabilidade de erro em produção (SENTRY_DSN)
+]
 
 # Layout "flat" (sem src/): apps/ e config/ são os únicos pacotes Python de
 # verdade (têm __init__.py) — deploy/, frontend/, templates/ são scripts de

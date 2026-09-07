@@ -1,19 +1,24 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useMe } from '@/api/queries/useMe'
+import { useLogout } from '@/api/mutations/useLogout'
 import { MiniChat } from '@/resolv/chat/MiniChat'
 // Tudo do barrel (DESIGN.md: "Importe sempre de src/components, nunca do
 // caminho profundo") — inclusive ToastProvider/useToast e initialsFrom, que
 // antes vinham de caminhos internos dos componentes.
-import { AppShell, ToastProvider, initialsFrom, useToast, type NavId } from './components'
+import { AppShell, Popover, ToastProvider, initialsFrom, useToast, type NavId } from './components'
 import './styles/global.scss'
 
 /**
  * Ponte entre o AppShell real (cvzdesk) e os dados/rotas do Resolv. Hoje só
- * `inicio`, `tickets`, `clientes`, `avisos`, `auditoria`, `configuracoes` e
- * `relatorios` têm tela — os demais itens da sidebar disparam um toast "em
- * construção" em vez de navegar para lugar nenhum (nunca um link morto
- * silencioso).
+ * `inicio`, `tickets`, `chats`, `clientes`, `avisos`, `auditoria`,
+ * `configuracoes` e `relatorios` têm tela — os demais itens da sidebar
+ * disparam um toast "em construção" em vez de navegar para lugar nenhum
+ * (nunca um link morto silencioso).
+ *
+ * `chats` aponta para a MESMA tela cheia de /chat do shell Resolv
+ * (resolv/chat/PaginaChat) — não existe uma versão cvz separada, é só mais
+ * uma porta de entrada pra ela.
  *
  * `conversations`/`notifications` ficam em 0 de propósito: inventar um número
  * ali seria o mesmo erro que a barra "3 conversas" fixa da base anterior — a
@@ -22,6 +27,7 @@ import './styles/global.scss'
 const ROTA_POR_NAV: Partial<Record<NavId, string>> = {
   inicio: '/inicio',
   tickets: '/chamados',
+  chats: '/chat',
   clientes: '/clientes',
   avisos: '/avisos',
   auditoria: '/auditoria',
@@ -36,6 +42,7 @@ function navIdAtivo(pathname: string): NavId {
   if (pathname.startsWith('/configuracoes')) return 'configuracoes'
   if (pathname.startsWith('/relatorios')) return 'relatorios'
   if (pathname.startsWith('/chamados')) return 'tickets'
+  if (pathname.startsWith('/chat')) return 'chats'
   return 'inicio'
 }
 
@@ -67,6 +74,8 @@ function CvzAppShellBridge({
   const navigate = useNavigate()
   const location = useLocation()
   const { push } = useToast()
+  const logout = useLogout()
+  const [menuPerfilAberto, setMenuPerfilAberto] = useState(false)
 
   const handleNavigate = (id: NavId) => {
     const rota = ROTA_POR_NAV[id]
@@ -87,9 +96,11 @@ function CvzAppShellBridge({
         }}
         conversations={0}
         notifications={0}
+        onOpenProfile={() => setMenuPerfilAberto(true)}
         onRunCommand={(cmd) => {
           if (cmd.id === 'nav-inicio') navigate('/inicio')
           else if (cmd.id === 'nav-tickets') navigate('/chamados')
+          else if (cmd.id === 'nav-chats') navigate('/chat')
           else if (cmd.id === 'nav-clientes') navigate('/clientes')
           else if (cmd.id === 'nav-avisos') navigate('/avisos')
           else if (cmd.id === 'nav-auditoria') navigate('/auditoria')
@@ -101,6 +112,44 @@ function CvzAppShellBridge({
       >
         {children}
       </AppShell>
+
+      {/* Âncora fora da árvore do AppShell — o shell genérico só sabe abrir o
+          menu (onOpenProfile), quem sabe o que fazer com ele é a ponte com a
+          API. Posição fixa no canto onde o avatar da Topbar sempre cai (topo
+          = altura da barra, direita = mesmo respiro dela): mais simples que
+          medir o botão real por ref, e o Popover só cuida do painel — o
+          "gatilho" dele fica mudo (`null`) porque quem abre é o botão de
+          verdade lá dentro do Topbar. */}
+      <div className="app-shell__profile-anchor">
+        <Popover
+          align="end"
+          open={menuPerfilAberto}
+          onOpenChange={setMenuPerfilAberto}
+          trigger={() => null}
+        >
+          {(fechar) => (
+            <div className="app-shell__profile-menu" role="menu" aria-label="Menu da conta">
+              <div className="app-shell__profile-menu-header">
+                <strong>{me?.full_name ?? '—'}</strong>
+                {me?.email && <span>{me.email}</span>}
+              </div>
+              <button
+                type="button"
+                role="menuitem"
+                className="app-shell__profile-menu-item"
+                disabled={logout.isPending}
+                onClick={() => {
+                  fechar()
+                  logout.mutate()
+                }}
+              >
+                Sair
+              </button>
+            </div>
+          )}
+        </Popover>
+      </div>
+
       {/* irmão do shell, não filho do <main>: o mesmo mini chat do shell
           Resolv — a pessoa continua respondendo um atendimento enquanto
           olha um cliente ou um relatório aqui */}
@@ -108,8 +157,3 @@ function CvzAppShellBridge({
     </>
   )
 }
-
-// NOTA: o AppShell não expõe `onOpenProfile` (só chega até o Topbar sem
-// prop pra fora) — clicar no avatar/nome não faz nada ainda. Sair continua
-// só na sidebar da base antiga (/app) até o cvzdesk ganhar o Menu/Popover
-// que faltam nesta base para um menu de conta de verdade.

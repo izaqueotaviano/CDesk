@@ -598,3 +598,32 @@ LOGGING = {
         "axes": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }
+
+
+# --------------------------------------------------------------------------- #
+# Sentry (observabilidade de erro, opcional)
+# --------------------------------------------------------------------------- #
+# Hoje o único destino de um 500 é o `mail_admins` acima (ou quem estiver
+# olhando o stdout) — sem captura estruturada, sem stack trace agregado,
+# sem alerta fora do e-mail. Igual a CLAMAV_ENABLED/WORDPRESS_KB_ENABLED
+# acima: uma env var liga a integração, o código nunca assume que ela existe.
+# Sem SENTRY_DSN (o padrão), é no-op completo — nem o pacote precisa estar
+# instalado (extra `.[monitoring]`); com o pacote ausente e a env var vazia
+# também não faz nada, então o boot não quebra num ambiente que não o tem.
+# FALTA: setar SENTRY_DSN no ambiente real (produção/homologação) para ativar.
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+    except ImportError:
+        pass
+    else:
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=env("SENTRY_ENVIRONMENT", default="production"),
+            # dado de cliente sob LGPD (ver docstring de prod.py): nada de PII
+            # nos eventos de erro por padrão — cabeçalho, corpo de requisição
+            # e usuário autenticado ficam de fora.
+            send_default_pii=False,
+            traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
+        )

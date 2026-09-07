@@ -343,6 +343,24 @@
     border-top: 0.7px solid var(--stroke);
     background: var(--surface-card);
   }
+  // Aviso de macro aplicada — mesmo acento do `.cc-conversa__banner` (tint
+  // do --accent), mas na largura/posição do `&__erro` acima (some sozinho,
+  // ver o timeout em ConversaChat.tsx).
+  &__aviso {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 20px;
+    font-size: 12px;
+    color: var(--text-primary);
+    border-top: 0.7px solid var(--stroke);
+    background: color-mix(in srgb, var(--accent) 6%, var(--surface-card));
+
+    i {
+      color: var(--accent);
+      font-size: 14px;
+    }
+  }
 }
 
 .cc-msg {
@@ -492,6 +510,11 @@
     justify-content: space-between;
     gap: 12px;
   }
+  &__ferramentas {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
   &__anexar {
     display: inline-flex;
     align-items: center;
@@ -504,9 +527,101 @@
     color: var(--text-secondary);
     cursor: pointer;
 
+    &:hover,
+    &--ativa {
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
+    }
     &:disabled {
       opacity: 0.5;
+      &:hover {
+        border-color: var(--stroke);
+        color: var(--text-secondary);
+      }
     }
+  }
+  // Menu "Aplicar macro…" — mesmo combobox com filtro do compositor do
+  // chamado (resolv/tickets/detalhe/detalhe.scss, `.compositor__macro*`),
+  // classes copiadas aqui porque esta pasta não importa scss de outra.
+  &__macro {
+    position: relative;
+  }
+  &__macro-painel {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    z-index: 500;
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border-radius: 2px;
+    box-shadow: var(--sombra-flutuante);
+    overflow: hidden;
+  }
+  &__macro-filtro {
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-bottom: 0.7px solid var(--stroke);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 13px;
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o painel já se destaca com sombra; o campo não precisa de anel próprio
+    }
+  }
+  &__macro-menu {
+    max-height: 260px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+  }
+  &__macro-vazio {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__macro-opcao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+
+    // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
+    // precisa do mesmo destaque do :hover — é o único sinal de "isto é o
+    // que Enter escolhe agora", já que não há foco real na opção.
+    &:hover,
+    &--ativa {
+      background: var(--surface-alt);
+    }
+  }
+  &__macro-nome {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__macro-previa {
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__macro-triagem {
+    font-size: 11px;
+    color: var(--accent);
   }
   &__enviar {
     padding: 8px 18px;

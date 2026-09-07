@@ -26,6 +26,8 @@ export interface AppShellProps {
   notifications?: number;
   commands?: Command[];
   onRunCommand?: (command: Command) => void;
+  /** Clique no avatar/nome da Topbar. Sem isso o botão fica mudo. */
+  onOpenProfile?: () => void;
 }
 
 export function AppShell({
@@ -39,6 +41,7 @@ export function AppShell({
   notifications = 0,
   commands,
   onRunCommand,
+  onOpenProfile,
 }: AppShellProps) {
   const { open, openPalette, closePalette } = useCommandPalette();
   const { theme, toggle } = useTheme();
@@ -111,6 +114,7 @@ export function AppShell({
           onToggleTheme={toggle}
           onOpenSearch={openPalette}
           onOpenNav={isMobile ? () => setNavOpen(true) : undefined}
+          onOpenProfile={onOpenProfile}
         />
 
         <main

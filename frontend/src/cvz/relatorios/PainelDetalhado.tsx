@@ -1,24 +1,29 @@
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
 import { ErrorState, Select, StatCard, TextInput } from '@/cvz/components'
-import { useAgentes, useEmpresasOpcoes } from '@/cvz/tickets/dados'
+import { useAgentes, useEmpresasOpcoes, useEquipes } from '@/cvz/tickets/dados'
 import { PainelExportacoes } from './PainelExportacoes'
 import { formatarDuracao } from './formato'
 import { urlExportarCsv, useRelatorioTickets, type FiltrosRelatorio } from './dados'
 
 /**
- * O mesmo dado do painel acima, num recorte livre — período e agente/empresa,
- * exportado em CSV (na hora) ou em XLSX/PDF (assíncrono, `PainelExportacoes`
- * logo abaixo). Não repete a lista de tickets ticket a ticket: essa já existe
- * em /chamados com os próprios filtros; aqui é só o resumo do recorte + os
- * dois jeitos de exportar (`TicketReportExportView`, download síncrono sem
- * fetch/blob, e `ReportExportViewSet`, fila do Celery pros formatos mais
- * pesados de montar).
+ * O mesmo dado do painel acima, num recorte livre — período, agente/empresa
+ * e equipe —, exportado em CSV (na hora) ou em XLSX/PDF (assíncrono,
+ * `PainelExportacoes` logo abaixo). Não repete a lista de tickets ticket a
+ * ticket: essa já existe em /chamados com os próprios filtros; aqui é só o
+ * resumo do recorte + os dois jeitos de exportar (`TicketReportExportView`,
+ * download síncrono sem fetch/blob, e `ReportExportViewSet`, fila do Celery
+ * pros formatos mais pesados de montar).
+ *
+ * `filtros` é o MESMO objeto passado pro resumo em tela e pro link de CSV —
+ * de propósito: era exatamente a falta desse vínculo que fazia a exportação
+ * baixar tudo que o usuário enxerga, mesmo com a equipe filtrada aqui.
  */
 export function PainelDetalhado() {
   const [filtros, setFiltros] = useState<FiltrosRelatorio>({})
   const agentes = useAgentes()
   const empresas = useEmpresasOpcoes()
+  const equipes = useEquipes()
   const relatorio = useRelatorioTickets(filtros)
 
   const opcoesAgente = [
@@ -28,6 +33,10 @@ export function PainelDetalhado() {
   const opcoesEmpresa = [
     { value: '', label: 'Todas as empresas' },
     ...(empresas.data ?? []).map((e) => ({ value: String(e.id), label: e.name })),
+  ]
+  const opcoesEquipe = [
+    { value: '', label: 'Todas as equipes' },
+    ...(equipes.data ?? []).map((e) => ({ value: String(e.id), label: e.name })),
   ]
 
   function setCampo<K extends keyof FiltrosRelatorio>(campo: K, valor: string) {
@@ -46,6 +55,7 @@ export function PainelDetalhado() {
         <TextInput label="Até" type="date" value={filtros.to ?? ''} onChange={(e) => setCampo('to', e.target.value)} />
         <Select label="Agente" value={filtros.agent ?? ''} onChange={(e) => setCampo('agent', e.target.value)} options={opcoesAgente} />
         <Select label="Empresa" value={filtros.company ?? ''} onChange={(e) => setCampo('company', e.target.value)} options={opcoesEmpresa} />
+        <Select label="Equipe" value={filtros.team ?? ''} onChange={(e) => setCampo('team', e.target.value)} options={opcoesEquipe} />
       </div>
 
       {relatorio.isError ? (

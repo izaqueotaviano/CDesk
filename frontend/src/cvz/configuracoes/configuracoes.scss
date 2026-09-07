@@ -203,6 +203,145 @@
   }
 }
 
+// Configurações → Equipes: roster (cada equipe com quem a atende, mais
+// "Sem equipe") e as ações administrativas por agente. A DataTable já traz
+// borda/raio/fundo próprios (DataTable.scss) — o card aqui é só o cabeçalho
+// da equipe em cima dela, não uma segunda moldura.
+.cfg-roster {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-5;
+}
+
+.cfg-roster__equipe {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.cfg-roster__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-3;
+}
+
+.cfg-roster__cabecalho-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cfg-roster__cabecalho-titulo {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  @include type($fs-title, $w-semibold);
+  color: $text;
+}
+
+.cfg-roster__cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+// Menu de ações por agente (Popover + botões) — mesmo padrão do menu de
+// perfil do shell (AppShell.scss, `.app-shell__profile-menu`).
+.cfg-roster__menu {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+}
+
+.cfg-roster__menu-item {
+  @include button-reset;
+  @include focus-ring;
+  width: 100%;
+  min-height: $control-h;
+  padding: 0 $sp-3;
+  border-radius: $radius;
+  text-align: left;
+  @include type($fs-ui);
+  color: $text;
+  transition: background-color $dur $ease;
+
+  &:hover {
+    background-color: $hover;
+  }
+
+  &--perigo {
+    color: $danger;
+  }
+}
+
+// Alterna entre "criar novo" e "vincular existente" no modal de adicionar
+// agente — dois botões que se comportam como um radiogroup, não uma escolha
+// de ação (por isso Button + aria-pressed, não Tabs: não há conteúdo por
+// aba, só qual formulário aparece embaixo).
+.cfg-roster__modo {
+  display: flex;
+  gap: $sp-2;
+}
+
+// Senha sorteada em `reset-password` — mostrada uma única vez, na resposta.
+// Mesmo tratamento visual da chave do chat embutido (clientes.scss,
+// `.clientes-chave-gerada`): código monoespaçado + botão de copiar.
+.cfg-roster__segredo {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  margin-top: $sp-2;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+
+  code {
+    flex: 1;
+    min-width: 0;
+    @include type($fs-ui, $w-regular);
+    font-family: $f-mono;
+    word-break: break-all;
+  }
+}
+
+// Histórico de acesso (modal) — sessões vivas + atividade recente, mesma
+// forma de `apps.accounts.sessions.access_history_payload`.
+.cfg-roster__historico {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.cfg-roster__historico-titulo {
+  margin: 0 0 $sp-2;
+  @include type($fs-ui, $w-semibold);
+  color: $text;
+}
+
+.cfg-roster__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cfg-roster__historico-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+}
+
 // Configurações → Tela de login: campos à esquerda, prévia do painel à direita
 .cfg-marca {
   display: grid;

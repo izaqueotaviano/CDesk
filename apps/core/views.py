@@ -310,6 +310,7 @@ class GlobalSearchView(APIView):
 
     permission_classes = [IsInternal]
 
+    @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
         # imports locais: evita ciclo de import no nível de módulo entre
         # apps.core e apps.tickets (que também importa apps.core.permissions)

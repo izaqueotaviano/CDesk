@@ -20,6 +20,10 @@ const PEDIDO_ANONIMIZAR = {
   created_at: '2026-09-01T00:00:00Z',
 }
 
+const CANDIDATO_PII = {
+  model: 'ticket', pk: 55, field: 'subject', reference: 'CVZ-2026-000055', pattern: 'cpf',
+}
+
 const ACESSO = {
   id: 1, ticket: 128, ticket_reference: 'CVZ-2026-000128', team: 'Financeiro', user: 9, user_name: 'Bruno',
   was_granted: false, context: 'detail', ip_address: '203.0.113.9', created_at: '2026-09-02T00:00:00Z',
@@ -34,6 +38,9 @@ const CICLO_SIMULACAO = {
 
 let me: Record<string, unknown>
 let chamadas: { url: string; metodo: string; corpo: unknown }[]
+// muda para [] após um redact bem-sucedido — simula o candidato sumindo da
+// varredura seguinte porque o texto redigido não bate mais no padrão de PII.
+let candidatosPii: (typeof CANDIDATO_PII)[]
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -42,6 +49,7 @@ function jsonDe(body: unknown, status = 200) {
 beforeEach(() => {
   me = ADMIN
   chamadas = []
+  candidatosPii = [CANDIDATO_PII]
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
@@ -55,6 +63,11 @@ beforeEach(() => {
       if (u.pathname === '/api/v1/audit/lgpd/7/verify/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'approved' }))
       if (u.pathname === '/api/v1/audit/lgpd/7/reject/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'rejected' }))
       if (u.pathname === '/api/v1/audit/lgpd/7/execute/') return Promise.resolve(jsonDe({ ...PEDIDO_ANONIMIZAR, status: 'running' }))
+      if (u.pathname === '/api/v1/audit/lgpd/7/redaction_candidates/' && metodo === 'GET') return Promise.resolve(jsonDe({ candidates: candidatosPii }))
+      if (u.pathname === '/api/v1/audit/lgpd/7/redact/' && metodo === 'POST') {
+        candidatosPii = []
+        return Promise.resolve(jsonDe({ redacted: true }))
+      }
       if (u.pathname === '/api/v1/audit/ticket-access/') return Promise.resolve(jsonDe({ count: 1, next: null, previous: null, results: [ACESSO] }))
       if (u.pathname === '/api/v1/audit/retention/' && metodo === 'GET') return Promise.resolve(jsonDe({ count: 1, next: null, previous: null, results: [CICLO_SIMULACAO] }))
       if (u.pathname === '/api/v1/audit/retention/simulate/') return Promise.resolve(jsonDe({ ...CICLO_SIMULACAO, id: 4 }, 201))
@@ -101,6 +114,40 @@ describe('PaginaAuditoria', () => {
 
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/lgpd/7/verify/' && c.metodo === 'POST')).toBe(true))
     expect(chamadas.find((c) => c.url === '/api/v1/audit/lgpd/7/verify/')!.corpo).toEqual({ verification_note: 'Ligação confirmada' })
+  })
+
+  it('executar anonimização passa pela revisão de PII antes de disparar a execução', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Pedidos LGPD' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Executar' }))
+
+    // a revisão busca os candidatos e mostra o que seria redigido — modelo,
+    // referência do ticket e o tipo de PII, sem executar nada ainda
+    const revisao = await screen.findByRole('dialog', { name: 'Revisar antes de anonimizar' })
+    expect(await within(revisao).findByText('CPF')).toBeInTheDocument()
+    expect(revisao.textContent).toContain('CVZ-2026-000055')
+    expect(chamadas.some((c) => c.url === '/api/v1/audit/lgpd/7/execute/')).toBe(false)
+
+    fireEvent.click(within(revisao).getByRole('button', { name: 'Prosseguir para execução' }))
+    const confirmacao = await screen.findByRole('dialog', { name: 'Confirmar anonimização' })
+    fireEvent.click(within(confirmacao).getByRole('button', { name: 'Executar agora' }))
+
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/lgpd/7/execute/' && c.metodo === 'POST')).toBe(true))
+  })
+
+  it('redigir um candidato na revisão chama o endpoint de redação com o alvo certo', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Pedidos LGPD' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Executar' }))
+
+    const revisao = await screen.findByRole('dialog', { name: 'Revisar antes de anonimizar' })
+    fireEvent.click(await within(revisao).findByRole('button', { name: 'Redigir' }))
+
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/audit/lgpd/7/redact/' && c.metodo === 'POST')).toBe(true))
+    expect(chamadas.find((c) => c.url === '/api/v1/audit/lgpd/7/redact/')!.corpo).toEqual({ model: 'ticket', pk: 55 })
+
+    // o candidato redigido some da varredura seguinte (invalidação da query)
+    expect(await within(revisao).findByText('Nenhum candidato encontrado em texto livre.')).toBeInTheDocument()
   })
 
   it('rejeitar exige motivo e chama o endpoint certo', async () => {

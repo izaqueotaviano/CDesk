@@ -127,6 +127,9 @@ export interface FiltrosRelatorio {
   to?: string
   agent?: string
   company?: string
+  /** Mesmo `?team=` de `IndicatorsView` — sem ele a exportação baixava tudo
+   *  que o usuário enxerga, mesmo com o painel filtrado por equipe na tela. */
+  team?: string
 }
 
 export interface ResumoRelatorio {
@@ -157,6 +160,7 @@ function queryStringFiltros(filtros: FiltrosRelatorio): string {
   if (filtros.to) q.set('to', filtros.to)
   if (filtros.agent) q.set('agent', filtros.agent)
   if (filtros.company) q.set('company', filtros.company)
+  if (filtros.team) q.set('team', filtros.team)
   return q.toString()
 }
 
@@ -291,6 +295,48 @@ export function useEstatisticasDeChat(filtros: FiltrosEstatisticasDeChat) {
   return useQuery({
     queryKey: ['relatorios', 'chats', filtros.period, filtros.granularity, filtros.agentId, filtros.from, filtros.to],
     queryFn: () => api.get<EstatisticasDeChat>(`/api/v1/reports/chats/?${q.toString()}`),
+    staleTime: 15_000,
+  })
+}
+
+// --------------------------------------------------------------------------
+// Tempo de espera/atendimento e nota do chat, por empresa|cliente|agente|nota
+// — apps/chat/views.py::ChatReportView (`GET /api/v1/chat/reports/?by=`).
+//
+// NÃO confundir com `useEstatisticasDeChat` acima: aquele é volume (quantos
+// chats cada agente atendeu), este é qualidade (quanto tempo levou, que nota
+// tirou) — endpoints e apps diferentes (`apps.reports` × `apps.chat`) sobre o
+// mesmo dado de chat, cada um com seu recorte.
+// --------------------------------------------------------------------------
+
+export type EixoRelatorioChat = 'company' | 'client' | 'agent' | 'score'
+
+/**
+ * Uma linha do relatório, em qualquer eixo — espelha `ChatReportRowSerializer`.
+ * A maioria dos campos é opcional porque varia por eixo: `score` só tem
+ * `quantidade`/`nota_resolucao`; os outros três trazem a contagem completa, e
+ * só `agent` tem `nota_do_agente`. Ver docstring do serializer no backend.
+ */
+export interface LinhaRelatorioChat {
+  rotulo: string | number | null
+  total?: number
+  fechados?: number
+  convertidos?: number
+  nao_atendidos?: number
+  nota_atendimento?: number | null
+  nota_resolucao?: number | null
+  nota_do_agente?: number | null
+  /** Minutos (não segundos) — o backend já converte, ver ChatReportView. */
+  espera_media_minutos?: number | null
+  atendimento_medio_minutos?: number | null
+  /** Só no eixo `score`: quantas conversas receberam aquela nota. */
+  quantidade?: number
+}
+
+export function useRelatorioChat(eixo: EixoRelatorioChat) {
+  return useQuery({
+    queryKey: ['relatorios', 'chat-relatorio', eixo],
+    queryFn: () => api.get<LinhaRelatorioChat[]>(`/api/v1/chat/reports/?by=${eixo}`),
     staleTime: 15_000,
   })
 }

@@ -8,7 +8,12 @@ essa é a que, se quebrar, vaza conversa interna para fora.
 import pytest
 
 from apps.accounts.models import AgentTeam, InternalRole, Team, User, UserKind
-from apps.notifications.models import Notification, NotificationKind
+from apps.notifications.models import (
+    Notification,
+    NotificationKind,
+    NotificationPreference,
+    OutboundEmail,
+)
 from apps.tickets.models import TicketMention, TicketStatusEvent, TicketWatcher
 from apps.tickets.services import ticket_service
 from apps.tickets.services.mentions import alvos_de_mencao, mencoes_de
@@ -135,6 +140,41 @@ class TestEfeitoDaMencao:
         assert "Izaque Sá" in evento.note
         # menção não mexe no status do ticket
         assert evento.from_status == evento.to_status
+
+
+class TestEmailDaMencao:
+    """MENTION só avisava in-app — o toggle de e-mail existia na tela e não
+    tinha efeito nenhum, porque nada consultava `quer_email` para este tipo."""
+
+    def test_mencao_envia_email_ao_mencionado(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        ticket = make_ticket(ana, suporte)
+        _nota(ticket, agente_suporte, f"@[user:{izaque.pk}] pode olhar?")
+
+        email = OutboundEmail.objects.get(to_email=izaque.email, template="mention")
+        assert email.ticket_id == ticket.pk
+        assert ticket.reference in email.subject
+
+    def test_email_desligado_nao_envia(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        NotificationPreference.objects.create(user=izaque, email={"mention": False})
+        ticket = make_ticket(ana, suporte)
+        _nota(ticket, agente_suporte, f"@[user:{izaque.pk}] pode olhar?")
+
+        # o sino continua ligado (default) — só o e-mail foi desligado
+        assert Notification.objects.filter(recipient=izaque, kind=NotificationKind.MENTION).exists()
+        assert not OutboundEmail.objects.filter(template="mention").exists()
+
+    def test_mencao_repetida_gera_um_email_so(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        ticket = make_ticket(ana, suporte)
+        marca = f"@[user:{izaque.pk}]"
+        _nota(ticket, agente_suporte, f"{marca} e de novo {marca} e {marca}")
+
+        assert OutboundEmail.objects.filter(to_email=izaque.email, template="mention").count() == 1
 
     def test_mencao_repetida_gera_uma_notificacao_so(
         self, make_ticket, ana, suporte, agente_suporte, izaque

@@ -1,0 +1,47 @@
+# Worker Celery do resolv — tarefas assíncronas (e-mail, exportação de
+# relatório, varredura de antivírus, sincronização com a Central de Ajuda…).
+# Mesmo comando que o `worker` do docker-compose.yml roda em
+# desenvolvimento: filas `default` e `reports` no mesmo processo.
+#
+# Sem esta unidade no ar, tudo que passa por `.delay()`/`.apply_async()`
+# fica só empilhado no Redis — a demo do Railway roda sem worker de
+# propósito (CELERY_TASK_ALWAYS_EAGER, ver docs/10-deploy-railway.md);
+# produção de verdade não pode.
+#
+# Suposição documentada: mesmo usuário "resolv" sem privilégio do
+# resolv-web.service — ver o comentário no topo daquele arquivo.
+#
+# Instalar (uma vez, como root):
+#   cp deploy/systemd/resolv-celery-worker.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now resolv-celery-worker.service
+
+[Unit]
+Description=resolv — worker Celery (filas default, reports)
+Documentation=file:///srv/resolv/docs/15-deploy-producao.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=resolv
+Group=resolv
+WorkingDirectory=/srv/resolv
+EnvironmentFile=/etc/resolv/.env
+ExecStart=/srv/resolv/venv/bin/celery -A config worker -Q default,reports -l info
+Restart=on-failure
+RestartSec=5
+# Uma task em andamento (ex.: exportação de PDF grande) termina antes do
+# SIGKILL — Celery já trata SIGTERM como "para de aceitar tarefa nova,
+# termina a atual" (warm shutdown); um TimeoutStopSec curto demais viraria
+# um SIGKILL no meio de um export, deixando o arquivo pela metade.
+TimeoutStopSec=60
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/srv/resolv/staticfiles /var/lib/resolv/media
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -25,7 +25,15 @@ RUN pip install --upgrade pip && pip install ".[dev,reports,antivirus]"
 
 COPY . .
 
-RUN mkdir -p /var/lib/resolv/media
+# Usuário sem privilégio: um RCE na aplicação (dependência, upload malicioso
+# que escapa da varredura) não sai escrevendo como root no filesystem do
+# contêiner. staticfiles e media são os dois diretórios que o processo
+# realmente precisa escrever depois do boot — o dono muda ANTES do USER,
+# senão a troca de dono roda como o usuário que não tem permissão para ela.
+RUN mkdir -p /var/lib/resolv/media staticfiles \
+    && useradd --system --create-home --home-dir /home/resolv --shell /usr/sbin/nologin resolv \
+    && chown -R resolv:resolv /app /var/lib/resolv/media
+USER resolv
 
 EXPOSE 8000
 

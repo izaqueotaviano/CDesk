@@ -60,6 +60,71 @@
   }
 }
 
+// --- menu de perfil (avatar da Topbar) ---------------------------------------
+// Renderizado como irmão do <AppShell>, não filho: o botão de verdade mora
+// dentro do Topbar (fora do nosso alcance de DOM), então a âncora só marca o
+// canto onde ele sempre cai — mesma altura da barra, mesmo respiro lateral —
+// em vez de medir o botão por ref. O `.popover` interno (Popover.tsx) fica
+// sem largura/altura própria (o gatilho é mudo), então essa âncora é quem
+// define a posição real do painel.
+.app-shell__profile-anchor {
+  position: fixed;
+  top: $topbar-h;
+  right: $sp-4;
+  z-index: $z-popover;
+
+  @include below-desktop { right: $sp-3; }
+  @include mobile { right: $sp-2; }
+}
+
+.app-shell__profile-menu {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+
+  &-header {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: $sp-2 $sp-3 $sp-3;
+    border-bottom: $border;
+    margin-bottom: $sp-1;
+
+    strong {
+      @include type($fs-ui, $w-semibold);
+      color: $text;
+      @include truncate;
+    }
+
+    span {
+      @include type($fs-meta);
+      color: $text-muted;
+      @include truncate;
+    }
+  }
+
+  &-item {
+    @include button-reset;
+    @include focus-ring;
+    width: 100%;
+    min-height: $control-h;
+    padding: 0 $sp-3;
+    border-radius: $radius;
+    text-align: left;
+    color: $text;
+    transition: background-color $dur $ease;
+
+    &:hover:not(:disabled) {
+      background-color: $hover;
+    }
+
+    &:disabled {
+      color: $text-muted;
+      cursor: not-allowed;
+    }
+  }
+}
+
 @keyframes scrim-in {
   from { opacity: 0; }
   to { opacity: 1; }

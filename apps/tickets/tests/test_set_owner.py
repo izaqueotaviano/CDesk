@@ -5,7 +5,12 @@ NENHUMA exposição de API — nem leitura, nem escrita. Espelha o contrato de
 
 import pytest
 
-from apps.notifications.models import Notification, NotificationKind
+from apps.notifications.models import (
+    Notification,
+    NotificationKind,
+    NotificationPreference,
+    OutboundEmail,
+)
 
 pytestmark = pytest.mark.django_db
 
@@ -104,3 +109,44 @@ class TestSetOwner:
         evento = ticket.status_events.latest("id")
         assert "dono técnico" in evento.note
         assert agente_financeiro.full_name in evento.note
+
+    def test_email_ao_novo_dono_tecnico(
+        self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket,
+    ):
+        """TICKET_OWNER_SET só avisava in-app — o toggle de e-mail da tela de
+        Notificações não tinha efeito nenhum para este tipo."""
+        ticket = make_ticket(requester=ana, team=suporte)
+        api(agente_suporte).post(
+            f"/api/v1/tickets/{ticket.pk}/set-owner/",
+            {"owner_id": agente_financeiro.pk}, format="json",
+        )
+        email = OutboundEmail.objects.get(
+            to_email=agente_financeiro.email, template="ticket_owner_set",
+        )
+        assert email.ticket_id == ticket.pk
+
+    def test_email_desligado_nao_envia(
+        self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket,
+    ):
+        NotificationPreference.objects.create(
+            user=agente_financeiro, email={"ticket_owner_set": False}
+        )
+        ticket = make_ticket(requester=ana, team=suporte)
+        api(agente_suporte).post(
+            f"/api/v1/tickets/{ticket.pk}/set-owner/",
+            {"owner_id": agente_financeiro.pk}, format="json",
+        )
+        assert Notification.objects.filter(
+            recipient=agente_financeiro, kind=NotificationKind.TICKET_OWNER_SET,
+        ).exists()  # sino continua ligado
+        assert not OutboundEmail.objects.filter(template="ticket_owner_set").exists()
+
+    def test_nao_notifica_a_si_mesmo_por_email(
+        self, api, agente_suporte, ana, suporte, make_ticket
+    ):
+        ticket = make_ticket(requester=ana, team=suporte)
+        api(agente_suporte).post(
+            f"/api/v1/tickets/{ticket.pk}/set-owner/",
+            {"owner_id": agente_suporte.pk}, format="json",
+        )
+        assert not OutboundEmail.objects.filter(template="ticket_owner_set").exists()

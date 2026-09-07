@@ -625,9 +625,17 @@ def add_reply(
 
 
 def assign(*, ticket: Ticket, assignee, actor) -> Ticket:
-    """Atribui o ticket a um agente, com notificação in-app (requisito 8)."""
+    """Atribui o ticket a um agente, com notificação in-app e e-mail
+    (requisito 8) — o agente pode estar de fora do sistema quando o
+    ticket cai nele."""
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import broadcast_ticket_event, notify, ticket_url
+    from apps.notifications.services import (
+        broadcast_ticket_event,
+        notify,
+        quer_email,
+        queue_email,
+        ticket_url,
+    )
 
     if not actor.is_internal:
         raise TicketRuleViolation("Apenas usuários internos atribuem tickets.")
@@ -652,15 +660,33 @@ def assign(*, ticket: Ticket, assignee, actor) -> Ticket:
         changed_by=actor, note=f"atribuído a {assignee.full_name if assignee else '—'}",
     )
     if assignee and assignee.pk not in (previous, actor.pk):
+        titulo = f"Ticket atribuído a você: {ticket.reference}"
+        url = ticket_url(ticket, assignee)
         notify(
             recipient=assignee,
             kind=NotificationKind.TICKET_ASSIGNED,
-            title=f"Ticket atribuído a você: {ticket.reference}",
+            title=titulo,
             body=ticket.subject,
-            url=ticket_url(ticket, assignee),
+            url=url,
             ticket=ticket,
             actor=actor,
         )
+        if assignee.email and quer_email(assignee, NotificationKind.TICKET_ASSIGNED):
+            from django.conf import settings
+
+            queue_email(
+                to=assignee.email,
+                subject=titulo,
+                template="ticket_assigned",
+                context={
+                    "agent_name": assignee.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                dedupe_key=f"ticket-assigned:{ticket.pk}:{assignee.pk}:{timezone.now():%Y%m%d%H%M}",
+            )
     broadcast_ticket_event(ticket=ticket, kind="assigned", actor=actor)
     return ticket
 
@@ -676,7 +702,13 @@ def set_owner(*, ticket: Ticket, owner, actor) -> Ticket:
     dois papéis na tela nem no histórico.
     """
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import broadcast_ticket_event, notify, ticket_url
+    from apps.notifications.services import (
+        broadcast_ticket_event,
+        notify,
+        quer_email,
+        queue_email,
+        ticket_url,
+    )
 
     if not actor.is_internal:
         raise TicketRuleViolation("Apenas usuários internos definem o dono técnico.")
@@ -700,15 +732,33 @@ def set_owner(*, ticket: Ticket, owner, actor) -> Ticket:
         changed_by=actor, note=f"dono técnico → {owner.full_name if owner else '—'}",
     )
     if owner and owner.pk not in (previous, actor.pk):
+        titulo = f"Você é o dono técnico de {ticket.reference}"
+        url = ticket_url(ticket, owner)
         notify(
             recipient=owner,
             kind=NotificationKind.TICKET_OWNER_SET,
-            title=f"Você é o dono técnico de {ticket.reference}",
+            title=titulo,
             body=ticket.subject,
-            url=ticket_url(ticket, owner),
+            url=url,
             ticket=ticket,
             actor=actor,
         )
+        if owner.email and quer_email(owner, NotificationKind.TICKET_OWNER_SET):
+            from django.conf import settings
+
+            queue_email(
+                to=owner.email,
+                subject=titulo,
+                template="ticket_owner_set",
+                context={
+                    "agent_name": owner.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                dedupe_key=f"ticket-owner-set:{ticket.pk}:{owner.pk}:{timezone.now():%Y%m%d%H%M}",
+            )
     broadcast_ticket_event(ticket=ticket, kind="owner", actor=actor)
     return ticket
 
@@ -1262,19 +1312,40 @@ def _reopen(ticket: Ticket, author, now, *, automatic=True):
     sla.restart_resolution_sla(ticket)  # D5: novo prazo de resolução
 
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify, ticket_url
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
     # não avisa quem reabriu a si mesmo (agente reabrindo o próprio chamado)
     if ticket.assignee and ticket.assignee_id != author.pk:
+        titulo = f"Ticket reaberto: {ticket.reference}"
+        corpo = f"{author.full_name}: resposta em ticket fechado."
+        url = ticket_url(ticket, ticket.assignee)
         notify(
             recipient=ticket.assignee,
             kind=NotificationKind.TICKET_REOPENED,
-            title=f"Ticket reaberto: {ticket.reference}",
-            body=f"{author.full_name}: resposta em ticket fechado.",
-            url=ticket_url(ticket, ticket.assignee),
+            title=titulo,
+            body=corpo,
+            url=url,
             ticket=ticket,
             actor=author,
         )
+        if ticket.assignee.email and quer_email(ticket.assignee, NotificationKind.TICKET_REOPENED):
+            from django.conf import settings
+
+            queue_email(
+                to=ticket.assignee.email,
+                subject=titulo,
+                template="ticket_reopened",
+                context={
+                    "agent_name": ticket.assignee.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "author_name": author.full_name,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                # cada reabertura é um ciclo de SLA novo (sla_cycle) — e um e-mail novo
+                dedupe_key=f"ticket-reopened:{ticket.pk}:{ticket.sla_cycle}",
+            )
 
 
 # ---------------------------------------------------------------------- #

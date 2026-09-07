@@ -53,6 +53,14 @@ export function formatarValorKpi(valor: number | null, unidade: UnidadeKpi): str
   return String(Math.round(valor))
 }
 
+/** Minutos (contrato de `espera_media_minutos`/`atendimento_medio_minutos`,
+ *  ver `ChatReportView`) → o mesmo texto curto de `formatarDuracao`, que
+ *  trabalha em segundos — converte uma vez aqui, sem duplicar a escala. */
+export function formatarMinutos(minutos: number | null | undefined): string {
+  if (minutos == null) return '—'
+  return formatarDuracao(Math.round(minutos * 60))
+}
+
 export function formatarDataCurta(iso: string): string {
   const [, mes, dia] = iso.split('-')
   return `${dia}/${mes}`

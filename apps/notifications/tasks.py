@@ -98,6 +98,85 @@ EMAIL_TEMPLATES = {
         "Se você não pediu isso a ninguém, avise o suporte agora.\n\n"
         "Este e-mail não recebe respostas."
     ),
+    # --- ciclo de vida visto por quem ATENDE (agente/admin interno) -------
+    # Cada tipo aqui já existia como notificação IN-APP; até esta rodada o
+    # toggle de e-mail correspondente em Minha conta > Notificações não
+    # tinha efeito nenhum — a preferência existia, mas nada consultava
+    # `quer_email` para estes 9 tipos. O texto reaproveita os mesmos dados
+    # já calculados para o `notify()` de cada ponto (título, corpo, link).
+    "ticket_assigned": (
+        "Olá, {agent_name}.\n\n"
+        "O chamado {reference} — {subject} foi atribuído a você.\n\n"
+        "Acesse o sistema para atender:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "ticket_owner_set": (
+        "Olá, {agent_name}.\n\n"
+        "Você foi definido como dono técnico do chamado {reference} — "
+        "{subject}.\n\n"
+        "Acesse o sistema para acompanhar:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "ticket_reopened": (
+        "Olá, {agent_name}.\n\n"
+        "O chamado {reference} — {subject}, atribuído a você, foi reaberto: "
+        "{author_name} respondeu depois do fechamento.\n\n"
+        "Acesse o sistema para continuar o atendimento:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "mention": (
+        "Olá, {agent_name}.\n\n"
+        "{author_name} mencionou você no chamado {reference}: "
+        "\"{resumo}\"\n\n"
+        "Acesse o sistema para ver a nota completa:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "sla_warning": (
+        "Olá, {agent_name}.\n\n"
+        "O SLA de {label} do chamado {reference} — {subject} está próximo "
+        "do limite.\n\n"
+        "Acesse o sistema para atender antes do prazo:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "sla_breached": (
+        "Olá, {agent_name}.\n\n"
+        "O SLA de {label} do chamado {reference} — {subject} estourou.\n\n"
+        "Acesse o sistema para atender:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "kanban_due": (
+        "Olá, {agent_name}.\n\n"
+        "O prazo do card do chamado {reference} — {subject} venceu no "
+        "quadro {board}.\n\n"
+        "Acesse o sistema para atualizar:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    # anexo bloqueado: um template só para os dois pontos de origem (ticket
+    # e chat) — o texto é idêntico, só muda o link de volta (ver
+    # `apps.tickets.tasks` e `apps.chat.tasks`)
+    "attachment_blocked": (
+        "Olá, {user_name}.\n\n"
+        "A verificação antivírus identificou uma ameaça no arquivo "
+        "\"{filename}\" que você enviou, e ele não ficará disponível para "
+        "download.\n\n"
+        "Acesse o sistema para mais detalhes:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "lgpd_deadline": (
+        "Olá, {admin_name}.\n\n"
+        "{corpo}\n\n"
+        "Acesse a auditoria para tratar o pedido:\n"
+        "{link}\n\n"
+        "Este e-mail não recebe respostas."
+    ),
 }
 
 
@@ -192,7 +271,13 @@ def sla_scan():
 
 def _alert(ticket, past_due, label) -> int:
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import already_notified, notify, ticket_url
+    from apps.notifications.services import (
+        already_notified,
+        notify,
+        quer_email,
+        queue_email,
+        ticket_url,
+    )
 
     # sem responsável, quem responde pela fila é o SUPERVISOR da equipe —
     # justamente os tickets "sem atendimento" eram os que ninguém alertava
@@ -206,12 +291,32 @@ def _alert(ticket, past_due, label) -> int:
         return 0
     verb = "estourou" if past_due else "está próximo do limite"
     sufixo = "" if ticket.assignee else " (sem responsável)"
+    titulo = f"SLA de {label} {verb}: {ticket.reference}{sufixo}"
+    url = ticket_url(ticket, destinatario)
     notify(
         recipient=destinatario,
         kind=kind,
-        title=f"SLA de {label} {verb}: {ticket.reference}{sufixo}",
+        title=titulo,
         body=ticket.subject,
-        url=ticket_url(ticket, destinatario),
+        url=url,
         ticket=ticket,
     )
+    if destinatario.email and quer_email(destinatario, kind):
+        from django.conf import settings
+
+        queue_email(
+            to=destinatario.email,
+            subject=titulo,
+            template="sla_breached" if past_due else "sla_warning",
+            context={
+                "agent_name": destinatario.full_name,
+                "reference": ticket.reference,
+                "subject": ticket.subject,
+                "label": label,
+                "link": f"{settings.SITE_URL}{url}",
+            },
+            ticket=ticket,
+            # mesma régua do dedupe in-app: reabertura (sla_cycle) libera novo aviso
+            dedupe_key=f"{kind}:{ticket.pk}:{ticket.sla_cycle}",
+        )
     return 1 if past_due else 0

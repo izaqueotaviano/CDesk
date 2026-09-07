@@ -101,6 +101,47 @@ export function useExecutarPedido(id: number) {
   })
 }
 
+/** `pattern` é só o NOME do padrão que casou (cpf, telefone…) — o serviço
+ *  (apps/audit/services/anonymization.py::find_free_text_pii) devolve isso e
+ *  onde está (model/pk/field/reference), nunca o trecho com a PII em si: a
+ *  varredura já é para revisão assistida, não faz sentido a tela de revisão
+ *  reexpor o dado sensível que ela existe para tratar. */
+export interface CandidatoRedacao {
+  model: 'ticket' | 'message'
+  pk: number
+  field: string
+  reference: string
+  pattern: string
+}
+
+function chaveCandidatos(id: number) {
+  return ['auditoria', 'lgpd', id, 'redaction-candidates'] as const
+}
+
+/** A varredura roda de novo a cada chamada — só busca quando `ativo`, isto é,
+ *  quando o admin de fato abriu a revisão (evita rodar regex sobre texto
+ *  livre de todo pedido pendente só por a linha estar na tabela). */
+export function useCandidatosRedacao(id: number, ativo: boolean) {
+  return useQuery({
+    queryKey: chaveCandidatos(id),
+    queryFn: () => api.get<{ candidates: CandidatoRedacao[] }>(`/api/v1/audit/lgpd/${id}/redaction_candidates/`),
+    enabled: ativo,
+    select: (d) => d.candidates,
+  })
+}
+
+export function useRedigirCampo(id: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (alvo: Pick<CandidatoRedacao, 'model' | 'pk'>) =>
+      api.post<{ redacted: boolean }>(`/api/v1/audit/lgpd/${id}/redact/`, alvo),
+    // redigido, o texto não bate mais nos padrões de PII — invalidar e deixar
+    // a varredura seguinte tirar o candidato da lista é mais simples (e mais
+    // fiel ao servidor) do que remover a linha na mão no client.
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveCandidatos(id) }),
+  })
+}
+
 // --------------------------------------------------------------------------
 // Acessos a ticket restrito — TicketAccessLogViewSet (apps/audit/views.py)
 // --------------------------------------------------------------------------

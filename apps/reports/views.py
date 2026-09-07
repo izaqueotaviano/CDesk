@@ -80,8 +80,15 @@ class _BaseReportView(APIView):
         if not request.user.is_internal:
             raise PermissionDenied("Relatórios são área interna.")
         params = request.query_params
+        queryset = selectors.visible_tickets(request.user)
+        # mesmo `?team=` do painel (`IndicatorsView`): filtrar aqui, antes de
+        # `build_report`, é o que faz a exportação parar de baixar equipes que
+        # a tela já não está mostrando.
+        team_id = _parse_int(params.get("team"), "team")
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
         return metrics.build_report(
-            selectors.visible_tickets(request.user),
+            queryset,
             date_from=_parse_date(params.get("from"), "from"),
             date_to=_parse_date(params.get("to"), "to"),
             agent_id=params.get("agent"),
@@ -97,6 +104,7 @@ REPORT_FILTERS = [
     OpenApiParameter("agent", OpenApiTypes.INT, description="Id do agente"),
     OpenApiParameter("company", OpenApiTypes.INT, description="Id da empresa"),
     OpenApiParameter("requester", OpenApiTypes.INT, description="Id do solicitante"),
+    OpenApiParameter("team", OpenApiTypes.INT, description="Id da equipe"),
 ]
 
 

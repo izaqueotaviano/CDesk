@@ -70,7 +70,7 @@ def scan_lgpd_deadlines() -> dict:
     from apps.accounts.models import InternalRole, User, UserKind
     from apps.audit.models import DataSubjectRequest
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email
 
     open_requests = DataSubjectRequest.objects.filter(
         status__in=[
@@ -100,14 +100,36 @@ def scan_lgpd_deadlines() -> dict:
             if is_overdue
             else f"Pedido LGPD #{dsr.pk} vence em {remaining} dia(s)"
         )
+        corpo = f"{dsr.get_kind_display()} — prazo legal de 15 dias (LGPD art. 19)."
+        url = "/admin/auditoria"
         for admin in admins:
             notify(
                 recipient=admin,
                 kind=NotificationKind.LGPD_DEADLINE,
                 title=title,
-                body=f"{dsr.get_kind_display()} — prazo legal de 15 dias (LGPD art. 19).",
-                url="/admin/auditoria",
+                body=corpo,
+                url=url,
             )
+            # LGPD_DEADLINE avisa quem tem o papel institucional (admin), mas
+            # quem decide se o CANAL de e-mail liga é a preferência PESSOAL de
+            # cada admin — a mesma tela de Minha conta > Notificações.
+            if admin.email and quer_email(admin, NotificationKind.LGPD_DEADLINE):
+                from django.conf import settings
+
+                queue_email(
+                    to=admin.email,
+                    subject=title,
+                    template="lgpd_deadline",
+                    context={
+                        "admin_name": admin.full_name,
+                        "corpo": corpo,
+                        "link": f"{settings.SITE_URL}{url}",
+                    },
+                    # um aviso por (pedido, admin, dia D-8/D-3/vencido) — o
+                    # próprio título já distingue "vence em N dia(s)" de
+                    # "VENCIDO", então ele participa da chave
+                    dedupe_key=f"lgpd-deadline:{dsr.pk}:{admin.pk}:{title}",
+                )
         overdue += 1 if is_overdue else 0
         warned += 0 if is_overdue else 1
 

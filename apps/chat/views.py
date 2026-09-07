@@ -517,6 +517,7 @@ class ChatTimelineView(APIView):
         })
 
 
+@extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
 class ChatTimelineExportView(APIView):
     """A conversa contínua do cliente em PDF.
 
@@ -536,7 +537,7 @@ class ChatTimelineExportView(APIView):
         try:
             pdf, nome = transcript.chat_pdf(mensagens, sessoes, para=request.user)
         except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
         resp = HttpResponse(pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{nome}"'
         return resp

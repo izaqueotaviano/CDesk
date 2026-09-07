@@ -227,6 +227,187 @@ export function useAtualizarEquipeCfg(id: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Agentes — a tela "Equipes e agentes" de verdade (apps/accounts/admin_api.py:
+// TeamAdminViewSet.roster + UserAdminViewSet). Recorte de `UserAdminSerializer`
+// só com o que a tela usa; a escrita de cadastro (nome/telefone/papel) segue
+// pelo endpoint plano `settings/users/<id>/`, mas nenhuma tela ainda precisa
+// dela — as ações aqui são as administrativas (convite, senha, 2FA, sessões,
+// desativar) que só existiam no /admin/ cru do Django.
+// ---------------------------------------------------------------------------
+
+export type Metodo2FA = '' | 'email' | 'totp'
+
+export interface AgenteCfg {
+  id: number
+  email: string
+  full_name: string
+  kind: 'internal' | 'client'
+  internal_role: string | null
+  client_role: string | null
+  company: number | null
+  company_name: string | null
+  job_title: string
+  phone: string
+  phone_secondary: string
+  is_active: boolean
+  last_login: string | null
+  last_seen_at: string | null
+  anonymized_at: string | null
+  // '' | 'pendente' | 'aceito' — vazio é quem entra só por Google (ver
+  // `precisa_de_convite` no backend); os outros dois só existem quando a
+  // conta depende de senha.
+  invite_status: string
+  team_ids: number[]
+  two_factor_method: Metodo2FA
+  avatar_url: string
+  custom_role: number | null
+  custom_role_name: string | null
+  ticket_scope: string
+}
+
+/** Uma equipe do roster, já com quem a atende — é `EquipeCfg` mais o que só
+ *  `TeamAdminViewSet.roster` devolve (a listagem `settings/teams/` sozinha
+ *  não traz `agents`). */
+export interface EquipeRosterCfg extends EquipeCfg {
+  agents: AgenteCfg[]
+}
+
+export interface RosterCfg {
+  teams: EquipeRosterCfg[]
+  unassigned: AgenteCfg[]
+}
+
+export function useRosterCfg() {
+  return useQuery({
+    queryKey: ['cfg-roster'],
+    queryFn: () => api.get<RosterCfg>('/api/v1/settings/teams/roster/'),
+    staleTime: 30_000,
+  })
+}
+
+/** Toda mutação sobre um agente pode mudar como ele aparece no roster (papel,
+ *  convite, 2FA, ativo) — e várias também mudam `useAgentes()` (o diretório
+ *  que alimenta seletor de responsável em tickets), que só lista quem está
+ *  ativo. Um só invalidador evita esquecer a segunda lista numa mutação nova. */
+function useInvalidarRoster() {
+  const qc = useQueryClient()
+  return () => {
+    qc.invalidateQueries({ queryKey: ['cfg-roster'] })
+    qc.invalidateQueries({ queryKey: ['agentes'] })
+  }
+}
+
+/** `user` vincula alguém que já existe (interno, de qualquer equipe); os
+ *  demais campos criam um agente novo já lotado nesta equipe — os dois
+ *  caminhos que `TeamAdminViewSet.add_agent` aceita no mesmo corpo. */
+export type AdicionarAgenteEscrita =
+  | { user: number }
+  | { full_name: string; email: string; internal_role?: string; phone?: string }
+
+export function useAdicionarAgenteCfg(equipeId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (d: AdicionarAgenteEscrita) =>
+      api.post<AgenteCfg>(`/api/v1/settings/teams/${equipeId}/agents/`, d),
+    onSuccess: invalidar,
+  })
+}
+
+/** Reenvia o convite de definição de senha — o mesmo problema que fazia um
+ *  agente ficar "com cara de pronto" e trancado pra fora do sistema. */
+export function useReenviarConviteAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ invited: string }>(`/api/v1/settings/users/${userId}/invite/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** A senha nova só existe nesta resposta — quem chama repassa e descarta. */
+export function useResetarSenhaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ password: string }>(`/api/v1/settings/users/${userId}/reset-password/`),
+    onSuccess: invalidar,
+  })
+}
+
+export function useResetar2faAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ method: Metodo2FA }>(`/api/v1/settings/users/${userId}/reset-2fa/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Desativar é soft-delete no backend (`is_active=False`) — o DELETE do
+ *  recurso, não uma action à parte. */
+export function useDesativarAgenteCfg(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<void>(`/api/v1/settings/users/${userId}/`),
+    onSuccess: invalidar,
+  })
+}
+
+export interface EventoAcessoAgente {
+  kind: string
+  kind_label: string
+  ip: string
+  browser: string
+  created_at: string
+  success: boolean
+}
+
+export interface SessaoAgente {
+  key: string
+  browser: string
+  ip: string
+  user_agent: string
+  started_at: string | null
+  expires_at: string
+  current: boolean
+}
+
+/** Mesma forma de `apps.accounts.sessions.access_history_payload` — só muda
+ *  de quem é a conta (aqui, qualquer agente; no self-service, sempre `me`). */
+export interface HistoricoAcessoAgente {
+  events: EventoAcessoAgente[]
+  logins: EventoAcessoAgente[]
+  sessions: SessaoAgente[]
+  session_limit: number
+}
+
+function chaveHistoricoAgente(userId: number) {
+  return ['cfg-acesso-agente', userId] as const
+}
+
+export function useHistoricoAcessoAgente(userId: number, habilitado: boolean) {
+  return useQuery({
+    queryKey: chaveHistoricoAgente(userId),
+    queryFn: () => api.get<HistoricoAcessoAgente>(`/api/v1/settings/users/${userId}/access-history/`),
+    enabled: habilitado && Number.isFinite(userId) && userId > 0,
+    staleTime: 10_000,
+  })
+}
+
+export function useRevogarTodasSessoesAgente(userId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<void>(`/api/v1/settings/users/${userId}/sessions/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAgente(userId) }),
+  })
+}
+
+export function useRevogarSessaoAgente(userId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (key: string) => api.delete<void>(`/api/v1/settings/users/${userId}/sessions/${key}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAgente(userId) }),
+  })
+}
+
+// ---------------------------------------------------------------------------
 // Planos
 // ---------------------------------------------------------------------------
 

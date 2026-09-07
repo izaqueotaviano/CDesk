@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { direcaoVariacao, formatarPercentual, formatarVariacao } from './formato'
+import { direcaoVariacao, formatarMinutos, formatarPercentual, formatarVariacao } from './formato'
 
 /**
  * Os dois formatadores de porcentagem do painel recebem contratos DIFERENTES
@@ -41,6 +41,18 @@ describe('formatarPercentual (entrada em FRAÇÃO 0–1, o contrato de on_time_r
     // null é "o agente não tem ticket com SLA definido", não 0%
     expect(formatarPercentual(null)).toBe('—')
     expect(formatarPercentual(0)).toBe('0%')
+  })
+})
+
+describe('formatarMinutos (contrato de ChatReportView: minutos, não segundos)', () => {
+  it('reaproveita a escala de formatarDuracao, convertendo minutos em segundos', () => {
+    expect(formatarMinutos(5)).toBe('5min')
+    expect(formatarMinutos(90)).toBe('1h 30min')
+  })
+
+  it('sem amostra é traço, não zero', () => {
+    expect(formatarMinutos(null)).toBe('—')
+    expect(formatarMinutos(undefined)).toBe('—')
   })
 })
 

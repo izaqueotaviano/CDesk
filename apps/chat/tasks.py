@@ -109,7 +109,7 @@ def _report_infection(chat_file) -> None:
     from apps.audit.models import AuditAction, AuditLog
     from apps.chat.models import ChatFile
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email
 
     AuditLog.objects.create(
         actor=chat_file.uploaded_by,
@@ -124,13 +124,34 @@ def _report_infection(chat_file) -> None:
     )
 
     if chat_file.uploaded_by_id:
+        titulo = f"Anexo bloqueado: {chat_file.filename}"
+        corpo = (
+            "A verificação antivírus identificou uma ameaça neste arquivo, "
+            "que não ficará disponível para download."
+        )
+        url = "/app/chat"
         notify(
             recipient=chat_file.uploaded_by,
             kind=NotificationKind.ATTACHMENT_BLOCKED,
-            title=f"Anexo bloqueado: {chat_file.filename}",
-            body=(
-                "A verificação antivírus identificou uma ameaça neste arquivo, "
-                "que não ficará disponível para download."
-            ),
-            url="/app/chat",
+            title=titulo,
+            body=corpo,
+            url=url,
         )
+        if chat_file.uploaded_by.email and quer_email(
+            chat_file.uploaded_by, NotificationKind.ATTACHMENT_BLOCKED
+        ):
+            from django.conf import settings
+
+            queue_email(
+                to=chat_file.uploaded_by.email,
+                subject=titulo,
+                # mesmo template do anexo de ticket: o e-mail é idêntico nos
+                # dois canais, só muda o link de volta
+                template="attachment_blocked",
+                context={
+                    "user_name": chat_file.uploaded_by.full_name,
+                    "filename": chat_file.filename,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                dedupe_key=f"attachment-blocked-chat:{chat_file.pk}",
+            )

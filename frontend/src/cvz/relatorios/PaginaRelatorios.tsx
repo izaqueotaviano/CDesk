@@ -1,4 +1,5 @@
 import { PageHeader, Tabs } from '@/cvz/components'
+import { PainelChatDesempenho } from './PainelChatDesempenho'
 import { PainelChats } from './PainelChats'
 import { PainelDetalhado } from './PainelDetalhado'
 import { PainelIndicadores } from './PainelIndicadores'
@@ -11,6 +12,11 @@ import './relatorios.scss'
  * síncrona de CSV). Fora desta rodada, de propósito: exportação assíncrona em
  * XLSX/PDF (`ReportExportViewSet`) e uma segunda listagem de tickets no
  * "Relatório detalhado" — a de /chamados já cobre isso, com os mesmos filtros.
+ *
+ * "Chats" (`PainelChats`/`ChatStatsView`) é volume — quantos chats cada
+ * agente atendeu. "Desempenho do chat" (`PainelChatDesempenho`) é qualidade
+ * — tempo de espera/atendimento e nota — e vem de outro endpoint
+ * (`ChatReportView`, `apps.chat`) que ficou sem tela até esta rodada.
  */
 export function PaginaRelatorios() {
   return (
@@ -21,6 +27,7 @@ export function PaginaRelatorios() {
           { id: 'indicadores', label: 'Indicadores', content: <PainelIndicadores /> },
           { id: 'detalhado', label: 'Relatório detalhado', content: <PainelDetalhado /> },
           { id: 'chats', label: 'Chats', content: <PainelChats /> },
+          { id: 'chat-desempenho', label: 'Desempenho do chat', content: <PainelChatDesempenho /> },
         ]}
       />
     </>

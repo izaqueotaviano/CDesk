@@ -1,0 +1,175 @@
+# CI do Resolv.
+#
+# Não existia pipeline nenhum antes deste arquivo — os 826+ testes de backend
+# e a suíte de frontend só rodavam quando alguém lembrava de rodar local. Este
+# workflow reproduz, o mais fiel possível, os mesmos comandos que uma pessoa
+# rodaria na máquina dela (ver Makefile e frontend/package.json), só trocando
+# o Postgres/Redis do docker compose por serviços efêmeros do runner.
+name: CI
+
+on:
+  push:
+  pull_request:
+
+# Um push novo na mesma branch cancela a execução anterior que ainda estava
+# rodando — evita gastar minuto de runner validando um commit que a pessoa já
+# substituiu.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      # Substitui o `db` do docker-compose.yml: mesma imagem/versão, só que
+      # descartável e por porta padrão do host (127.0.0.1), que é como o
+      # runner do GitHub expõe um serviço.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: resolv
+          POSTGRES_USER: resolv
+          POSTGRES_PASSWORD: resolv
+        ports:
+          - 5432:5432
+        # Sem o healthcheck o job pode tentar migrar antes do Postgres aceitar
+        # conexão — o serviço "sobe" (o container inicia) bem antes de estar
+        # pronto para falar o protocolo.
+        options: >-
+          --health-cmd "pg_isready -U resolv"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+      # O projeto usa Redis para cache, Channels (WebSocket do chat) e broker
+      # do Celery (ver REDIS_URL em config/settings/base.py). Os testes rodam
+      # com CELERY_TASK_ALWAYS_EAGER e channel layer em memória (ver
+      # config/settings/test.py), então nada aqui fala com o Redis de verdade
+      # — mas Django ainda monta CACHES/CHANNEL_LAYERS/CELERY_BROKER_URL a
+      # partir de REDIS_URL na hora do settings.py carregar (base.py), e isso
+      # roda mesmo fora do settings de teste (ex.: no passo de migrations,
+      # que usa config.settings.dev). Sem um Redis respondendo, o processo do
+      # Django nem sobe.
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    # Comuns a todos os passos deste job. DJANGO_SETTINGS_MODULE FICA DE FORA
+    # de propósito — ver o comentário no passo "Roda as migrations" abaixo.
+    env:
+      DATABASE_URL: postgres://resolv:resolv@localhost:5432/resolv
+      REDIS_URL: redis://localhost:6379
+      # Não é segredo de verdade — só precisa existir para o settings carregar
+      # (config/settings/base.py lê DJANGO_SECRET_KEY sem valor padrão). Nunca
+      # reaproveitar isto fora do CI.
+      DJANGO_SECRET_KEY: chave-de-ci-sem-nenhum-valor-real-nao-usar-fora-daqui
+      DJANGO_DEBUG: "0"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # pyproject.toml declara `requires-python = ">=3.11"` (é também a
+          # versão do venv local, 3.11.x) — esse é o piso que este pipeline
+          # valida. O Dockerfile de produção usa a imagem `python:3.12-slim`;
+          # se um dia quiserem garantir as duas versões, isto vira matrix.
+          python-version: "3.11"
+          # Cache nativo do setup-python: chaveado pelo hash deste arquivo,
+          # então muda sozinho quando uma dependência muda em pyproject.toml.
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      # libpango/libgdk-pixbuf: o WeasyPrint (extra `reports`, exportação de
+      # relatório em PDF) precisa delas no sistema — não é algo que `pip
+      # install` resolva sozinho. libmagic1: python-magic (validação de anexo
+      # por magic bytes, D13) é dependência direta do projeto, não só de
+      # teste. Mesmo conjunto que o Dockerfile instala via apt.
+      - name: Instala as dependências de sistema do WeasyPrint e do python-magic
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf-2.0-0 libmagic1
+
+      # `-e .[dev,reports,antivirus]`, não só `.[dev]`: sem os extras opcionais
+      # a suíte carrega ~9 "falhas" que não são bugs — são
+      # `openpyxl`/`weasyprint` ausentes (exportação XLSX/PDF, extra
+      # `reports`) e o efeito colateral que a falha de export deixa em outros
+      # testes da mesma rodada (Celery em modo eager propaga a exceção "no
+      # meio" da suíte). Com os três extras instalados — o mesmo conjunto que
+      # o Dockerfile leva pra produção (`pip install ".[dev,reports,antivirus]"`)
+      # — a suíte roda 100% verde, sem nenhuma falha conhecida para aceitar.
+      - name: Instala o pacote (extras dev, reports e antivirus)
+        run: pip install -e ".[dev,reports,antivirus]"
+
+      # `manage.py` usa `config.settings.dev` por padrão (é o que o container
+      # `web` do docker compose também carrega, via `env_file: .env`) — é
+      # esse comando que replica `make migrate`. Serve de checagem cedo: se
+      # uma migration não aplica limpa num banco novo, falha aqui, não em
+      # produção.
+      - name: Roda as migrations
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.dev
+        run: python manage.py migrate --noinput
+
+      # Mesmo comando do alvo `lint` do Makefile. As regras/exclusões já
+      # vêm de pyproject.toml ([tool.ruff]), não precisa repetir flag nenhuma.
+      - name: Lint (ruff)
+        run: ruff check .
+
+      # De propósito SEM `DJANGO_SETTINGS_MODULE` no `env:` do job inteiro: o
+      # pytest-django dá prioridade a uma variável de ambiente sobre o
+      # `DJANGO_SETTINGS_MODULE` do pyproject.toml (`[tool.pytest.ini_options]`,
+      # que aponta para `config.settings.test`). Se o job herdasse
+      # `config.settings.dev` do passo de migrations acima, a suíte rodaria
+      # com Celery SÍNCRONO DESLIGADO (sem worker no ar, toda `.delay()`
+      # empilharia sem nunca executar), Argon2 no lugar do MD5 de teste e o
+      # `axes` ligado — nada daquilo bate com o que a suíte espera. Por isso o
+      # settings de teste é passado aqui, só para este passo, do jeito que
+      # `make test` (`docker compose exec web pytest`) espera encontrar.
+      - name: Suíte de testes (pytest)
+        env:
+          DJANGO_SETTINGS_MODULE: config.settings.test
+        run: pytest
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Não há .nvmrc nem "engines" no package.json — 22 é a versão usada
+          # no desenvolvimento deste projeto (LTS ativa).
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci`, não `npm install`: instala exatamente o que o
+      # package-lock.json trava, sem tocar nele — é o comando de CI, o
+      # `install` é para quando se está mexendo em dependência.
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint (eslint)
+        run: npm run lint
+
+      # `vitest run`: roda uma vez e sai (o script "test" já é isto, ver
+      # frontend/package.json) — "test:watch" é só para uso local.
+      - name: Testes (vitest)
+        run: npm run test

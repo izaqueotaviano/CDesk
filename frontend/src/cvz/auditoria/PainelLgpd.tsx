@@ -1,11 +1,14 @@
 import { useState } from 'react'
-import { Button, ErrorState, Modal, Tag, TextArea, useToast, type TagTone } from '@/cvz/components'
+import { Button, ConfirmDialog, ErrorState, Modal, Tag, TextArea, useToast, type TagTone } from '@/cvz/components'
 import { API_BASE_URL, ApiError } from '@/api/client'
 import {
+  useCandidatosRedacao,
   useExecutarPedido,
   usePedidosLgpd,
+  useRedigirCampo,
   useRejeitarPedido,
   useVerificarPedido,
+  type CandidatoRedacao,
   type PedidoLgpd,
   type StatusPedidoLgpd,
 } from './dados'
@@ -23,6 +26,19 @@ const ROTULO_TIPO: Record<string, string> = {
   export: 'Exportação',
   anonymize: 'Anonimização',
   rectify: 'Retificação',
+}
+
+const ROTULO_PADRAO_PII: Record<string, string> = {
+  cpf: 'CPF',
+  cnpj: 'CNPJ',
+  email: 'E-mail',
+  telefone: 'Telefone',
+  cartao: 'Cartão',
+}
+
+const ROTULO_CAMPO_PII: Record<string, string> = {
+  subject: 'Assunto do ticket',
+  body: 'Corpo da mensagem',
 }
 
 function mensagemDeErro(e: unknown, padrao: string): string {
@@ -92,12 +108,124 @@ function ModalComJustificativa({
   )
 }
 
+/** Revisão de PII antes de anonimizar — o passo que faltava entre "identidade
+ *  conferida" e "executar". Dois estágios, nunca sobrepostos: a lista de
+ *  candidatos (onde dá para redigir campo a campo) e, só depois de o admin
+ *  pedir para prosseguir, a barra de confirmação final — anonimizar é
+ *  irreversível, então continua exigindo dois cliques deliberados, não um. */
+function ModalRevisaoPii({
+  pedido,
+  onClose,
+  executar,
+}: {
+  pedido: PedidoLgpd | null
+  onClose: () => void
+  executar: ReturnType<typeof useExecutarPedido>
+}) {
+  const aberto = pedido !== null
+  const id = pedido?.id ?? 0
+  const candidatos = useCandidatosRedacao(id, aberto)
+  const redigir = useRedigirCampo(id)
+  const { push } = useToast()
+  const [confirmando, setConfirmando] = useState(false)
+
+  function fechar() {
+    setConfirmando(false)
+    onClose()
+  }
+
+  async function redigirCandidato(c: CandidatoRedacao) {
+    try {
+      await redigir.mutateAsync({ model: c.model, pk: c.pk })
+      push({ tone: 'success', title: 'Campo redigido' })
+    } catch (e) {
+      push({ tone: 'danger', title: 'Não foi possível redigir', description: mensagemDeErro(e, '') })
+    }
+  }
+
+  async function confirmarExecucao() {
+    await executar.mutateAsync(undefined, {
+      onSuccess: () => push({ tone: 'success', title: 'Execução disparada' }),
+      onError: (e) => push({ tone: 'danger', title: 'Não foi possível executar', description: mensagemDeErro(e, '') }),
+    })
+    fechar()
+  }
+
+  const lista = candidatos.data ?? []
+
+  return (
+    <>
+      <Modal
+        open={aberto && !confirmando}
+        onClose={fechar}
+        title="Revisar antes de anonimizar"
+        size="md"
+        footer={
+          <>
+            <Button variant="ghost" onClick={fechar}>
+              Cancelar
+            </Button>
+            <Button variant="danger" onClick={() => setConfirmando(true)} disabled={candidatos.isLoading}>
+              Prosseguir para execução
+            </Button>
+          </>
+        }
+      >
+        <p style={{ marginTop: 0 }}>
+          Campos estruturados (nome, e-mail, telefone) e anexos do titular são apagados automaticamente ao
+          executar. O texto livre abaixo foi só sinalizado — confira cada item e redija o que for PII antes de
+          seguir.
+        </p>
+        {candidatos.isError ? (
+          <ErrorState
+            description={candidatos.error instanceof ApiError ? candidatos.error.detail : undefined}
+            onRetry={() => candidatos.refetch()}
+          />
+        ) : candidatos.isLoading ? (
+          <p>Procurando PII em texto livre…</p>
+        ) : lista.length === 0 ? (
+          <p>Nenhum candidato encontrado em texto livre.</p>
+        ) : (
+          <ul className="lgpd-revisao__lista">
+            {lista.map((c) => (
+              <li key={`${c.model}-${c.pk}-${c.field}`} className="lgpd-revisao__item">
+                <span>
+                  <Tag tone="away">{ROTULO_PADRAO_PII[c.pattern] ?? c.pattern}</Tag> {c.reference} ·{' '}
+                  {ROTULO_CAMPO_PII[c.field] ?? c.field}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => redigirCandidato(c)} disabled={redigir.isPending}>
+                  Redigir
+                </Button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={aberto && confirmando}
+        onClose={() => setConfirmando(false)}
+        onConfirm={confirmarExecucao}
+        title="Confirmar anonimização"
+        description={
+          lista.length > 0
+            ? `${lista.length} trecho(s) de texto livre ainda não foram redigidos e serão mantidos como estão. Esta ação não pode ser desfeita.`
+            : 'Esta ação não pode ser desfeita.'
+        }
+        confirmLabel="Executar agora"
+        danger
+      />
+    </>
+  )
+}
+
 function LinhaPedido({ pedido }: { pedido: PedidoLgpd }) {
   const { push } = useToast()
   const verificar = useVerificarPedido(pedido.id)
   const rejeitar = useRejeitarPedido(pedido.id)
   const executar = useExecutarPedido(pedido.id)
   const [modalAberto, setModalAberto] = useState<'verificar' | 'rejeitar' | null>(null)
+  const [emRevisaoPii, setEmRevisaoPii] = useState(false)
 
   function executarAgora() {
     executar.mutate(undefined, {
@@ -110,6 +238,10 @@ function LinhaPedido({ pedido }: { pedido: PedidoLgpd }) {
   const podeExecutar = ['pending', 'approved', 'failed'].includes(pedido.status)
   const podeRejeitar = ['pending', 'approved'].includes(pedido.status)
   const podeVerificar = pedido.kind === 'anonymize' && pedido.status === 'pending'
+  // anonimização é irreversível — passa pela revisão de PII antes de
+  // executar; exportação/retificação não mexem em dado de terceiro do mesmo
+  // jeito e seguem indo direto, como sempre foi.
+  const exigeRevisaoPii = pedido.kind === 'anonymize'
 
   return (
     <tr>
@@ -136,7 +268,12 @@ function LinhaPedido({ pedido }: { pedido: PedidoLgpd }) {
           </Button>
         )}
         {podeExecutar && (
-          <Button variant="ghost" size="sm" onClick={executarAgora} disabled={executar.isPending}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => (exigeRevisaoPii ? setEmRevisaoPii(true) : executarAgora())}
+            disabled={executar.isPending}
+          >
             Executar
           </Button>
         )}
@@ -170,6 +307,9 @@ function LinhaPedido({ pedido }: { pedido: PedidoLgpd }) {
         pendente={rejeitar.isPending}
         onConfirmar={(texto) => rejeitar.mutateAsync(texto)}
       />
+      {exigeRevisaoPii && (
+        <ModalRevisaoPii pedido={emRevisaoPii ? pedido : null} onClose={() => setEmRevisaoPii(false)} executar={executar} />
+      )}
     </tr>
   )
 }

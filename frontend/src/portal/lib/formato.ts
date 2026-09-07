@@ -52,6 +52,16 @@ export function duracaoEntre(inicioIso: string | null | undefined, fimIso: strin
   return `${Math.floor(h / 24)} d`
 }
 
+/** `330` → `5h30`; `300` → `5h`; `45` → `45min` — mesma leitura de
+ *  `apps.customers.services.maintenance._formatar` no backend, pra o número
+ *  da franquia bater com o que o agente vê do outro lado. */
+export function horasEMinutos(minutos: number): string {
+  const h = Math.floor(minutos / 60)
+  const m = minutos % 60
+  if (!h) return `${m}min`
+  return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`
+}
+
 export function tamanhoArquivo(bytes?: number): string {
   if (!bytes && bytes !== 0) return ''
   if (bytes < 1024) return `${bytes} B`

@@ -126,6 +126,61 @@ class TestInAppNotifications:
 
 
 @pytest.mark.django_db
+class TestAgentEmails:
+    """TICKET_ASSIGNED e TICKET_REOPENED só avisavam in-app — o toggle de
+    e-mail em Minha conta > Notificações existia, mas nada consultava
+    `quer_email` para estes tipos (mesmo gap do SLA em `TestSLA` abaixo)."""
+
+    def test_assignment_emails_the_assignee(self, ana, suporte, agente, colega):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
+        email = OutboundEmail.objects.get(to_email=colega.email, template="ticket_assigned")
+        assert email.ticket_id == ticket.pk
+        assert ticket.reference in email.subject
+
+    def test_assignment_email_desligado_nao_envia(self, ana, suporte, agente, colega):
+        NotificationPreference.objects.create(user=colega, email={"ticket_assigned": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
+        # o sino continua ligado (in_app não foi mexido) — só o e-mail sai
+        assert Notification.objects.filter(recipient=colega).exists()
+        assert not OutboundEmail.objects.filter(template="ticket_assigned").exists()
+
+    def test_self_assignment_nao_envia_email(self, ana, suporte, agente):
+        """Mesma regra do in-app: atribuir a si mesmo não gera aviso nenhum."""
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        assert not OutboundEmail.objects.filter(template="ticket_assigned").exists()
+
+    def test_reopen_emails_the_assignee(self, ana, suporte, agente):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        ticket_service.close_ticket(
+            ticket=ticket, actor=agente,
+            resolution_started_at=ticket.created_at,
+            resolution_ended_at=timezone.now(),
+        )
+        ticket.refresh_from_db()
+        ticket_service.add_reply(ticket=ticket, author=ana, body="voltou!")
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="ticket_reopened", ticket=ticket
+        ).exists()
+
+    def test_reopen_email_desligado_nao_envia(self, ana, suporte, agente):
+        NotificationPreference.objects.create(user=agente, email={"ticket_reopened": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        ticket_service.close_ticket(
+            ticket=ticket, actor=agente,
+            resolution_started_at=ticket.created_at,
+            resolution_ended_at=timezone.now(),
+        )
+        ticket.refresh_from_db()
+        ticket_service.add_reply(ticket=ticket, author=ana, body="voltou!")
+        assert not OutboundEmail.objects.filter(template="ticket_reopened").exists()
+
+
+@pytest.mark.django_db
 class TestSLA:
     def test_sla_applied_on_creation(self, ana, suporte, sla_policy):
         ticket = _ticket(ana, suporte)
@@ -148,6 +203,33 @@ class TestSLA:
             recipient=agente, kind=NotificationKind.SLA_WARNING
         ).exists()
 
+    def test_scan_warns_assignee_by_email(self, ana, suporte, agente, sla_policy):
+        """SLA_WARNING só existia in-app — o toggle de e-mail não tinha efeito."""
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() + dt.timedelta(minutes=10)
+        )
+        sla_scan()
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="sla_warning", ticket=ticket
+        ).exists()
+
+    def test_scan_warns_assignee_by_email_desligado_nao_envia(
+        self, ana, suporte, agente, sla_policy
+    ):
+        NotificationPreference.objects.create(user=agente, email={"sla_warning": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() + dt.timedelta(minutes=10)
+        )
+        sla_scan()
+        assert Notification.objects.filter(
+            recipient=agente, kind=NotificationKind.SLA_WARNING
+        ).exists()  # sino continua ligado
+        assert not OutboundEmail.objects.filter(template="sla_warning").exists()
+
     def test_scan_marks_breach_once(self, ana, suporte, agente, sla_policy):
         ticket = _ticket(ana, suporte)
         ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
@@ -164,6 +246,27 @@ class TestSLA:
         assert Notification.objects.filter(
             kind=NotificationKind.SLA_BREACHED
         ).count() == count
+
+    def test_scan_breach_emails_the_assignee(self, ana, suporte, agente, sla_policy):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() - dt.timedelta(minutes=5)
+        )
+        sla_scan()
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="sla_breached", ticket=ticket
+        ).exists()
+
+    def test_scan_breach_email_desligado_nao_envia(self, ana, suporte, agente, sla_policy):
+        NotificationPreference.objects.create(user=agente, email={"sla_breached": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() - dt.timedelta(minutes=5)
+        )
+        sla_scan()
+        assert not OutboundEmail.objects.filter(template="sla_breached").exists()
 
     def test_breach_mark_is_idempotent_conditional_update(self, ana, suporte, agente, sla_policy):
         """A marcação de estouro é um UPDATE condicional (guarda no WHERE): rodar

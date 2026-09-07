@@ -9,23 +9,31 @@ import {
   IconButton,
   Modal,
   Select,
+  Skeleton,
   Tag,
   TextArea,
   TextInput,
   Toggle,
   type Column,
 } from '@/cvz/components'
-import { IconPlus, IconUser } from '@/cvz/components/icons'
+import { IconPlus, IconUser, IconUserPlus } from '@/cvz/components/icons'
 import { useToast } from '@/cvz/components/Toast/Toast'
 import { ApiError } from '@/api/client'
+import { useMe } from '@/api/queries/useMe'
 import { useAgentes } from '@/cvz/tickets/dados'
+import { AcoesAgenteCfg } from './AcoesAgenteCfg'
+import { ModalAdicionarAgente } from './ModalAdicionarAgente'
+import { ModalHistoricoAcessoAgente } from './ModalHistoricoAcessoAgente'
 import {
   useAtualizarEquipeCfg,
   useCalendariosCfg,
+  useChoicesCfg,
   useCriarEquipeCfg,
-  useEquipesCfg,
+  useRosterCfg,
+  type AgenteCfg,
   type EquipeCfg,
   type EquipeCfgEscrita,
+  type EquipeRosterCfg,
   type Visibilidade,
 } from './dados'
 
@@ -35,120 +43,216 @@ const VISIBILIDADES: { value: Visibilidade; label: string }[] = [
 ]
 
 export function AbaEquipes() {
-  const { data: itens, isLoading, isError, error, refetch } = useEquipesCfg()
+  const { data: me } = useMe()
+  // Todas as ações desta aba (add_agent, invite, reset-password, reset-2fa,
+  // sessões, desativar) são `IsAdmin` no backend — `Perm.SETTINGS_MANAGE`.
+  // A listagem em si (`roster`) só pede `PANEL_ACCESS`, mas uma tela de
+  // "Equipes e agentes" sem NENHUMA ação disponível não serve pra quem não
+  // administra; melhor o aviso amigável do que uma tabela morta.
+  const podeGerenciar = (me?.permissions ?? []).includes('settings.manage')
+
+  const roster = useRosterCfg()
   const { data: agentes } = useAgentes()
+  const { data: choices } = useChoicesCfg()
   const { push } = useToast()
 
-  const [modalAberto, setModalAberto] = useState(false)
-  const [emEdicao, setEmEdicao] = useState<EquipeCfg | null>(null)
+  const [modalEquipeAberto, setModalEquipeAberto] = useState(false)
+  const [equipeEmEdicao, setEquipeEmEdicao] = useState<EquipeCfg | null>(null)
+  const [equipeParaAdicionarAgente, setEquipeParaAdicionarAgente] = useState<EquipeRosterCfg | null>(null)
+  const [agenteHistorico, setAgenteHistorico] = useState<AgenteCfg | null>(null)
 
   const nomeAgente = useMemo(() => {
     const m = new Map((agentes ?? []).map((a) => [a.id, a.full_name]))
     return (id: number | null) => (id != null ? (m.get(id) ?? `#${id}`) : '—')
   }, [agentes])
 
-  function abrirEdicao(item: EquipeCfg) {
-    setEmEdicao(item)
-    setModalAberto(true)
+  const rotuloPapel = useMemo(() => {
+    const m = new Map((choices?.internal_roles ?? []).map((o) => [o.value, o.label]))
+    return (papel: string | null) => (papel ? (m.get(papel) ?? papel) : '—')
+  }, [choices])
+
+  function abrirEdicaoEquipe(item: EquipeCfg) {
+    setEquipeEmEdicao(item)
+    setModalEquipeAberto(true)
   }
 
-  function abrirCriacao() {
-    setEmEdicao(null)
-    setModalAberto(true)
+  function abrirCriacaoEquipe() {
+    setEquipeEmEdicao(null)
+    setModalEquipeAberto(true)
   }
 
-  const colunas: Column<EquipeCfg>[] = [
-    { key: 'name', header: 'Nome', mobile: 'title', render: (e) => e.name },
-    {
-      key: 'supervisor_name',
-      header: 'Supervisor',
-      mobile: 'meta',
-      render: (e) => e.supervisor_name ?? '—',
-    },
-    {
-      key: 'visibility',
-      header: 'Visibilidade',
-      mobile: 'meta',
-      render: (e) => (
-        <Tag tone={e.internal_only ? 'away' : 'neutral'}>
-          {e.internal_only
-            ? 'Interna (cliente não vê)'
-            : VISIBILIDADES.find((v) => v.value === e.visibility)?.label}
-        </Tag>
-      ),
-    },
-    {
-      key: 'agent_count',
-      header: 'Agentes',
-      numeric: true,
-      mobile: 'meta',
-      sortBy: (e) => e.agent_count,
-      render: (e) => e.agent_count,
-    },
-    {
-      key: 'ticket_count',
-      header: 'Tickets',
-      numeric: true,
-      mobile: 'meta',
-      sortBy: (e) => e.ticket_count,
-      render: (e) => e.ticket_count,
-    },
-    {
-      key: 'is_active',
-      header: 'Ativa',
-      mobile: 'meta',
-      render: (e) => <CampoAtivo item={e} />,
-    },
-    {
-      key: 'editar',
-      header: '',
-      mobile: 'hidden',
-      render: (e) => <IconButton Icon={IconUser} label={`Editar ${e.name}`} size="sm" bare onClick={() => abrirEdicao(e)} />,
-    },
-  ]
+  const colunasAgente: Column<AgenteCfg>[] = useMemo(
+    () => [
+      {
+        key: 'full_name',
+        header: 'Nome',
+        mobile: 'title',
+        sortBy: (a) => a.full_name,
+        render: (a) => (
+          <div>
+            <div>{a.full_name}</div>
+            <span className="cfg-meta-form">{a.email}</span>
+          </div>
+        ),
+      },
+      {
+        key: 'internal_role',
+        header: 'Papel',
+        mobile: 'meta',
+        render: (a) => <Tag tone="blue">{rotuloPapel(a.internal_role)}</Tag>,
+      },
+      {
+        key: 'invite_status',
+        header: 'Convite',
+        mobile: 'meta',
+        render: (a) =>
+          a.invite_status ? (
+            <Tag tone={a.invite_status === 'aceito' ? 'success' : 'away'}>
+              {a.invite_status === 'aceito' ? 'Aceito' : 'Pendente'}
+            </Tag>
+          ) : (
+            <Tag tone="neutral">Google</Tag>
+          ),
+      },
+      {
+        key: 'is_active',
+        header: 'Status',
+        mobile: 'meta',
+        render: (a) => (
+          <Tag tone={a.is_active ? 'success' : 'neutral'} dot>
+            {a.is_active ? 'Ativo' : 'Inativo'}
+          </Tag>
+        ),
+      },
+      {
+        key: 'acoes',
+        header: '',
+        mobile: 'hidden',
+        render: (a) => <AcoesAgenteCfg agente={a} onVerHistorico={setAgenteHistorico} />,
+      },
+    ],
+    [rotuloPapel],
+  )
 
-  if (isError) {
-    return <ErrorState description={error instanceof ApiError ? error.detail : undefined} onRetry={() => refetch()} />
+  if (me && !podeGerenciar) {
+    return (
+      <div className="cfg-aba">
+        <p>Esta área é restrita a administradores.</p>
+      </div>
+    )
+  }
+
+  if (roster.isError) {
+    return (
+      <ErrorState
+        description={roster.error instanceof ApiError ? roster.error.detail : undefined}
+        onRetry={() => roster.refetch()}
+      />
+    )
   }
 
   return (
     <div className="cfg-aba">
       <div className="cfg-aba__acao-add">
-        <Button Icon={IconPlus} size="sm" onClick={abrirCriacao}>
+        <Button Icon={IconPlus} size="sm" onClick={abrirCriacaoEquipe}>
           Nova equipe
         </Button>
       </div>
 
-      <DataTable
-        rows={itens ?? []}
-        columns={colunas}
-        rowKey={(e) => String(e.id)}
-        onRowClick={abrirEdicao}
-        loading={isLoading}
-        empty="Nenhuma equipe cadastrada."
-      />
+      {roster.isLoading || !roster.data ? (
+        <Skeleton lines={6} />
+      ) : (
+        <div className="cfg-roster">
+          {roster.data.teams.map((equipe) => (
+            <div key={equipe.id} className="cfg-roster__equipe">
+              <div className="cfg-roster__cabecalho">
+                <div className="cfg-roster__cabecalho-info">
+                  <div className="cfg-roster__cabecalho-titulo">
+                    <strong>{equipe.name}</strong>
+                    <Tag tone={equipe.internal_only ? 'away' : 'neutral'}>
+                      {equipe.internal_only
+                        ? 'Interna (cliente não vê)'
+                        : VISIBILIDADES.find((v) => v.value === equipe.visibility)?.label}
+                    </Tag>
+                    {!equipe.is_active && <Tag tone="neutral">Inativa</Tag>}
+                  </div>
+                  <span className="cfg-meta-form">
+                    Supervisor: {equipe.supervisor_name ?? '—'} · {equipe.ticket_count} ticket(s)
+                  </span>
+                </div>
+                <div className="cfg-roster__cabecalho-acoes">
+                  <Button Icon={IconUserPlus} variant="tertiary" size="sm" onClick={() => setEquipeParaAdicionarAgente(equipe)}>
+                    Adicionar agente
+                  </Button>
+                  <CampoAtivoEquipe item={equipe} />
+                  <IconButton
+                    Icon={IconUser}
+                    label={`Editar ${equipe.name}`}
+                    size="sm"
+                    bare
+                    onClick={() => abrirEdicaoEquipe(equipe)}
+                  />
+                </div>
+              </div>
+
+              <DataTable
+                rows={equipe.agents}
+                columns={colunasAgente}
+                rowKey={(a) => String(a.id)}
+                density="compact"
+                empty="Nenhum agente nesta equipe ainda."
+              />
+            </div>
+          ))}
+
+          <div className="cfg-roster__equipe">
+            <div className="cfg-roster__cabecalho">
+              <div className="cfg-roster__cabecalho-info">
+                <div className="cfg-roster__cabecalho-titulo">
+                  <strong>Sem equipe</strong>
+                </div>
+                <span className="cfg-meta-form">Agentes sem nenhuma equipe vinculada — não enxergam ticket algum.</span>
+              </div>
+            </div>
+            <DataTable
+              rows={roster.data.unassigned}
+              columns={colunasAgente}
+              rowKey={(a) => String(a.id)}
+              density="compact"
+              empty="Todo agente está em pelo menos uma equipe."
+            />
+          </div>
+        </div>
+      )}
 
       <ModalEquipe
-        open={modalAberto}
-        equipe={emEdicao}
+        open={modalEquipeAberto}
+        equipe={equipeEmEdicao}
         nomeAgente={nomeAgente}
-        onClose={() => setModalAberto(false)}
+        onClose={() => setModalEquipeAberto(false)}
         onSalva={(criada) =>
           push({ tone: 'success', title: criada ? 'Equipe criada' : 'Equipe atualizada' })
         }
       />
+
+      <ModalAdicionarAgente
+        equipe={equipeParaAdicionarAgente}
+        open={equipeParaAdicionarAgente !== null}
+        onClose={() => setEquipeParaAdicionarAgente(null)}
+      />
+
+      <ModalHistoricoAcessoAgente agente={agenteHistorico} onClose={() => setAgenteHistorico(null)} />
     </div>
   )
 }
 
-function CampoAtivo({ item }: { item: EquipeCfg }) {
+function CampoAtivoEquipe({ item }: { item: EquipeCfg }) {
   const atualizar = useAtualizarEquipeCfg(item.id)
   const { push } = useToast()
   return (
     <Toggle
       checked={item.is_active}
       onChange={(e) => {
-        e.stopPropagation()
         atualizar.mutate(
           { is_active: e.target.checked },
           {
@@ -161,7 +265,6 @@ function CampoAtivo({ item }: { item: EquipeCfg }) {
           },
         )
       }}
-      onClick={(e) => e.stopPropagation()}
       aria-label={`Equipe ${item.name} ${item.is_active ? 'ativa' : 'inativa'}`}
     />
   )

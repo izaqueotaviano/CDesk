@@ -17,13 +17,16 @@ import { Button } from '../ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card'
 import { Ajuda, ErroCampo, Input, Label, Select, Textarea } from '../ui/input'
 import { toast } from '../ui/toaster'
+import { SecaoFranquias } from './SecaoFranquias'
 
 type Campo = 'team_id' | 'subject' | 'body' | 'category_id' | 'order_number' | 'files'
 
 /**
  * Abertura de ticket pelo cliente. Consome a cota do plano — quando ela
  * acaba, o backend responde 422 com a mensagem pronta (limite, período,
- * renovação) e ela aparece aqui sem tradução.
+ * renovação) e ela aparece aqui sem tradução. `SecaoFranquias` mostra as
+ * duas franquias (tickets e manutenção) ANTES do bloqueio acontecer —
+ * docs/05 §2.5 pede banner permanente, não só o erro na hora.
  */
 export function PaginaNovoTicket() {
   const navigate = useNavigate()
@@ -111,6 +114,8 @@ export function PaginaNovoTicket() {
       <Link to="/portal/tickets" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
         <ArrowLeft className="size-4" aria-hidden="true" /> Tickets
       </Link>
+
+      <SecaoFranquias />
 
       <Card>
         <CardHeader>

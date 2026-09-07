@@ -83,6 +83,7 @@ beforeEach(() => {
       if (u.pathname === '/api/v1/teams/') return Promise.resolve(jsonDe([{ id: 1, name: 'Suporte', slug: 'suporte', visibility: 'public', order: 0 }]))
       if (u.pathname === '/api/v1/users/') return Promise.resolve(jsonDe([{ id: 9, full_name: 'Bruno', email: 'b@x.test', kind: 'internal', internal_role: 'agent', company: null, presence: 'online' }]))
       if (u.pathname === '/api/v1/companies/') return Promise.resolve(jsonDe([{ id: 3, name: 'Empresa X', slug: 'empresa-x', plan_name: 'Pro', is_active: true }]))
+      if (u.pathname === '/api/v1/chat/reports/') return Promise.resolve(jsonDe([{ rotulo: 'Acme', total: 3 }]))
       if (u.pathname === '/api/v1/reports/exports/' && metodo === 'GET') return Promise.resolve(jsonDe({ count: exportacoes.length, next: null, previous: null, results: exportacoes }))
       if (u.pathname === '/api/v1/reports/exports/' && metodo === 'POST') {
         const nova = { id: exportacoes.length + 1, report_key: 'tickets', format: corpo.format, status: 'pending', params: corpo.params, row_count: null, error: '', created_at: '2026-09-06T00:00:00Z', expires_at: null, download_url: null }
@@ -125,7 +126,10 @@ describe('PaginaRelatorios', () => {
   it('trocar a equipe manda team= na chamada de indicadores', async () => {
     montar()
     await screen.findByTitle('Total de tickets abertos no período.')
-    fireEvent.change(screen.getByLabelText('Equipe'), { target: { value: '1' } })
+    // "Relatório detalhado" também tem um Select "Equipe" — mesmo caso do
+    // "Agente" mais abaixo: escopar pelo tabpanel ativo evita a ambiguidade.
+    const painelAtivo = screen.getByRole('tabpanel')
+    fireEvent.change(within(painelAtivo).getByLabelText('Equipe'), { target: { value: '1' } })
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/reports/indicators/' && c.search.includes('team=1'))).toBe(true))
   })
 
@@ -151,6 +155,28 @@ describe('PaginaRelatorios', () => {
 
     const link = await screen.findByRole('link', { name: /Baixar CSV/ })
     expect(link.getAttribute('href')).toContain('agent=9')
+  })
+
+  it('filtrar por equipe no relatório detalhado manda team= na chamada e no link de CSV', async () => {
+    // achado original: a exportação ignorava o filtro de equipe do painel e
+    // baixava tudo que o usuário enxerga — este teste cobre o filtro
+    // aplicado direto na tela de exportação (mesmo objeto de filtros).
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Relatório detalhado' }))
+    await screen.findByText('Tickets no recorte')
+    const painelAtivo = screen.getByRole('tabpanel')
+    fireEvent.change(within(painelAtivo).getByLabelText('Equipe'), { target: { value: '1' } })
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/reports/tickets/' && c.search.includes('team=1'))).toBe(true))
+
+    const link = await screen.findByRole('link', { name: /Baixar CSV/ })
+    expect(link.getAttribute('href')).toContain('team=1')
+  })
+
+  it('aba "Desempenho do chat" existe e consome ChatReportView', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('tab', { name: 'Desempenho do chat' }))
+    expect(await screen.findByRole('cell', { name: 'Acme' })).toBeInTheDocument()
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/chat/reports/' && c.search.includes('by=company'))).toBe(true))
   })
 
   it('gerar exportação em XLSX manda o POST certo e aparece "Na fila" na lista', async () => {
