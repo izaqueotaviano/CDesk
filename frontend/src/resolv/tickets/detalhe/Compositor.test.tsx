@@ -474,3 +474,38 @@ describe('Compositor — filtro do menu de macro', () => {
     expect(listaDeMacros().getAllByRole('option')).toHaveLength(3)
   })
 })
+
+describe('Compositor — roda do mouse não fecha o ticket sozinha', () => {
+  // Select nativo focado + wheel = o navegador troca a opção em vez de rolar
+  // a página (Chrome/Firefox) — bug relatado ao vivo: "o botão que é azul
+  // fica verde do nada" ao rolar até o fim da conversa pra responder, com o
+  // cursor em cima do "Ao enviar, deixar" (que ficou focado de uma
+  // interação anterior). "Fechado" é a última opção da lista — um scroll
+  // comum pousa nela. jsdom não implementa o comportamento nativo de
+  // trocar o <select> no wheel (só browsers de verdade fazem isso), então
+  // este teste não reproduz o bug em si — verifica a MITIGAÇÃO: o
+  // <select> perde o foco assim que chega um wheel, então o navegador não
+  // tem mais o que "capturar" nas rodadas seguintes da mesma rolagem.
+  it('o select de status perde o foco ao receber um evento de wheel', () => {
+    montar()
+    const select = screen.getByLabelText('Ao enviar, deixar')
+    select.focus()
+    expect(select).toHaveFocus()
+
+    fireEvent.wheel(select)
+
+    expect(select).not.toHaveFocus()
+  })
+
+  it('sem interação nenhuma no select, o botão continua azul (não "Enviar e fechar")', () => {
+    montar()
+    fireEvent.change(screen.getByLabelText('Resposta ao cliente'), {
+      target: { value: 'Já verifiquei, deve funcionar agora.' },
+    })
+
+    const botao = screen.getByRole('button', { name: /Enviar/ })
+    expect(botao).not.toHaveClass('compositor__botao--fechar')
+    expect(botao.textContent).not.toMatch(/fechar/i)
+    expect(screen.getByLabelText('Ao enviar, deixar')).toHaveValue('open')
+  })
+})

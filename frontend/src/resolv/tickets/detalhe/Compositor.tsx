@@ -717,6 +717,18 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
                   id={idStatus}
                   value={status}
                   onChange={(e) => setStatus(e.target.value as StatusTicket)}
+                  // Select nativo focado + roda do mouse por cima = o
+                  // navegador troca a opção selecionada em vez de rolar a
+                  // página (Chrome e Firefox, sem precisar clicar de novo —
+                  // some dar :focus uma vez já bastou). Aqui é o pior lugar
+                  // possível pra isso: rolar até o fim da conversa pra
+                  // responder passa o cursor bem em cima deste combo, e
+                  // "Fechado" é a última opção da lista — um scroll comum
+                  // pousa exatamente nela, o botão vira verde e a resposta
+                  // fecharia o ticket sem ninguém ter escolhido isso.
+                  // Devolve o evento pro scroll normal da página assim que
+                  // ele chega, antes do navegador aplicar a troca.
+                  onWheel={(e) => e.currentTarget.blur()}
                 >
                   {STATUS_AO_ENVIAR.map((s) => (
                     <option key={s} value={s}>
