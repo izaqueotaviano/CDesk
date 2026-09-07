@@ -1,12 +1,9 @@
-import { Navigate, createBrowserRouter } from 'react-router-dom'
+import { Navigate, createBrowserRouter, useParams } from 'react-router-dom'
 import { App } from '@/App'
 import { PaginaLogin } from '@/features/auth/PaginaLogin'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
-import { PaginaKanban } from '@/features/kanban/PaginaKanban'
-import { PaginaDetalheTicket } from '@/features/tickets/PaginaDetalheTicket'
 import { PaginaInicio } from '@/features/tickets/PaginaInicio'
-import { PaginaListaTickets } from '@/features/tickets/PaginaListaTickets'
 import { AppShell } from '@/layouts/AppShell'
 import { PortalShell } from '@/portal/shell/PortalShell'
 import { PaginaInicio as PaginaInicioCliente } from '@/portal/inicio/PaginaInicio'
@@ -33,6 +30,16 @@ import { PaginaAuditoria } from '@/cvz/auditoria/PaginaAuditoria'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
 import { PaginaRelatorios as PaginaRelatoriosResolv } from '@/cvz/relatorios/PaginaRelatorios'
 import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
+
+/**
+ * /app/tickets/:id não tem equivalente estático em /chamados/:id — precisa
+ * ler o :id da URL antiga antes de redirecionar, então não dá pra ser um
+ * <Navigate> direto como as rotas irmãs (chat, relatórios, tickets, kanban).
+ */
+function RedirecionarParaChamado() {
+  const { id } = useParams<{ id: string }>()
+  return <Navigate to={`/chamados/${id}`} replace />
+}
 
 /**
  * Duas árvores separadas — /app (interno) e /portal (cliente) — com bundles
@@ -197,9 +204,9 @@ export const router = createBrowserRouter([
         ),
       },
 
-      // ---- Configurações — Fase 1 do plano: Status, Serviços, Categorias,
-      // Tags por enquanto (SLA/Equipes/Planos/Calendário/Papéis/Sistema vêm
-      // nas próximas abas desta mesma fase) ----
+      // ---- Configurações — cadastros que alimentam a abertura e a triagem
+      // de chamados; as abas em si (Status, Serviços, SLA, Equipes...) vivem
+      // dentro de PaginaConfiguracoes, não aqui ----
       {
         path: '/configuracoes',
         element: (
@@ -220,11 +227,13 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <PaginaInicio /> },
-          { path: 'tickets', element: <PaginaListaTickets /> },
-          { path: 'tickets/:id', element: <PaginaDetalheTicket /> },
+          // a lista de tickets virou tela própria (/chamados, NovoShell); o caminho antigo só redireciona
+          { path: 'tickets', element: <Navigate to="/chamados" replace /> },
+          { path: 'tickets/:id', element: <RedirecionarParaChamado /> },
           // o console de chat virou tela própria (/chat, NovoShell); o caminho antigo só redireciona
           { path: 'chat', element: <Navigate to="/chat" replace /> },
-          { path: 'kanban', element: <PaginaKanban /> },
+          // o quadro virou tela própria (/quadro, NovoShell); o caminho antigo só redireciona
+          { path: 'kanban', element: <Navigate to="/quadro" replace /> },
           // a tela virou de verdade em /relatorios (CvzAppLayout) — o
           // placeholder (PaginaPendente) que vivia aqui foi retirado
           { path: 'relatorios', element: <Navigate to="/relatorios" replace /> },

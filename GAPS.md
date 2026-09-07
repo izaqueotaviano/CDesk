@@ -1,3 +1,14 @@
+> ⚠️ **Log histórico, congelado desde a importação deste repositório (commit
+> `47fc759`, 2026-09-04) — nunca mais tocado depois disso.** Descreve o
+> estado do projeto ANTES da migração para o shell "Resolv" atual
+> (`frontend/src/resolv/`). Pelo menos 3 afirmações concretas abaixo já
+> caducaram: o Kanban tem drag-and-drop hoje (`frontend/src/resolv/kanban/`,
+> `dnd-kit`/`DndContext`), e Web Widget e Light Agents — que este documento
+> registra como "fora de escopo, recusa explícita" — já existem no código
+> (`apps/customers/embed_views.py`; `InternalRole.LIGHT_AGENT` em
+> `apps/tickets/`). Não trate nada aqui como referência do estado atual sem
+> cruzar antes com o código.
+
 # GAPS.md — resolv front ↔ back-end
 
 > Produzido na Fase 0 (auditoria) do `prompt-integracao-backend.md`. Metodologia: 6 leituras independentes e completas — infraestrutura/arquitetura do backend, apps Chamados+Chat, apps Empresas/Contas/Auditoria/Relatórios/Kanban/Avisos, o contrato `resolv-openapi.yaml` inteiro (123 paths), e as 7 telas de referência (HTML+JS lidos por completo, não por amostragem). Toda afirmação abaixo tem evidência de código (arquivo:linha) por trás — nada foi inferido de memória ou só da documentação.

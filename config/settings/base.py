@@ -346,8 +346,6 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
         "anon": "30/hour",
         "login": "20/hour",  # força bruta no login de sessão
-        # pesquisa de satisfação é pública: sem teto o link vira urna aberta.
-        # Folgado o bastante para quem erra e recarrega a página.
     },
 }
 

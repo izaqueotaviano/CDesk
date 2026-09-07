@@ -3,9 +3,12 @@
 Sistema de suporte/ticketing interno, inspirado no Zendesk Support, para uso de uma empresa e
 seus clientes B2B.
 
-**Este repositório é só a API.** Não há frontend aqui: o Django expõe
-`/api/v1/` (REST) e `/ws/` (WebSocket), e qualquer outra URL é 404. Quem vai
-escrever a interface começa por **[`docs/10-frontend-novo.md`](docs/10-frontend-novo.md)**
+**Este repositório é um monorepo: backend (Django, na raiz) e frontend
+(`frontend/`, React) — ver "Como rodar" abaixo.** O Django em si expõe só
+`/api/v1/` (REST) e `/ws/` (WebSocket): qualquer outra URL do lado do
+backend é 404 — quem serve a interface é o Vite/frontend, um deploy
+separado que fala com esta API. Quem for mexer na
+interface começa por **[`docs/10-frontend-novo.md`](docs/10-frontend-novo.md)**
 — autenticação, formato das respostas, canais de WebSocket e o que o backend já
 resolve (e o front não deve refazer).
 
