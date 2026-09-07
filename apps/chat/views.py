@@ -38,7 +38,6 @@ from apps.chat.serializers import (
     ChatConfigSerializer,
     ChatLinkSerializer,
     ChatMessageEditSerializer,
-    ClientQuickReplySerializer,
     ChatMessageSerializer,
     ChatReportRowSerializer,
     ChatSerializer,
@@ -48,18 +47,19 @@ from apps.chat.serializers import (
     ChatTimelineSerializer,
     ChatTimelineSessionSerializer,
     ClientChatConfigSerializer,
+    ClientQuickReplySerializer,
     CloseSerializer,
     ConvertSerializer,
     RateSerializer,
     TransferSerializer,
 )
-from apps.tickets.admin_api import TicketMacroSerializer
-from apps.tickets.models import TicketMacro
-from apps.tickets.services import transcript
 from apps.chat.services import chat_service
 from apps.chat.services.attachments import AttachmentRejected, attach_to_chat_message
 from apps.chat.services.chat_service import ChatRuleViolation
 from apps.core.permissions import IsAuthenticatedReadAdminWrite, IsInternalReadAdminWrite
+from apps.tickets.admin_api import TicketMacroSerializer
+from apps.tickets.models import TicketMacro
+from apps.tickets.services import transcript
 
 
 @extend_schema(parameters=[OpenApiParameter(

@@ -34,7 +34,9 @@ class TestExportarPdf:
         assert resp["Content-Type"] == "application/pdf"
         assert ticket.reference in resp["Content-Disposition"]
 
-    def test_ticket_de_outra_empresa_nao_existe_para_o_cliente(self, api, ana, carla, suporte, make_ticket):
+    def test_ticket_de_outra_empresa_nao_existe_para_o_cliente(
+        self, api, ana, carla, suporte, make_ticket
+    ):
         ticket = make_ticket(requester=carla, team=suporte)
         resp = api(ana).get(f"/api/v1/tickets/{ticket.pk}/export/")
         assert resp.status_code == 404

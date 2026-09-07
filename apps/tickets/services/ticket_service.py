@@ -878,9 +878,10 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
             mudancas.append(f"etiquetas + {', '.join(sorted(t.name for t in novas))}")
 
         if mudancas:
+            nota = f"aplicou macro «{macro.name}»: " + "; ".join(mudancas)[:150]
             TicketStatusEvent.objects.create(
                 ticket=ticket, from_status=ticket.status, to_status=ticket.status,
-                changed_by=actor, note=f"aplicou macro «{macro.name}»: " + "; ".join(mudancas)[:150],
+                changed_by=actor, note=nota,
             )
     from apps.notifications.services import broadcast_ticket_event
 

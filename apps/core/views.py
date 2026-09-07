@@ -354,7 +354,8 @@ class GlobalSearchView(APIView):
             "requesters": [
                 {
                     "id": u.pk, "full_name": u.full_name, "email": u.email,
-                    "company_id": u.company_id, "company_name": u.company.name if u.company else None,
+                    "company_id": u.company_id,
+                    "company_name": u.company.name if u.company else None,
                     # `create_ticket` exige solicitante ATIVO (views.py) — sem
                     # este campo, a tela de abertura não tem como distinguir
                     # "achei" de "achei, mas o servidor vai recusar" antes de

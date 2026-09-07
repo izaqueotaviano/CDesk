@@ -213,7 +213,8 @@ class TestHtmlSanitization:
         )
 
     def test_strips_script_handlers_and_iframes(self, api, ana, artigo_perigoso):
-        corpo = api(ana).get(f"/api/v1/knowledge/articles/{artigo_perigoso.pk}/").json()["body_html"]
+        resp = api(ana).get(f"/api/v1/knowledge/articles/{artigo_perigoso.pk}/")
+        corpo = resp.json()["body_html"]
         assert "<p>Texto legítimo</p>" in corpo
         assert "<script" not in corpo
         assert "onerror" not in corpo
@@ -239,7 +240,9 @@ class TestClientFeedback:
     def test_client_can_vote(self, api, ana, artigo_sla):
         """"Isso ajudou?" é da Central de Ajuda do cliente também — o voto
         dele conta junto com o do agente, um por pessoa."""
-        resp = api(ana).post(f"/api/v1/knowledge/articles/{artigo_sla.pk}/feedback/", {"helpful": True})
+        resp = api(ana).post(
+            f"/api/v1/knowledge/articles/{artigo_sla.pk}/feedback/", {"helpful": True}
+        )
         assert resp.status_code == 200
         assert resp.json()["helpful_count"] == 1
         assert ArticleFeedback.objects.get(article=artigo_sla, user=ana).helpful is True

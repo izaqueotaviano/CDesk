@@ -19,6 +19,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
 from apps.knowledge.models import Article, ArticleFeedback
 from apps.knowledge.serializers import (
     ArticleDetailSerializer,

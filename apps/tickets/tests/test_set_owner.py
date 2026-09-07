@@ -16,7 +16,9 @@ pytestmark = pytest.mark.django_db
 
 
 class TestSetOwner:
-    def test_define_dono_tecnico(self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket):
+    def test_define_dono_tecnico(
+        self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket
+    ):
         ticket = make_ticket(requester=ana, team=suporte)
         resp = api(agente_suporte).post(
             f"/api/v1/tickets/{ticket.pk}/set-owner/",
@@ -100,7 +102,9 @@ class TestSetOwner:
             recipient=agente_suporte, kind=NotificationKind.TICKET_OWNER_SET,
         ).exists()
 
-    def test_grava_historico(self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket):
+    def test_grava_historico(
+        self, api, agente_suporte, agente_financeiro, ana, suporte, make_ticket
+    ):
         ticket = make_ticket(requester=ana, team=suporte)
         api(agente_suporte).post(
             f"/api/v1/tickets/{ticket.pk}/set-owner/",

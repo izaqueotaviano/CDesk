@@ -249,9 +249,8 @@ def _html(payload: dict) -> str:
             # a tela nova de Auditoria ao vivo: `collect()` nunca gravou
             # essa chave em chat_payload, então isto aqui sempre estourava
             # KeyError pra qualquer titular com ao menos uma conversa.
-            parts.append(
-                f"<h3>Conversa iniciada em {escape(session['iniciado_em'] or 'data desconhecida')}</h3>"
-            )
+            inicio = escape(session["iniciado_em"] or "data desconhecida")
+            parts.append(f"<h3>Conversa iniciada em {inicio}</h3>")
             for message in session["mensagens"]:
                 parts.append(
                     f"<div class='msg'><span class='meta'>{escape(message['autor'])}"

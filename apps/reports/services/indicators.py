@@ -323,8 +323,8 @@ def _agent_list(rows, previous_rows, surveys=(), window=None) -> list[dict]:
     for row in rows:
         name = row["assignee__full_name"] or "Sem responsável"
         if row["team__name"]:
-            porAgente = equipes.setdefault(name, {})
-            porAgente[row["team__name"]] = porAgente.get(row["team__name"], 0) + 1
+            por_agente = equipes.setdefault(name, {})
+            por_agente[row["team__name"]] = por_agente.get(row["team__name"], 0) + 1
         if row["sla_resolution_due_at"]:
             prazo.setdefault(name, []).append(0 if row["sla_resolution_breached"] else 1)
         segundos = _seconds_between(row["created_at"], row["first_response_at"])
