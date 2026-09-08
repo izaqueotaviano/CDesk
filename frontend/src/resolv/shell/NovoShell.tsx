@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
+import { usePrefs } from '@/stores/prefs'
 import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import './shell.scss'
@@ -30,9 +31,15 @@ export function NovoShell({ children }: { children: ReactNode }) {
   useAvisos()
 
   const [buscaAberta, setBuscaAberta] = useState(false)
+  // A raiz precisa saber do estado da barra porque é ela que declara
+  // `--largura-sidebar` — o recuo do conteúdo sai da MESMA variável que a
+  // largura da barra (shell.scss).
+  const sidebarRecolhida = usePrefs((s) => s.sidebarRecolhida)
 
   return (
-    <div className="resolv-scope novo-shell">
+    <div
+      className={'resolv-scope novo-shell' + (sidebarRecolhida ? ' novo-shell--recolhida' : '')}
+    >
       <Sidebar onAbrirBusca={() => setBuscaAberta(true)} />
       <div className="novo-shell__corpo" id="resolv-corpo">
         <BarraDeAbas />

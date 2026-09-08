@@ -73,7 +73,7 @@
     font-size: 12px;
     color: var(--away);
     background: color-mix(in srgb, var(--away) 10%, transparent);
-    border-radius: 2px;
+    border-radius: var(--raio);
     padding: 6px 8px;
   }
   &__erro {
@@ -89,7 +89,7 @@
   width: 100%;
   padding: 8px;
   border: 0.7px solid var(--stroke);
-  border-radius: 2px;
+  border-radius: var(--raio);
   background: var(--surface-card);
   text-align: left;
   cursor: pointer;
@@ -158,7 +158,7 @@
     font-family: var(--f-mono);
     font-size: 10px;
     padding: 0 5px;
-    border-radius: 7px;
+    border-radius: var(--raio);
     background: var(--accent);
     // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
     // no escuro (tokens.scss:77) e branco por cima reprova o AA. Vale para os
@@ -177,7 +177,7 @@
     margin-right: 8px;
     padding: 5px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--accent);
     color: var(--surface-card);
     font-size: 12px;
@@ -281,7 +281,7 @@
   &__anteriores {
     align-self: center;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     padding: 4px 12px;
     font-size: 12px;
@@ -296,7 +296,7 @@
       font-size: 11px;
       color: var(--text-muted);
       background: var(--surface-alt);
-      border-radius: 7px;
+      border-radius: var(--raio);
       padding: 2px 10px;
     }
   }
@@ -323,7 +323,7 @@
     }
     button {
       border: none;
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: var(--accent);
       color: var(--surface-card);
       padding: 6px 12px;
@@ -435,7 +435,7 @@
   }
   &__balao {
     padding: 8px 12px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 13px;
     line-height: 1.5;
     color: var(--text-primary);
@@ -468,7 +468,7 @@
   font-size: 12px;
   color: var(--accent);
   border: 0.7px solid var(--stroke);
-  border-radius: 2px;
+  border-radius: var(--raio);
   padding: 3px 8px;
   background: var(--surface-card);
   text-decoration: none;
@@ -489,7 +489,7 @@
   &__textarea {
     min-height: 64px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     padding: 10px 12px;
     font-family: var(--f-ui);
     font-size: 13px;
@@ -520,7 +520,7 @@
     align-items: center;
     gap: 6px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: none;
     padding: 6px 10px;
     font-size: 12px;
@@ -555,7 +555,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface-card);
-    border-radius: 2px;
+    border-radius: var(--raio);
     box-shadow: var(--sombra-flutuante);
     overflow: hidden;
   }
@@ -595,7 +595,7 @@
     align-items: flex-start;
     gap: 2px;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     cursor: pointer;
 
     // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
@@ -630,7 +630,7 @@
     // de texto, escreve com o de superfície.
     color: var(--surface);
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -688,7 +688,7 @@
       gap: 8px;
       width: 100%;
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: none;
       padding: 8px 10px;
       font-size: 13px;
@@ -718,7 +718,7 @@
     }
     select {
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: var(--surface-card);
       padding: 6px 8px;
       font-size: 13px;
@@ -732,7 +732,7 @@
   &__confirmar {
     margin-top: 2px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--accent);
     color: var(--surface-card);
     padding: 7px 12px;

@@ -125,9 +125,10 @@ describe('BarraDeAbas — abas operáveis por teclado, padrão WAI-ARIA', () => 
       2,
     )
 
+    // A primeira aba é sempre a Início (fixa) — daí quatro no total.
     const abas = screen.getAllByRole('tab')
-    expect(abas.map((a) => a.getAttribute('tabindex'))).toEqual(['-1', '0', '-1'])
-    expect(abas[1]).toHaveAttribute('aria-selected', 'true')
+    expect(abas.map((a) => a.getAttribute('tabindex'))).toEqual(['-1', '-1', '0', '-1'])
+    expect(abas[2]).toHaveAttribute('aria-selected', 'true')
   })
 
   it('seta direita move o FOCO para a próxima aba sem navegar (ativação manual)', () => {
@@ -139,7 +140,8 @@ describe('BarraDeAbas — abas operáveis por teclado, padrão WAI-ARIA', () => 
       1,
     )
 
-    const [aba1, aba2] = screen.getAllByRole('tab')
+    // [0] é a Início; as abas de ticket vêm depois dela.
+    const [, aba1, aba2] = screen.getAllByRole('tab')
     aba1!.focus()
     fireEvent.keyDown(aba1!, { key: 'ArrowRight' })
 
@@ -150,7 +152,7 @@ describe('BarraDeAbas — abas operáveis por teclado, padrão WAI-ARIA', () => 
     expect(useTabs.getState().active).toBe('ticket:1')
   })
 
-  it('seta esquerda na primeira aba dá a volta para a última (wrap-around)', () => {
+  it('seta esquerda na primeira aba (Início) dá a volta para a última (wrap-around)', () => {
     montar(
       [
         { id: 1, ref: '#1001', draft: '' },
@@ -164,17 +166,56 @@ describe('BarraDeAbas — abas operáveis por teclado, padrão WAI-ARIA', () => 
     abas[0]!.focus()
     fireEvent.keyDown(abas[0]!, { key: 'ArrowLeft' })
 
-    expect(abas[2]).toHaveFocus()
+    expect(abas[3]).toHaveFocus()
   })
 
   it('o botão de fechar é irmão do role="tab", nunca filho dele', () => {
     montar([{ id: 1, ref: '#1001', draft: '' }])
 
-    const aba = screen.getByRole('tab')
+    const aba = screen.getAllByRole('tab')[1]!
     const fechar = screen.getByRole('button', { name: 'Fechar aba Empresa #1001' })
 
     expect(aba.contains(fechar)).toBe(false)
     expect(aba.parentElement).toBe(fechar.parentElement)
+  })
+})
+
+describe('BarraDeAbas — aba fixa do Início e atalho de novo ticket', () => {
+  it('a Início é sempre a primeira aba, mesmo sem nenhuma outra aberta', () => {
+    render(
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<BarraDeAbas />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    const abas = screen.getAllByRole('tab')
+    expect(abas).toHaveLength(1)
+    expect(abas[0]).toHaveAccessibleName(/Início/)
+    expect(abas[0]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('a Início não tem botão de fechar — é o destino de fallback das outras', () => {
+    montar([{ id: 1, ref: '#1001', draft: '' }])
+
+    expect(screen.getByRole('button', { name: 'Fechar aba Empresa #1001' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Fechar aba Início' })).not.toBeInTheDocument()
+  })
+
+  it('o "+" no fim da barra abre a tela de novo ticket', () => {
+    render(
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<BarraDeAbas />} />
+          <Route path="/chamados/novo" element={<p>abertura de chamado</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir novo ticket' }))
+
+    expect(screen.getByText('abertura de chamado')).toBeInTheDocument()
   })
 })
 
@@ -211,8 +252,9 @@ describe('BarraDeAbas — abas de seção', () => {
       </MemoryRouter>,
     )
 
+    // Início + a seção + o ticket.
     const abas = screen.getAllByRole('tab')
-    expect(abas).toHaveLength(2)
+    expect(abas).toHaveLength(3)
     expect(screen.getByRole('tab', { name: /Clientes/ })).toHaveAttribute('aria-selected', 'false')
     expect(screen.getByRole('tab', { name: /#1007/ })).toHaveAttribute('aria-selected', 'true')
   })

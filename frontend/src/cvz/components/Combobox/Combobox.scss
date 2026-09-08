@@ -11,8 +11,10 @@
     gap: 4px;
     min-height: $control-h;
     padding: 4px 32px 4px 10px;
-    border: $stroke-w solid $stroke;
-    border-bottom-color: $text-muted;
+    // Combobox é campo de entrada: linha de campo, igual a input e select
+    // (`@mixin field`). O reforço só na borda de baixo que existia aqui saiu
+    // junto — ele compensava uma linha clara demais, que não existe mais.
+    border: $border-field;
     border-radius: $radius;
     background-color: $raised;
     cursor: text;

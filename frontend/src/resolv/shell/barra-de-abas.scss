@@ -1,14 +1,18 @@
-// Barra de abas do shell — 40px, sobre a surface-alt (design system §7.5).
-// Ocupa o lugar da Topbar antiga (Fase 2 da unificação de shell); mistura
-// abas de ticket e de seção na mesma faixa, na ordem em que foram abertas.
+// Barra de abas do shell — 40px, no topo do conteúdo.
+//
+// Mesmo fundo da sidebar (`--surface-alt`): as duas formam o CROMO, e o branco
+// fica reservado para a área de trabalho. É por isso que a aba ativa é branca:
+// ela não é "mais um item destacado", ela é a boca da página que está aberta —
+// visualmente contínua com o conteúdo logo abaixo.
 .barra-de-abas {
   display: flex;
   align-items: stretch;
   height: 40px;
-  background: var(--surface-alt);
-  border-bottom: 0.7px solid var(--stroke);
   flex-shrink: 0;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--stroke);
   overflow-x: auto;
+  overflow-y: hidden;
   position: sticky;
   top: 0;
   z-index: 90;
@@ -17,17 +21,20 @@
     display: flex;
     align-items: center;
     max-width: 220px;
-    border-right: 0.7px solid var(--stroke);
-    background: transparent;
+    flex-shrink: 0;
+    border-right: 1px solid var(--stroke);
+    background: transparent; // aba inativa = fundo do cromo
+    color: var(--texto-cromo);
     position: relative;
 
-    // Branco de verdade (--surface-card), não --surface: os dois ficam quase
-    // idênticos (#f9f8f7 vs #f5f3f2 do fundo da barra) e o contraste some — a
-    // aba ativa precisa se destacar das outras à primeira vista, sem precisar
-    // ler o texto.
     &--ativa {
       background: var(--surface-card);
-      box-shadow: inset 0 -2px 0 var(--accent);
+      // A linha de baixo some na aba ativa (ela se funde com o conteúdo) e o
+      // acento marca o topo — é o que dá a leitura de "esta página está aberta"
+      // sem precisar de negrito nem cor de texto diferente.
+      box-shadow: inset 0 2px 0 var(--accent);
+      margin-bottom: -1px;
+      padding-bottom: 1px;
     }
   }
 
@@ -38,12 +45,19 @@
     justify-content: center;
     gap: 1px;
     min-width: 0;
-    padding: 0 8px 0 16px;
+    padding: 0 8px 0 12px;
     height: 100%;
     border: none;
     background: transparent;
+    color: inherit;
+    font-family: var(--f-ui);
     cursor: pointer;
     text-align: left;
+  }
+
+  // A Início não tem botão de fechar, então o respiro da direita é dela mesma.
+  &__tab--fixa &__abrir {
+    padding-right: 12px;
   }
 
   &__titulo {
@@ -52,33 +66,34 @@
     gap: 6px;
     font-size: 12px;
     font-weight: 500;
-    color: var(--text-primary);
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 
-    // Ícone da aba de seção — mesma classe `ti ti-*` da Sidebar.
     i {
       font-size: 13px;
       color: var(--text-secondary);
       flex-shrink: 0;
     }
   }
-  // ponto com a cor da etapa (aba de ticket) — a pessoa vê de longe qual aba
-  // está fechada, aguardando cliente etc., sem abrir cada uma
+
+  // Ponto com a cor da etapa (aba de ticket) — dá para ver de longe qual aba
+  // está fechada, aguardando cliente etc., sem abrir cada uma.
   &__etapa {
     width: 7px;
     height: 7px;
     border-radius: 50%;
     flex-shrink: 0;
   }
+
   &__num {
     font-family: var(--f-mono);
     font-size: 10px;
     color: var(--accent);
     white-space: nowrap;
   }
+
   &__rascunho {
     font-family: var(--f-ui);
     color: var(--away);
@@ -93,11 +108,12 @@
     justify-content: center;
     margin-right: 6px;
     border: none;
+    border-radius: var(--raio);
     background: transparent;
-    border-radius: 2px;
     color: var(--text-secondary);
     cursor: pointer;
     flex-shrink: 0;
+
     i {
       font-size: 13px;
     }
@@ -107,8 +123,31 @@
     }
   }
 
+  // "+" no fim da fila: abrir ticket novo é a ação que mais nasce a partir
+  // desta barra, e ela fica onde a próxima aba apareceria.
+  &__novo {
+    width: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-right: 1px solid var(--stroke);
+    background: transparent;
+    color: var(--texto-cromo);
+    cursor: pointer;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover {
+      background: var(--stroke);
+    }
+  }
+
   &__abrir:focus-visible,
-  &__fechar:focus-visible {
+  &__fechar:focus-visible,
+  &__novo:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: -2px;
   }

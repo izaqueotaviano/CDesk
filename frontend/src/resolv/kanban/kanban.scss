@@ -25,7 +25,7 @@
   }
   &--erro button {
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: none;
     padding: 6px 12px;
     font-size: 12px;
@@ -53,7 +53,7 @@
   }
   &__seletor-quadro {
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     padding: 6px 10px;
     font-size: 12px;
@@ -87,7 +87,7 @@
   max-height: 100%;
   background: var(--surface-alt);
   border: 0.7px solid var(--stroke);
-  border-radius: 2px;
+  border-radius: var(--raio);
   transition: border-color 0.1s ease, background 0.1s ease;
 
   &--sobre {
@@ -182,7 +182,7 @@
 
     input {
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       padding: 6px 8px;
       font-size: 12px;
     }
@@ -194,7 +194,7 @@
     button {
       flex: 1;
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: var(--surface-card);
       padding: 4px 8px;
       font-size: 11px;
@@ -211,7 +211,7 @@
 .kb-cartao {
   background: var(--surface-card);
   border: 0.7px solid var(--stroke);
-  border-radius: 2px;
+  border-radius: var(--raio);
   padding: 10px;
   display: flex;
   flex-direction: column;
@@ -296,7 +296,7 @@
     font-size: 11px;
     color: var(--text-muted);
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     padding: 2px 6px;
     background: none;
     cursor: pointer;
@@ -318,7 +318,7 @@
     font-family: var(--f-mono);
     font-size: 11px;
     padding: 2px 6px;
-    border-radius: 2px;
+    border-radius: var(--raio);
 
     &--ok,
     &--met {
@@ -391,7 +391,7 @@
   }
   input {
     border: 1px solid var(--stroke);
-    border-radius: 4px;
+    border-radius: var(--raio);
     padding: 6px 8px;
     font-size: 13px;
   }
@@ -409,7 +409,7 @@
   align-items: center;
   gap: 8px;
   border: 0.7px solid var(--danger);
-  border-radius: 2px;
+  border-radius: var(--raio);
   padding: 8px 12px;
   color: var(--danger);
   font-size: 13px;

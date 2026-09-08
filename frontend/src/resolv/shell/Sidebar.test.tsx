@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { usePrefs } from '@/stores/prefs'
 import { Sidebar } from './Sidebar'
 
 function jsonDe(body: unknown, status = 200) {
@@ -36,7 +37,12 @@ beforeEach(() => {
     }),
   )
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  // A preferência é um singleton de módulo persistido: sem devolver ao padrão,
+  // a barra recolhida num teste vaza para o seguinte.
+  usePrefs.setState({ sidebarRecolhida: false })
+})
 
 function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -86,6 +92,31 @@ describe('Sidebar — zona utilitária (Fase 2: absorveu a Topbar)', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Buscar e navegar' }))
     expect(abrirBusca).toHaveBeenCalledOnce()
+  })
+
+  it('recolhe e expande, guardando a escolha na preferência do app', () => {
+    const { container } = montar()
+
+    const barra = container.querySelector('.sidebar-rail')!
+    expect(barra).not.toHaveClass('sidebar-rail--recolhida')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Recolher menu' }))
+
+    expect(barra).toHaveClass('sidebar-rail--recolhida')
+    expect(usePrefs.getState().sidebarRecolhida).toBe(true)
+    // O botão passa a oferecer a volta — rótulo de AÇÃO, não de estado.
+    fireEvent.click(screen.getByRole('button', { name: 'Expandir menu' }))
+    expect(barra).not.toHaveClass('sidebar-rail--recolhida')
+  })
+
+  it('recolhida, os itens continuam nomeados para o teclado e o leitor de tela', () => {
+    usePrefs.setState({ sidebarRecolhida: true })
+    montar()
+
+    // O rótulo visível some no CSS, mas o nome acessível não depende dele:
+    // é o `aria-label` do botão que responde por ele nos dois estados.
+    expect(screen.getByRole('button', { name: 'Clientes' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Configurações' })).toBeInTheDocument()
   })
 
   it('o selo de conversas some quando a fila e os atendimentos estão vazios', async () => {

@@ -16,14 +16,13 @@ export function BotaoTema() {
   const acao = tema === 'escuro' ? 'Usar tema claro' : 'Usar tema escuro'
 
   return (
-    <button
-      type="button"
-      className="sidebar-rail__item"
-      aria-label={acao}
-      data-tooltip={acao}
-      onClick={alternar}
-    >
-      <i className={tema === 'escuro' ? 'ti ti-sun' : 'ti ti-moon'} aria-hidden="true" />
+    <button type="button" className="sidebar-rail__item" aria-label={acao} title={acao} onClick={alternar}>
+      <span className="sidebar-rail__icone">
+        <i className={tema === 'escuro' ? 'ti ti-sun' : 'ti ti-moon'} aria-hidden="true" />
+      </span>
+      <span className="sidebar-rail__rotulo" aria-hidden="true">
+        {acao}
+      </span>
     </button>
   )
 }

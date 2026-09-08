@@ -14,7 +14,8 @@ import {
   type Column,
 } from '@/cvz/components'
 import { ApiError } from '@/api/client'
-import { ModalNovaEmpresa } from './ModalNovaEmpresa'
+import { useMe } from '@/api/queries/useMe'
+import { ModalEmpresa } from './ModalEmpresa'
 import { useEmpresas, type Empresa } from './dados'
 import './clientes.scss'
 
@@ -22,11 +23,17 @@ const TAMANHO_PAGINA = 20
 
 export function PaginaListaEmpresas() {
   const navigate = useNavigate()
+  const { data: me } = useMe()
+  // Escrita em `settings/*` é de admin (`IsInternalReadAdminWrite`) — o agente
+  // lê a lista e não altera nada. Esconder é melhor que deixar clicar e
+  // colher 403.
+  const podeEditar = (me?.permissions ?? []).includes('settings.manage')
   const [busca, setBusca] = useState('')
   const [buscaDebounced, setBuscaDebounced] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<'' | 'true' | 'false'>('')
   const [pagina, setPagina] = useState(1)
   const [modalAberto, setModalAberto] = useState(false)
+  const [empresaEmEdicao, setEmpresaEmEdicao] = useState<Empresa | null>(null)
 
   // 300ms parado de digitar antes de bater no servidor — sem isso cada tecla
   // vira uma requisição (e a resposta de uma tecla anterior podia chegar
@@ -100,6 +107,42 @@ export function PaginaListaEmpresas() {
         </Tag>
       ),
     },
+    {
+      key: 'acoes',
+      header: '',
+      mobile: 'meta',
+      // A linha inteira já navegava para o detalhe, mas isso é invisível: não
+      // há nada na tela dizendo que ela é clicável. Os botões explícitos são
+      // o caminho que a pessoa acha — o clique na linha continua valendo como
+      // atalho de quem já sabe.
+      render: (e) => (
+        <div className="clientes-acoes">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(ev) => {
+              // sem isto o clique sobe para a linha e o "Editar" também navega
+              ev.stopPropagation()
+              navigate(`/clientes/${e.id}`)
+            }}
+          >
+            Abrir
+          </Button>
+          {podeEditar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(ev) => {
+                ev.stopPropagation()
+                setEmpresaEmEdicao(e)
+              }}
+            >
+              Editar
+            </Button>
+          )}
+        </div>
+      ),
+    },
   ]
 
   return (
@@ -108,9 +151,11 @@ export function PaginaListaEmpresas() {
         title="Clientes"
         description="Empresas atendidas — plano, cota do mês e usuários."
         actions={
-          <Button Icon={IconPlus} onClick={() => setModalAberto(true)}>
-            Nova empresa
-          </Button>
+          podeEditar && (
+            <Button Icon={IconPlus} onClick={() => setModalAberto(true)}>
+              Nova empresa
+            </Button>
+          )
         }
       />
 
@@ -171,10 +216,16 @@ export function PaginaListaEmpresas() {
         )}
       </div>
 
-      <ModalNovaEmpresa
+      <ModalEmpresa
         open={modalAberto}
         onClose={() => setModalAberto(false)}
         onCriada={(id) => navigate(`/clientes/${id}`)}
+      />
+
+      <ModalEmpresa
+        empresa={empresaEmEdicao}
+        open={empresaEmEdicao !== null}
+        onClose={() => setEmpresaEmEdicao(null)}
       />
     </>
   )

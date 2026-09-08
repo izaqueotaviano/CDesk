@@ -10,8 +10,14 @@ export type Densidade = 'confortavel' | 'compacta'
 interface PrefsState {
   tema: Tema
   densidade: Densidade
+  /** Sidebar em modo rail (só ícones). Preferência de quem usa, não estado de
+   *  tela: quem trabalha em monitor pequeno recolhe uma vez e espera achar
+   *  recolhido no dia seguinte — por isso mora aqui, persistido, e não num
+   *  `useState` do shell. */
+  sidebarRecolhida: boolean
   setTema: (tema: Tema) => void
   setDensidade: (densidade: Densidade) => void
+  alternarSidebar: () => void
 }
 
 const CONSULTA_ESCURO = '(prefers-color-scheme: dark)'
@@ -53,11 +59,13 @@ export const usePrefs = create<PrefsState>()(
     (set) => ({
       tema: 'sistema',
       densidade: 'confortavel',
+      sidebarRecolhida: false,
       setTema: (tema) => {
         aplicarTema(tema)
         set({ tema })
       },
       setDensidade: (densidade) => set({ densidade }),
+      alternarSidebar: () => set((s) => ({ sidebarRecolhida: !s.sidebarRecolhida })),
     }),
     {
       name: 'resolv:prefs',

@@ -1,198 +1,414 @@
-// Sidebar Rail — 56px, só ícones + tooltip CSS. Portada da referência.
+// Sidebar do shell — expandida (240px) e recolhida (64px).
+//
+// A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
+// shell.scss, na raiz, porque quem se mexe junto é o conteúdo — o corpo lê a
+// mesma variável para o próprio recuo e nunca fica por baixo da barra em
+// nenhum dos dois estados. Aqui ficam só a aparência e o layout interno.
+// (O fallback de 240px cobre a barra renderizada fora do shell, como no teste.)
+//
+// Sem borda vertical à direita: a separação já vem da diferença de fundo
+// (cromo #efeae7 contra conteúdo branco), e a linha por cima disso engrossava
+// a moldura à toa.
 .sidebar-rail {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 56px;
-  background: var(--surface-alt);
-  border-right: 0.7px solid var(--stroke);
+  z-index: 100;
+  width: var(--largura-sidebar, 240px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  z-index: 100;
-  gap: 4px;
+  padding: 8px;
+  gap: 2px;
+  background: var(--surface-alt);
+  color: var(--texto-cromo);
+  transition: width 0.15s ease;
 
-  &__logo {
-    width: 36px;
-    height: 36px;
-    display: flex;
+  &--recolhida {
+    padding: 8px 0;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    cursor: pointer;
-    border-radius: 2px;
-
-    &-mark {
-      width: 22px;
-      height: auto;
-      color: var(--text-primary);
-      transition: color 0.15s ease;
-    }
-    &:hover &-mark {
-      color: var(--accent);
-    }
   }
 
-  &__sep {
-    width: 24px;
-    height: 0.7px;
-    background: var(--stroke);
-    margin: 8px 0;
+  // ── Marca + alternador ────────────────────────────────────────────────────
+  &__topo {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 40px;
     flex-shrink: 0;
   }
 
-  &__nav {
+  &__marca {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 10px;
     flex: 1;
+    min-width: 0;
+    height: 40px;
+    padding: 0 8px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: inherit;
+    font-family: var(--f-ui);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
   }
 
-  &__item {
-    position: relative;
-    width: 40px;
-    height: 40px;
+  &__logo-mark {
+    width: 20px;
+    height: auto;
+    flex-shrink: 0;
+    color: currentColor;
+  }
+
+  &__marca-nome {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__alternar {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
+    border-radius: var(--raio);
     background: transparent;
-    border-radius: 2px;
+    color: var(--texto-cromo);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
-    color: var(--text-secondary);
 
     i {
       font-size: 16px;
-      line-height: 1;
     }
-
     &:hover {
       background: var(--stroke);
-      color: var(--text-primary);
     }
-    &--ativo {
-      background: var(--stroke);
-      color: var(--text-primary);
-      &:hover {
-        background: var(--stroke-subtle);
-      }
-    }
-    &--inerte {
-      opacity: 0.55;
-      cursor: default;
-      &:hover {
-        background: transparent;
-        color: var(--text-secondary);
-      }
-    }
-
-    // tooltip CSS puro
-    &::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      background: var(--text-primary);
-      // --surface é o PAR de --text-primary: os dois trocam de lado juntos no
-      // escuro. Com #fff aqui o tooltip virava branco sobre o off-branco que
-      // --text-primary vira (tokens.scss:68) e sumia.
-      color: var(--surface);
-      font-family: var(--f-ui);
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1;
-      padding: 6px 10px;
-      border-radius: 2px;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-50%) translateX(-4px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
-      z-index: 200;
-    }
-    &::before {
-      content: '';
-      position: absolute;
-      left: calc(100% + 5px);
-      top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-      border-right-color: var(--text-primary);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 200;
-    }
-    &:hover::after,
-    &:hover::before {
-      opacity: 1;
-    }
-    &:hover::after {
-      transform: translateY(-50%) translateX(0);
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
     }
   }
 
-  // Selo de conversas sobre o ícone de Chats — o chip de texto "N conversas"
-  // da Topbar antiga não tem mais barra pra caber; a contagem virou selo,
-  // mesma peça visual do badge de notificações não lidas
-  // (notificacoes.scss::painel-notif__badge).
+  // ── Busca ─────────────────────────────────────────────────────────────────
+  // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
+  // central que ele abre. Um <input> aqui teria dois lugares para digitar a
+  // mesma coisa.
+  &__busca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    margin: 6px 0;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+
+    i {
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    &:hover {
+      border-color: var(--text-secondary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
+  &__busca-rotulo {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  &__busca-atalho {
+    flex-shrink: 0;
+    padding: 2px 5px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  // ── Navegação ─────────────────────────────────────────────────────────────
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    // A rolagem é da lista, não da barra: com 11 itens mais as zonas fixas,
+    // uma janela baixa cortaria o rodapé (conta e tema) se a barra inteira
+    // rolasse junto.
+    overflow-x: hidden;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--texto-cromo);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: var(--stroke);
+    }
+    // Estado ativo pela COR DE AÇÃO, não só por um cinza mais escuro: com a
+    // barra inteira em bege, o realce cinza mal se via.
+    &--ativo {
+      background: var(--tom-acento-forte);
+      color: var(--accent-active);
+      font-weight: 600;
+    }
+    &--inerte {
+      color: var(--text-muted);
+      cursor: default;
+      &:hover {
+        background: transparent;
+      }
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+
+  // Caixa do ícone: tem tamanho fixo para os rótulos alinharem numa coluna só,
+  // e é ela (não o botão inteiro) que ancora o selo — senão, com a barra
+  // expandida, o selo ia parar na ponta direita da linha.
+  &__icone {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 17px;
+      line-height: 1;
+    }
+  }
+
+  &__rotulo {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__em-breve {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  // Selo de conversas sobre o ícone de Chats — a contagem vive onde a pessoa
+  // olha para achar o chat, sem ocupar uma linha própria.
   &__badge {
     position: absolute;
-    top: 2px;
-    right: 2px;
+    top: -3px;
+    right: -6px;
     min-width: 15px;
     height: 15px;
     padding: 0 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 8px;
+    border-radius: var(--raio);
     background: var(--accent);
-    color: var(--surface-card);
+    color: #ffffff;
     font-family: var(--f-ui);
     font-size: 9px;
     font-weight: 700;
     line-height: 1;
   }
 
-  // ── Zona utilitária — busca, notificações, tema, presença/conta/sair.
-  // Vem DEPOIS de `&__nav` (que tem flex:1), então cai sozinha no rodapé da
-  // barra sem precisar de position:absolute. Fase 2: é tudo que a Topbar
-  // (removida nesta rodada) hospedava.
+  // ── Zona utilitária (rodapé) ──────────────────────────────────────────────
   &__zona-utilitaria {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding-top: 8px;
+    gap: 1px;
     flex-shrink: 0;
+    padding-top: 8px;
+    margin-top: 4px;
+    border-top: 1px solid var(--stroke);
+    width: 100%;
 
-    &::before {
-      content: '';
+    // Os painéis destes itens nascem pensados para uma barra HORIZONTAL —
+    // abrem para baixo (Popover.scss: `top: calc(100% + 4px)`). Numa coluna
+    // colada na borda esquerda isso jogaria o painel para fora da tela;
+    // reancorado para abrir à DIREITA e crescer para CIMA (`bottom: 0`), que é
+    // o único sentido que nunca estoura — estes são os itens mais próximos do
+    // rodapé da janela.
+    .popover {
       display: block;
-      width: 24px;
-      height: 0.7px;
-      background: var(--stroke);
-      margin-bottom: 6px;
+      width: 100%;
     }
-
-    // Os popovers destes 3 itens (notificações, presença) nascem pensados
-    // pra uma barra HORIZONTAL — abrem pra baixo (Popover.scss:
-    // `top: calc(100% + 4px)`). Numa rail vertical de 56px isso empurraria o
-    // painel pra fora da tela pela direita; sobrescrito aqui pra abrir à
-    // DIREITA do próprio gatilho, ancorado embaixo (`bottom:0`) — o item mais
-    // ao fundo da zona (o avatar) é sempre o mais perto da borda inferior da
-    // tela, então "crescer pra cima a partir da base" é o que nunca estoura
-    // por baixo, em qualquer altura de viewport.
     .popover__panel {
       top: auto;
       bottom: 0;
-      left: calc(100% + 8px);
+      left: calc(100% + 4px);
       right: auto;
+    }
+  }
+
+  // ── Recolhida ─────────────────────────────────────────────────────────────
+  // Tudo que é texto sai; o que sobra centraliza. Nada de tooltip em
+  // pseudo-elemento: o nome vem do `title` nativo (fora do documento, não
+  // empurra nem cobre conteúdo).
+  &--recolhida {
+    .sidebar-rail__topo {
+      flex-direction: column;
+      gap: 2px;
+      min-height: auto;
+    }
+    .sidebar-rail__marca {
+      flex: none;
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar-rail__marca-nome,
+    .sidebar-rail__busca-rotulo,
+    .sidebar-rail__busca-atalho,
+    .sidebar-rail__rotulo,
+    .sidebar-rail__em-breve,
+    .menu-presenca__nome {
+      display: none;
+    }
+    .sidebar-rail__busca {
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+      color: var(--texto-cromo);
+
+      &:hover {
+        background: var(--stroke);
+      }
+    }
+    .sidebar-rail__nav {
+      align-items: center;
+      width: 100%;
+    }
+    .sidebar-rail__item,
+    .menu-presenca__gatilho {
+      width: 40px;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+      min-height: 40px;
+    }
+    .sidebar-rail__zona-utilitaria {
+      align-items: center;
+      // A linha divisória acompanha a largura do rail em vez de atravessar a
+      // barra inteira: colada nas bordas ela virava um traço largo demais para
+      // 64px.
+      margin: 4px 12px 0;
+      width: auto;
+    }
+  }
+}
+
+// ── Telas pequenas ──────────────────────────────────────────────────────────
+// Abaixo de 768px a barra assume o rail INDEPENDENTE da preferência: o
+// conteúdo é quem precisa da largura (a largura em si é imposta em
+// shell.scss, na mesma faixa). Uma gaveta sobreposta foi descartada — exigiria
+// véu, trava de foco e um botão de abrir em algum lugar do conteúdo, e o rail
+// já mantém a navegação inteira alcançável com um toque.
+@media (max-width: 767px) {
+  .sidebar-rail {
+    padding: 8px 0;
+    align-items: center;
+
+    .sidebar-rail__topo {
+      flex-direction: column;
+      gap: 2px;
+      min-height: auto;
+    }
+    .sidebar-rail__marca {
+      flex: none;
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar-rail__marca-nome,
+    .sidebar-rail__busca-rotulo,
+    .sidebar-rail__busca-atalho,
+    .sidebar-rail__rotulo,
+    .sidebar-rail__em-breve,
+    .menu-presenca__nome,
+    // O alternador some: a largura aqui é imposta pela tela, e um botão que
+    // promete expandir sem conseguir seria um botão que mente.
+    .sidebar-rail__alternar {
+      display: none;
+    }
+    .sidebar-rail__busca {
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+      border-color: transparent;
+      background: transparent;
+      color: var(--texto-cromo);
+    }
+    .sidebar-rail__nav {
+      align-items: center;
+      width: 100%;
+    }
+    .sidebar-rail__item,
+    .menu-presenca__gatilho {
+      width: 40px;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+      min-height: 40px;
+    }
+    .sidebar-rail__zona-utilitaria {
+      align-items: center;
+      margin: 4px 12px 0;
+      width: auto;
     }
   }
 }

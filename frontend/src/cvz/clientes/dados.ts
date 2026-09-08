@@ -84,10 +84,41 @@ export interface UsuarioCliente {
   client_role: ClientRole | '' | null
   job_title: string
   phone: string
+  /** Segundo contato. Vem junto de `phone` porque a exigência do backend é
+   *  "pelo menos um dos dois" — ler só o primeiro esconderia metade da regra. */
+  phone_secondary: string
   is_active: boolean
+  /** '' | 'pendente' | 'aceito' — em PORTUGUÊS (`UserAdminSerializer.get_invite_status`).
+   *  Cliente sempre depende de senha, então nunca vem vazio aqui. */
   invite_status: string
   last_login: string | null
   last_seen_at: string | null
+}
+
+/** Cadastro de um usuário de cliente — recorte de escrita de
+ *  `UserAdminSerializer` (apps/accounts/admin_api.py).
+ *
+ *  `kind`, `company` e `internal_role` NÃO entram de propósito: quem cria é a
+ *  rota da empresa, que os fixa a partir da URL e ignora o que vier no corpo.
+ *
+ *  Telefone: o serializer exige PELO MENOS UM entre `phone` e
+ *  `phone_secondary` quando `kind` é cliente — nenhum dos dois é obrigatório
+ *  sozinho. Por isso os dois são opcionais aqui: quem valida "ao menos um" é
+ *  o formulário, com a mesma regra do servidor. */
+export interface UsuarioClienteEscrita {
+  full_name: string
+  email: string
+  client_role: ClientRole
+  job_title?: string
+  phone?: string
+  phone_secondary?: string
+}
+
+/** Edição de um usuário já criado. `email` fica de fora: é a identidade de
+ *  login e o destino do convite — trocá-la no meio de um formulário de
+ *  cadastro é mudar de pessoa sem parecer que mudou. */
+export type UsuarioClienteEdicao = Partial<Omit<UsuarioClienteEscrita, 'email'>> & {
+  is_active?: boolean
 }
 
 export interface ParamsListaEmpresas {
@@ -165,8 +196,25 @@ export function useAtualizarEmpresa(id: number) {
 export function useConvidarUsuario(empresaId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dados: { email: string; full_name: string; client_role: ClientRole }) =>
+    mutationFn: (dados: UsuarioClienteEscrita) =>
       api.post<UsuarioCliente>(`/api/v1/settings/companies/${empresaId}/users/`, dados),
+    // Invalida a chave da EMPRESA inteira (prefixo), não só a lista de
+    // usuários: `user_count` sai do detalhe da empresa e ficava velho no
+    // cabeçalho depois de convidar alguém.
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId] }),
+  })
+}
+
+/** Edição do cadastro de um usuário de cliente.
+ *
+ *  A rota é a PLANA (`settings/users/<id>/`, `UserAdminViewSet`) e não uma
+ *  sub-rota da empresa: a que fica sob a empresa só lista e cria — não existe
+ *  PATCH lá. `empresaId` entra só para saber qual lista invalidar. */
+export function useAtualizarUsuario(empresaId: number, usuarioId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: UsuarioClienteEdicao) =>
+      api.patch<UsuarioCliente>(`/api/v1/settings/users/${usuarioId}/`, dados),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId, 'usuarios'] }),
   })
 }

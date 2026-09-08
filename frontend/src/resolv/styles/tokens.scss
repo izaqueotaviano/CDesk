@@ -1,45 +1,66 @@
 // ============================================================================
 // Resolv Design System — tokens (custom properties).
 //
-// Só define as variáveis do design system entregue em resolvdesignsystem.md.
 // NÃO faz reset global de propósito: esta tela vive num app que já carrega o
 // Preflight do Tailwind (src/styles/index.css); um segundo reset brigaria com
 // ele. Os componentes .resolv-* abaixo estilizam tudo explicitamente.
 //
 // Escopado em .resolv-scope para os tokens valerem só sob o shell novo — o
-// resto do app (login etc., ainda no visual Tailwind quente) fica intocado.
+// resto do app (login etc.) fica intocado.
+//
+// A paleta é a do produto: conteúdo em BRANCO, cromo (sidebar + barra de
+// abas) em #efeae7, ação em #0f62fe. Antes era uma família quente
+// (fundo #f9f8f7, texto marrom, azul #0275de); a troca é global e mora aqui —
+// nenhum componente repete hex.
 // ============================================================================
 
 .resolv-scope {
   // ── Fontes ──
+  // Inter na interface; JetBrains Mono só em dado técnico (id, referência de
+  // ticket, atalho de teclado) — nunca em texto corrido.
   --f-ui: 'Inter', -apple-system, system-ui, sans-serif;
   --f-mono: 'JetBrains Mono', monospace;
 
   // ── Superfícies ──
-  --surface: #f9f8f7;
-  --surface-alt: #f5f3f2;
+  // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em
+  // relação à paleta antiga é o ponto: antes o cromo era quase igual ao fundo,
+  // agora ele recua de verdade e a área de trabalho ganha o branco inteiro.
+  --surface: #ffffff;
+  --surface-alt: #efeae7;
   --surface-card: #ffffff;
-  --stroke: #e3e1df;
-  --stroke-hover: #c9c0ba;
-  --stroke-subtle: #d6d3d0;
+  --stroke: #d6d2cf;
+  --stroke-hover: #b5b0ac;
+  --stroke-subtle: #e2dedb;
+
+  // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
+  // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
+  // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
+  // o formulário sumir dentro da página.
+  --borda-campo: #7d7d7d;
 
   // ── Texto ──
-  --text-primary: #3b3532;
-  --text-secondary: #79706a;
-  --text-muted: #a79e97;
+  --text-primary: #171717;
+  --text-secondary: #60646c;
+  --text-muted: #999999;
+  // Texto e ícone sobre o cromo (#efeae7). Um degrau mais claro que o texto
+  // principal: sobre fundo bege ele já tem contraste de sobra (9.4:1) e o
+  // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
+  --texto-cromo: #333333;
 
   // ── Semânticas ──
-  --accent: #0275de;
+  // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
+  // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.
+  --accent: #0f62fe;
+  --accent-hover: #0043ce;
+  --accent-active: #002d9c;
   --danger: #b3261e;
   --ok: #1d7a4c;
   --away: #8a5d0f;
 
   // ── Tons (washes de fundo e de borda) ──
-  // Estavam duplicados declaração por declaração em tickets/detalhe/detalhe.scss
-  // e tickets/novo/novo.scss, como rgba() cru — e rgba() cru não acompanha o
-  // tema. Cada um daqueles valores era a semântica acima com alfa, então
-  // derivar por color-mix devolve EXATAMENTE a mesma cor no claro e passa a
-  // seguir o escuro sozinho: nenhum destes precisa de par escuro.
+  // Derivados por color-mix do próprio token semântico: cada um é a semântica
+  // com alfa, então acompanham a troca de tema (e a de paleta) sozinhos —
+  // rgba() cru aqui era exatamente o que quebrava no escuro.
   --tom-acento: color-mix(in srgb, var(--accent) 8%, transparent);
   --tom-acento-forte: color-mix(in srgb, var(--accent) 16%, transparent);
   --tom-acento-borda: color-mix(in srgb, var(--accent) 30%, transparent);
@@ -54,6 +75,11 @@
   --tom-alerta: #fef3cd; // pílula de SLA em risco
   --tom-nota: #fffbea; // fundo da nota interna, um degrau mais claro que a pílula
 
+  // ── Raio ──
+  // Um raio só na interface inteira. Quem precisa de círculo de verdade
+  // (avatar, ponto de presença) usa 50% direto — é forma, não estilo.
+  --raio: 2px;
+
   // ── Foco ──
   // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em
   // toda a base e quem usa não deveria ter que lembrar do "0 0 0 2px".
@@ -61,16 +87,15 @@
   --anel-foco-alerta: 0 0 0 2px color-mix(in srgb, var(--away) 18%, transparent);
 
   // ── Elevação e véus ──
-  // Não existia token de sombra — busca-global.scss:9 registra a falta — e cada
-  // peça cravava o próprio rgba preto ou marrom. Sombra é justamente o caso em
-  // que derivar do token NÃO serve: no claro ela é o --text-primary diluído,
-  // mas no escuro esse token é off-branco e a sombra viraria brilho. Daí o par
-  // por tema logo abaixo.
-  --sombra-suave: rgba(59, 53, 50, 0.08);
-  --sombra-forte: rgba(59, 53, 50, 0.14);
-  --sombra-flutuante: 0 12px 32px var(--sombra-forte), 0 0 0 0.7px var(--stroke);
-  --veu: rgba(59, 53, 50, 0.42);
-  --veu-suave: rgba(59, 53, 50, 0.24);
+  // Sombra é o caso em que derivar do token NÃO serve: no claro ela é preto
+  // diluído, mas no escuro precisa de muito mais opacidade para aparecer. Daí
+  // o par por tema. Valores baixos de propósito — a separação entre superfícies
+  // é feita por LINHA nesta base, não por sombra.
+  --sombra-suave: rgba(0, 0, 0, 0.06);
+  --sombra-forte: rgba(0, 0, 0, 0.12);
+  --sombra-flutuante: 0 8px 24px var(--sombra-forte), 0 0 0 1px var(--stroke);
+  --veu: rgba(23, 23, 23, 0.42);
+  --veu-suave: rgba(23, 23, 23, 0.24);
 
   color-scheme: light;
   font-family: var(--f-ui);
@@ -82,18 +107,16 @@
 // ============================================================================
 // Redefine as MESMAS custom properties: nenhum componente troca de seletor por
 // causa do tema. O corolário é que quem pinta com hex cru fica claro no escuro;
-// a varredura que fechou o tema tirou os últimos (o `--scrolled` da topbar e o
-// `color: #fff` do tooltip da sidebar eram os piores) e o que sobra de literal
-// mora AQUI, que é o único lugar onde cor literal tem valor por tema.
+// o que sobra de literal mora AQUI, que é o único lugar onde cor literal tem
+// valor por tema.
 //
-// Off-black/off-white de propósito: contra #000 puro a borda de 0.7px do
-// design system some, e #fff puro sobre fundo escuro brilha demais para uma
-// tela de fila que a equipe encara o dia inteiro.
+// Off-black/off-white de propósito: contra #000 puro a linha de 1px do design
+// system some, e #fff puro sobre fundo escuro brilha demais para uma tela de
+// fila que a equipe encara o dia inteiro.
 //
 // A ordem de luminância das superfícies é a MESMA do claro
-// (surface-alt < surface < surface-card): o cromo (sidebar + topbar) continua
-// recuado em relação ao corpo e o cartão continua saltando dos dois, só que
-// espelhado para o escuro.
+// (surface-alt < surface < surface-card): o cromo continua recuado em relação
+// ao corpo e o cartão continua saltando dos dois, só que espelhado.
 @mixin paleta-escura {
   color-scheme: dark;
 
@@ -103,25 +126,30 @@
   --stroke: #35312e;
   --stroke-hover: #4f4943;
   --stroke-subtle: #3d3936;
+  // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
+  --borda-campo: #8d8d8d;
 
   --text-primary: #e9e5e1;
   --text-secondary: #b3aaa3;
   --text-muted: #948b84;
+  // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
+  // o mesmo texto principal (um cinza #333 ali seria ilegível).
+  --texto-cromo: var(--text-primary);
 
-  // Mesmo azul de marca (matiz ~209°, o do #0275de), só clareado o bastante
-  // para brilhar no escuro: o #0275de original sobre --surface dá 3.76:1 e
-  // reprova AA como texto; este dá 7.0:1. Vale para as quatro semânticas —
-  // elas são usadas como COR DE TEXTO (inicio.scss pinta prazo em --danger e
-  // --ok), então todas passam 4.5:1 nas três superfícies, inclusive na clara.
-  --accent: #5cabf2;
+  // Mesma família do #0f62fe, clareada até passar contraste: o azul cru dá
+  // 3.5:1 sobre --surface e reprova AA como texto; este dá 7.4:1. Vale para as
+  // quatro semânticas — elas são usadas como COR DE TEXTO (inicio.scss pinta
+  // prazo em --danger e --ok), então todas passam 4.5:1 nas três superfícies.
+  --accent: #78a9ff;
+  --accent-hover: #a6c8ff;
+  --accent-active: #4589ff;
   --danger: #f08a82;
   --ok: #4fbf85;
   --away: #d9a53d;
 
-  // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 8–14% não
+  // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
   // aparece, e a peça flutuante perde a separação do fundo — que é a única
-  // função dela. O véu sobe pelo mesmo motivo: 42% de marrom claro sobre uma
-  // tela já escura mal escurece.
+  // função dela. O véu sobe pelo mesmo motivo.
   --sombra-suave: rgba(0, 0, 0, 0.45);
   --sombra-forte: rgba(0, 0, 0, 0.62);
   --veu: rgba(0, 0, 0, 0.62);

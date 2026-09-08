@@ -2,8 +2,9 @@
 // cvzdesk · design tokens
 // Fonte única de verdade. Nenhum componente declara hex ou px de raio direto.
 //
-// Copiado VERBATIM do MCP cvzdesk (get_tokens) em 2026-09-04. Não editar à
-// mão — se um valor precisar mudar, muda na fonte (cvzdesk) e recopia aqui.
+// A estrutura veio do MCP cvzdesk (get_tokens, 2026-09-04); os VALORES de cor
+// já são os do Resolv (ver _theme.scss). Mudança de valor se faz aqui/no tema,
+// não recopiando do cvzdesk — recopiar desfaria a identidade do produto.
 // =============================================================================
 
 // --- cor: marca --------------------------------------------------------------
@@ -15,7 +16,8 @@ $blue-active:     var(--cvz-blue-active);
 $surface:         var(--cvz-surface);      // fundo do conteúdo
 $chrome:          var(--cvz-chrome);       // sidebar e topbar
 $raised:          var(--cvz-raised);       // cards, campos, popovers
-$stroke:          var(--cvz-stroke);
+$stroke:          var(--cvz-stroke);       // linha estrutural: tabela, card, cromo
+$field-border:    var(--cvz-field-border); // linha de CAMPO (só input/select/etc.)
 $hover:           var(--cvz-hover);        // item em hover/ativo no chrome
 $hover-soft:      var(--cvz-hover-soft);
 
@@ -44,6 +46,13 @@ $avatar-bg:       var(--cvz-avatar-bg);
 $stroke-w:        0.7px;
 $border:          $stroke-w solid $stroke;
 
+// Campo de entrada tem linha PRÓPRIA, mais escura e de 1px: input precisa se
+// anunciar como editável, e com a linha estrutural (que é clara, de traço fino)
+// o formulário desaparecia dentro da página. Só input/select/textarea/combobox
+// usam isto — tabela, card, sidebar e aba continuam em `$border`.
+$field-border-w:  1px;
+$border-field:    $field-border-w solid $field-border;
+
 // Marcador de estado — aba ativa, linha selecionada, item de menu ativo, borda
 // esquerda de notificação. Não é borda: a 0.7px o indicador desaparece.
 $marker-w:        2px;
@@ -51,8 +60,11 @@ $focus-w:         2px;   // espessura do anel de foco
 $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
 
 // --- raio --------------------------------------------------------------------
+// Um raio só na interface inteira: 2px. O `--pill` de 7px que os badges usavam
+// saiu — cápsula ao lado de botão/campo quadrado quebrava a leitura de "mesma
+// família". Só forma circular de verdade (avatar, ponto de status) mantém 50%.
 $radius:          2px;   // padrão em tudo
-$radius-pill:     7px;   // badges
+$radius-pill:     $radius;
 $radius-circle:   50%;
 
 // --- métricas do shell ------------------------------------------------------

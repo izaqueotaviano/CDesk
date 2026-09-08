@@ -108,7 +108,7 @@
       max-width: 200px;
       padding: 0 24px 0 8px;
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: var(--surface-card);
       font-family: var(--f-ui);
       font-size: 12px;
@@ -130,7 +130,7 @@
     height: 34px;
     padding: 0 10px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
     font-size: 13px;
@@ -251,7 +251,7 @@
     gap: 10px;
     padding: 10px 12px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
   }
   &__cliente-id {
@@ -276,7 +276,7 @@
     align-items: center;
     gap: 5px;
     padding: 3px 9px;
-    border-radius: 999px;
+    border-radius: var(--raio);
     background: var(--tom-ok);
     font-size: 11px;
     color: var(--ok);
@@ -295,7 +295,7 @@
     gap: 8px;
     margin: 0;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--tom-alerta);
     font-size: 12px;
     line-height: 1.5;
@@ -366,7 +366,7 @@
     height: 34px;
     padding: 0 12px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 13px;
     font-weight: 500;
@@ -395,7 +395,7 @@
     place-items: center;
     border: none;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
@@ -447,7 +447,7 @@
   }
   &__feito-pendencia {
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--tom-alerta);
     font-size: 13px;
     color: var(--text-primary);
@@ -488,7 +488,7 @@
     height: 36px;
     padding-left: 10px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     transition:
       border-color 0.15s ease,
@@ -545,7 +545,7 @@
     place-items: center;
     border: none;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
@@ -569,7 +569,7 @@
     margin: 0;
     padding: 4px;
     background: var(--surface-card);
-    border-radius: 2px;
+    border-radius: var(--raio);
     box-shadow: var(--sombra-flutuante);
     &[hidden] {
       display: none;
@@ -580,7 +580,7 @@
     flex-direction: column;
     gap: 1px;
     padding: 7px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     cursor: pointer;
     &--ativa {
       background: var(--surface-alt);

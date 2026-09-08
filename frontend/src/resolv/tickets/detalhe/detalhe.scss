@@ -96,7 +96,7 @@
     padding: 0 14px;
     background: var(--surface-card);
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 13px;
     font-weight: 500;
     color: var(--text-primary);
@@ -145,7 +145,7 @@
       border: none;
       background: transparent;
       color: var(--danger);
-      border-radius: 2px;
+      border-radius: var(--raio);
       cursor: pointer;
       &:hover {
         background: color-mix(in srgb, var(--danger) 12%, transparent);
@@ -179,7 +179,7 @@
       border: none;
       background: transparent;
       color: var(--accent);
-      border-radius: 2px;
+      border-radius: var(--raio);
       cursor: pointer;
       &:hover {
         background: var(--tom-acento-forte);
@@ -237,7 +237,7 @@
   &__bloco {
     display: block;
     height: 16px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: linear-gradient(
       90deg,
       var(--surface-alt) 0%,
@@ -310,7 +310,7 @@
     place-items: center;
     border: none;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
@@ -370,7 +370,7 @@
     padding: 0 12px;
     background: var(--surface-card);
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 12px;
     font-weight: 500;
     color: var(--text-primary);
@@ -431,7 +431,7 @@
     place-items: center;
     border: 0.7px solid transparent;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
@@ -455,7 +455,7 @@
     gap: 6px;
     height: 22px;
     padding: 0 9px 0 7px;
-    border-radius: 999px;
+    border-radius: var(--raio);
     border: 0.7px solid var(--stroke);
     background: var(--surface-card);
     font-size: 12px;
@@ -473,7 +473,7 @@
   &__barra {
     width: 3px;
     height: 12px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--cor, var(--text-secondary));
   }
 
@@ -504,7 +504,7 @@
     gap: 8px;
     margin: 0;
     padding: 6px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--tom-perigo);
     font-size: 12px;
     color: var(--danger);
@@ -522,7 +522,7 @@
       border: none;
       background: transparent;
       color: var(--danger);
-      border-radius: 2px;
+      border-radius: var(--raio);
       cursor: pointer;
       &:hover {
         background: color-mix(in srgb, var(--danger) 12%, transparent);
@@ -541,7 +541,7 @@
     gap: 6px;
     height: 24px;
     padding: 0 9px;
-    border-radius: 999px;
+    border-radius: var(--raio);
     border: 0.7px solid var(--stroke);
     background: var(--surface-alt);
     font-size: 11px;
@@ -628,7 +628,7 @@
     padding: 2px 6px;
     margin-right: -6px;
     min-height: 24px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     &:hover {
       background: var(--tom-acento);
     }
@@ -664,7 +664,7 @@
     align-items: center;
     height: 34px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     padding-left: 10px;
     transition:
@@ -723,7 +723,7 @@
     gap: 2px 8px;
     min-height: 34px;
     padding: 6px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-alt);
     font-size: 13px;
     color: var(--text-primary);
@@ -761,7 +761,7 @@
     padding: 3px 9px;
     background: var(--surface-alt);
     border: 0.7px solid var(--stroke);
-    border-radius: 999px;
+    border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-primary);
     &--pessoa {
@@ -873,7 +873,7 @@
     color: var(--text-secondary);
     background: transparent;
     border: 0.7px solid transparent;
-    border-radius: 999px;
+    border-radius: var(--raio);
     padding: 2px 9px;
     cursor: pointer;
     &:hover {
@@ -897,7 +897,7 @@
     font-size: 12px;
     color: var(--text-secondary);
     background: var(--surface-alt);
-    border-radius: 2px;
+    border-radius: var(--raio);
   }
   &__interruptor {
     margin-left: auto;
@@ -992,7 +992,7 @@
   padding: 12px 14px;
   background: var(--surface-card);
   border: 0.7px solid var(--stroke);
-  border-radius: 2px;
+  border-radius: var(--raio);
 
   &--agente {
     border-left: 2px solid var(--accent);
@@ -1063,7 +1063,7 @@
     letter-spacing: 0.04em;
     text-transform: uppercase;
     padding: 1px 6px;
-    border-radius: 999px;
+    border-radius: var(--raio);
     background: var(--surface-alt);
     color: var(--text-secondary);
     &--equipe {
@@ -1078,7 +1078,7 @@
     font-size: 10px;
     font-weight: 500;
     padding: 1px 7px;
-    border-radius: 999px;
+    border-radius: var(--raio);
     background: var(--tom-ok);
     color: var(--ok);
     display: inline-flex;
@@ -1111,7 +1111,7 @@
       place-items: center;
       border: none;
       background: transparent;
-      border-radius: 2px;
+      border-radius: var(--raio);
       color: var(--text-muted);
       cursor: pointer;
       i {
@@ -1137,7 +1137,7 @@
   &__mencao {
     display: inline;
     padding: 0 4px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--tom-acento);
     color: var(--accent);
     font-weight: 500;
@@ -1150,7 +1150,7 @@
     textarea {
       width: 100%;
       border: 0.7px solid var(--accent);
-      border-radius: 2px;
+      border-radius: var(--raio);
       padding: 8px 10px;
       font-family: var(--f-ui);
       font-size: 13px;
@@ -1173,7 +1173,7 @@
   &__confirmar {
     padding: 8px 10px;
     background: var(--tom-perigo);
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-primary);
   }
   &__editor-dica {
@@ -1183,7 +1183,7 @@
     height: 28px;
     padding: 0 10px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
     font-weight: 500;
@@ -1225,7 +1225,7 @@
     max-width: 100%;
     padding: 4px 8px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
     color: var(--accent);
@@ -1345,7 +1345,7 @@
     gap: 8px;
     padding: 8px 10px;
     background: var(--tom-ok);
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-primary);
     i {
@@ -1368,7 +1368,7 @@
     padding: 0 10px;
     border: 0.7px solid transparent;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
@@ -1418,7 +1418,7 @@
     max-height: 40vh;
     padding: 10px 12px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
     font-size: 13px;
@@ -1461,7 +1461,7 @@
     padding: 3px 4px 3px 8px;
     background: var(--surface-alt);
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-primary);
     > i {
@@ -1475,7 +1475,7 @@
       place-items: center;
       border: none;
       background: transparent;
-      border-radius: 2px;
+      border-radius: var(--raio);
       color: var(--text-secondary);
       cursor: pointer;
       &:hover {
@@ -1521,7 +1521,7 @@
     gap: 6px;
     padding: 8px 10px;
     border: 0.7px solid var(--tom-alerta-borda);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--tom-alerta);
     font-size: 12px;
     line-height: 1.45;
@@ -1546,7 +1546,7 @@
     height: 28px;
     padding: 0 10px;
     border: 0.7px solid var(--tom-alerta-borda);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
     font-size: 12px;
@@ -1569,7 +1569,7 @@
     margin: 0;
     padding: 10px 12px 12px;
     border: 0.7px solid color-mix(in srgb, var(--ok) 30%, transparent);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     legend {
       padding: 0 6px;
@@ -1602,7 +1602,7 @@
       height: 32px;
       padding: 0 10px;
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       font-family: var(--f-ui);
       font-size: 13px;
       color: var(--text-primary);
@@ -1634,7 +1634,7 @@
     align-items: flex-start;
     gap: 6px;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-size: 12px;
     line-height: 1.45;
     i {
@@ -1674,7 +1674,7 @@
     height: 30px;
     padding: 0 10px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
     font-weight: 500;
@@ -1720,7 +1720,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface-card);
-    border-radius: 2px;
+    border-radius: var(--raio);
     box-shadow: var(--sombra-flutuante);
     overflow: hidden;
   }
@@ -1759,7 +1759,7 @@
     align-items: flex-start;
     gap: 2px;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     cursor: pointer;
     // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
     // precisa do mesmo destaque visual do :hover, porque é o único sinal de
@@ -1809,7 +1809,7 @@
     align-items: center;
     height: 34px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     select {
       appearance: none;
@@ -1845,7 +1845,7 @@
     height: 34px;
     padding: 0 14px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--accent);
     color: var(--surface-card);
     font-size: 13px;
@@ -1861,7 +1861,7 @@
       // Borda diluída da PRÓPRIA cor do texto do botão: um branco a 40% some
       // quando o --accent clareia no escuro.
       border: 0.7px solid color-mix(in srgb, var(--surface-card) 40%, transparent);
-      border-radius: 2px;
+      border-radius: var(--raio);
       opacity: 0.8;
     }
     &:hover {
@@ -1937,7 +1937,7 @@
     flex-shrink: 0;
     padding: 2px 8px;
     border: 0.7px solid var(--stroke);
-    border-radius: 999px;
+    border-radius: var(--raio);
     font-size: 11px;
     font-weight: 500;
     color: var(--text-secondary);
@@ -2020,7 +2020,7 @@
     flex-shrink: 0;
     display: grid;
     place-items: center;
-    border-radius: 2px;
+    border-radius: var(--raio);
     // Neutro de propósito: não existe faixa de "nota boa/ruim" no backend, e
     // pintar de verde/vermelho aqui inventaria uma (ver PainelCliente.tsx).
     background: var(--surface-alt);
@@ -2067,7 +2067,7 @@
     place-items: center;
     border: none;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
@@ -2092,7 +2092,7 @@
     grid-template-columns: 1fr auto;
     gap: 2px 8px;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     border: 0.7px solid var(--stroke);
     border-left-width: 3px;
     background: var(--surface-card);
@@ -2180,7 +2180,7 @@
     input,
     textarea {
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       padding: 7px 10px;
       font-family: inherit;
       font-size: 13px;

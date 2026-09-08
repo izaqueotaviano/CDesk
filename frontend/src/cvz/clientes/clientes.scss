@@ -1,10 +1,10 @@
 @use '../styles/tokens' as *;
 @use '../styles/mixins' as *;
 
-// Compartilhado por PaginaListaEmpresas, PaginaDetalheEmpresa, ModalNovaEmpresa
-// e ModalConvidarUsuario — texto de apoio/erro que antes ia em `style` inline
-// com número solto (12, 13, 20...). DESIGN.md §5.0: "Todo tamanho de texto
-// sai de @include type($fs-*)" — nenhuma exceção.
+// Compartilhado por PaginaListaEmpresas, PaginaDetalheEmpresa, ModalEmpresa,
+// ModalConvidarUsuario e ModalUsuario — texto de apoio/erro que antes ia em
+// `style` inline com número solto (12, 13, 20...). DESIGN.md §5.0: "Todo
+// tamanho de texto sai de @include type($fs-*)" — nenhuma exceção.
 
 // Metadado — domínio sob o nome da empresa, e-mail sob o nome do usuário,
 // número de uso sob a barra de progresso.
@@ -38,10 +38,47 @@
 }
 
 // Erro de formulário de modal — 12px ($fs-meta), não 13px ($fs-ui): os dois
-// modais (ModalNovaEmpresa, ModalConvidarUsuario) usavam esse tamanho.
+// modais (ModalEmpresa, ModalConvidarUsuario, ModalUsuario) usam esse tamanho.
 .clientes-erro-meta {
   @include type($fs-meta, $w-regular);
   color: $danger;
+}
+
+// Coluna de ações da tabela (empresa e usuário). Encostada à direita, como a
+// última coluna de qualquer listagem — o olho procura a ação no fim da linha.
+.clientes-acoes {
+  display: flex;
+  gap: $sp-2;
+  justify-content: flex-end;
+}
+
+// O formulário do detalhe da empresa vira <fieldset disabled> para quem não
+// administra. O reset é obrigatório: o fieldset traz borda, margem e um
+// `min-inline-size: min-content` do próprio navegador que quebraria o grid
+// dos FormRow lá dentro.
+.clientes-form {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-inline-size: 0;
+}
+
+// Ficha do usuário em modo leitura — rótulo em cima, valor embaixo.
+.clientes-ficha {
+  display: grid;
+  gap: $sp-3;
+  margin: 0;
+
+  dt {
+    @include type($fs-label, $w-regular);
+    color: $text-muted;
+  }
+
+  dd {
+    @include type($fs-ui, $w-regular);
+    margin: 0;
+    margin-top: $sp-1;
+  }
 }
 
 .clientes-domain-list {

@@ -1,15 +1,29 @@
+// Shell do design system Resolv: sidebar fixa + corpo (barra de abas + conteúdo).
+//
+// `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
+// `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa
+// saber o quanto recuar. Uma variável só, lida pelos dois, é o que garante que
+// o conteúdo nunca fica por baixo da barra em nenhum dos estados.
 .novo-shell {
+  --largura-sidebar: 240px;
+
   display: flex;
   min-height: 100vh;
   background: var(--surface);
 
+  &--recolhida {
+    --largura-sidebar: 64px;
+  }
+
   &__corpo {
-    margin-left: 56px;
+    margin-left: var(--largura-sidebar);
     flex: 1;
+    min-width: 0;
     height: 100vh;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
+    transition: margin-left 0.15s ease;
   }
 
   &__conteudo {
@@ -17,5 +31,14 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+  }
+}
+
+// Abaixo de 768px a barra vira rail à força (ver sidebar.scss): a largura tem
+// que ser imposta aqui também, senão o corpo continuaria recuando 240px contra
+// uma barra de 64.
+@media (max-width: 767px) {
+  .novo-shell {
+    --largura-sidebar: 64px;
   }
 }

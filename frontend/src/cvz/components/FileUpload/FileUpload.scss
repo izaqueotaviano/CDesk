@@ -8,7 +8,10 @@
     align-items: center;
     gap: 6px;
     padding: $sp-5 $sp-4;
-    border: $stroke-w dashed $stroke;
+    // Área de soltar arquivo é campo de entrada (o `<input type=file>` mora
+    // aqui dentro): linha de campo, só que tracejada — o tracejado é o que
+    // diz "solte aqui", e some se a linha ficar clara demais.
+    border: $field-border-w dashed $field-border;
     border-radius: $radius;
     background-color: $surface;
     text-align: center;

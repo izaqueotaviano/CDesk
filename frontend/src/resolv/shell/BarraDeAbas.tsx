@@ -5,34 +5,36 @@ import { NAV } from './Sidebar'
 import './barra-de-abas.scss'
 
 /**
- * Barra de abas do shell — Fase 2 da unificação de shell. Ocupa o lugar da
- * Topbar antiga e mostra as duas espécies de aba do store (`stores/tabs.ts`)
- * numa lista só, na ordem em que foram abertas: tickets (o contrato de
- * sempre, várias por vez) e seções (Tickets, Quadro, Chat, Clientes, Avisos,
- * Auditoria, Configurações, Relatórios — uma por vez, dedup por rota).
- * Início NUNCA vira aba — só se chega lá pela Sidebar, o mesmo papel que uma
- * aba fixa de "início" teria, sem precisar ser uma.
+ * Barra de abas do shell. Mostra as duas espécies de aba do store
+ * (`stores/tabs.ts`) numa lista só, na ordem em que foram abertas: tickets
+ * (várias por vez) e seções (uma por rota, dedup por prefixo).
  *
- * Diferença do antigo `TicketTabs.tsx` (removido nesta rodada): esta barra
- * monta UMA vez em NovoShell, não uma por página — quem decide o que está
- * aberto é a ROTA atual, observada aqui, não cada página chamando um método
- * de abrir. Ticket continua sendo exceção: `PaginaDetalheTicket` ainda chama
- * `abrirTicket()` ao carregar os dados (é de lá que vem o resumo pro título
- * da aba), esta barra só decide QUAL aba fica marcada como ativa quando a
- * rota é de ticket.
+ * Início é a exceção deliberada: é aba FIXA, sempre a primeira, sem botão de
+ * fechar — e não mora no store. Não está lá porque nada nela é estado: não
+ * abre, não fecha, não reordena. Deixá-la fora evita ter que proteger o store
+ * inteiro contra "e se alguém fechar a Início" (o caso em que a barra ficaria
+ * sem nenhuma aba e sem para onde voltar).
+ *
+ * Esta barra monta UMA vez em NovoShell, não uma por página — quem decide o
+ * que está aberto é a ROTA atual, observada aqui. Ticket é exceção:
+ * `PaginaDetalheTicket` chama `abrirTicket()` ao carregar os dados (é de lá
+ * que vem o resumo pro título da aba); a barra só decide qual fica ativa.
  */
 
 const SECOES = NAV.filter((n) => n.enabled && n.id !== 'inicio')
+
+/** Chave da aba fixa. Não colide com as do store (`ticket:`/`secao:`). */
+const CHAVE_INICIO = 'inicio'
 
 function secaoDaRota(pathname: string) {
   return SECOES.find((s) => pathname === s.route || pathname.startsWith(`${s.route}/`))
 }
 
-/** Deriva a aba que DEVERIA estar em destaque a partir da URL, não do store —
- *  mesmo raciocínio que o antigo `idAtivo` de TicketTabs.tsx documentava:
- *  assim a aba certa acende num link direto ou voltar do navegador, antes de
- *  qualquer efeito rodar. */
+/** Deriva a aba que DEVERIA estar em destaque a partir da URL, não do store:
+ *  assim a aba certa acende num link direto ou no voltar do navegador, antes
+ *  de qualquer efeito rodar. */
 function chaveAtivaDaRota(pathname: string): string | null {
+  if (pathname === '/inicio') return CHAVE_INICIO
   const ticket = pathname.match(/^\/chamados\/(\d+)$/)
   if (ticket) return `ticket:${ticket[1]}`
   const secao = secaoDaRota(pathname)
@@ -42,6 +44,9 @@ function chaveAtivaDaRota(pathname: string): string | null {
 function destinoDaAba(aba: Aba): string {
   return aba.tipo === 'ticket' ? `/chamados/${aba.ticketId}` : aba.rota
 }
+
+/** Uma linha da barra. `aba: null` é a Início — fixa, sem fechar. */
+type ItemDaBarra = { chave: string; aba: Aba | null }
 
 export function BarraDeAbas() {
   const navigate = useNavigate()
@@ -69,12 +74,18 @@ export function BarraDeAbas() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chaveDaRota])
 
+  const itens: ItemDaBarra[] = [
+    { chave: CHAVE_INICIO, aba: null },
+    ...tabs.map((aba) => ({ chave: chaveAba(aba), aba })),
+  ]
+
   const idAtivo = chaveDaRota ?? useTabs.getState().active
 
-  // Roving tabindex (padrão WAI-ARIA de tabs) — mesma lógica de
-  // TicketTabs.tsx: só UM `role="tab"` do grupo tem tabIndex 0 por vez, Tab
-  // entra/sai do grupo inteiro de uma vez, setas movem o FOCO sem ativar.
-  const [chaveComFoco, setChaveComFoco] = useState(idAtivo)
+  // Roving tabindex (padrão WAI-ARIA de tabs): só UM `role="tab"` do grupo tem
+  // tabIndex 0 por vez, Tab entra/sai do grupo inteiro de uma vez, setas movem
+  // o FOCO sem ativar. A Início entra na roda como qualquer outra — ser fixa
+  // não é motivo para ficar fora do teclado.
+  const [chaveComFoco, setChaveComFoco] = useState<string | null>(idAtivo)
   const botoesRef = useRef(new Map<string, HTMLButtonElement>())
 
   const [idAtivoVisto, setIdAtivoVisto] = useState(idAtivo)
@@ -83,14 +94,14 @@ export function BarraDeAbas() {
     setChaveComFoco(idAtivo)
   }
 
-  const chaveComFocoValida = tabs.some((a) => chaveAba(a) === chaveComFoco) ? chaveComFoco : idAtivo
+  const chaveComFocoValida = itens.some((i) => i.chave === chaveComFoco)
+    ? chaveComFoco
+    : CHAVE_INICIO
 
   function moverFoco(indiceAtual: number, direcao: 1 | -1) {
-    if (tabs.length === 0) return
-    const proxima = tabs[(indiceAtual + direcao + tabs.length) % tabs.length]!
-    const chave = chaveAba(proxima)
-    setChaveComFoco(chave)
-    botoesRef.current.get(chave)?.focus()
+    const proximo = itens[(indiceAtual + direcao + itens.length) % itens.length]!
+    setChaveComFoco(proximo.chave)
+    botoesRef.current.get(proximo.chave)?.focus()
   }
 
   function aoTeclarNaAba(e: KeyboardEvent<HTMLButtonElement>, indice: number) {
@@ -118,34 +129,46 @@ export function BarraDeAbas() {
     }
     const restantes = tabs.filter((a) => chaveAba(a) !== chave)
     fechar(chave)
+    // Fechar a aba ativa cai na última que sobrou; sem nenhuma, no Início —
+    // que está sempre ali, então nunca existe o estado "sem aba nenhuma".
     if (ativa) {
       const proxima = restantes.at(-1)
       navigate(proxima ? destinoDaAba(proxima) : '/inicio')
     }
   }
 
-  if (tabs.length === 0) return null
-
   return (
     <div className="barra-de-abas" role="tablist" aria-label="Abas abertas">
-      {tabs.map((aba, indice) => {
-        const chave = chaveAba(aba)
+      {itens.map((item, indice) => {
+        const { chave, aba } = item
         const ativa = chave === idAtivo
-        const titulo = aba.tipo === 'ticket' ? aba.resumo?.company_name || aba.resumo?.subject || 'Ticket' : aba.titulo
-        const ref = aba.tipo === 'ticket' ? (aba.resumo?.reference ?? `#${aba.ticketId}`) : null
-        const rascunho = aba.tipo === 'ticket' && aba.draft.trim().length > 0
+        const fixa = aba === null
+        const titulo = fixa
+          ? 'Início'
+          : aba.tipo === 'ticket'
+            ? aba.resumo?.company_name || aba.resumo?.subject || 'Ticket'
+            : aba.titulo
+        const ref = !fixa && aba.tipo === 'ticket' ? (aba.resumo?.reference ?? `#${aba.ticketId}`) : null
+        const rascunho = !fixa && aba.tipo === 'ticket' && aba.draft.trim().length > 0
         return (
-          <div key={chave} className={'barra-de-abas__tab' + (ativa ? ' barra-de-abas__tab--ativa' : '')}>
+          <div
+            key={chave}
+            className={
+              'barra-de-abas__tab' +
+              (ativa ? ' barra-de-abas__tab--ativa' : '') +
+              (fixa ? ' barra-de-abas__tab--fixa' : '')
+            }
+          >
             <button
               type="button"
               role="tab"
               // id/aria-controls só faz sentido pra ticket: é o único tipo de
               // aba com um tabpanel de verdade do outro lado
               // (PaginaDetalheTicket.tsx, id="detalhe-painel-ticket"). Aba de
-              // seção troca a página inteira ao ativar — não há painel
-              // parceiro pra apontar.
-              id={aba.tipo === 'ticket' ? `aba-tab-${aba.ticketId}` : undefined}
-              aria-controls={aba.tipo === 'ticket' ? 'detalhe-painel-ticket' : undefined}
+              // seção e Início trocam a página inteira ao ativar — não há
+              // painel parceiro pra apontar.
+              id={!fixa && aba.tipo === 'ticket' ? `aba-tab-${aba.ticketId}` : undefined}
+              aria-controls={!fixa && aba.tipo === 'ticket' ? 'detalhe-painel-ticket' : undefined}
               aria-selected={ativa}
               tabIndex={chave === chaveComFocoValida ? 0 : -1}
               ref={(el) => {
@@ -153,31 +176,30 @@ export function BarraDeAbas() {
                 else botoesRef.current.delete(chave)
               }}
               className="barra-de-abas__abrir"
-              title={aba.tipo === 'ticket' && aba.resumo?.subject ? `${ref} · ${aba.resumo.subject}` : titulo}
+              title={!fixa && aba.tipo === 'ticket' && aba.resumo?.subject ? `${ref} · ${aba.resumo.subject}` : titulo}
               onKeyDown={(e) => aoTeclarNaAba(e, indice)}
               onClick={() => {
                 setChaveComFoco(chave)
+                if (fixa) {
+                  navigate('/inicio')
+                  return
+                }
                 definirAtiva(chave)
                 navigate(destinoDaAba(aba))
               }}
             >
-              {aba.tipo === 'ticket' ? (
-                <span className="barra-de-abas__titulo">
-                  {aba.resumo?.stage_color && (
-                    <span
-                      className="barra-de-abas__etapa"
-                      style={{ background: aba.resumo.stage_color }}
-                      aria-hidden="true"
-                    />
-                  )}
-                  {titulo}
-                </span>
-              ) : (
-                <span className="barra-de-abas__titulo">
-                  <i className={aba.icone} aria-hidden="true" />
-                  {titulo}
-                </span>
-              )}
+              <span className="barra-de-abas__titulo">
+                {fixa && <i className="ti ti-home" aria-hidden="true" />}
+                {!fixa && aba.tipo === 'ticket' && aba.resumo?.stage_color && (
+                  <span
+                    className="barra-de-abas__etapa"
+                    style={{ background: aba.resumo.stage_color }}
+                    aria-hidden="true"
+                  />
+                )}
+                {!fixa && aba.tipo === 'secao' && <i className={aba.icone} aria-hidden="true" />}
+                {titulo}
+              </span>
               {ref && (
                 <span className="barra-de-abas__num">
                   {ref}
@@ -189,18 +211,35 @@ export function BarraDeAbas() {
                 </span>
               )}
             </button>
-            <button
-              type="button"
-              className="barra-de-abas__fechar"
-              aria-label={`Fechar aba ${titulo}`}
-              title="Fechar aba"
-              onClick={() => fecharAba(aba, chave, ativa)}
-            >
-              <i className="ti ti-x" />
-            </button>
+            {/* A Início não fecha: é o destino de fallback de todas as outras.
+                Sem botão em vez de botão desabilitado — desabilitado sugere
+                "dá para fechar, só não agora", e não é o caso. */}
+            {!fixa && (
+              <button
+                type="button"
+                className="barra-de-abas__fechar"
+                aria-label={`Fechar aba ${titulo}`}
+                title="Fechar aba"
+                onClick={() => fecharAba(aba, chave, ativa)}
+              >
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            )}
           </div>
         )
       })}
+
+      {/* Fora do tablist na leitura: é ação, não aba — por isso vem depois de
+          todas e não entra no roving tabindex (Tab normal alcança). */}
+      <button
+        type="button"
+        className="barra-de-abas__novo"
+        aria-label="Abrir novo ticket"
+        title="Abrir novo ticket"
+        onClick={() => navigate('/chamados/novo')}
+      >
+        <i className="ti ti-plus" aria-hidden="true" />
+      </button>
     </div>
   )
 }

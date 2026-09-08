@@ -1,76 +1,93 @@
 // =============================================================================
 // TEMA — claro e escuro (cvzdesk)
 //
-// Copiado VERBATIM do MCP cvzdesk (get_tokens) em 2026-09-04.
+// A base veio do MCP cvzdesk (get_tokens, 2026-09-04), mas a PALETA já não é
+// mais a de lá: esta rodada trocou a identidade quente (marrom/#0275DE) pela
+// paleta do produto — azul de ação #0f62fe, neutros frios e cromo #efeae7.
+// Editar aqui é o caminho certo agora; recopiar do cvzdesk desfaria a
+// identidade do Resolv.
 //
 // As cores vivem em custom properties para o tema poder trocar em runtime sem
 // recompilar. Os tokens SCSS (_tokens.scss) apontam para cá; nenhum componente
 // lê `--cvz-*` direto — sempre pelo token.
 //
-// O tema escuro usa a paleta do Material Design: rampa de superfícies do
-// Material 3 (baseline dark) e a família Blue do Material para a cor de ação,
-// que no escuro precisa clarear em vez de escurecer para manter contraste.
+// Duas famílias de linha, de propósito:
+//   --cvz-stroke        estrutura (tabela, card, divisória, cromo)
+//   --cvz-field-border  SÓ campo de entrada (input/select/textarea/combobox)
+// A segunda é bem mais escura que a primeira porque campo precisa se anunciar
+// como clicável; usar a mesma linha nos dois deixava o formulário sumir dentro
+// da página.
 // =============================================================================
 
 :root,
 [data-theme='light'] {
   color-scheme: light;
 
-  --cvz-blue:            #0275DE;
-  --cvz-blue-hover:      #0268C4;
-  --cvz-blue-active:     #015AAB;
-  --cvz-blue-tint:       #E9F3FD;
-  --cvz-blue-tint-hover: #DEECFB;
+  --cvz-blue:            #0f62fe;
+  --cvz-blue-hover:      #0043ce;
+  --cvz-blue-active:     #002d9c;
+  --cvz-blue-tint:       #edf5ff;
+  --cvz-blue-tint-hover: #d0e2ff;
 
-  --cvz-surface:         #F9F8F7;
-  --cvz-chrome:          #F5F3F2;
-  --cvz-raised:          #FFFFFF;
-  --cvz-stroke:          #E3E1DF;
-  --cvz-hover:           #E3E1DF;
-  --cvz-hover-soft:      rgba(232, 226, 221, 0.45);
+  // Conteúdo em branco; o cromo (sidebar, barra de abas) é que recua para o
+  // #efeae7. `raised` segue branco e se separa do fundo pela LINHA, não por
+  // sombra — a rodada pediu explicitamente para evitar sombra pesada.
+  --cvz-surface:         #ffffff;
+  --cvz-chrome:          #efeae7;
+  --cvz-raised:          #ffffff;
+  --cvz-stroke:          #d6d2cf;
+  --cvz-field-border:    #7d7d7d;
+  --cvz-hover:           #e8e4e1;
+  --cvz-hover-soft:      rgba(23, 23, 23, 0.04);
 
-  --cvz-text:            #3b3532;
-  --cvz-text-hover:      #2c2724;
-  --cvz-text-secondary:  #79706a;
-  --cvz-text-muted:      #a79e97;
+  --cvz-text:            #171717;
+  --cvz-text-hover:      #0d0d0d;
+  --cvz-text-secondary:  #60646c;
+  --cvz-text-muted:      #999999;
   --cvz-text-on-color:   #ffffff;
   --cvz-text-on-accent:  #ffffff;
 
   --cvz-danger:          #b3261e;
   --cvz-danger-hover:    #9c211a;
-  --cvz-danger-tint:     #F9EBEA;
+  --cvz-danger-tint:     #fdeceb;
   --cvz-success:         #1d7a4c;
-  --cvz-success-tint:    #EAF3EE;
+  --cvz-success-tint:    #e9f4ee;
   --cvz-away:            #8a5d0f;
-  --cvz-away-tint:       #F7F1E4;
+  --cvz-away-tint:       #f8f1e3;
 
-  --cvz-avatar-bg:       #c9c0ba;
-  --cvz-overlay:         rgba(59, 53, 50, 0.38);
+  --cvz-avatar-bg:       #c6c6c6;
+  --cvz-overlay:         rgba(23, 23, 23, 0.38);
 
-  --cvz-shadow-sm: 0 1px 2px rgba(59, 53, 50, 0.08);
-  --cvz-shadow-md: 0 6px 20px rgba(59, 53, 50, 0.12);
-  --cvz-shadow-lg: 0 24px 64px rgba(59, 53, 50, 0.22);
+  --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14);
 
-  --cvz-chrome-glass: rgba(245, 243, 242, 0.72);
+  --cvz-chrome-glass: rgba(239, 234, 231, 0.72);
   --cvz-on-accent-soft: rgba(255, 255, 255, 0.16);
 }
 
 // -----------------------------------------------------------------------------
-// Escuro — Material Design
+// Escuro
 // -----------------------------------------------------------------------------
+// Superfícies do Material 3 (baseline dark) mantidas; o azul acompanha a
+// família do #0f62fe clareada até passar contraste sobre fundo escuro — o
+// #0f62fe cru dá 2.6:1 ali e sumiria.
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --cvz-blue:            #90CAF9;  // Material Blue 200
-  --cvz-blue-hover:      #A6D4FA;
-  --cvz-blue-active:     #64B5F6;  // Material Blue 300
-  --cvz-blue-tint:       #172a3d;
-  --cvz-blue-tint-hover: #1e344a;
+  --cvz-blue:            #78a9ff;
+  --cvz-blue-hover:      #a6c8ff;
+  --cvz-blue-active:     #4589ff;
+  --cvz-blue-tint:       #1c2b4a;
+  --cvz-blue-tint-hover: #24365c;
 
   --cvz-surface:         #141218;  // M3 surface
   --cvz-chrome:          #1D1B20;  // M3 surface-container-low
   --cvz-raised:          #211F26;  // M3 surface-container
   --cvz-stroke:          #49454F;  // M3 outline-variant
+  // Campo continua um degrau acima da linha estrutural, como no claro — só
+  // que subindo (mais claro), porque aqui o contraste se ganha clareando.
+  --cvz-field-border:    #8d8d8d;
   --cvz-hover:           #2B2930;  // M3 surface-container-high
   --cvz-hover-soft:      rgba(230, 224, 233, 0.08);
 
@@ -79,7 +96,7 @@
   --cvz-text-secondary:  #CAC4D0;  // M3 on-surface-variant
   --cvz-text-muted:      #938F99;  // M3 outline
   --cvz-text-on-color:   #E6E0E9;
-  --cvz-text-on-accent:  #003258;  // texto sobre Blue 200 — M3 on-primary dark
+  --cvz-text-on-accent:  #001d6c;  // texto sobre o azul claro do escuro
 
   --cvz-danger:          #F2B8B5;  // M3 error dark
   --cvz-danger-hover:    #F7CFCD;
@@ -93,8 +110,8 @@
   --cvz-overlay:         rgba(0, 0, 0, 0.62);
 
   --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --cvz-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --cvz-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
 
   --cvz-chrome-glass: rgba(29, 27, 32, 0.72);
   --cvz-on-accent-soft: rgba(0, 50, 88, 0.18);

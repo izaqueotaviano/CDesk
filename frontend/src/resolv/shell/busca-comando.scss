@@ -23,7 +23,7 @@
   max-height: 76vh;
   overflow: hidden;
   background: var(--surface-card);
-  border-radius: 2px;
+  border-radius: var(--raio);
   box-shadow: var(--sombra-flutuante);
   animation: busca-comando-entrar 0.15s ease;
 
@@ -64,7 +64,7 @@
   &__esc {
     flex-shrink: 0;
     padding: 3px 6px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-alt);
     border: 0.7px solid var(--stroke);
     font-family: var(--f-mono);
@@ -100,7 +100,7 @@
     width: 100%;
     min-height: 36px;
     padding: 8px 10px;
-    border-radius: 2px;
+    border-radius: var(--raio);
     text-align: left;
     font-family: var(--f-ui);
     cursor: pointer;
@@ -193,7 +193,7 @@
     min-height: 24px;
     padding: 4px 10px;
     border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
     font-size: 12px;
@@ -229,7 +229,7 @@
     kbd {
       padding: 2px 5px;
       border: 0.7px solid var(--stroke);
-      border-radius: 2px;
+      border-radius: var(--raio);
       background: var(--surface-card);
       font-family: var(--f-mono);
       font-size: 10px;

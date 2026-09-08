@@ -19,12 +19,18 @@ export function ModalConvidarUsuario({
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
   const [papel, setPapel] = useState<ClientRole>('member')
+  const [cargo, setCargo] = useState('')
+  const [telefone, setTelefone] = useState('')
+  const [telefoneSecundario, setTelefoneSecundario] = useState('')
   const [erro, setErro] = useState<string | null>(null)
 
   function fechar() {
     setNome('')
     setEmail('')
     setPapel('member')
+    setCargo('')
+    setTelefone('')
+    setTelefoneSecundario('')
     setErro(null)
     onClose()
   }
@@ -35,8 +41,23 @@ export function ModalConvidarUsuario({
       setErro('Nome e e-mail são obrigatórios.')
       return
     }
+    // Mesma regra do servidor (`UserAdminSerializer.validate`): cadastro de
+    // cliente exige UM dos dois telefones, e nenhum é obrigatório sozinho.
+    // Barrar aqui evita a viagem de rede e, principalmente, o 400 que a
+    // pessoa levava sem ter onde digitar o número.
+    if (!telefone.trim() && !telefoneSecundario.trim()) {
+      setErro('Informe ao menos um telefone.')
+      return
+    }
     try {
-      await convidar.mutateAsync({ full_name: nome.trim(), email: email.trim(), client_role: papel })
+      await convidar.mutateAsync({
+        full_name: nome.trim(),
+        email: email.trim(),
+        client_role: papel,
+        job_title: cargo.trim(),
+        phone: telefone.trim(),
+        phone_secondary: telefoneSecundario.trim(),
+      })
       push({ tone: 'success', title: 'Convite enviado', description: `${nome} vai receber o e-mail de convite.` })
       fechar()
     } catch (e) {
@@ -74,6 +95,20 @@ export function ModalConvidarUsuario({
             { value: 'member', label: 'Usuário' },
             { value: 'owner', label: 'Responsável' },
           ]}
+        />
+        <TextInput label="Cargo" value={cargo} onChange={(e) => setCargo(e.target.value)} />
+        <TextInput
+          label="Telefone"
+          type="tel"
+          helper="Preencha ao menos um dos dois telefones."
+          value={telefone}
+          onChange={(e) => setTelefone(e.target.value)}
+        />
+        <TextInput
+          label="Telefone secundário"
+          type="tel"
+          value={telefoneSecundario}
+          onChange={(e) => setTelefoneSecundario(e.target.value)}
         />
         {erro && <p className="clientes-erro-meta">{erro}</p>}
       </FormRow>

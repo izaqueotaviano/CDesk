@@ -15,20 +15,23 @@
   flex-direction: column;
   background: var(--surface-card);
 
-  // ── Gatilho (na Sidebar, fora do painel) — 40×40 como os outros ícones
-  // da zona utilitária (BotaoTema, PainelNotificacoes): só o avatar, sem
-  // nome ao lado (não cabe em 56px de rail; a dica ao passar o mouse cobre).
+  // ── Gatilho (na Sidebar, fora do painel) ──
+  // Linha inteira com avatar + nome quando a barra está expandida; quando ela
+  // recolhe, sidebar.scss encolhe isto para 40×40 e esconde o nome. O layout
+  // segue o dos itens de navegação de propósito: é a mesma coluna.
   &__gatilho {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
     position: relative;
-    width: 40px;
-    height: 40px;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 6px;
     border: none;
     background: transparent;
-    border-radius: 2px;
+    border-radius: var(--raio);
     font-family: var(--f-ui);
+    text-align: left;
     cursor: pointer;
 
     &:hover {
@@ -36,7 +39,7 @@
     }
     &:focus-visible {
       outline: 2px solid var(--accent);
-      outline-offset: 1px;
+      outline-offset: -2px;
     }
   }
 
@@ -57,12 +60,17 @@
     user-select: none;
   }
 
-  // Não cabe nos 40px do gatilho (era visível ao lado do avatar quando este
-  // menu ainda vivia numa barra horizontal) — o texto continua existindo
-  // para o nome acessível (aria-label) e para a dica CSS (data-tooltip), só
-  // não desenha mais.
+  // Visível com a barra expandida; sidebar.scss esconde quando ela recolhe
+  // (aí não cabe, e o nome continua no `aria-label`/`title` do gatilho).
   &__nome {
-    display: none;
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto-cromo);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   // Selo sobreposto no canto do avatar — mesma ideia do badge de não-lidas
@@ -172,7 +180,7 @@
     min-height: 32px;
     padding: 7px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: transparent;
     font-family: var(--f-ui);
     font-size: 13px;
@@ -230,7 +238,7 @@
     min-height: 32px;
     padding: 7px 10px;
     border: none;
-    border-radius: 2px;
+    border-radius: var(--raio);
     background: transparent;
     font-family: var(--f-ui);
     font-size: 13px;

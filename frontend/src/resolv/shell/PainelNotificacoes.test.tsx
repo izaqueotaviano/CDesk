@@ -148,7 +148,10 @@ describe('PainelNotificacoes', () => {
       permissaoDoNavegador('sem-api')
       await abrirPainel()
 
-      await screen.findByText('Notificações')
+      // `selector` porque "Notificações" aparece duas vezes desde que o
+      // gatilho na sidebar ganhou rótulo visível: o do botão e o título do
+      // painel. Quem prova que o painel abriu é o título.
+      await screen.findByText('Notificações', { selector: 'strong' })
       expect(screen.queryByRole('switch')).not.toBeInTheDocument()
       expect(screen.queryByText(/bloqueados por este navegador/)).not.toBeInTheDocument()
     })
