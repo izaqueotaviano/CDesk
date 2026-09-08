@@ -1,4 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { identidadeDe, tintaDeIdentidade } from '@/ui/identidade'
+import { indiceDoPlano } from '@/ui/planos'
 import { formatarDataHora } from '../format'
 import { ICONE_CANAL, ROTULO_CANAL, ROTULO_SLA, TOM_SLA, iniciais, tempoSla } from './linhaDoTempo'
 import type { Avaliacao, RelogioSla, TicketDetalhe } from './tiposDetalhe'
@@ -140,7 +142,7 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
   return (
     <aside className="cliente" aria-label="Cliente e resumo do ticket">
       <header className="cliente__cabecalho">
-        <span className="cliente__avatar" aria-hidden="true">
+        <span className="cliente__avatar" aria-hidden="true" {...identidadeDe(nome)}>
           {iniciais(nome)}
         </span>
         <div className="cliente__id">
@@ -148,7 +150,11 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
           {ticket.company_name && <span className="cliente__empresa">{ticket.company_name}</span>}
         </div>
         {ticket.plan?.name && (
-          <span className="cliente__plano" title="Plano da empresa">
+          <span
+            className="cliente__plano"
+            title="Plano da empresa"
+            {...tintaDeIdentidade(indiceDoPlano(ticket.plan.name))}
+          >
             {ticket.plan.name}
           </span>
         )}

@@ -180,10 +180,32 @@
   overflow: hidden;
 }
 
+// A cor da barra diz o que a barra É, não só que ela existe (Distribuicao.tsx
+// escolhe o modificador). Sem modificador fica o azul de ação — é o fallback
+// de fatia sem chave, não uma sétima cor.
+//
+// Semântica (status, prioridade, SLA) usa os tokens de estado, que já trocam
+// no escuro. A série categórica usa `$identity-text`, não `$identity-fill`:
+// no claro os dois são a mesma cor, mas no escuro o traço fino de 8px sobre
+// o trilho precisa do tom clareado — o preenchimento de avatar (que leva
+// branco em cima) ficaria a 2,4:1 do trilho.
 .relatorios-distribuicao__barra {
+  // É um <span> dentro de outro <span>: o trilho vira bloco por ser filho
+  // do grid, mas a barra continuava inline — e inline ignora width/height.
+  // A cor estava lá; a caixa, não.
+  display: block;
   height: 100%;
   border-radius: $radius-pill;
   background-color: $blue;
+
+  &--neutra  { background-color: $text-muted; }
+  &--sucesso { background-color: $success; }
+  &--atencao { background-color: $away; }
+  &--perigo  { background-color: $danger; }
+
+  @each $i, $cor in $identity-text {
+    &--identidade-#{$i} { background-color: $cor; }
+  }
 }
 
 .relatorios-distribuicao__valor {

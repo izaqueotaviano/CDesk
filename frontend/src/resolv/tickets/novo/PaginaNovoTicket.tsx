@@ -13,6 +13,7 @@ import { api, ApiError, type Paginado } from '@/api/client'
 import { MINIMO_PARA_BUSCAR, useBuscaGlobal, type SolicitanteEncontrado } from '@/api/busca'
 import { useMe } from '@/api/queries/useMe'
 import { useSistemaCfg } from '@/cvz/configuracoes/dados'
+import { identidadeDe } from '@/ui/identidade'
 import {
   useAbrirTicket,
   useAgentes,
@@ -1346,7 +1347,7 @@ export function PaginaNovoTicket() {
             />
             {solicitante ? (
               <div className="novo__cliente" id={`${ids.para}-ajuda`}>
-                <span className="cliente__avatar" aria-hidden="true">
+                <span className="cliente__avatar" aria-hidden="true" {...identidadeDe(solicitante.full_name)}>
                   {iniciais(solicitante.full_name)}
                 </span>
                 <span className="novo__cliente-id">

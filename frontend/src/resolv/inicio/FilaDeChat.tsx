@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useFilaChat, usePegarChat } from '@/api/chat'
+import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
 
 const LIMITE = 4
@@ -35,7 +36,7 @@ export function FilaDeChat() {
           {naFila.slice(0, LIMITE).map((c) => (
             <li key={c.id}>
               <div className="inicio-lista__item inicio-lista__item--chat">
-                <span className="inicio-chat__avatar" aria-hidden="true">
+                <span className="inicio-chat__avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
                   {iniciais(c.client_name)}
                 </span>
                 <span className="inicio-lista__texto">

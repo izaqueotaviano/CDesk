@@ -4,6 +4,7 @@ import { useLogout } from '@/api/mutations/useLogout'
 import { PRESENCAS, ROTULO_PRESENCA, useMudarPresenca } from '@/api/presenca'
 import { useMe } from '@/api/queries/useMe'
 import type { Presence } from '@/api/types'
+import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
 import './menu-presenca.scss'
 
@@ -71,7 +72,7 @@ export function MenuPresenca() {
             data-tooltip={`${nome} · ${rotuloAtual}`}
             {...props}
           >
-            <span className="menu-presenca__avatar">
+            <span className="menu-presenca__avatar" {...identidadeDe(nome)}>
               {iniciais(nome)}
               <span
                 className={`menu-presenca__ponto menu-presenca__ponto--${presenca ?? 'desconhecida'}`}

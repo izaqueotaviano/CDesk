@@ -35,9 +35,14 @@
   --alerta-claro: #8a5d0f;  --alerta-escuro: #e8c26a;
   --ok-claro:     #1d7a4c;  --ok-escuro:     #84d6a8;
 
-  /* ---------- primitivos: avatar (idêntico nos dois temas) ---------- */
-  --avatar-c1: #3f6dd6; --avatar-c2: #8a5cd4; --avatar-c3: #127f60;
-  --avatar-c4: #b4531f; --avatar-c5: #9a2f52; --avatar-c6: #2f6f86;
+  /* ---------- primitivos: identidade (idêntico nos dois temas) ----------
+     Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
+     cvz/styles/_theme.scss) — a pessoa tem a mesma cor dos dois lados da
+     conversa. Todos fora dos quatro tons semânticos (azul/verde/âmbar/
+     vermelho) e todos AA com texto branco (4,9:1 a 7,3:1). Mudar aqui é
+     mudar lá também; o hash que escolhe entre eles é ui/identidade.ts. */
+  --avatar-c1: #5B5FC7; --avatar-c2: #0B6F78; --avatar-c3: #3D6E8C;
+  --avatar-c4: #9E5439; --avatar-c5: #4B5768; --avatar-c6: #A23E7B;
 
   /* ---------- tipografia ---------- */
   --f-ui: "Segoe UI Variable Text", "Segoe UI", Inter, -apple-system, system-ui, sans-serif;

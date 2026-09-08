@@ -66,6 +66,35 @@
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
   --texto-cromo: #333333;
 
+  // ── Identidade ──
+  // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
+  // plano" de "aquele". Paleta à parte da semântica de propósito: nenhum dos
+  // seis é azul, verde, âmbar ou vermelho, que já querem dizer ação, sucesso,
+  // alerta e perigo. Os MESMOS seis valores vivem em styles/tokens.css
+  // (portal, --avatar-c*) e cvz/styles/_theme.scss (--cvz-identity-*) — a
+  // pessoa tem a mesma cor dos dois lados; quem escolhe entre eles é o hash
+  // de ui/identidade.ts. Todos AA com texto branco em cima (4,9:1 a 7,3:1) e
+  // AA como TEXTO sobre branco/canvas/cromo (o pior par é 4,7:1) — é por isso
+  // que o preenchimento do avatar e o texto do selo podem ser o mesmo valor.
+  --identidade-1: #5B5FC7; // violeta
+  --identidade-2: #0B6F78; // petróleo
+  --identidade-3: #3D6E8C; // aço
+  --identidade-4: #9E5439; // terracota
+  --identidade-5: #4B5768; // ardósia
+  --identidade-6: #A23E7B; // magenta
+  // Texto na cor de identidade (selo de plano sobre tint). No claro é a
+  // própria cor; no escuro ela precisa clarear (ver paleta-escura).
+  --identidade-1-texto: var(--identidade-1);
+  --identidade-2-texto: var(--identidade-2);
+  --identidade-3-texto: var(--identidade-3);
+  --identidade-4-texto: var(--identidade-4);
+  --identidade-5-texto: var(--identidade-5);
+  --identidade-6-texto: var(--identidade-6);
+  // Iniciais sobre o preenchimento: branco nos DOIS temas, porque o
+  // preenchimento não muda de tema — é o único branco literal fora de
+  // `--surface`, e por isso tem nome próprio.
+  --texto-sobre-identidade: #ffffff;
+
   // ── Semânticas ──
   // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
   // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.
@@ -179,6 +208,18 @@
   --danger: #f08a82;
   --ok: #4fbf85;
   --away: #d9a53d;
+
+  // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e
+  // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, senão
+  // o selo de plano cai a 2:1 sobre --surface-card. Cada um sobe pela
+  // luminosidade mantendo matiz, até passar 4,5:1 nas duas superfícies
+  // escuras do resolv e nas duas do cvz.
+  --identidade-1-texto: #8184D4;
+  --identidade-2-texto: #0F9AA7;
+  --identidade-3-texto: #5691B5;
+  --identidade-4-texto: #C4775B;
+  --identidade-5-texto: #7D8CA1;
+  --identidade-6-texto: #C86FA5;
 
   // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
   // aparece, e a peça flutuante perde a separação do fundo — que é a única

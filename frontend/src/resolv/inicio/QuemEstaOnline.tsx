@@ -1,4 +1,5 @@
 import { useAgentes } from '@/cvz/tickets/dados'
+import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
 
 const ROTULO_PRESENCA: Record<string, string> = {
@@ -29,7 +30,7 @@ export function QuemEstaOnline() {
         <ul className="inicio-online__grade">
           {online.map((a) => (
             <li key={a.id} className="inicio-online__pessoa" title={`${a.full_name} · ${ROTULO_PRESENCA[a.presence] ?? a.presence}`}>
-              <span className="inicio-online__avatar">
+              <span className="inicio-online__avatar" {...identidadeDe(a.full_name)}>
                 {iniciais(a.full_name)}
                 <span className={`inicio-online__dot inicio-online__dot--${a.presence}`} aria-hidden="true" />
               </span>

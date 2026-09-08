@@ -35,6 +35,7 @@ from apps.tickets.models import (
     SatisfactionSurvey,
     Ticket,
     TicketCategory,
+    TicketPriority,
     TicketStatus,
     TicketStatusEvent,
 )
@@ -298,6 +299,14 @@ class TestDistributions:
         _ticket(ana, suporte)
         labels = [b["label"] for b in _panel(admin)["by_status"]]
         assert len(labels) == len(TicketStatus.choices)
+
+    def test_enum_bars_carry_the_enum_key_in_order(self, ana, suporte, admin):
+        # a tela colore a barra pela chave (urgente vermelho, aguardando âmbar),
+        # não pelo rótulo — a chave é o contrato, o rótulo é texto
+        _ticket(ana, suporte)
+        panel = _panel(admin)
+        assert [b["key"] for b in panel["by_status"]] == [v for v, _ in TicketStatus.choices]
+        assert [b["key"] for b in panel["by_priority"]] == [v for v, _ in TicketPriority.choices]
 
     def test_waiting_first_response_is_not_counted_as_on_time(
         self, ana, suporte, admin

@@ -7,9 +7,14 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: 50%;
-  background-color: $avatar-bg;
   color: $text-on-dark;
   @include type($fs-label, $w-semibold, $lh-none);
+
+  // Cor de identidade — seis tons, escolhidos pelo hash do nome
+  // (ui/identidade.ts), os mesmos do portal e do shell resolv.
+  @each $i, $cor in $identity-fill {
+    &--identity-#{$i} { background-color: $cor; }
+  }
 
   &--sm { width: 22px; height: 22px; font-size: $fs-caption; }
   &--md { width: $avatar; height: $avatar; }

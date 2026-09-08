@@ -2,6 +2,7 @@ import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import { useState } from 'react'
 import { API_BASE_URL } from '@/api/client'
+import { identidadeDe } from '@/ui/identidade'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../tickets/format'
 import type { Cartao as CartaoTipo } from './tipos'
 
@@ -158,7 +159,7 @@ export function Cartao({ cartao, onAbrir, onDefinirPrazo, arrastando }: Props) {
                 onError={() => setAvatarFalhou(true)}
               />
             ) : (
-              <span className="kb-cartao__avatar-fallback">
+              <span className="kb-cartao__avatar-fallback" {...identidadeDe(cartao.assignee_name)}>
                 {cartao.assignee_name.charAt(0).toUpperCase()}
               </span>
             )}

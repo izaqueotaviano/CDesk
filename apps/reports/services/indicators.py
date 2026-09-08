@@ -249,12 +249,16 @@ def _by_choice(rows, key, choices) -> list[dict]:
 
     Barra que some quando a contagem é zero engana: "não há ticket novo" e "a
     barra não existe" viram a mesma imagem.
+
+    Cada fatia leva a `key` do enum além do rótulo, como os baldes de SLA já
+    levam: é por ela que a tela escolhe a cor da barra (urgente em vermelho,
+    aguardando em âmbar) — rótulo é texto traduzível, chave é contrato.
     """
     counts: dict[str, int] = {}
     for row in rows:
         counts[row[key]] = counts.get(row[key], 0) + 1
     return [
-        {"label": str(label), "value": counts.get(value, 0)}
+        {"key": value, "label": str(label), "value": counts.get(value, 0)}
         for value, label in choices
     ]
 

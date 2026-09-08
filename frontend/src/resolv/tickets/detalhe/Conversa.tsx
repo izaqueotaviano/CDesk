@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } fr
 import { useLocation } from 'react-router-dom'
 import type { Me } from '@/api/types'
 import { useTabs, type AbaTicket } from '@/stores/tabs'
+import { identidadeDe } from '@/ui/identidade'
 import { formatarDataHora } from '../format'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
@@ -183,8 +184,12 @@ function ItemMensagem({
       aria-label={`${interna ? 'Nota interna' : 'Mensagem'} de ${msg.author_name}`}
     >
       <span
-        className={'msg__avatar' + (msg.author_is_internal ? ' msg__avatar--agente' : '')}
+        className="msg__avatar"
         aria-hidden="true"
+        // Mensagem do sistema fica neutra (não é pessoa); as demais levam a
+        // cor de quem escreveu — agente e cliente se distinguem por SEREM
+        // pessoas diferentes, não por um tint fixo de "lado".
+        {...(sistema ? {} : identidadeDe(msg.author_name))}
       >
         {sistema ? (
           <i className="ti ti-robot" />

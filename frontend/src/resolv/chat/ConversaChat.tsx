@@ -16,6 +16,7 @@ import { API_BASE_URL, ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
 import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
+import { identidadeDe } from '@/ui/identidade'
 import { useAplicarMacroChat, useMacros, type Macro } from './dados'
 import { horaDe, iniciais, rotuloDoDia } from './format'
 
@@ -96,7 +97,7 @@ function Bolha({ msg }: { msg: MensagemChat }) {
   }
   return (
     <div className={'cc-msg' + (msg.author_is_internal ? ' cc-msg--agente' : '')}>
-      <span className="cc-msg__avatar">{iniciais(msg.author_name)}</span>
+      <span className="cc-msg__avatar" {...identidadeDe(msg.author_name)}>{iniciais(msg.author_name)}</span>
       <div className="cc-msg__corpo">
         <div className="cc-msg__meta">
           <span className="cc-msg__autor">{msg.author_name}</span>

@@ -17,6 +17,7 @@ import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { ModalEmpresa } from './ModalEmpresa'
 import { useEmpresas, type Empresa } from './dados'
+import { toneDoPlano } from './planos'
 import './clientes.scss'
 
 const TAMANHO_PAGINA = 20
@@ -73,7 +74,9 @@ export function PaginaListaEmpresas() {
       header: 'Plano',
       mobile: 'meta',
       sortBy: (e) => e.plan_name,
-      render: (e) => <Tag tone="blue">{e.plan_name}</Tag>,
+      // Um tom por plano (planos.ts) — antes era "blue" fixo e Black, Gold e
+      // Platinum eram o mesmo selo.
+      render: (e) => <Tag tone={toneDoPlano(e.plan_name)}>{e.plan_name}</Tag>,
     },
     {
       key: 'users',

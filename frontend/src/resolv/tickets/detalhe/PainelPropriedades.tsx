@@ -7,6 +7,7 @@ import type { Me } from '@/api/types'
 // a tela de abertura usa — cadastro é um só (cvz/tickets/dados.ts).
 import { ConfirmDialog } from '@/cvz/components'
 import { useEquipes, useEtiquetas } from '@/cvz/tickets/dados'
+import { identidadeDe } from '@/ui/identidade'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
 import { useAcoesTicket, useAgentesAtribuiveis, useCategorias } from './dados'
@@ -466,7 +467,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
             <ul className="props__chips" aria-label="Seguidores">
               {ticket.watchers.map((w) => (
                 <li key={w.id} className="props__chip props__chip--pessoa">
-                  <span className="props__mini-avatar" aria-hidden="true">
+                  <span className="props__mini-avatar" aria-hidden="true" {...identidadeDe(w.name)}>
                     {iniciais(w.name)}
                   </span>
                   {w.name}

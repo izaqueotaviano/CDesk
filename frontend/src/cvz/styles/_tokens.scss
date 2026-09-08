@@ -40,8 +40,18 @@ $overlay:         var(--cvz-overlay);
 $chrome-glass:    var(--cvz-chrome-glass);
 $on-accent-soft:  var(--cvz-on-accent-soft);
 
-// --- cor: avatar -------------------------------------------------------------
-$avatar-bg:       var(--cvz-avatar-bg);
+// --- cor: identidade ---------------------------------------------------------
+// Mapas (e não seis variáveis soltas) para os componentes iterarem:
+// `@each $i, $cor in $identity-fill`. `fill` é o avatar; `text` é o rótulo
+// sobre tint (Tag), que clareia no escuro (ver _theme.scss).
+$identity-fill: (
+  1: var(--cvz-identity-1), 2: var(--cvz-identity-2), 3: var(--cvz-identity-3),
+  4: var(--cvz-identity-4), 5: var(--cvz-identity-5), 6: var(--cvz-identity-6),
+);
+$identity-text: (
+  1: var(--cvz-identity-1-text), 2: var(--cvz-identity-2-text), 3: var(--cvz-identity-3-text),
+  4: var(--cvz-identity-4-text), 5: var(--cvz-identity-5-text), 6: var(--cvz-identity-6-text),
+);
 
 // --- stroke ------------------------------------------------------------------
 $stroke-w:        0.7px;

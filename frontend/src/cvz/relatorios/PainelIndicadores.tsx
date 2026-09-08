@@ -233,18 +233,18 @@ export function PainelIndicadores() {
 
           <h2 className="relatorios-secao__titulo">Distribuições</h2>
           <div className="relatorios-grade-distribuicoes">
-            <Distribuicao titulo="Por status" itens={indicadores.data.by_status} />
-            <Distribuicao titulo="Por prioridade" itens={indicadores.data.by_priority} />
-            <Distribuicao titulo="Por categoria" itens={indicadores.data.by_category} />
-            <Distribuicao titulo="Por empresa" itens={indicadores.data.by_company} />
-            <Distribuicao titulo="Por solicitante" itens={indicadores.data.by_requester} />
-            <Distribuicao titulo="Resolvidos por agente" itens={indicadores.data.resolved_by_agent} />
+            <Distribuicao titulo="Por status" esquema="status" itens={indicadores.data.by_status} />
+            <Distribuicao titulo="Por prioridade" esquema="prioridade" itens={indicadores.data.by_priority} />
+            <Distribuicao titulo="Por categoria" esquema="categorias" itens={indicadores.data.by_category} />
+            <Distribuicao titulo="Por empresa" esquema="categorias" itens={indicadores.data.by_company} />
+            <Distribuicao titulo="Por solicitante" esquema="categorias" itens={indicadores.data.by_requester} />
+            <Distribuicao titulo="Resolvidos por agente" esquema="categorias" itens={indicadores.data.resolved_by_agent} />
           </div>
 
           <h2 className="relatorios-secao__titulo">Cumprimento de SLA</h2>
           <div className="relatorios-grade-sla">
-            <Distribuicao titulo="Primeira resposta (abertos no período)" itens={indicadores.data.first_response} />
-            <Distribuicao titulo="Resolução (fechados no período)" itens={indicadores.data.resolution} />
+            <Distribuicao titulo="Primeira resposta (abertos no período)" esquema="sla" itens={indicadores.data.first_response} />
+            <Distribuicao titulo="Resolução (fechados no período)" esquema="sla" itens={indicadores.data.resolution} />
           </div>
 
           <h2 className="relatorios-secao__titulo">Satisfação</h2>

@@ -402,10 +402,9 @@
     font-size: 10px;
     font-weight: 600;
   }
-  &--agente &__avatar {
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    color: var(--accent);
-  }
+  // (O avatar da mensagem é pintado pela cor de identidade de quem escreveu —
+  // resolv/styles/identidade.scss; agente e cliente se distinguem por serem
+  // pessoas diferentes, não por um tint fixo de "lado".)
   &__corpo {
     min-width: 0;
     display: flex;

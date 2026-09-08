@@ -1,4 +1,5 @@
 import type { Chat } from '@/api/chat'
+import { identidadeDe } from '@/ui/identidade'
 import { dataHoraDe, haQuanto, iniciais } from './format'
 
 interface Props {
@@ -66,7 +67,7 @@ export function ListaConversas({
               className={'cc-card cc-card--fila' + (selecionado === c.id ? ' cc-card--ativo' : '')}
             >
               <button type="button" className="cc-card__corpo" onClick={() => onSelecionar(c.id)}>
-                <span className="cc-card__avatar">{iniciais(c.client_name)}</span>
+                <span className="cc-card__avatar" {...identidadeDe(c.client_name)}>{iniciais(c.client_name)}</span>
                 <span className="cc-card__texto">
                   <span className="cc-card__nome">{c.client_name}</span>
                   <span className="cc-card__meta">
@@ -105,7 +106,7 @@ export function ListaConversas({
               className={'cc-card' + (selecionado === c.id ? ' cc-card--ativo' : '')}
               onClick={() => onSelecionar(c.id)}
             >
-              <span className="cc-card__avatar cc-card__avatar--ativo">{iniciais(c.client_name)}</span>
+              <span className="cc-card__avatar cc-card__avatar--ativo" {...identidadeDe(c.client_name)}>{iniciais(c.client_name)}</span>
               <span className="cc-card__texto">
                 <span className="cc-card__nome">
                   {c.client_name}

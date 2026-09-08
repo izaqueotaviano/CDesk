@@ -2,6 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useConfigChat, useFilaChat, useMeusChats, type Chat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useChatUi } from '@/stores/chatUi'
+import { identidadeDe } from '@/ui/identidade'
 import { ConversaChat } from './ConversaChat'
 import { iniciais } from './format'
 import '../styles/tokens.scss'
@@ -21,7 +22,7 @@ function AbaChat({ chat, aberta, onAlternar }: { chat: Chat; aberta: boolean; on
       title={`${chat.client_name} · ${chat.company_name}`}
       onClick={onAlternar}
     >
-      <span className="minichat__avatar">{iniciais(chat.client_name)}</span>
+      <span className="minichat__avatar" {...identidadeDe(chat.client_name)}>{iniciais(chat.client_name)}</span>
       <span className="minichat__aba-nome">{chat.client_name}</span>
       {chat.unread_count > 0 && <span className="minichat__badge">{chat.unread_count > 9 ? '9+' : chat.unread_count}</span>}
     </button>
@@ -74,7 +75,7 @@ export function MiniChat() {
           {paineis.map((chat) => (
             <section key={chat.id} className="minichat__painel" aria-label={`Conversa com ${chat.client_name}`}>
               <header className="minichat__painel-cabecalho">
-                <span className="minichat__avatar minichat__avatar--ativo">{iniciais(chat.client_name)}</span>
+                <span className="minichat__avatar minichat__avatar--ativo" {...identidadeDe(chat.client_name)}>{iniciais(chat.client_name)}</span>
                 <span className="minichat__painel-titulo">
                   <strong>{chat.client_name}</strong>
                   <small>{chat.company_name}</small>

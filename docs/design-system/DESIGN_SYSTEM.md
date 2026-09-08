@@ -92,16 +92,53 @@ o AA em vez de raspar nele.
 Cada estado tem um par `-suave` (o mesmo matiz a 9–16% de opacidade) usado
 como fundo de faixa, aviso e pílula.
 
-### 1.5 Avatar
+### 1.5 Identidade (avatar, selo de plano, série categórica)
 
-Seis cores derivadas do nome, iguais nos dois temas. A banda de luminosidade
-é estreita de propósito — OKLCH 47,5%–58,1% — e é o que garante texto branco
-legível em todas:
+Seis cores derivadas do nome, iguais nos dois temas — e iguais nos **três**
+design systems do produto (portal `--avatar-c*`, resolv `--identidade-*`,
+cvz `--cvz-identity-*`): a pessoa tem a mesma cor no portal e no console do
+agente, porque o hash é um só (`frontend/src/ui/identidade.ts`).
 
-`c1` 4,81:1 · `c2` 4,60:1 · `c3` 4,96:1 · `c4` 5,00:1 · `c5` 7,24:1 · `c6` 5,62:1
+| | Tom | Valor | Branco em cima | Como texto sobre cromo `#f0f0f0` |
+|---|---|---|---|---|
+| c1 | violeta | `#5B5FC7` | 5,4:1 | 4,7:1 |
+| c2 | petróleo | `#0B6F78` | 5,9:1 | 5,2:1 |
+| c3 | aço | `#3D6E8C` | 5,5:1 | 4,8:1 |
+| c4 | terracota | `#9E5439` | 5,6:1 | 4,9:1 |
+| c5 | ardósia | `#4B5768` | 7,3:1 | 6,4:1 |
+| c6 | magenta | `#A23E7B` | 6,0:1 | 5,3:1 |
 
-Todas passam AA. A ressalva é o croma, que varia 2,4× entre `c6` (0,074) e
-`c2` (0,178): `c6` lê como visivelmente mais apagado que as irmãs.
+Duas regras que a paleta anterior não seguia:
+
+- **Nenhum dos seis é azul, verde, âmbar ou vermelho.** Esses quatro já
+  querem dizer ação, sucesso, alerta e perigo (§1.3); um avatar verde ao lado
+  de um selo "Resolvido" verde dizia duas coisas com a mesma cor.
+- **O mesmo valor serve de preenchimento (avatar) e de texto (selo sobre
+  tint de 14%).** Todos passam 4,5:1 como texto sobre branco, canvas e cromo
+  — o pior par é 4,7:1. No escuro só o TEXTO clareia (`--identidade-*-texto`
+  / `--cvz-identity-*-text`); o preenchimento fica, porque branco em cima
+  segue AA sobre qualquer fundo.
+
+**O selo de plano** (Tag `identity-*` na lista de empresas; chip
+`data-identidade-tinta` no painel do cliente do ticket) escolhe o tom em
+`frontend/src/ui/planos.ts`: Black ardósia, Gold terracota, Platinum aço —
+por conotação, não por sorteio — e plano novo cai no hash. Tinta de 14% com o
+texto na cor, nos dois design systems.
+
+**Nos gráficos de comparação** (`cvz/relatorios/Distribuicao.tsx`) cada
+gráfico declara um `esquema`, e a cor da barra diz o que a barra é:
+
+| Esquema | Regra |
+|---|---|
+| `categorias` (categoria, empresa, solicitante, agente) | c1…c6 pela **posição** da barra, ciclando — barras vizinhas nunca repetem tom. "Outros", "Não informada" e "Sem responsável" ficam cinza: são balde, não categoria. |
+| `status` | novo violeta (c1), aberto azul de ação, aguardando retorno âmbar, fechado cinza — a mesma leitura das colunas de fábrica do quadro (`COR_POR_CATEGORIA`). |
+| `prioridade` | baixa cinza, normal azul, alta âmbar, urgente vermelho — os tokens `$priority-*`. |
+| `sla` | no prazo verde, fora do prazo vermelho, aguardando âmbar, sem SLA cinza. |
+
+A série categórica vai pela posição e não pelo hash do nome de propósito: no
+gráfico a cor separa uma barra da vizinha, e o hash faria duas pessoas
+adjacentes caírem no mesmo tom com frequência. No escuro a barra usa a
+variante de texto (clareada) — o traço de 8px sobre o trilho precisa dela.
 
 ### 1.6 Etapa e etiqueta — paleta externa
 

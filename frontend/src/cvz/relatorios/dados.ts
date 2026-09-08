@@ -51,14 +51,17 @@ export interface Kpi extends Celula {
 }
 
 export interface Fatia {
+  /**
+   * Valor do enum (status, prioridade, balde de SLA) — é por ela que a barra
+   * ganha cor. As distribuições por nome (categoria, empresa, pessoa) não têm.
+   */
+  key?: string
   label: string
   value: number
 }
 
-export interface BaldeSla {
+export interface BaldeSla extends Fatia {
   key: string
-  label: string
-  value: number
 }
 
 export interface LinhaAgente extends Celula {

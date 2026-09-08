@@ -1,12 +1,4 @@
-const CORES = ['avatar-c1', 'avatar-c2', 'avatar-c3', 'avatar-c4', 'avatar-c5', 'avatar-c6'] as const
-
-/** Determinística: o mesmo nome sempre cai na mesma das 6 cores fixas
- *  (idênticas nos dois temas — DESIGN_SYSTEM.md §1.5, todas AA para texto
- *  branco). Não é aleatório, e não deve variar entre sessões/dispositivos. */
-function corPorNome(nome: string): (typeof CORES)[number] {
-  const soma = [...nome].reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return CORES[soma % CORES.length]
-}
+import { indiceDeIdentidade } from './identidade'
 
 function iniciais(nome: string): string {
   const partes = nome.trim().split(/\s+/)
@@ -43,7 +35,10 @@ export function Avatar({ nome, urlFoto, tamanho = 'md' }: AvatarProps) {
       aria-label={nome}
       className={`inline-flex items-center justify-center rounded-total font-medio
         text-white ${TAMANHO_PX[tamanho]}`}
-      style={{ backgroundColor: `var(--${corPorNome(nome)})` }}
+      // Cor por hash do nome, o MESMO hash do console do agente (ui/identidade.ts):
+      // a pessoa se vê com a cor com que o agente a vê. Tons em
+      // styles/tokens.css (DESIGN_SYSTEM.md §1.5), todos AA com texto branco.
+      style={{ backgroundColor: `var(--avatar-c${indiceDeIdentidade(nome)})` }}
     >
       {iniciais(nome)}
     </span>
