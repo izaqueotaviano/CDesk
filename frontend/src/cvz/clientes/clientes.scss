@@ -91,6 +91,36 @@
 // Chave de assinatura do embed, revelada uma única vez após regenerar
 // (PainelChatEmbed) — precisa ficar selecionável e óbvia, não escondida
 // atrás de estilo de texto corrido.
+// Código de instalação do chat embutido: um bloco por empresa, feito pra ser
+// copiado inteiro. `pre` (e não `code` numa linha só, como a chave) porque
+// isto é uma tag HTML com atributos — quebrar no meio atrapalha quem confere
+// antes de colar no site.
+.clientes-snippet {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+
+  pre {
+    margin: 0;
+    padding: $sp-3;
+    border: $border;
+    border-radius: $radius;
+    background-color: $chrome;
+    color: $text;
+    font-family: $f-mono;
+    font-size: $fs-meta;
+    line-height: $lh-snug;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  &__acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-2;
+  }
+}
+
 .clientes-chave-gerada {
   display: flex;
   flex-wrap: wrap;

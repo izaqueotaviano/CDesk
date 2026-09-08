@@ -18,7 +18,7 @@ from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from apps.core.views import saude
-from apps.customers.embed_views import embed_chat
+from apps.customers.embed_views import embed_chat, embed_identificar, embed_widget_js
 
 urlpatterns = [
     # caminho do admin configurável (DJANGO_ADMIN_URL em produção)
@@ -29,6 +29,10 @@ urlpatterns = [
     # em apps/accounts/adapters.py, config em config/settings/base.py.
     path("accounts/", include("allauth.urls")),
     path("embed/chat/", embed_chat, name="embed-chat"),
+    # modo público do embed: o código de instalação (um por empresa) e o
+    # POST em que o visitante se identifica dentro da janelinha
+    path("embed/widget.js", embed_widget_js, name="embed-widget-js"),
+    path("embed/chat/identificar/", embed_identificar, name="embed-identificar"),
     path("api/v1/", include("config.api_urls")),
 ]
 

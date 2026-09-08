@@ -298,6 +298,17 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     avatar_url = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    # Nasceu se identificando no chat público do site do cliente (modo
+    # público do embed, apps/customers/embed_views.py), não de um convite.
+    # Existe por dois motivos, os dois de honestidade da tela: a listagem de
+    # usuários da empresa precisa dizer que aquilo é um visitante e não um
+    # acesso ao portal que alguém cadastrou, e o status de convite ("pendente"
+    # = tem conta mas nunca definiu senha) seria mentira aqui — visitante NÃO
+    # tem convite nenhum em aberto. Sem senha utilizável e sem
+    # "esqueci minha senha" no produto (ver apps/accounts/admin_api.py
+    # ::reset_password), ele não entra no portal por caminho nenhum enquanto
+    # um admin não o promover de verdade.
+    is_widget_visitor = models.BooleanField(default=False)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     anonymized_at = models.DateTimeField(null=True, blank=True)  # LGPD (D11)
 

@@ -8,7 +8,15 @@ const ADMIN = { id: 1, full_name: 'Alice', email: 'admin@x.test', is_internal: t
 const AGENTE = { ...ADMIN, id: 2, is_admin: false, permissions: [] }
 
 let me: Record<string, unknown>
-let embed: { enabled: boolean; origins: string[]; rotated_at: string }
+let embed: {
+  enabled: boolean
+  public_enabled: boolean
+  origins: string[]
+  rotated_at: string
+  company_slug: string
+  snippet: string
+  iframe_url: string
+}
 let chamadas: { url: string; metodo: string; corpo: unknown }[]
 
 function jsonDe(body: unknown, status = 200) {
@@ -17,7 +25,15 @@ function jsonDe(body: unknown, status = 200) {
 
 beforeEach(() => {
   me = ADMIN
-  embed = { enabled: false, origins: ['https://loja.myvtex.com'], rotated_at: '2026-09-01T00:00:00Z' }
+  embed = {
+    enabled: false,
+    public_enabled: false,
+    origins: ['https://loja.myvtex.com'],
+    rotated_at: '2026-09-01T00:00:00Z',
+    company_slug: 'acme',
+    snippet: '<script src="https://app.resolv.test/embed/widget.js?company=acme" async></script>',
+    iframe_url: 'https://app.resolv.test/embed/chat/?company=acme',
+  }
   chamadas = []
   vi.stubGlobal(
     'fetch',
@@ -92,5 +108,63 @@ describe('PainelChatEmbed', () => {
     expect(screen.queryByRole('button', { name: 'Regenerar chave' })).not.toBeInTheDocument()
     expect(screen.getByRole('switch', { name: 'Desabilitado' })).toBeDisabled()
     expect(screen.getByText('Só administradores podem alterar essas configurações.')).toBeInTheDocument()
+  })
+})
+
+describe('PainelChatEmbed — código de instalação (um por empresa)', () => {
+  it('mostra o código pronto e copia com um clique', async () => {
+    const escrever = vi.fn().mockResolvedValue(undefined)
+    vi.stubGlobal('navigator', { ...navigator, clipboard: { writeText: escrever } })
+    montar()
+
+    expect(await screen.findByText(embed.snippet)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar código' }))
+    await waitFor(() => expect(escrever).toHaveBeenCalledWith(embed.snippet))
+  })
+
+  it('o código não carrega e-mail nem chave — é só a empresa', async () => {
+    montar()
+    const codigo = await screen.findByText(embed.snippet)
+    expect(codigo.textContent).toContain('company=acme')
+    expect(codigo.textContent).not.toContain('@')
+    expect(codigo.textContent).not.toContain('sig=')
+  })
+
+  it('avisa que o chat está desabilitado antes de mandar colar o código', async () => {
+    montar()
+    expect(
+      await screen.findByText(/está desabilitado: o código não vai mostrar nada/i),
+    ).toBeInTheDocument()
+  })
+
+  it('ligado mas sem modo público, explica que este código não é o caminho', async () => {
+    embed = { ...embed, enabled: true }
+    montar()
+    expect(await screen.findByText(/só funciona no modo público/i)).toBeInTheDocument()
+  })
+
+  it('no modo público, cobra a origem que falta em vez de deixar o cliente descobrir no navegador', async () => {
+    embed = { ...embed, enabled: true, public_enabled: true, origins: [] }
+    montar()
+    expect(await screen.findByText(/Falta cadastrar a origem/i)).toBeInTheDocument()
+  })
+})
+
+describe('PainelChatEmbed — modo público', () => {
+  it('admin liga o modo público', async () => {
+    montar()
+    const toggle = await screen.findByRole('switch', { name: 'Só por link assinado' })
+    fireEvent.click(toggle)
+    await waitFor(() =>
+      expect(chamadas.some((c) => c.metodo === 'PATCH' && (c.corpo as Record<string, unknown>)?.public_enabled === true)).toBe(true),
+    )
+  })
+
+  it('agente sem permissão não altera o modo, mas continua vendo o código', async () => {
+    me = AGENTE
+    embed = { ...embed, enabled: true, public_enabled: true }
+    montar()
+    expect(await screen.findByRole('switch', { name: /Público/ })).toBeDisabled()
+    expect(screen.getByText(embed.snippet)).toBeInTheDocument()
   })
 })

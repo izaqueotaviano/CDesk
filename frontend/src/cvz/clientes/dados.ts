@@ -229,9 +229,18 @@ export function useAtualizarUsuario(empresaId: number, usuarioId: number) {
 
 export interface ChatEmbed {
   enabled: boolean
+  /** Modo público: um código só pro site inteiro, sem assinatura por pessoa. */
+  public_enabled: boolean
   /** `scheme://host[:porta]`, sem caminho — normalizado pelo backend (minúsculo, sem barra final). */
   origins: string[]
   rotated_at: string
+  company_slug: string
+  /** O código de instalação, montado pelo backend (é ele que sabe o endereço
+   *  público desta instalação — a SPA pode estar noutro domínio). UM por
+   *  empresa: nada de pessoa entra aqui. */
+  snippet: string
+  /** Endereço do iframe, pra quem prefere embutir na mão em vez do loader. */
+  iframe_url: string
 }
 
 export function useChatEmbed(empresaId: number, habilitado: boolean) {
@@ -245,7 +254,7 @@ export function useChatEmbed(empresaId: number, habilitado: boolean) {
 export function useAtualizarChatEmbed(empresaId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dados: { enabled?: boolean; origins?: string[] }) =>
+    mutationFn: (dados: { enabled?: boolean; public_enabled?: boolean; origins?: string[] }) =>
       api.patch<ChatEmbed>(`/api/v1/settings/companies/${empresaId}/chat-embed/`, dados),
     onSuccess: (embed) => qc.setQueryData(['empresa', empresaId, 'chat-embed'], embed),
   })

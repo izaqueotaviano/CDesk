@@ -11,13 +11,23 @@ function mensagemDeErro(e: unknown, padrao: string): string {
 }
 
 /**
- * Chat embutido (embed-widget): não é aparência — não existe cor, saudação
- * ou posição configurável no backend hoje, o HTML do balão é fixo. O que
- * existe, pronto e testado sem tela nenhuma até aqui (CompanyAdminViewSet,
- * apps/customers/admin_api.py), é isto: liga/desliga por empresa, as
- * origens autorizadas a exibir o iframe (CSP — sem elas o navegador
- * bloqueia mesmo com a assinatura certa) e a chave que o backend do
- * cliente usa pra assinar a URL a cada sessão.
+ * Chat embutido (embed-widget): liga/desliga por empresa, o CÓDIGO DE
+ * INSTALAÇÃO (um por empresa — é ele que o cliente cola no site), as origens
+ * autorizadas a exibir o iframe (CSP — sem elas o navegador bloqueia mesmo
+ * com tudo certo) e a chave de assinatura do modo identificado.
+ *
+ * Dois modos, e a tela existe muito para deixar a diferença clara:
+ *
+ * - **público**: um código só, colado uma vez. Serve pra site/loja, onde não
+ *   há ninguém logado; quem se identifica é o visitante, na janelinha.
+ * - **identificado**: o site do cliente assina a URL com a chave e diz quem
+ *   é a pessoa. Serve dentro de um console (Vtex/Tray) onde ela JÁ está
+ *   logada — a identidade é real, não digitada. Aqui o "código" muda a cada
+ *   carregamento (a assinatura é por pessoa), então o que se entrega é a
+ *   chave, não um trecho pronto.
+ *
+ * Não é tela de aparência: não existe cor, saudação ou posição configurável
+ * no backend hoje, o HTML do balão é fixo.
  */
 export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; habilitado: boolean }) {
   const { data: me } = useMe()
@@ -39,6 +49,13 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
   function alternarHabilitado(enabled: boolean) {
     atualizar.mutate(
       { enabled },
+      { onError: (e) => push({ tone: 'danger', title: 'Não foi possível salvar', description: mensagemDeErro(e, '') }) },
+    )
+  }
+
+  function alternarPublico(public_enabled: boolean) {
+    atualizar.mutate(
+      { public_enabled },
       { onError: (e) => push({ tone: 'danger', title: 'Não foi possível salvar', description: mensagemDeErro(e, '') }) },
     )
   }
@@ -93,7 +110,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
     <>
       <FormSection
         title="Chat embutido"
-        description="O widget que a plataforma do cliente (Vtex, Tray…) embute num iframe do próprio site, autenticado por uma URL assinada — não por login."
+        description="O balão de atendimento que o cliente embute no próprio site ou no console dele (Vtex, Tray…), num iframe que nunca pede login: quem diz de quem é a conversa é o modo abaixo."
       >
         <Toggle
           label={dados.enabled ? 'Habilitado' : 'Desabilitado'}
@@ -101,6 +118,59 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
           disabled={!podeEditar || atualizar.isPending}
           onChange={(e) => alternarHabilitado(e.target.checked)}
         />
+      </FormSection>
+
+      <FormSection
+        title="Como o visitante é identificado"
+        description="Público: um código só, para site ou loja — o visitante diz o nome e o e-mail na própria janelinha. Identificado: o site assina a URL com a chave abaixo e diz quem é a pessoa; serve dentro de um console onde ela já está logada."
+      >
+        <Toggle
+          label={dados.public_enabled ? 'Público (um código para o site inteiro)' : 'Só por link assinado'}
+          checked={dados.public_enabled}
+          disabled={!podeEditar || atualizar.isPending}
+          onChange={(e) => alternarPublico(e.target.checked)}
+        />
+        {dados.public_enabled && (
+          <p className="clientes-meta--espacada">
+            Quem se identificar aqui vira um usuário desta empresa marcado como “visitante do chat”, sem
+            acesso ao portal — ele aparece na aba Usuários.
+          </p>
+        )}
+      </FormSection>
+
+      <FormSection
+        title="Código de instalação"
+        description="Um por empresa: cole uma vez no site e o balão de atendimento aparece em todas as páginas. Não tem e-mail nem chave dentro — pode ser enviado por e-mail ao cliente sem cerimônia."
+      >
+        <div className="clientes-snippet">
+          <pre>{dados.snippet}</pre>
+          <div className="clientes-snippet__acoes">
+            <Button size="sm" variant="secondary" onClick={() => copiar(dados.snippet)}>
+              Copiar código
+            </Button>
+            <Button size="sm" variant="tertiary" onClick={() => copiar(dados.iframe_url)}>
+              Copiar só o endereço do iframe
+            </Button>
+          </div>
+          {/* Os dois avisos que fazem o código não funcionar na prática — e é
+              sempre um destes dois, nesta ordem. */}
+          {!dados.enabled && (
+            <p className="clientes-meta--espacada">
+              O chat embutido está desabilitado: o código não vai mostrar nada até você ligar lá em cima.
+            </p>
+          )}
+          {dados.enabled && !dados.public_enabled && (
+            <p className="clientes-meta--espacada">
+              Este código só funciona no modo público. No modo identificado, quem monta o endereço é o
+              backend do cliente, assinando com a chave abaixo a cada carregamento.
+            </p>
+          )}
+          {dados.enabled && dados.public_enabled && dados.origins.length === 0 && (
+            <p className="clientes-meta--espacada">
+              Falta cadastrar a origem do site abaixo — sem ela o navegador bloqueia a janela.
+            </p>
+          )}
+        </div>
       </FormSection>
 
       <FormSection

@@ -25,6 +25,13 @@ def acme(plan):
 
 
 @pytest.fixture
+def bravo(plan):
+    """Segunda empresa — o código de instalação de uma nunca pode servir na
+    outra."""
+    return Company.objects.create(name="Bravo", slug="bravo", plan=plan)
+
+
+@pytest.fixture
 def admin(db):
     return User.objects.create_user(
         email="admin@x.test", full_name="Alice Admin", kind=UserKind.INTERNAL,
@@ -58,8 +65,28 @@ class TestLeitura:
         assert not CompanyChatEmbed.objects.filter(company=acme).exists()
         resp = api(admin).get(_url(acme))
         assert resp.status_code == 200
-        assert resp.data == {"enabled": False, "origins": [], "rotated_at": resp.data["rotated_at"]}
+        assert resp.data == {
+            "enabled": False,
+            "public_enabled": False,
+            "origins": [],
+            "rotated_at": resp.data["rotated_at"],
+            "company_slug": "acme",
+            "snippet": '<script src="http://testserver/embed/widget.js?company=acme" async></script>',
+            "iframe_url": "http://testserver/embed/chat/?company=acme",
+        }
         assert CompanyChatEmbed.objects.filter(company=acme).exists()
+
+    def test_o_codigo_de_instalacao_e_um_por_empresa(self, api, admin, acme, bravo):
+        """O que a tela manda copiar identifica a EMPRESA e nada mais — nenhum
+        e-mail, nenhuma chave, nada de pessoa. Duas empresas, dois códigos;
+        a mesma empresa, sempre o mesmo."""
+        um = api(admin).get(_url(acme)).data["snippet"]
+        de_novo = api(admin).get(_url(acme)).data["snippet"]
+        outro = api(admin).get(_url(bravo)).data["snippet"]
+        assert um == de_novo
+        assert um != outro
+        assert "acme" in um and "bravo" in outro
+        assert "@" not in um  # nada de e-mail de pessoa no código
 
     def test_agente_nao_admin_le_normalmente(self, api, agente, acme):
         assert api(agente).get(_url(acme)).status_code == 200

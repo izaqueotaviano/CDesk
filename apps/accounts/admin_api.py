@@ -305,7 +305,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
         return [link.team_id for link in obj.team_links.all()]
 
     def get_invite_status(self, obj) -> str:
-        """`pendente` | `aceito` | `` (só quem entra por Google fica sem status).
+        """`pendente` | `aceito` | `visitante` | `` (só quem entra por Google fica sem status).
 
         Vale para o AGENTE também: enquanto ele não abre o convite não tem
         senha, e "pendente" na lista é o que avisa o admin de que aquela conta
@@ -314,6 +314,14 @@ class UserAdminSerializer(serializers.ModelSerializer):
         """
         if not precisa_de_convite(obj):
             return ""
+        # Visitante do chat público nunca teve convite: ele se cadastrou
+        # sozinho na janelinha do site (apps/customers/services/embed_visitor).
+        # Dizer "pendente" aqui faria o admin procurar um convite que ninguém
+        # mandou — e, pior, sugeriria que basta reenviá-lo para a pessoa ter
+        # portal, quando promover um visitante é uma decisão consciente
+        # (definir senha por "Redefinir senha").
+        if obj.is_widget_visitor and not obj.has_usable_password():
+            return "visitante"
         return "aceito" if obj.has_usable_password() else "pendente"
 
     def validate_avatar_url(self, value):

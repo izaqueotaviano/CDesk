@@ -270,9 +270,11 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
         if request.method == "PATCH":
             if not IsAdmin().has_permission(request, self):
                 return Response({"detail": IsAdmin.message}, status=403)
-            if "enabled" in request.data:
-                embed.enabled = bool(request.data["enabled"])
-                embed.save(update_fields=["enabled"])
+            campos = [c for c in ("enabled", "public_enabled") if c in request.data]
+            if campos:
+                for campo in campos:
+                    setattr(embed, campo, bool(request.data[campo]))
+                embed.save(update_fields=campos)
             if "origins" in request.data:
                 origins = request.data.get("origins")
                 if not isinstance(origins, list):
@@ -315,10 +317,21 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
             [CompanyChatEmbedOrigin(embed=embed, origin=o) for o in limpas - existentes]
         )
 
-    @staticmethod
-    def _serialize_embed(embed) -> dict:
+    def _serialize_embed(self, embed) -> dict:
+        """Inclui o CÓDIGO DE INSTALAÇÃO pronto — montado aqui, e não no
+        front, porque quem sabe o endereço público desta instalação é o
+        servidor que está respondendo (a SPA pode estar noutro domínio, e o
+        snippet precisa apontar pro Django). Um por empresa, sempre o mesmo:
+        o que varia por pessoa é a identificação DENTRO da janelinha, não o
+        código colado no site."""
+        base = self.request.build_absolute_uri("/").rstrip("/")
+        slug = embed.company.slug
         return {
             "enabled": embed.enabled,
+            "public_enabled": embed.public_enabled,
             "origins": list(embed.origins.order_by("origin").values_list("origin", flat=True)),
             "rotated_at": embed.rotated_at.isoformat(),
+            "company_slug": slug,
+            "snippet": f'<script src="{base}/embed/widget.js?company={slug}" async></script>',
+            "iframe_url": f"{base}/embed/chat/?company={slug}",
         }

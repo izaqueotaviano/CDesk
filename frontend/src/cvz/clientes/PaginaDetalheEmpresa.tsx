@@ -180,14 +180,21 @@ export function PaginaDetalheEmpresa() {
       key: 'invite_status',
       header: 'Convite',
       mobile: 'meta',
-      // O backend responde em português ('aceito'/'pendente', ver
+      // O backend responde em português ('aceito'/'pendente'/'visitante', ver
       // `UserAdminSerializer.get_invite_status`); comparar com 'accepted'
       // fazia todo mundo aparecer como pendente, inclusive quem já entrou.
-      render: (u) => (
-        <Tag tone={u.invite_status === 'aceito' ? 'success' : 'away'}>
-          {u.invite_status === 'aceito' ? 'Aceito' : 'Pendente'}
-        </Tag>
-      ),
+      //
+      // 'visitante' é quem se identificou no chat público do site (não houve
+      // convite nenhum) — em tom neutro de propósito: não é uma pendência
+      // pra alguém resolver, é como aquela pessoa entrou.
+      render: (u) =>
+        u.invite_status === 'visitante' ? (
+          <Tag>Visitante do chat</Tag>
+        ) : (
+          <Tag tone={u.invite_status === 'aceito' ? 'success' : 'away'}>
+            {u.invite_status === 'aceito' ? 'Aceito' : 'Pendente'}
+          </Tag>
+        ),
     },
     {
       key: 'status',
