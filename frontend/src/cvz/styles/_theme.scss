@@ -3,7 +3,7 @@
 //
 // A base veio do MCP cvzdesk (get_tokens, 2026-09-04), mas a PALETA já não é
 // mais a de lá: esta rodada trocou a identidade quente (marrom/#0275DE) pela
-// paleta do produto — azul de ação #0f62fe, neutros frios e cromo #efeae7.
+// paleta do produto — azul de ação #0f62fe, neutros frios e cromo #f0f0f0.
 // Editar aqui é o caminho certo agora; recopiar do cvzdesk desfaria a
 // identidade do Resolv.
 //
@@ -30,23 +30,24 @@
   --cvz-blue-tint-hover: #d0e2ff;
 
   // Conteúdo em branco; o cromo (sidebar, barra de abas) é que recua para o
-  // #efeae7. `raised` segue branco e se separa do fundo pela LINHA, não por
+  // #f0f0f0. `raised` segue branco e se separa do fundo pela LINHA, não por
   // sombra — a rodada pediu explicitamente para evitar sombra pesada.
   //
   // `canvas` é o fundo geral atrás do conteúdo — pintado uma vez em
   // SuperficieCvz.scss, não nos cards/tabelas/modais em si (que continuam em
-  // `surface`). Cor do JSON de referência (cluster copilot.microsoft.com);
-  // o mesmo papel no app da Manus é o canvas atrás dos cards quase-brancos.
+  // `surface`). `chrome`/`canvas` são os dois primeiros tons do app da Manus
+  // (nav e canvas — só referência de VALOR, não código); o card de lá
+  // (#fafafa) não entrou, cartão/tabela seguem em branco puro.
   --cvz-surface:         #ffffff;
-  --cvz-canvas:          #f9f4f2;
-  --cvz-chrome:          #efeae7;
+  --cvz-canvas:          #f8f8f7;
+  --cvz-chrome:          #f0f0f0;
   --cvz-raised:          #ffffff;
   // Preta translúcida (referência: app da Manus) em vez de cinza sólido —
   // assim a MESMA linha funciona sobre os três fundos claros (cromo, canvas,
   // cartão) sem precisar de um tom por superfície.
   --cvz-stroke:          rgba(0, 0, 0, 0.06);
   --cvz-field-border:    #7d7d7d;
-  --cvz-hover:           #e8e4e1;
+  --cvz-hover:           #e6e6e6;
   --cvz-hover-soft:      rgba(26, 26, 26, 0.04);
 
   --cvz-text:            #1a1a1a;
@@ -71,7 +72,7 @@
   --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
   --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14);
 
-  --cvz-chrome-glass: rgba(239, 234, 231, 0.72);
+  --cvz-chrome-glass: rgba(240, 240, 240, 0.72);
   --cvz-on-accent-soft: rgba(255, 255, 255, 0.16);
 }
 

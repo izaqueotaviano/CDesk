@@ -7,7 +7,7 @@
 // (O fallback de 240px cobre a barra renderizada fora do shell, como no teste.)
 //
 // Sem borda vertical à direita: a separação já vem da diferença de fundo
-// (cromo #efeae7 contra conteúdo branco), e a linha por cima disso engrossava
+// (cromo #f0f0f0 contra conteúdo branco), e a linha por cima disso engrossava
 // a moldura à toa.
 .sidebar-rail {
   position: fixed;

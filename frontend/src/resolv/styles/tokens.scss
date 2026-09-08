@@ -9,7 +9,7 @@
 // resto do app (login etc.) fica intocado.
 //
 // A paleta é a do produto: conteúdo em BRANCO, cromo (sidebar + barra de
-// abas) em #efeae7, ação em #0f62fe. Antes era uma família quente
+// abas) em #f0f0f0, ação em #0f62fe. Antes era uma família quente
 // (fundo #f9f8f7, texto marrom, azul #0275de); a troca é global e mora aqui —
 // nenhum componente repete hex.
 // ============================================================================
@@ -32,13 +32,14 @@
   //
   // `surface-canvas` é nova: o fundo geral ATRÁS do conteúdo (pintado uma vez
   // só, em .novo-shell — ver shell.scss), não os cards/tabelas/modais em si,
-  // que continuam brancos. Valor do JSON de referência (cluster
-  // copilot.microsoft.com); o mesmo papel no app da Manus é o canvas
-  // (#f8f8f7) por trás dos cards quase-brancos.
+  // que continuam brancos. `surface-alt`/`surface-canvas` são os dois
+  // primeiros tons do app da Manus (nav e canvas); o card de lá (#fafafa)
+  // não entrou — o pedido original já tinha fixado cartão/tabela em branco
+  // puro, e isso não mudou.
   --surface: #ffffff;
-  --surface-alt: #efeae7;
+  --surface-alt: #f0f0f0;
   --surface-card: #ffffff;
-  --surface-canvas: #f9f4f2;
+  --surface-canvas: #f8f8f7;
   // Linha estrutural (tabela, card, divisória, cromo) — preta translúcida, do
   // jeito que o app da Manus faz: a MESMA variável então funciona sobre os
   // três fundos claros (cromo/canvas/cartão) sem precisar recalibrar por
@@ -60,8 +61,8 @@
   --text-primary: #1a1a1a;
   --text-secondary: #4d4d4d;
   --text-muted: #737373;
-  // Texto e ícone sobre o cromo (#efeae7). Um degrau mais claro que o texto
-  // principal: sobre fundo bege ele já tem contraste de sobra (9.4:1) e o
+  // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
+  // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
   --texto-cromo: #333333;
 
