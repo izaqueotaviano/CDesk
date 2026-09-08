@@ -1,4 +1,4 @@
-import { Building2, FileText, KeyRound, Mail, Monitor, Palette, ShieldCheck, UserRound, type LucideIcon } from 'lucide-react'
+import { IconBuilding, IconDeviceDesktop, IconFileText, IconKey, IconMail, IconPalette, IconShieldCheck, IconUser, type Icon } from '@tabler/icons-react'
 import { SecaoAcessos } from './SecaoAcessos'
 import { SecaoAparencia } from './SecaoAparencia'
 import { SecaoEmpresa } from './SecaoEmpresa'
@@ -8,15 +8,15 @@ import { SecaoPerfil } from './SecaoPerfil'
 import { SecaoSeguranca } from './SecaoSeguranca'
 import { SecaoSenha } from './SecaoSenha'
 
-const SECOES: { id: string; rotulo: string; icone: LucideIcon }[] = [
-  { id: 'perfil', rotulo: 'Dados pessoais', icone: UserRound },
-  { id: 'empresa', rotulo: 'Empresa', icone: Building2 },
-  { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: Mail },
-  { id: 'aparencia', rotulo: 'Aparência', icone: Palette },
-  { id: 'senha', rotulo: 'Senha', icone: KeyRound },
-  { id: 'seguranca', rotulo: 'Verificação em duas etapas', icone: ShieldCheck },
-  { id: 'acessos', rotulo: 'Sessões e acesso', icone: Monitor },
-  { id: 'meus-dados', rotulo: 'Meus dados', icone: FileText },
+const SECOES: { id: string; rotulo: string; icone: Icon }[] = [
+  { id: 'perfil', rotulo: 'Dados pessoais', icone: IconUser },
+  { id: 'empresa', rotulo: 'Empresa', icone: IconBuilding },
+  { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: IconMail },
+  { id: 'aparencia', rotulo: 'Aparência', icone: IconPalette },
+  { id: 'senha', rotulo: 'Alterar senha', icone: IconKey },
+  { id: 'seguranca', rotulo: 'Verificação em duas etapas', icone: IconShieldCheck },
+  { id: 'acessos', rotulo: 'Sessões e acesso', icone: IconDeviceDesktop },
+  { id: 'meus-dados', rotulo: 'Meus dados', icone: IconFileText },
 ]
 
 /**
@@ -38,7 +38,7 @@ export function PaginaConfiguracoes() {
           <a
             key={s.id}
             href={`#${s.id}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-total border border-divisoria bg-superficie px-3 py-1.5 text-pequeno font-medio text-tinta-secundaria hover:border-borda-controle hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-total border border-divisoria bg-superficie px-3 py-1.5 text-pequeno font-medio text-tinta-secundaria hover:border-borda-controle hover:text-tinta"
           >
             <s.icone className="size-3.5" aria-hidden="true" />
             {s.rotulo}
@@ -53,7 +53,7 @@ export function PaginaConfiguracoes() {
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-pequeno font-medio text-tinta-secundaria hover:bg-navegacao hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-pequeno font-medio text-tinta-secundaria hover:bg-navegacao hover:text-tinta"
                 >
                   <s.icone className="size-4" aria-hidden="true" />
                   {s.rotulo}

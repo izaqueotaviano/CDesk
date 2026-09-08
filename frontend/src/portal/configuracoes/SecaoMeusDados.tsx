@@ -1,4 +1,4 @@
-import { Download, FileText } from 'lucide-react'
+import { IconDownload, IconFileText } from '@tabler/icons-react'
 import { API_BASE_URL, ApiError } from '@/api/client'
 import { useMeusPedidosDeDados, useSolicitarExportacao, type PedidoDeDados, type StatusPedidoDados } from '../api/conta'
 import { cn } from '../lib/cn'
@@ -26,7 +26,7 @@ function LinhaPedido({ pedido }: { pedido: PedidoDeDados }) {
   const status = ROTULO_STATUS[pedido.status]
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-divisoria bg-navegacao/60 px-4 py-3">
-      <FileText className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
+      <IconFileText className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-pequeno font-medio text-tinta">
           Exportação dos meus dados
@@ -45,7 +45,7 @@ function LinhaPedido({ pedido }: { pedido: PedidoDeDados }) {
           href={`${API_BASE_URL}/api/v1/audit/lgpd/${pedido.id}/download/`}
           className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
         >
-          <Download /> Baixar
+          <IconDownload /> Baixar
         </a>
       )}
     </div>
@@ -79,7 +79,7 @@ export function SecaoMeusDados() {
   return (
     <Secao
       id="meus-dados"
-      icone={FileText}
+      icone={IconFileText}
       titulo="Meus dados"
       descricao="Peça uma cópia de tudo que temos sobre você — tickets, mensagens e anexos que só você (não a equipe) enviou."
     >

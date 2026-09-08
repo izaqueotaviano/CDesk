@@ -1,9 +1,10 @@
 import { useId, useRef, useState } from 'react'
-import { Camera, Trash2, UserRound } from 'lucide-react'
+import { IconCamera, IconTrash, IconUser } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { Avatar } from '@/ui/Avatar'
 import { LIMITE_AVATAR_MB, urlDoAvatar, useAtualizarPerfil, useEnviarAvatar, useRemoverAvatar, type PerfilEscrita } from '../api/conta'
+import { Alert } from '../ui/alert'
 import { Button } from '../ui/button'
 import { Ajuda, ErroCampo, Input, Label } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
@@ -22,7 +23,7 @@ function mensagem(e: unknown, padrao: string): string {
  * trocá-lo é conversa com o suporte, não uma preferência.
  */
 export function SecaoPerfil() {
-  const { data: me } = useMe()
+  const { data: me, isError: erroMe, refetch: recarregarMe } = useMe()
   const atualizar = useAtualizarPerfil()
   const enviarAvatar = useEnviarAvatar()
   const removerAvatar = useRemoverAvatar()
@@ -33,9 +34,28 @@ export function SecaoPerfil() {
   const [form, setForm] = useState<Campos | null>(null)
   const [erros, setErros] = useState<Record<string, string[]>>({})
 
+  // `useMe` tem retry:false — se /auth/me/ falhar, `me` fica undefined pra
+  // sempre. Sem este ramo a seção mostrava o skeleton indefinidamente.
+  if (!me && erroMe) {
+    return (
+      <Secao id="perfil" icone={IconUser} titulo="Dados pessoais" descricao="Como o suporte vê você.">
+        <Alert
+          variant="destructive"
+          titulo="Não foi possível carregar seus dados"
+          acao={
+            <Button size="sm" variant="secondary" onClick={() => recarregarMe()}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          Verifique sua conexão.
+        </Alert>
+      </Secao>
+    )
+  }
   if (!me) {
     return (
-      <Secao id="perfil" icone={UserRound} titulo="Dados pessoais" descricao="Como o suporte vê você.">
+      <Secao id="perfil" icone={IconUser} titulo="Dados pessoais" descricao="Como o suporte vê você.">
         <div className="flex items-center gap-4">
           <Skeleton className="size-16 rounded-total" />
           <Skeleton className="h-9 w-32" />
@@ -97,7 +117,7 @@ export function SecaoPerfil() {
   return (
     <Secao
       id="perfil"
-      icone={UserRound}
+      icone={IconUser}
       titulo="Dados pessoais"
       descricao="Como o suporte vê você. Nome e telefone ajudam a equipe a falar com a pessoa certa."
       rodape={
@@ -116,7 +136,8 @@ export function SecaoPerfil() {
             ref={arquivoRef}
             type="file"
             accept="image/png,image/jpeg,image/webp"
-            className="sr-only"
+            hidden
+            tabIndex={-1}
             aria-label="Escolher foto"
             onChange={(e) => {
               escolherFoto(e.target.files?.[0])
@@ -124,7 +145,7 @@ export function SecaoPerfil() {
             }}
           />
           <Button variant="secondary" size="sm" onClick={() => arquivoRef.current?.click()} disabled={enviarAvatar.isPending}>
-            <Camera /> {enviarAvatar.isPending ? 'Enviando…' : me.avatar_url ? 'Trocar foto' : 'Enviar foto'}
+            <IconCamera /> {enviarAvatar.isPending ? 'Enviando…' : me.avatar_url ? 'Trocar foto' : 'Enviar foto'}
           </Button>
           {me.avatar_url && (
             <Button
@@ -138,7 +159,7 @@ export function SecaoPerfil() {
                 })
               }
             >
-              <Trash2 /> Remover
+              <IconTrash /> Remover
             </Button>
           )}
           <Ajuda className="basis-full">JPG, PNG ou WebP, até {LIMITE_AVATAR_MB} MB. A imagem é recortada em quadrado.</Ajuda>

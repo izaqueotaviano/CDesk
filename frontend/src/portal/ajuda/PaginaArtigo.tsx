@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ExternalLink, Plus, ThumbsDown, ThumbsUp } from 'lucide-react'
+import { IconArrowLeft, IconExternalLink, IconPlus, IconThumbDown, IconThumbUp } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useArtigo, useAvaliarArtigo } from '../api/ajuda'
 import { cn } from '../lib/cn'
@@ -36,7 +36,9 @@ const ESTILO_ARTIGO = [
 function Esqueleto() {
   return (
     <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando artigo">
-      <Skeleton className="h-4 w-32" />
+      <Link to="/portal/ajuda" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
+        <IconArrowLeft className="size-4" aria-hidden="true" /> Central de Ajuda
+      </Link>
       <Skeleton className="h-8 w-2/3" />
       <Card>
         <CardContent className="space-y-3 p-6">
@@ -62,7 +64,7 @@ export function PaginaArtigo() {
     return (
       <div className="flex flex-col gap-4">
         <Link to="/portal/ajuda" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-          <ArrowLeft className="size-4" aria-hidden="true" /> Central de Ajuda
+          <IconArrowLeft className="size-4" aria-hidden="true" /> Central de Ajuda
         </Link>
         <Alert
           variant="destructive"
@@ -86,7 +88,7 @@ export function PaginaArtigo() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4">
       <Link to="/portal/ajuda" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Central de Ajuda
+        <IconArrowLeft className="size-4" aria-hidden="true" /> Central de Ajuda
       </Link>
 
       <header className="flex flex-col gap-2">
@@ -143,7 +145,7 @@ export function PaginaArtigo() {
                 avaliar.mutate(true, { onError: () => toast.error('Não foi possível registrar seu voto.') })
               }
             >
-              <ThumbsUp /> Sim
+              <IconThumbUp /> Sim
             </Button>
             <Button
               variant={artigo.my_feedback === false ? 'default' : 'outline'}
@@ -154,7 +156,7 @@ export function PaginaArtigo() {
                 avaliar.mutate(false, { onError: () => toast.error('Não foi possível registrar seu voto.') })
               }
             >
-              <ThumbsDown /> Não
+              <IconThumbDown /> Não
             </Button>
           </div>
         </CardContent>
@@ -167,7 +169,7 @@ export function PaginaArtigo() {
           titulo="Vamos resolver isso com você"
           acao={
             <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-              <Plus /> Abrir ticket
+              <IconPlus /> Abrir ticket
             </Link>
           }
         >
@@ -183,7 +185,7 @@ export function PaginaArtigo() {
               <Link
                 key={r.id}
                 to={`/portal/ajuda/${r.id}`}
-                className="rounded-xl border border-divisoria bg-superficie p-4 text-pequeno font-medio text-tinta shadow-elevacao-1 transition-colors hover:border-acento hover:text-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+                className="rounded-xl border border-divisoria bg-superficie p-4 text-pequeno font-medio text-tinta transition-colors hover:border-acento hover:text-acento"
               >
                 {r.title}
               </Link>
@@ -199,7 +201,7 @@ export function PaginaArtigo() {
           rel="noreferrer"
           className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'w-fit')}
         >
-          <ExternalLink /> Ver no site
+          <IconExternalLink /> Ver no site
         </a>
       )}
     </div>

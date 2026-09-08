@@ -1,25 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import {
-  ArrowLeft,
-  Check,
-  CheckCircle2,
-  Clock,
-  Download,
-  FileText,
-  Hash,
-  Lock,
-  Paperclip,
-  Pencil,
-  Plus,
-  RotateCcw,
-  Send,
-  ShieldCheck,
-  Tag,
-  Trash2,
-  Users,
-  X,
- Star } from 'lucide-react'
+import { IconArrowLeft, IconCheck, IconCircleCheck, IconClock, IconDownload, IconFileText, IconHash, IconLock, IconPaperclip, IconPencil, IconPlus, IconRotateClockwise, IconSend, IconShieldCheck, IconStar, IconTag, IconTrash, IconUsers, IconX } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { mensagemDeErro, rotuloDia, urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import type { Mensagem, TicketDetalhe } from '@/resolv/tickets/detalhe/tiposDetalhe'
@@ -110,7 +91,7 @@ function LinhaDoTempo({ ticket }: { ticket: TicketDetalhe }) {
                 )}
                 aria-hidden="true"
               >
-                {p.estado === 'feito' ? <Check className="size-3.5" /> : p.estado === 'atual' ? <span className="size-2 rounded-total bg-current" /> : null}
+                {p.estado === 'feito' ? <IconCheck className="size-3.5" /> : p.estado === 'atual' ? <span className="size-2 rounded-total bg-current" /> : null}
               </span>
               {!ultimo && (
                 <span className={cn('h-full min-h-4 w-0.5 flex-1 bg-divisoria lg:h-0.5 lg:min-h-0 lg:w-auto', p.estado === 'feito' && 'bg-ok/50')} />
@@ -157,7 +138,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
               aria-checked={nota === n}
               onClick={() => setNota(n)}
               className={cn(
-                'grid size-9 place-items-center rounded-lg border border-divisoria bg-superficie text-corpo font-medio transition-colors hover:border-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
+                'grid size-9 place-items-center rounded-lg border border-divisoria bg-superficie text-corpo font-medio transition-colors hover:border-acento',
                 nota === n && 'border-acento bg-acento text-acento-sobre',
               )}
             >
@@ -182,7 +163,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
               )
             }
           >
-            <CheckCircle2 /> {avaliar.isPending ? 'Enviando…' : 'Enviar avaliação'}
+            <IconCircleCheck /> {avaliar.isPending ? 'Enviando…' : 'Enviar avaliação'}
           </Button>
         </div>
       </CardContent>
@@ -212,7 +193,7 @@ function Anexos({ msg }: { msg: Mensagem }) {
       {msg.attachments.map((a) =>
         a.is_downloadable === false || !a.url ? (
           <li key={a.id} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda text-tinta-secundaria" title="Em verificação de segurança">
-            <Lock className="size-3" aria-hidden="true" />
+            <IconLock className="size-3" aria-hidden="true" />
             {a.filename} · em verificação
           </li>
         ) : (
@@ -223,7 +204,7 @@ function Anexos({ msg }: { msg: Mensagem }) {
               rel="noreferrer"
               className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-superficie px-2.5 py-1 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
             >
-              <Paperclip className="size-3" aria-hidden="true" />
+              <IconPaperclip className="size-3" aria-hidden="true" />
               {a.filename}
               {a.size_bytes ? <span className="text-tinta-terciaria">{tamanhoArquivo(a.size_bytes)}</span> : null}
             </a>
@@ -234,7 +215,14 @@ function Anexos({ msg }: { msg: Mensagem }) {
   )
 }
 
-function Bolha({
+/**
+ * Uma mensagem do chamado — a mesma leitura do `ItemMensagem` do console
+ * (resolv/tickets/detalhe/Conversa.tsx): lista PLANA, avatar sempre à
+ * esquerda, sem balão nem lado invertido, quem escreveu dito pelo nome, pelo
+ * selo "Suporte" e pela barra de 2px na cor de ação. A conversa de um
+ * chamado é um documento, não um app de mensageria.
+ */
+function MensagemDoTicket({
   msg,
   agoraMs,
   onEditar,
@@ -247,41 +235,34 @@ function Bolha({
 }) {
   const doSuporte = msg.author_is_internal
   return (
-    <article className={cn('flex gap-3', !doSuporte && 'flex-row-reverse')} aria-label={`Mensagem de ${msg.author_name}`}>
-      <Avatar nome={msg.author_name} urlFoto={msg.author_avatar ? urlApi(msg.author_avatar) : null} tamanho="md" />
-      <div className={cn('flex max-w-[85%] min-w-0 flex-col gap-1', !doSuporte && 'items-end')}>
-        <div className="flex flex-wrap items-center gap-2 text-legenda text-tinta-secundaria">
-          <span className="font-medio text-tinta">{msg.author_name}</span>
-          {doSuporte && (
-            <Badge variant="acento" className="px-1.5 py-0 text-micro">
-              Suporte
-            </Badge>
-          )}
+    <article
+      className={cn('flex gap-2.5 rounded-md border border-divisoria bg-superficie px-3.5 py-3', doSuporte && 'border-l-2 border-l-acento')}
+      aria-label={`Mensagem de ${msg.author_name}`}
+    >
+      <Avatar nome={msg.author_name} urlFoto={msg.author_avatar ? urlApi(msg.author_avatar) : null} tamanho="sm" />
+      <div className="min-w-0 flex-1">
+        <header className="flex flex-wrap items-center gap-x-2 gap-y-1 text-legenda text-tinta-secundaria">
+          <span className="text-[13px] font-medio text-tinta">{doSuporte ? msg.author_name : 'Você'}</span>
+          {doSuporte && <Badge variant="acento">Suporte</Badge>}
           <time dateTime={msg.created_at} title={dataHora(msg.created_at)}>
             {hora(msg.created_at)} · {relativo(msg.created_at, agoraMs)}
           </time>
           {msg.edited_at && <span className="italic">editada</span>}
-        </div>
-        <div
-          className={cn(
-            'rounded-xl px-4 py-3 text-corpo leading-normal shadow-elevacao-1',
-            doSuporte ? 'rounded-tl-sm border border-divisoria bg-superficie text-tinta' : 'rounded-tr-sm bg-acento text-acento-sobre',
-            msg.is_deleted && 'italic opacity-70',
+          {msg.can_edit && !msg.is_deleted && (
+            <span className="ml-auto flex items-center gap-0.5">
+              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-legenda" onClick={() => onEditar(msg)}>
+                <IconPencil className="!size-3" /> Editar
+              </Button>
+              <Button variant="ghost" size="sm" className="h-6 px-1.5 text-legenda hover:text-perigo" onClick={() => onExcluir(msg)}>
+                <IconTrash className="!size-3" /> Excluir
+              </Button>
+            </span>
           )}
-        >
-          <p className="whitespace-pre-wrap [overflow-wrap:anywhere]">{msg.is_deleted ? 'Mensagem apagada' : msg.body}</p>
-          {!msg.is_deleted && <Anexos msg={msg} />}
-        </div>
-        {msg.can_edit && !msg.is_deleted && (
-          <div className="flex gap-1">
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-legenda" onClick={() => onEditar(msg)}>
-              <Pencil className="!size-3" /> Editar
-            </Button>
-            <Button variant="ghost" size="sm" className="h-7 px-2 text-legenda hover:text-perigo" onClick={() => onExcluir(msg)}>
-              <Trash2 className="!size-3" /> Excluir
-            </Button>
-          </div>
-        )}
+        </header>
+        <p className={cn('mt-1 whitespace-pre-wrap text-[13px] leading-normal text-tinta [overflow-wrap:anywhere]', msg.is_deleted && 'italic text-tinta-terciaria')}>
+          {msg.is_deleted ? 'Mensagem apagada' : msg.body}
+        </p>
+        {!msg.is_deleted && <Anexos msg={msg} />}
       </div>
     </article>
   )
@@ -299,7 +280,7 @@ function EsqueletoTicket() {
         <CardContent className="space-y-3 p-6">
           <Skeleton className="h-3 w-20" />
           <Skeleton className="h-6 w-2/3" />
-          <Skeleton className="h-5 w-40 rounded-total" />
+          <Skeleton className="h-5 w-40" />
         </CardContent>
       </Card>
       <Card>
@@ -346,7 +327,7 @@ export function PaginaTicket() {
     return (
       <div className="flex flex-col gap-4">
         <Link to="/portal/tickets" className="inline-flex items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-          <ArrowLeft className="size-4" /> Tickets
+          <IconArrowLeft className="size-4" /> Tickets
         </Link>
         <Alert
           variant="destructive"
@@ -374,6 +355,13 @@ export function PaginaTicket() {
   const compositorVisivel = !ticket.content_hidden && (!fechado || reabrindo)
   const podeEnviar = (texto.trim().length > 0 || anexos.length > 0) && !responder.isPending
   const prazoResposta = !ticket.first_response_at && ticket.sla?.first_response?.due_at ? ticket.sla.first_response.due_at : null
+  // Depois da primeira resposta a pessoa não ficava sem prazo nenhum: o de
+  // solução entra no lugar, enquanto ainda está no futuro (o estouro é
+  // conta do agente, não aviso pro cliente).
+  const prazoSolucao =
+    !fechado && ticket.first_response_at && ticket.sla?.resolution?.due_at && new Date(ticket.sla.resolution.due_at).getTime() > agora
+      ? ticket.sla.resolution.due_at
+      : null
 
   function enviar() {
     if (!podeEnviar) return
@@ -426,7 +414,7 @@ export function PaginaTicket() {
   return (
     <div className="flex flex-col gap-4">
       <Link to="/portal/tickets" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Tickets
+        <IconArrowLeft className="size-4" aria-hidden="true" /> Tickets
       </Link>
 
       {/* ---------------- cabeçalho ---------------- */}
@@ -443,28 +431,34 @@ export function PaginaTicket() {
                 <PilulaPrioridade prioridade={ticket.priority} />
                 {(ticket.reopen_count ?? 0) > 0 && (
                   <Badge variant="outline">
-                    <RotateCcw className="size-3" aria-hidden="true" /> reaberto {ticket.reopen_count}×
+                    <IconRotateClockwise className="size-3" aria-hidden="true" /> reaberto {ticket.reopen_count}×
                   </Badge>
                 )}
               </div>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2">
               <Button variant="secondary" size="sm" onClick={exportarPdf} disabled={exportando || ticket.content_hidden}>
-                <Download /> {exportando ? 'Gerando…' : 'Exportar PDF'}
+                <IconDownload /> {exportando ? 'Gerando…' : 'Exportar PDF'}
               </Button>
               {podeReabrir && !reabrindo && (
                 <Button size="sm" onClick={() => setReabrindo(true)}>
-                  <RotateCcw /> Reabrir chamado
+                  <IconRotateClockwise /> Reabrir chamado
                 </Button>
+              )}
+              {prazoSolucao && (
+                <p className="inline-flex items-center gap-2 rounded-md bg-acento-suave px-3 py-2 text-pequeno text-tinta">
+                  <IconClock className="size-4 text-acento" aria-hidden="true" />
+                  Previsão de solução até <strong>{dataHora(prazoSolucao)}</strong>
+                </p>
               )}
               {fechado && ticket.auto_closed && (
                 <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                  <Plus /> Abrir novo ticket
+                  <IconPlus /> Abrir novo ticket
                 </Link>
               )}
               {aguardaAvaliacao && (
                 <a href="#avaliacao" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
-                  <Star /> Avaliar para reabrir
+                  <IconStar /> Avaliar para reabrir
                 </a>
               )}
             </div>
@@ -478,22 +472,22 @@ export function PaginaTicket() {
             <div>
               <dt className="text-legenda text-tinta-secundaria">Setor</dt>
               <dd className="inline-flex items-center gap-1 font-medio">
-                <Users className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
+                <IconUsers className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
                 {ticket.team?.name ?? '—'}
               </dd>
             </div>
             <div>
               <dt className="text-legenda text-tinta-secundaria">Categoria</dt>
               <dd className="inline-flex items-center gap-1 font-medio">
-                <Tag className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
+                <IconTag className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
                 {ticket.category_name ?? '—'}
               </dd>
             </div>
             <div>
               <dt className="text-legenda text-tinta-secundaria">Nº do pedido</dt>
               <dd className="inline-flex items-center gap-1 font-medio">
-                <Hash className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
-                {(ticket as { order_number?: string }).order_number || '—'}
+                <IconHash className="size-3.5 text-tinta-secundaria" aria-hidden="true" />
+                {ticket.order_number || '—'}
               </dd>
             </div>
           </dl>
@@ -513,7 +507,7 @@ export function PaginaTicket() {
           )}
           {esperandoSuporte && (prazoResposta || estimativa?.label) && (
             <p className="inline-flex items-center gap-2 rounded-lg bg-acento-suave px-3 py-2 text-pequeno text-tinta">
-              <Clock className="size-4 text-acento" aria-hidden="true" />
+              <IconClock className="size-4 text-acento" aria-hidden="true" />
               {prazoResposta ? (
                 <>
                   Resposta prevista até <strong>{dataHora(prazoResposta)}</strong>
@@ -542,10 +536,10 @@ export function PaginaTicket() {
       </Card>
 
       {aguardaAvaliacao && <AvaliacaoTicket ticketId={ticket.id} />}
-      {fechado && !aguardaAvaliacao && !ticket.auto_closed && (ticket as { satisfaction?: { score: number | null } | null }).satisfaction?.score != null && (
+      {fechado && !aguardaAvaliacao && !ticket.auto_closed && ticket.satisfaction?.score != null && (
         <p className="inline-flex items-center gap-2 text-pequeno text-tinta-secundaria">
-          <ShieldCheck className="size-4 text-ok" aria-hidden="true" />
-          Você avaliou este atendimento com nota {(ticket as { satisfaction?: { score: number | null } }).satisfaction!.score}.
+          <IconShieldCheck className="size-4 text-ok" aria-hidden="true" />
+          Você avaliou este atendimento com nota {ticket.satisfaction!.score}.
         </p>
       )}
 
@@ -594,12 +588,12 @@ export function PaginaTicket() {
                             )
                           }
                         >
-                          <Check /> Salvar
+                          <IconCheck /> Salvar
                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <Bolha
+                    <MensagemDoTicket
                       key={m.id}
                       msg={m}
                       agoraMs={agora}
@@ -622,7 +616,7 @@ export function PaginaTicket() {
               <Label htmlFor={idTexto}>{reabrindo ? 'Reabrir com uma mensagem' : 'Responder'}</Label>
               {reabrindo && (
                 <Button variant="ghost" size="sm" onClick={() => setReabrindo(false)}>
-                  <X /> Cancelar
+                  <IconX /> Cancelar
                 </Button>
               )}
             </div>
@@ -640,7 +634,7 @@ export function PaginaTicket() {
                       setTexto((t) => (t.trim() ? `${t}\n${r.texto}` : r.texto))
                       areaRef.current?.focus()
                     }}
-                    className="rounded-total border border-divisoria bg-superficie px-3 py-1 text-pequeno text-tinta-secundaria transition-colors hover:border-acento hover:bg-acento-suave hover:text-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+                    className="h-7 rounded-md border border-divisoria bg-superficie px-3 text-pequeno text-tinta-secundaria transition-colors hover:border-acento hover:bg-acento-suave hover:text-acento"
                   >
                     {r.rotulo}
                   </button>
@@ -662,11 +656,11 @@ export function PaginaTicket() {
               <ul className="flex flex-wrap gap-2" aria-label="Anexos a enviar">
                 {anexos.map((f, i) => (
                   <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda">
-                    <Paperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
+                    <IconPaperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
                     <span className="max-w-[200px] truncate">{f.name}</span>
                     <span className="text-tinta-terciaria">{tamanhoArquivo(f.size)}</span>
-                    <button type="button" aria-label={`Remover ${f.name}`} onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))} className="grid size-5 place-items-center rounded-md hover:bg-perigo-suave hover:text-perigo">
-                      <X className="size-3" />
+                    <button type="button" aria-label={`Remover ${f.name}`} onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))} className="grid size-6 place-items-center rounded-md hover:bg-perigo-suave hover:text-perigo">
+                      <IconX className="size-3" />
                     </button>
                   </li>
                 ))}
@@ -681,7 +675,7 @@ export function PaginaTicket() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" onClick={() => inputAnexo.current?.click()}>
-                  <Paperclip /> Anexar
+                  <IconPaperclip /> Anexar
                 </Button>
                 <input
                   ref={inputAnexo}
@@ -697,7 +691,7 @@ export function PaginaTicket() {
                 <span className="text-legenda text-tinta-terciaria">Imagens e documentos até {LIMITE_ANEXO_MB} MB</span>
               </div>
               <Button onClick={enviar} disabled={!podeEnviar} title="Ctrl+Enter">
-                <Send /> {responder.isPending ? 'Enviando…' : reabrindo ? 'Reabrir e enviar' : 'Enviar'}
+                <IconSend /> {responder.isPending ? 'Enviando…' : reabrindo ? 'Reabrir e enviar' : 'Enviar'}
               </Button>
             </div>
           </CardContent>
@@ -706,7 +700,7 @@ export function PaginaTicket() {
 
       {fechado && !reabrindo && !ticket.auto_closed && !ticket.content_hidden && (
         <p className="inline-flex items-center gap-2 text-pequeno text-tinta-secundaria">
-          <FileText className="size-4" aria-hidden="true" />
+          <IconFileText className="size-4" aria-hidden="true" />
           Chamado resolvido{ticket.closed_at ? ` em ${dataHora(ticket.closed_at)}` : ''}.{' '}
           {aguardaAvaliacao ? 'Ainda precisa de ajuda? Avalie o atendimento e o botão “Reabrir chamado” aparece.' : 'Ainda precisa de ajuda? Use “Reabrir chamado”.'}
         </p>
@@ -736,7 +730,7 @@ export function PaginaTicket() {
                 })
               }
             >
-              <Trash2 /> Excluir
+              <IconTrash /> Excluir
             </Button>
           </DialogFooter>
         </DialogContent>

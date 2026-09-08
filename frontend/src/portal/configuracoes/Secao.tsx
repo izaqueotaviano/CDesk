@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
+import type { Icon } from '@tabler/icons-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../ui/card'
 
 interface Props {
   id: string
-  icone: LucideIcon
+  icone: Icon
   titulo: string
   descricao: ReactNode
   children: ReactNode

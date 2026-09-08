@@ -1,13 +1,13 @@
 import { useId } from 'react'
-import { Monitor, Moon, Palette, Sun, type LucideIcon } from 'lucide-react'
+import { IconDeviceDesktop, IconMoon, IconPalette, IconSun, type Icon } from '@tabler/icons-react'
 import { usePrefs, type Tema } from '@/stores/prefs'
 import { cn } from '../lib/cn'
 import { Secao } from './Secao'
 
-const TEMAS: { valor: Tema; rotulo: string; descricao: string; icone: LucideIcon }[] = [
-  { valor: 'claro', rotulo: 'Claro', descricao: 'Fundo claro, sempre.', icone: Sun },
-  { valor: 'escuro', rotulo: 'Escuro', descricao: 'Fundo escuro, sempre.', icone: Moon },
-  { valor: 'sistema', rotulo: 'Sistema', descricao: 'Acompanha o seu aparelho.', icone: Monitor },
+const TEMAS: { valor: Tema; rotulo: string; descricao: string; icone: Icon }[] = [
+  { valor: 'claro', rotulo: 'Claro', descricao: 'Fundo claro, sempre.', icone: IconSun },
+  { valor: 'escuro', rotulo: 'Escuro', descricao: 'Fundo escuro, sempre.', icone: IconMoon },
+  { valor: 'sistema', rotulo: 'Sistema', descricao: 'Acompanha o seu aparelho.', icone: IconDeviceDesktop },
 ]
 
 /** Miniatura do tema: uma janelinha com barra lateral e três linhas. */
@@ -38,7 +38,7 @@ export function SecaoAparencia() {
   const idRotulo = useId()
 
   return (
-    <Secao id="aparencia" icone={Palette} titulo="Aparência" descricao="O tema do portal. A escolha vale para este navegador.">
+    <Secao id="aparencia" icone={IconPalette} titulo="Aparência" descricao="O tema do portal. A escolha vale para este navegador.">
       <span id={idRotulo} className="sr-only">
         Tema
       </span>
@@ -53,8 +53,8 @@ export function SecaoAparencia() {
               aria-checked={ativo}
               onClick={() => setTema(t.valor)}
               className={cn(
-                'flex flex-col gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color,box-shadow] hover:border-borda-controle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
-                ativo ? 'border-acento shadow-elevacao-1 ring-1 ring-acento' : 'border-divisoria',
+                'flex flex-col gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color] hover:border-borda-controle',
+                ativo ? 'border-acento ring-1 ring-acento' : 'border-divisoria',
               )}
             >
               <Miniatura tema={t.valor} />

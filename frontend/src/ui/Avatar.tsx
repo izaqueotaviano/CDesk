@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { indiceDeIdentidade } from './identidade'
 
 function iniciais(nome: string): string {
@@ -20,12 +21,18 @@ const TAMANHO_PX: Record<NonNullable<AvatarProps['tamanho']>, string> = {
 }
 
 export function Avatar({ nome, urlFoto, tamanho = 'md' }: AvatarProps) {
-  if (urlFoto) {
+  // Foto que não carrega (link quebrado, 404) cai nas iniciais em vez de
+  // deixar o ícone de imagem quebrada do navegador com o `alt` vazando ao
+  // lado. Guarda a URL que falhou, não um booleano: se a foto trocar, a nova
+  // tenta de novo.
+  const [urlQuebrada, setUrlQuebrada] = useState<string | null>(null)
+  if (urlFoto && urlQuebrada !== urlFoto) {
     return (
       <img
         src={urlFoto}
         alt={nome}
         className={`rounded-total object-cover ${TAMANHO_PX[tamanho]}`}
+        onError={() => setUrlQuebrada(urlFoto)}
       />
     )
   }
@@ -33,7 +40,7 @@ export function Avatar({ nome, urlFoto, tamanho = 'md' }: AvatarProps) {
     <span
       role="img"
       aria-label={nome}
-      className={`inline-flex items-center justify-center rounded-total font-medio
+      className={`inline-flex shrink-0 items-center justify-center rounded-total font-medio
         text-white ${TAMANHO_PX[tamanho]}`}
       // Cor por hash do nome, o MESMO hash do console do agente (ui/identidade.ts):
       // a pessoa se vê com a cor com que o agente a vê. Tons em

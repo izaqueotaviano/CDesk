@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import {
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-  Headset,
-  History,
-  MessageCircle,
-  Search,
-  SearchX,
-  Star,
-  Ticket,
-  X,
-  type LucideIcon,
-} from 'lucide-react'
+import { IconArrowRight, IconChevronLeft, IconChevronRight, IconHeadset, IconHistory, IconMessageCircle, IconSearch, IconStar, IconTicket, IconX, IconZoomCancel, type Icon } from '@tabler/icons-react'
 import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useChatsEncerrados, useContagemHistorico, useTicketsEncerrados, type FiltroAvaliacao } from '../api/historico'
@@ -64,9 +51,9 @@ function desdeDoPeriodo(periodo: Periodo, agoraMs: number): string | undefined {
 
 /** Três números lado a lado — no celular ficam compactos (três colunas
  *  estreitas), não três cartões altos empilhados. */
-function CartaoNumero({ rotulo, valor, icone: Icone, detalhe }: { rotulo: string; valor: number | undefined; icone: LucideIcon; detalhe?: string }) {
+function CartaoNumero({ rotulo, valor, icone: Icone, detalhe }: { rotulo: string; valor: number | undefined; icone: Icon; detalhe?: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-3 shadow-elevacao-1 sm:gap-3 sm:p-5">
+    <div className="flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-3 sm:gap-3 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-legenda font-medio text-tinta-secundaria sm:text-pequeno">{rotulo}</span>
         <span className="hidden size-8 place-items-center rounded-lg bg-navegacao text-tinta-secundaria sm:grid">
@@ -112,7 +99,7 @@ function NotaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: bool
     return (
       <div className="flex flex-col items-start gap-1">
         <Link to={`/portal/tickets/${ticket.id}`} className={buttonVariants({ size: 'sm' })}>
-          <Star /> Avaliar
+          <IconStar /> Avaliar
         </Link>
         <span className="text-legenda text-tinta-terciaria">Pesquisa aberta</span>
       </div>
@@ -141,7 +128,7 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
     return (
       <div className="flex flex-col items-start gap-1">
         <Link to="/portal/chat" className={buttonVariants({ size: 'sm' })}>
-          <Star /> Avaliar
+          <IconStar /> Avaliar
         </Link>
         <span className="text-legenda text-tinta-terciaria">Libera o próximo chat</span>
       </div>
@@ -150,7 +137,7 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
   if (chat.ticket_id) {
     return (
       <Link to={`/portal/tickets/${chat.ticket_id}`} className="inline-flex items-center gap-1 text-pequeno text-acento hover:underline">
-        Continuou no chamado {chat.ticket_reference} <ArrowRight className="size-3.5" aria-hidden="true" />
+        Continuou no chamado {chat.ticket_reference} <IconArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     )
   }
@@ -163,7 +150,7 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
 
 function LinhaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: boolean }) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 shadow-elevacao-1 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="fonte-mono text-legenda text-acento">{ticket.reference}</span>
@@ -190,9 +177,9 @@ function LinhaChat({ chat, max, agoraMs }: { chat: Chat; max: number; agoraMs: n
   const rel = relativo(chat.closed_at ?? chat.queued_at, agoraMs)
   const quando = rel.startsWith('há') || rel === 'agora' ? `${rel} (${dataHora(chat.closed_at)})` : `em ${dataHora(chat.closed_at)}`
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 shadow-elevacao-1 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <span className="hidden size-10 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria sm:grid">
-        <Headset className="size-4" aria-hidden="true" />
+        <IconHeadset className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
         <Link to={`/portal/chat?chat=${chat.id}`} className="block truncate text-corpo font-medio text-tinta hover:text-acento focus-visible:outline-none focus-visible:underline">
@@ -345,12 +332,12 @@ export function PaginaHistorico() {
       )}
 
       <section aria-label="Resumo" className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-        <CartaoNumero rotulo="Chamados encerrados" valor={contagens.tickets} icone={Ticket} />
-        <CartaoNumero rotulo="Conversas encerradas" valor={contagens.chats} icone={MessageCircle} />
+        <CartaoNumero rotulo="Chamados encerrados" valor={contagens.tickets} icone={IconTicket} />
+        <CartaoNumero rotulo="Conversas encerradas" valor={contagens.chats} icone={IconMessageCircle} />
         <CartaoNumero
           rotulo="Chamados avaliados"
           valor={contagens.ticketsAvaliados}
-          icone={Star}
+          icone={IconStar}
           detalhe={contagens.tickets ? `de ${contagens.tickets} encerrado${contagens.tickets === 1 ? '' : 's'}` : undefined}
         />
       </section>
@@ -374,7 +361,7 @@ export function PaginaHistorico() {
         <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto] sm:items-end">
           {aba === 'tickets' ? (
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
+              <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
               <Input
                 type="search"
                 value={busca}
@@ -386,7 +373,13 @@ export function PaginaHistorico() {
             </div>
           ) : (
             <p className="self-center text-pequeno text-tinta-secundaria">
-              {chats.data ? `${chatsFiltrados.length} de ${totalChats} conversa${totalChats === 1 ? '' : 's'}` : 'Carregando…'}
+              {!chats.data
+                ? 'Carregando…'
+                : avaliacao
+                  ? totalChats > chats.data.results.length
+                    ? `${chatsFiltrados.length} de ${chats.data.results.length} carregadas · o filtro olha só as já carregadas (${totalChats} no total)`
+                    : `${chatsFiltrados.length} de ${totalChats} conversa${totalChats === 1 ? '' : 's'}`
+                  : `${totalChats} conversa${totalChats === 1 ? '' : 's'}`}
             </p>
           )}
           <div className="flex flex-col gap-1">
@@ -425,7 +418,7 @@ export function PaginaHistorico() {
               )}
             </span>
             <Button variant="link" size="sm" onClick={limparTudo}>
-              <X /> Limpar
+              <IconX /> Limpar
             </Button>
           </div>
         )}
@@ -449,7 +442,7 @@ export function PaginaHistorico() {
             ) : totalTickets === 0 ? (
               temRecorteTickets ? (
                 <EstadoVazio
-                  icone={SearchX}
+                  icone={IconZoomCancel}
                   titulo="Nenhum chamado encontrado"
                   descricao="Tente outro termo ou limpe os filtros."
                   acao={
@@ -460,7 +453,7 @@ export function PaginaHistorico() {
                 />
               ) : (
                 <EstadoVazio
-                  icone={History}
+                  icone={IconHistory}
                   titulo="Nenhum chamado encerrado ainda"
                   descricao="Quando um chamado for resolvido ou fechado, ele aparece aqui com a avaliação que você der."
                   acao={
@@ -489,7 +482,7 @@ export function PaginaHistorico() {
                         disabled={pagina <= 1}
                         onClick={() => definir({ pagina: pagina - 1 > 1 ? String(pagina - 1) : undefined }, { manterPagina: true })}
                       >
-                        <ChevronLeft /> Anterior
+                        <IconChevronLeft /> Anterior
                       </Button>
                       <Button
                         variant="outline"
@@ -497,7 +490,7 @@ export function PaginaHistorico() {
                         disabled={pagina >= ultimaPagina}
                         onClick={() => definir({ pagina: String(pagina + 1) }, { manterPagina: true })}
                       >
-                        Próxima <ChevronRight />
+                        Próxima <IconChevronRight />
                       </Button>
                     </span>
                   </footer>
@@ -525,7 +518,7 @@ export function PaginaHistorico() {
               [0, 1, 2].map((i) => <EsqueletoCartaoTicket key={i} />)
             ) : totalChats === 0 ? (
               <EstadoVazio
-                icone={MessageCircle}
+                icone={IconMessageCircle}
                 titulo="Nenhuma conversa encerrada"
                 descricao="As conversas por chat que terminarem ficam aqui, com as notas que você deu."
                 acao={
@@ -536,7 +529,7 @@ export function PaginaHistorico() {
               />
             ) : chatsFiltrados.length === 0 ? (
               <EstadoVazio
-                icone={SearchX}
+                icone={IconZoomCancel}
                 titulo={avaliacao === 'sim' ? 'Nenhuma conversa avaliada' : 'Nenhuma conversa sem avaliação'}
                 descricao="O filtro olha as conversas já carregadas."
                 acao={
@@ -555,7 +548,7 @@ export function PaginaHistorico() {
                 {chats.data!.next && (
                   <div className="pt-2 text-center">
                     <Button variant="outline" size="sm" disabled={chats.isFetching} onClick={() => setLimiteChats((l) => l + PASSO_CHATS)}>
-                      {chats.isFetching ? 'Carregando…' : `Carregar mais (${totalChats - chats.data!.results.length} restantes)`}
+                      {chats.isFetching ? 'Carregando…' : `Carregar mais conversas (${totalChats - chats.data!.results.length} restantes)`}
                     </Button>
                   </div>
                 )}

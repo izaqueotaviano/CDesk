@@ -1,4 +1,4 @@
-import { MessageSquare, Wrench, type LucideIcon } from 'lucide-react'
+import { IconMessage, IconTool, type Icon } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { useFranquiaManutencao } from '../api/franquia'
@@ -28,7 +28,7 @@ const COR_BARRA: Record<TomBarra, string> = {
 }
 
 interface BlocoFranquiaProps {
-  icone: LucideIcon
+  icone: Icon
   rotulo: string
   usado: number
   limite: number | null
@@ -92,7 +92,7 @@ export function SecaoFranquias() {
           <Skeleton className="h-16 w-full" />
         ) : (
           <BlocoFranquia
-            icone={MessageSquare}
+            icone={IconMessage}
             rotulo="Chamados"
             usado={me.quota.used}
             limite={me.quota.limit}
@@ -117,7 +117,7 @@ export function SecaoFranquias() {
           </Alert>
         ) : (
           <BlocoFranquia
-            icone={Wrench}
+            icone={IconTool}
             rotulo="Manutenção"
             usado={manutencao.data.used_minutes}
             limite={manutencao.data.limit_minutes}

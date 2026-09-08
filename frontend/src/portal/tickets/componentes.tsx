@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Hash, RotateCcw, Tag } from 'lucide-react'
+import { IconHash, IconRotateClockwise, IconTag } from '@tabler/icons-react'
 import type { Prioridade } from '@/resolv/tickets/tipos'
 import type { TicketResumo } from '../api/tickets'
 import { cn } from '../lib/cn'
@@ -47,7 +47,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
     <Link
       to={`/portal/tickets/${ticket.id}`}
       className={cn(
-        'group flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-4 shadow-elevacao-1 transition-[border-color,box-shadow] hover:border-borda-controle hover:shadow-elevacao-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40 sm:flex-row sm:items-center sm:gap-4',
+        'group flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-4 transition-[border-color] hover:border-borda-controle sm:flex-row sm:items-center sm:gap-4',
         aguardandoVoce && 'border-alerta/40 bg-alerta-suave/30',
       )}
     >
@@ -56,7 +56,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
           <span className="fonte-mono text-legenda text-acento">{ticket.reference}</span>
           {ticket.reopen_count > 0 && (
             <span className="inline-flex items-center gap-1 text-legenda text-tinta-secundaria" title="Reaberto">
-              <RotateCcw className="size-3" aria-hidden="true" />
+              <IconRotateClockwise className="size-3" aria-hidden="true" />
               reaberto
             </span>
           )}
@@ -68,13 +68,13 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-legenda text-tinta-secundaria">
             {ticket.category_name && (
               <span className="inline-flex items-center gap-1">
-                <Tag className="size-3" aria-hidden="true" />
+                <IconTag className="size-3" aria-hidden="true" />
                 {ticket.category_name}
               </span>
             )}
             {ticket.order_number && (
               <span className="inline-flex items-center gap-1">
-                <Hash className="size-3" aria-hidden="true" />
+                <IconHash className="size-3" aria-hidden="true" />
                 pedido {ticket.order_number}
               </span>
             )}
@@ -103,7 +103,7 @@ export function EsqueletoCartaoTicket() {
         <Skeleton className="h-4 w-2/3" />
         <Skeleton className="h-3 w-1/3" />
       </div>
-      <Skeleton className="h-5 w-24 rounded-total" />
+      <Skeleton className="h-5 w-24" />
     </div>
   )
 }

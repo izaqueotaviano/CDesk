@@ -10,6 +10,16 @@ contagem de elementos.
 > aqui há 9; onde tinha 48 entrelinhas computadas, aqui há 4. O mapa completo
 > `valor original → token` está em [MIGRATION.md](MIGRATION.md).
 
+> **Rodada 12 — um produto só.** Desde a unificação com o console do agente
+> (`resolv/`/`cvz/`), os VALORES de `tokens.css`/`tailwind.config.cjs` são os
+> do console: cromo `#f0f0f0`, canvas `#f8f8f7`, conteúdo branco, azul de
+> ação `#0f62fe`, linha estrutural preta translúcida, raio único de 2px e
+> separação por linha, não por sombra. Os NOMES dos tokens (`--acento`,
+> `--superficie`, `--divisoria`…) continuam os deste documento, porque ~50
+> arquivos Tailwind os consomem. As seções abaixo descrevem a versão atual;
+> a rampa quente e a escala de raio antigas ficam em MIGRATION.md como
+> histórico.
+
 > **O ponto de partida era bom.** Os protótipos já tinham 43 variáveis CSS
 > declaradas, dois temas completos e razões de contraste anotadas no próprio
 > código. A normalização aqui é de segunda ordem: fecha escalas que estavam
@@ -21,76 +31,65 @@ contagem de elementos.
 
 ### 1.1 Rampa neutra
 
-Uma única rampa quente serve os dois temas — matiz OKLCH entre 48 e 68,
-croma entre 0,005 e 0,015. Não é cinza puro: é papel no claro, e um cinza
-quente elevado em degraus (padrão Material 3) no escuro.
+A rampa é a do console: os degraus claros são os três fundos do produto e os
+escuros são as superfícies da paleta escura do resolv (`resolv/styles/
+tokens.scss`, mixin `paleta-escura`). Cinza frio, não papel — a rampa quente
+(`#f8f4f1`…`#262220`) que só o portal usava saiu na Rodada 12.
 
-| Token | Hex | OKLCH | Papel |
-|---|---|---|---|
-| `neutro-0` | `#ffffff` | 100% 0 90 | Cartão e campo (claro) |
-| `neutro-25` | `#fffbf8` | 99,0% 0,006 60 | Superfície sutil (claro) |
-| `neutro-50` | `#f8f4f1` | 96,9% 0,006 60 | Canvas (claro) |
-| `neutro-100` | `#f1ece8` | 94,6% 0,008 61 | Sidebar (claro) |
-| `neutro-200` | `#e8e2dd` | 91,6% 0,009 63 | Divisória (claro) |
-| `neutro-300` | `#c9c0ba` | 81,3% 0,013 56 | Texto secundário (escuro) |
-| `neutro-400` | `#a79e97` | 70,5% 0,015 60 | Texto terciário (escuro) |
-| `neutro-500` | `#9a918a` | 66,2% 0,015 60 | Borda de controle (claro) |
-| `neutro-600` | `#79706a` | 55,2% 0,015 56 | Borda de controle (escuro) |
-| `neutro-700` | `#635c57` | 48,0% 0,012 58 | Texto secundário (claro) |
-| `neutro-800` | `#3b3532` | 33,4% 0,010 48 | Divisória (escuro) |
-| `neutro-850` | `#332e2b` | 30,5% 0,009 53 | Superfície elevada (escuro) |
-| `neutro-875` | `#2c2825` | 28,0% 0,008 59 | Superfície (escuro) |
-| `neutro-900` | `#262220` | 25,6% 0,007 48 | Cartão (escuro) **e** tinta (claro) |
-| `neutro-950` | `#211e1c` | 23,8% 0,006 56 | Sidebar (escuro) |
-| `neutro-975` | `#1b1917` | 21,5% 0,005 68 | Canvas (escuro) |
-
-**16 degraus é acima do teto usual de 12.** É deliberado: são dois temas ×
-uma escada de elevação de cinco níveis, mais três níveis de tinta e dois de
-borda. Colapsar mais destruiria a escada — ver §1.2.
-
-### 1.2 Por que a elevação não foi colapsada
-
-O critério ΔE2000 < 3 aponta como fundíveis quase todos os degraus de
-superfície: `canvas~sidebar` 1,74 · `canvas~superficie` 1,42 ·
-`bg~superficie` 2,25 no claro; `canvas~sidebar` 1,78 · `sidebar~bg` 1,48 ·
-`bg~superficie` 1,99 · `superficie~elevado` 2,07 no escuro.
-
-Eles não foram colapsados. Superfícies de elevação **existem para ser quase
-indistinguíveis** — a diferença de 1,5–2,5 ΔE é o próprio mecanismo que
-separa cartão de canvas sem usar borda nem sombra. Aplicar aqui a regra de
-proximidade perceptual apagaria a hierarquia de profundidade inteira.
-
-O critério só foi aplicado onde o par tinha o **mesmo papel semântico**:
-
-| Colapso | ΔE2000 | Decisão |
+| Token | Hex | Papel |
 |---|---|---|
-| `bg` ~ `elevado` (claro) | 0,00 | Duplicata literal — os dois eram `#ffffff` |
-| `tinta` (claro) ~ `bg` (escuro) | < 1 | `#272320` e `#262220` → um único `neutro-900` |
-| `tinta-2` ~ `tinta-3` (claro) | 2,97 | Colapsados em `#635c57` — ver §1.3 |
+| `neutro-0` | `#ffffff` | Cartão, campo, modal (claro) |
+| `neutro-50` | `#f8f8f7` | Canvas — o fundo atrás do conteúdo (claro) |
+| `neutro-100` | `#f0f0f0` | Cromo — sidebar, barra, hover, caixa de ícone (claro) |
+| `neutro-600` | `#7d7d7d` | Borda de campo (claro) |
+| `neutro-700` | `#4d4d4d` | Texto secundário (claro) |
+| `neutro-500` | `#8d8d8d` | Borda de campo (escuro) |
+| `neutro-800` | `#35312e` | Linha estrutural (escuro) |
+| `neutro-850` | `#24211f` | Cartão / superfície elevada (escuro) |
+| `neutro-875` | `#1d1b19` | Superfície (escuro) |
+| `neutro-900` | `#1a1a1a` | Tinta (claro) |
+| `neutro-950` | `#171514` | Cromo (escuro) |
+| `neutro-975` | `#1a1816` | Canvas (escuro) |
 
-### 1.3 O colapso de `tinta-2` / `tinta-3`
+A ordem de luminância é a mesma nos dois temas — cromo < canvas < superfície
+< cartão — só que espelhada: o cromo continua recuado em relação ao corpo, e
+o cartão continua saltando dos dois.
 
-No tema claro os dois eram praticamente a mesma cor (`#635c57` e `#6b645e`,
-2,8% de diferença em luminosidade OKLCH), mas cumpriam papéis distintos:
-texto secundário e texto terciário. No tema escuro a mesma dupla estava
-separada por 10,8% — assimetria sem justificativa.
+### 1.2 Duas famílias de linha
 
-Colapsados no valor mais escuro, `#635c57`. A escolha melhora acessibilidade
-de graça: o rótulo na sidebar sobe de **4,96:1 para 6,00:1** e passa a folgar
-o AA em vez de raspar nele.
+Como no console, estrutura e campo têm linhas DIFERENTES, de propósito:
+
+| Token | Claro | Escuro | Onde |
+|---|---|---|---|
+| `--divisoria` | `rgba(0,0,0,.06)` | `#35312e` | Cartão, tabela, divisória, cromo — a mesma linha funciona sobre os três fundos claros |
+| `--borda-controle` | `rgba(0,0,0,.14)` | `#4f4943` | A estrutural reforçada: hover de cartão e de linha |
+| `--borda-campo` | `#7d7d7d` | `#8d8d8d` | SÓ input/select/textarea — campo precisa se anunciar como editável |
+
+Usar a estrutural no campo fazia o formulário sumir dentro da página
+(~1,2:1 de contraste em repouso); a linha própria de campo fica sempre
+visível, inclusive em tela de toque, onde não há hover pra escurecê-la.
+
+### 1.3 Texto
+
+`--tinta` `#1a1a1a` · `--tinta-secundaria` `#4d4d4d` · `--tinta-terciaria`
+`#737373` no claro; `#e9e5e1` / `#b3aaa3` / `#948b84` no escuro. Sobre o
+cromo, `--texto-cromo` (`#333333`) — um degrau mais claro que a tinta,
+porque o preto cheio pesava numa barra que fica na tela o dia inteiro.
 
 ### 1.4 Acento e estado
 
 | Papel | Claro | Escuro |
 |---|---|---|
-| Acento | `#0b63ce` — 5,69:1 sobre branco | `#a8c7fa` — 9,17:1 sobre cartão |
-| Texto sobre o acento | `#ffffff` — 5,69:1 | `#0a2a52` — 8,33:1 |
-| Perigo | `#b3261e` | `#f2b8b5` |
-| Alerta | `#8a5d0f` | `#e8c26a` |
-| OK | `#1d7a4c` | `#84d6a8` |
+| Acento | `#0f62fe` — Carbon, 5,05:1 sobre branco | `#78a9ff` — 7,4:1 sobre superfície |
+| Acento em hover | `#0043ce` | `#a6c8ff` |
+| Texto sobre o acento | `#ffffff` — 5,05:1 | `#001d6c` |
+| Perigo | `#b3261e` | `#f08a82` |
+| Alerta | `#8a5d0f` | `#d9a53d` |
+| OK | `#1d7a4c` | `#4fbf85` |
 
-Cada estado tem um par `-suave` (o mesmo matiz a 9–16% de opacidade) usado
-como fundo de faixa, aviso e pílula.
+Cada estado tem um par `-suave` (o mesmo matiz a 8–16% de opacidade) usado
+como fundo de faixa, selo e destaque. O botão primário ESCURECE no hover
+(`--acento-hover`), como o `.btn--primary` do cvz — não clareia.
 
 ### 1.5 Identidade (avatar, selo de plano, série categórica)
 
@@ -151,9 +150,11 @@ em [MIGRATION.md](MIGRATION.md#41-a-paleta-de-etapa-é-calibrada-só-para-o-escu
 
 ## 2. Tipografia
 
-Duas famílias. `Segoe UI Variable Text` com fallback para Inter cobre 98,7%
-da área renderizada; `JetBrains Mono` fica em referências de ticket, horários
-e valores numéricos.
+Três famílias, com papéis fechados — as mesmas do console. `Inter` é a
+interface inteira (`--f-ui`); `JetBrains Mono` fica em referências de ticket,
+horários e valores numéricos; `Libre Baskerville` (`--f-display`) é a serifa
+de UM lugar só: a saudação da Início, no portal e no console, em 26px e peso
+400 (`resolv/inicio/inicio.scss`, `portal/inicio/PaginaInicio.tsx`).
 
 ### 2.1 Escala
 
@@ -224,35 +225,35 @@ compensação óptica de borda e estão catalogados em MIGRATION.md §2.
 
 ## 4. Forma, elevação e movimento
 
-**Raio:** `sm` 4px (etiqueta, ação) · `md` 6px (controle, botão, item de nav,
-cartão de kanban) · `lg` 8px (cartão, popover, aviso, composer) · `xl` 12px
-(modal, login) · `total` 999px (avatar, pílula, interruptor).
+**Raio:** um só, **2px** — o `--raio` do console. A escala `sm`/`md`/`lg`/`xl`
+continua existindo por NOME em `tailwind.config.cjs` (50 arquivos usam
+`rounded-lg`), mas todos os degraus resolvem pro mesmo `2px`. `total` (999px)
+é forma, não estilo: avatar, ponto de status, interruptor. `painel` (16px) é a
+exceção nomeada e só do shell — o painel de conteúdo apoiado sobre o cromo,
+como `--raio-painel` no console. O selo em cápsula saiu junto: "cápsula ao
+lado de botão/campo quadrado quebrava a leitura de mesma família"
+(`cvz/styles/_tokens.scss`).
 
-**Borda:** 1px. Uma única espessura em 333 elementos, sem exceção — é uma das
-partes mais consistentes do sistema.
+**Borda:** 1px. Uma única espessura, sem exceção.
 
-**Elevação:** três níveis, e o nível 0 é o mais usado. Cartões, tabelas e
-campos não têm sombra alguma: a separação vem da cor de superfície. Sombra é
-reservada para o que flutua.
+**Elevação:** a separação entre superfícies é feita por LINHA (e pelo canvas
+um degrau mais escuro atrás), nunca por sombra. `--elevacao-1` existe por
+nome e vale `none`; só o que flutua tem sombra:
 
 | Token | Valor (claro) | Uso |
 |---|---|---|
-| `elevacao-0` | — | Cartão, tabela, campo |
-| `elevacao-1` | `0 1px 2px rgba(39,35,32,.05)` | Item de nav ativo, aviso, toast fixado |
-| `elevacao-3` | `0 12px 32px rgba(39,35,32,.12), 0 0 0 1px rgba(39,35,32,.06)` | Popover, menu, busca |
+| `elevacao-1` | `none` | Cartão, campo, botão — separam-se pela linha |
+| `elevacao-3` | `0 8px 24px rgba(0,0,0,.12), 0 0 0 1px rgba(0,0,0,.06)` | Popover, menu, toast, modal (a `--sombra-flutuante` do console) |
 
-Anéis de 1px fazem o trabalho de borda sem mexer no layout: `anel-foco`
-(acento), `anel-erro` (perigo), `anel-interno` (`currentColor`, contorno de
-pílula e etiqueta).
+**Foco:** a regra global `:focus-visible { outline: 2px solid var(--acento);
+outline-offset: 2px }` de `tokens.css` — a mesma do mixin `focus-ring` do cvz.
+Nenhuma primitiva do portal desenha anel próprio: o `ring` com alfa a 30–40%
+que existia dava ~1,9:1 sobre branco e reprovava WCAG 1.4.11.
 
-**Ícone:** os 8 tamanhos declarados (10, 11, 13, 14, 15, 17, 18, 22px) não
-seguiam grade nenhuma. Normalizados em `sm` 12 · `md` 16 · `lg` 20 · `xl` 24.
-Traço de 1,6px — 150 dos 199 ícones já usavam esse valor.
+**Ícone:** `@tabler/icons-react`, a mesma família Tabler (`ti ti-*`) que o
+console usa; traço de 1,75. Tamanhos `sm` 12 · `md` 16 · `lg` 20 · `xl` 24.
 
-**Movimento:** uma duração (180ms) e uma aceleração
-(`cubic-bezier(.33,0,.67,1)`). Nada mais. Raro e bom.
-
----
+**Movimento:** 150ms e `cubic-bezier(.2,0,.38,.9)` — os do cvz.
 
 ## 5. Componentes
 

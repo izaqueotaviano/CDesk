@@ -1,5 +1,5 @@
 import { useId } from 'react'
-import { Mail } from 'lucide-react'
+import { IconMail } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { AVISOS_EMAIL_CLIENTE, usePreferenciasNotificacao, useSalvarPreferenciaEmail } from '../api/conta'
 import { Alert } from '../ui/alert'
@@ -24,7 +24,7 @@ export function SecaoNotificacoes() {
   return (
     <Secao
       id="notificacoes"
-      icone={Mail}
+      icone={IconMail}
       titulo="Notificações por e-mail"
       descricao={descricao}
       rodape={<span className="text-legenda text-tinta-terciaria">Códigos de acesso e avisos de segurança não dependem destas opções.</span>}

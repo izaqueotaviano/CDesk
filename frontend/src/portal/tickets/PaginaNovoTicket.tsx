@@ -1,6 +1,6 @@
 import { useId, useState, type KeyboardEvent, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Clock, Paperclip, Send, X } from 'lucide-react'
+import { IconArrowLeft, IconClock, IconPaperclip, IconSend, IconX } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { mensagemDeErro } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import {
@@ -112,7 +112,7 @@ export function PaginaNovoTicket() {
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-4" onKeyDown={aoTeclar}>
       <Link to="/portal/tickets" className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-        <ArrowLeft className="size-4" aria-hidden="true" /> Tickets
+        <IconArrowLeft className="size-4" aria-hidden="true" /> Tickets
       </Link>
 
       <SecaoFranquias />
@@ -151,7 +151,7 @@ export function PaginaNovoTicket() {
               </Select>
               {estimativa?.label ? (
                 <Ajuda id={`${ids.equipe}-ajuda`} className="inline-flex items-center gap-1 text-acento">
-                  <Clock className="size-3" aria-hidden="true" /> Costuma responder em {estimativa.label}
+                  <IconClock className="size-3" aria-hidden="true" /> Costuma responder em {estimativa.label}
                 </Ajuda>
               ) : (
                 <Ajuda id={`${ids.equipe}-ajuda`}>Quem vai cuidar do seu chamado.</Ajuda>
@@ -218,11 +218,11 @@ export function PaginaNovoTicket() {
             <ul className="flex flex-wrap gap-2" aria-label="Anexos">
               {anexos.map((f, i) => (
                 <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda">
-                  <Paperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
+                  <IconPaperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
                   <span className="max-w-[200px] truncate">{f.name}</span>
                   <span className="text-tinta-terciaria">{tamanhoArquivo(f.size)}</span>
                   <button type="button" aria-label={`Remover ${f.name}`} onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))} className="grid size-5 place-items-center rounded-md hover:bg-perigo-suave hover:text-perigo">
-                    <X className="size-3" />
+                    <IconX className="size-3" />
                   </button>
                 </li>
               ))}
@@ -233,7 +233,7 @@ export function PaginaNovoTicket() {
           <div className="flex flex-col gap-3 border-t border-divisoria pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => inputAnexo.current?.click()}>
-                <Paperclip /> Anexar
+                <IconPaperclip /> Anexar
               </Button>
               <input
                 ref={inputAnexo}
@@ -256,7 +256,7 @@ export function PaginaNovoTicket() {
                 Cancelar
               </Button>
               <Button onClick={enviar} disabled={abrir.isPending} title="Ctrl+Enter">
-                <Send /> {abrir.isPending ? 'Abrindo…' : 'Abrir ticket'}
+                <IconSend /> {abrir.isPending ? 'Abrindo…' : 'Abrir ticket'}
               </Button>
             </div>
           </div>

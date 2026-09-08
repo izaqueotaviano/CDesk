@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { AlertCircle, Clock, History, MessageCircle, MessageSquarePlus } from 'lucide-react'
+import { IconAlertCircle, IconClock, IconHistory, IconMessageCircle, IconMessagePlus } from '@tabler/icons-react'
 import {
   pendentesDoErro,
   useAbrirChat,
@@ -15,7 +15,7 @@ import { cn } from '../lib/cn'
 import { dataHora, useAgora } from '../lib/formato'
 import { Alert } from '../ui/alert'
 import { Button, buttonVariants } from '../ui/button'
-import { EstadoVazio } from '../ui/estado-vazio'
+import { ErroEstado, EstadoVazio } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { CartaoConversa } from './componentes'
@@ -31,6 +31,8 @@ function Lista({
   vivo,
   historico,
   carregandoHistorico,
+  erroHistorico,
+  onRecarregarHistorico,
   selecionado,
   mostrandoContinua,
   agoraMs,
@@ -44,6 +46,9 @@ function Lista({
   vivo: Chat | null | undefined
   historico: Chat[] | undefined
   carregandoHistorico: boolean
+  /** Histórico que FALHOU não é histórico vazio: a tela precisa distinguir os dois. */
+  erroHistorico: boolean
+  onRecarregarHistorico: () => void
   selecionado: number | null
   mostrandoContinua: boolean
   agoraMs: number
@@ -59,7 +64,7 @@ function Lista({
       <div className="flex items-center justify-between gap-2 border-b border-divisoria p-4">
         <h1 className="text-titulo-sm font-forte">Chat</h1>
         <Button size="sm" disabled={travado || iniciando} onClick={onIniciar} title={travado ? motivoTravado : undefined}>
-          <MessageSquarePlus /> {iniciando ? 'Abrindo…' : vivo ? 'Continuar' : 'Novo chat'}
+          <IconMessagePlus /> {iniciando ? 'Abrindo…' : vivo ? 'Continuar' : 'Novo chat'}
         </Button>
       </div>
 
@@ -73,7 +78,7 @@ function Lista({
             mostrandoContinua && 'border-acento/30 bg-acento-suave text-tinta hover:bg-acento-suave',
           )}
         >
-          <History className="size-4" aria-hidden="true" /> Ver conversa completa
+          <IconHistory className="size-4" aria-hidden="true" /> Ver conversa completa
         </button>
       )}
 
@@ -92,6 +97,13 @@ function Lista({
               <Skeleton key={i} className="h-16 w-full" />
             ))}
           </div>
+        ) : erroHistorico ? (
+          <ErroEstado
+            className="py-6"
+            titulo="Não foi possível carregar o histórico"
+            descricao="Suas conversas continuam guardadas — só não deu para buscá-las agora."
+            onTentarNovamente={onRecarregarHistorico}
+          />
         ) : historico && historico.length > 0 ? (
           <div className="flex flex-col">
             {historico.map((c) => (
@@ -102,7 +114,7 @@ function Lista({
           !vivo && (
             <EstadoVazio
               className="py-8"
-              icone={MessageCircle}
+              icone={IconMessageCircle}
               titulo="Nenhuma conversa ainda"
               descricao="Fale com um atendente agora — se ninguém puder atender, a conversa vira um chamado automaticamente."
             />
@@ -187,12 +199,14 @@ export function PaginaChat() {
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4 md:h-[calc(100vh-6rem)]">
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-xl border border-divisoria bg-superficie shadow-elevacao-1 md:grid-cols-[320px_1fr]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-md border border-divisoria bg-superficie md:grid-cols-[320px_1fr]">
         <div className={algoAberto ? 'hidden border-divisoria md:block md:border-r' : 'border-divisoria md:block md:border-r'}>
           <Lista
             vivo={vivo.data}
             historico={historico.data}
             carregandoHistorico={historico.isLoading}
+            erroHistorico={historico.isError}
+            onRecarregarHistorico={() => historico.refetch()}
             selecionado={conversaSelecionada}
             mostrandoContinua={mostrandoContinua}
             agoraMs={agora}
@@ -213,7 +227,7 @@ export function PaginaChat() {
           ) : filaFechada && !bloqueadoPorAvaliacao ? (
             <EstadoVazio
               className="h-full justify-center"
-              icone={Clock}
+              icone={IconClock}
               titulo="Fora do horário de atendimento por chat"
               descricao={
                 config.data?.queue_opens_at
@@ -229,7 +243,7 @@ export function PaginaChat() {
           ) : (
             <EstadoVazio
               className="h-full justify-center"
-              icone={MessageCircle}
+              icone={IconMessageCircle}
               titulo="Selecione uma conversa"
               descricao="Escolha uma conversa na lista ou inicie um novo chat."
             />
@@ -242,7 +256,7 @@ export function PaginaChat() {
           {erroAbrir.detail}
           {erroAbrir.code === 'fora_do_expediente' && (
             <span className="mt-1 flex items-center gap-1 text-legenda">
-              <AlertCircle className="size-3.5" aria-hidden="true" /> Abra um ticket — a equipe responde assim que o expediente começar.
+              <IconAlertCircle className="size-3.5" aria-hidden="true" /> Abra um ticket — a equipe responde assim que o expediente começar.
             </span>
           )}
         </Alert>

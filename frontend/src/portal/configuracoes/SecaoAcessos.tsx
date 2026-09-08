@@ -1,4 +1,4 @@
-import { Ban, KeyRound, LogIn, LogOut, Monitor, ShieldCheck, ShieldOff, XCircle } from 'lucide-react'
+import { IconBan, IconCircleX, IconClock, IconDeviceDesktop, IconKey, IconLogin, IconLogout, IconShieldCheck, IconShieldOff } from '@tabler/icons-react'
 import type { EventoDeAcesso, SessaoViva } from '../api/conta'
 import { useEncerrarSessao, useMeuHistoricoAcesso } from '../api/conta'
 import { ApiError } from '@/api/client'
@@ -7,16 +7,17 @@ import { cn } from '../lib/cn'
 import { Alert } from '../ui/alert'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
+import { EstadoVazio } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { Secao } from './Secao'
 
-const ICONE_EVENTO: Record<string, typeof LogIn> = {
-  login: LogIn,
-  login_failed: XCircle,
-  password_changed: KeyRound,
-  twofa_enabled: ShieldCheck,
-  twofa_disabled: ShieldOff,
+const ICONE_EVENTO: Record<string, typeof IconLogin> = {
+  login: IconLogin,
+  login_failed: IconCircleX,
+  password_changed: IconKey,
+  twofa_enabled: IconShieldCheck,
+  twofa_disabled: IconShieldOff,
 }
 
 function LinhaSessao({
@@ -32,7 +33,7 @@ function LinhaSessao({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 rounded-lg border border-divisoria bg-navegacao/60 px-4 py-3">
-      <Monitor className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
+      <IconDeviceDesktop className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-pequeno font-medio text-tinta">
           {sessao.browser}
@@ -48,7 +49,7 @@ function LinhaSessao({
       </div>
       {!sessao.current && (
         <Button variant="secondary" size="sm" onClick={onEncerrar} disabled={encerrando}>
-          <LogOut />
+          <IconLogout />
           {encerrando ? 'Encerrando…' : 'Encerrar'}
         </Button>
       )}
@@ -57,7 +58,7 @@ function LinhaSessao({
 }
 
 function LinhaEvento({ evento }: { evento: EventoDeAcesso }) {
-  const Icone = ICONE_EVENTO[evento.kind] ?? Ban
+  const Icone = ICONE_EVENTO[evento.kind] ?? IconBan
   return (
     <li className="flex items-start gap-3 py-2.5">
       <Icone
@@ -101,7 +102,7 @@ export function SecaoAcessos() {
 
   if (historico.isLoading) {
     return (
-      <Secao id="acessos" icone={Monitor} titulo="Sessões e acesso" descricao={descricao}>
+      <Secao id="acessos" icone={IconDeviceDesktop} titulo="Sessões e acesso" descricao={descricao}>
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
       </Secao>
@@ -110,7 +111,7 @@ export function SecaoAcessos() {
 
   if (historico.isError || !historico.data) {
     return (
-      <Secao id="acessos" icone={Monitor} titulo="Sessões e acesso" descricao={descricao}>
+      <Secao id="acessos" icone={IconDeviceDesktop} titulo="Sessões e acesso" descricao={descricao}>
         <Alert
           variant="destructive"
           titulo="Não foi possível carregar as sessões"
@@ -129,7 +130,7 @@ export function SecaoAcessos() {
   const { sessions, events, session_limit } = historico.data
 
   return (
-    <Secao id="acessos" icone={Monitor} titulo="Sessões e acesso" descricao={descricao}>
+    <Secao id="acessos" icone={IconDeviceDesktop} titulo="Sessões e acesso" descricao={descricao}>
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
           <h3 className="text-pequeno font-medio text-tinta">Sessões ativas</h3>
@@ -153,7 +154,7 @@ export function SecaoAcessos() {
       <div className="border-t border-divisoria pt-4">
         <h3 className="mb-1 text-pequeno font-medio text-tinta">Atividade recente</h3>
         {events.length === 0 ? (
-          <p className="text-legenda text-tinta-secundaria">Nada por aqui ainda.</p>
+          <EstadoVazio icone={IconClock} titulo="Nenhuma atividade ainda" descricao="Logins, trocas de senha e sessões encerradas aparecem aqui." className="py-4" />
         ) : (
           <ul className="divide-y divide-divisoria">
             {events.map((e) => (

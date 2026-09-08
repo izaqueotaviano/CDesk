@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, BookOpen, LifeBuoy, MessageSquarePlus, Plus, Search, SearchX, X } from 'lucide-react'
+import { IconArrowRight, IconBook, IconLifebuoy, IconMessagePlus, IconPlus, IconSearch, IconX, IconZoomCancel } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useArtigos, useCategoriasAjuda, type ArtigoResumo } from '../api/ajuda'
 import { cn } from '../lib/cn'
@@ -17,7 +17,7 @@ function CartaoArtigo({ artigo }: { artigo: ArtigoResumo }) {
   return (
     <Link
       to={`/portal/ajuda/${artigo.id}`}
-      className="group flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-5 shadow-elevacao-1 transition-[border-color,box-shadow] hover:border-borda-controle hover:shadow-elevacao-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+      className="group flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-5 transition-[border-color] hover:border-borda-controle"
     >
       {artigo.category && (
         <Badge variant="acento" className="w-fit">
@@ -29,7 +29,7 @@ function CartaoArtigo({ artigo }: { artigo: ArtigoResumo }) {
       <span className="mt-auto flex items-center gap-3 pt-1 text-legenda text-tinta-terciaria">
         {artigo.wp_modified_at && <span>atualizado {dataCurta(artigo.wp_modified_at)}</span>}
         {artigo.helpful_count > 0 && <span>{artigo.helpful_count} acharam útil</span>}
-        <ArrowRight className="ml-auto size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        <IconArrowRight className="ml-auto size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </span>
     </Link>
   )
@@ -38,7 +38,7 @@ function CartaoArtigo({ artigo }: { artigo: ArtigoResumo }) {
 function EsqueletoCartao() {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-5">
-      <Skeleton className="h-5 w-24 rounded-total" />
+      <Skeleton className="h-5 w-24" />
       <Skeleton className="h-5 w-3/4" />
       <Skeleton className="h-4 w-full" />
       <Skeleton className="h-4 w-2/3" />
@@ -95,9 +95,9 @@ export function PaginaAjuda() {
   return (
     <div className="flex flex-col gap-6">
       {/* ---------------- busca em destaque ---------------- */}
-      <section className="flex flex-col items-center gap-4 rounded-xl border border-divisoria bg-superficie px-4 py-8 text-center shadow-elevacao-1 md:px-8 md:py-10">
+      <section className="flex flex-col items-center gap-4 rounded-xl border border-divisoria bg-superficie px-4 py-8 text-center md:px-8 md:py-10">
         <span className="grid size-12 place-items-center rounded-total bg-acento-suave text-acento">
-          <LifeBuoy className="size-6" aria-hidden="true" />
+          <IconLifebuoy className="size-6" aria-hidden="true" />
         </span>
         <div>
           <h1 className="text-titulo-lg font-forte tracking-display">Central de Ajuda</h1>
@@ -106,7 +106,7 @@ export function PaginaAjuda() {
           </p>
         </div>
         <div className="relative w-full max-w-xl">
-          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
+          <IconSearch className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
           <Input
             type="search"
             value={busca}
@@ -126,7 +126,7 @@ export function PaginaAjuda() {
             onClick={() => definir({ categoria: undefined })}
             aria-pressed={!categoria}
             className={cn(
-              'rounded-total border border-divisoria bg-superficie px-4 py-1.5 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
+              'h-7 rounded-md border border-divisoria bg-superficie px-3 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento',
               !categoria && 'border-acento bg-acento-suave text-acento',
             )}
           >
@@ -139,7 +139,7 @@ export function PaginaAjuda() {
               onClick={() => definir({ categoria: c.name === categoria ? undefined : c.name })}
               aria-pressed={c.name === categoria}
               className={cn(
-                'inline-flex items-center gap-2 rounded-total border border-divisoria bg-superficie px-4 py-1.5 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
+                'inline-flex items-center gap-2 h-7 rounded-md border border-divisoria bg-superficie px-3 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento',
                 c.name === categoria && 'border-acento bg-acento-suave text-acento',
               )}
             >
@@ -176,7 +176,7 @@ export function PaginaAjuda() {
               definir({ q: undefined, categoria: undefined })
             }}
           >
-            <X /> Limpar
+            <IconX /> Limpar
           </Button>
         </div>
       )}
@@ -204,23 +204,23 @@ export function PaginaAjuda() {
           <Card>
             {acervoVazio ? (
               <EstadoVazio
-                icone={BookOpen}
+                icone={IconBook}
                 titulo="Nenhum artigo publicado ainda"
                 descricao="Enquanto a Central de Ajuda não tem conteúdo, fale com a gente — o suporte responde por ticket ou chat."
                 acao={
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                      <Plus /> Abrir ticket
+                      <IconPlus /> Abrir ticket
                     </Link>
                     <Link to="/portal/chat" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
-                      <MessageSquarePlus /> Iniciar chat
+                      <IconMessagePlus /> Iniciar chat
                     </Link>
                   </div>
                 }
               />
             ) : (
               <EstadoVazio
-                icone={SearchX}
+                icone={IconZoomCancel}
                 titulo="Nada encontrado"
                 descricao={
                   q
@@ -240,7 +240,7 @@ export function PaginaAjuda() {
                       Limpar busca
                     </Button>
                     <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                      <Plus /> Abrir ticket
+                      <IconPlus /> Abrir ticket
                     </Link>
                   </div>
                 }
@@ -262,7 +262,7 @@ export function PaginaAjuda() {
           titulo="Não achou o que precisava?"
           acao={
             <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-              <Plus /> Abrir ticket
+              <IconPlus /> Abrir ticket
             </Link>
           }
         >

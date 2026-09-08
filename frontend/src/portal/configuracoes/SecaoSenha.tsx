@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import { Check, Eye, EyeOff, KeyRound } from 'lucide-react'
+import { IconCheck, IconEye, IconEyeOff, IconKey } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { useTrocarSenha } from '../api/conta'
@@ -63,11 +63,11 @@ function CampoSenha({
         <button
           type="button"
           onClick={() => setVisivel((v) => !v)}
-          className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-tinta-secundaria hover:bg-navegacao hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+          className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-tinta-secundaria hover:bg-navegacao hover:text-tinta"
           aria-label={visivel ? 'Ocultar senha' : 'Mostrar senha'}
           aria-pressed={visivel}
         >
-          {visivel ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+          {visivel ? <IconEyeOff className="size-4" /> : <IconEye className="size-4" />}
         </button>
       </div>
       <ErroCampo id={`${id}-erro`}>{erro}</ErroCampo>
@@ -127,7 +127,7 @@ export function SecaoSenha() {
   return (
     <Secao
       id="senha"
-      icone={KeyRound}
+      icone={IconKey}
       titulo="Alterar senha"
       descricao="Informe a senha atual para confirmar que é você. Esqueceu? Fale com o suporte — não existe recuperação automática."
     >
@@ -153,7 +153,14 @@ export function SecaoSenha() {
             erro={erros.new_password?.[0]}
             descritoPor={`${idBase}-regras`}
           />
-          <CampoSenha id={`${idBase}-confirma`} rotulo="Confirmar nova senha" valor={confirmacao} onChange={setConfirmacao} autoComplete="new-password" />
+          <CampoSenha
+            id={`${idBase}-confirma`}
+            rotulo="Confirmar nova senha"
+            valor={confirmacao}
+            onChange={setConfirmacao}
+            autoComplete="new-password"
+            erro={confirmacao.length > 0 && confirmacao !== nova ? 'As senhas não coincidem.' : undefined}
+          />
         </div>
         {erros.new_password && erros.new_password.length > 1 && (
           <ul className="list-disc pl-5 text-legenda text-perigo" role="alert">
@@ -166,7 +173,7 @@ export function SecaoSenha() {
           {lista.map((r) => (
             <li key={r.id} className={cn('flex items-center gap-2 text-legenda', r.ok ? 'text-ok' : 'text-tinta-secundaria')}>
               <span className={cn('grid size-4 shrink-0 place-items-center rounded-total border', r.ok ? 'border-ok bg-ok text-white' : 'border-divisoria')} aria-hidden="true">
-                {r.ok && <Check className="size-3" />}
+                {r.ok && <IconCheck className="size-3" />}
               </span>
               {r.texto}
             </li>

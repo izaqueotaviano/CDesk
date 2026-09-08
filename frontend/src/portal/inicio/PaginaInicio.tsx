@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Clock, Headset, MessageCircle, MessageSquarePlus, Plus, Star, Ticket, type LucideIcon } from 'lucide-react'
-import { usePendingRatings, type Chat } from '@/api/chat'
+import { IconArrowRight, IconClock, IconHeadset, IconMessageCircle, IconMessagePlus, IconPlus, IconStar, IconTicket, type Icon } from '@tabler/icons-react'
+import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useChatsRecentes, useContagemChatsAtivos } from '../api/chats'
 import { useAvaliacoesPendentesTicket, useContagemAbas, useTicketsRecentes } from '../api/tickets'
 import { cn } from '../lib/cn'
-import { primeiroNome, relativo, useAgora } from '../lib/formato'
+import { dataHora, primeiroNome, relativo, useAgora } from '../lib/formato'
 import { CartaoTicket, EsqueletoCartaoTicket } from '../tickets/componentes'
 import { Alert } from '../ui/alert'
 import { Badge } from '../ui/badge'
@@ -18,37 +18,38 @@ import { MuralAvisos } from './MuralAvisos'
 interface CartaoResumoProps {
   rotulo: string
   valor: number | undefined
-  icone: LucideIcon
+  icone: Icon
   para: string
   /** Realce quando a bola está com a pessoa. */
   destaque?: boolean
   ajuda?: string
 }
 
+/** Cartão de número, no desenho do `.inicio-stat` do console: linha, não sombra; o destaque é a cor do número. */
 function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: CartaoResumoProps) {
   const ativo = destaque && (valor ?? 0) > 0
   return (
     <Link
       to={para}
       className={cn(
-        'group flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-5 shadow-elevacao-1 transition-[border-color,box-shadow] hover:border-borda-controle hover:shadow-elevacao-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
-        ativo && 'border-alerta/40 bg-alerta-suave/30',
+        'group flex flex-col gap-3 rounded-md border border-divisoria bg-superficie p-5 transition-[border-color] hover:border-borda-controle',
+        ativo && 'border-alerta/40',
       )}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-pequeno font-medio text-tinta-secundaria">{rotulo}</span>
-        <span className={cn('grid size-8 place-items-center rounded-lg bg-navegacao text-tinta-secundaria', ativo && 'bg-alerta-suave text-alerta')}>
+        <span className={cn('grid size-8 place-items-center rounded-md bg-navegacao text-tinta-secundaria', ativo && 'bg-alerta-suave text-alerta')}>
           <Icone className="size-4" aria-hidden="true" />
         </span>
       </div>
       {valor === undefined ? (
         <Skeleton className="h-8 w-12" />
       ) : (
-        <span className={cn('text-display font-forte leading-nenhuma text-tinta', ativo && 'text-alerta')}>{valor}</span>
+        <span className={cn('font-mono text-display font-medio leading-nenhuma text-tinta', ativo && 'text-alerta')}>{valor}</span>
       )}
       <span className="flex items-center gap-1 text-legenda text-tinta-terciaria">
         {ajuda ?? 'Ver'}
-        <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+        <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
       </span>
     </Link>
   )
@@ -65,10 +66,10 @@ function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
   return (
     <Link
       to={`/portal/chat?chat=${chat.id}`}
-      className="group flex items-center gap-3 rounded-xl border border-divisoria bg-superficie p-4 shadow-elevacao-1 transition-[border-color,box-shadow] hover:border-borda-controle hover:shadow-elevacao-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+      className="group flex items-center gap-3 rounded-md border border-divisoria bg-superficie p-4 transition-[border-color] hover:border-borda-controle"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
-        <Headset className="size-4" aria-hidden="true" />
+        <IconHeadset className="size-4" aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-corpo font-medio group-hover:text-acento">
@@ -97,13 +98,16 @@ function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
 /**
  * Início do Painel do Cliente: o que precisa de você, o que está com o
  * suporte, e os dois atalhos que importam. Um alerta sobe quando há
- * avaliação pendente — é a regra que trava o próximo chat.
+ * avaliação pendente — é a regra que trava o próximo chat. O estado da fila
+ * de chat vem na saudação (como na Início do console): a pessoa sabe ANTES
+ * de clicar se vai falar com alguém agora ou não.
  */
 export function PaginaInicio() {
   const { data: me } = useMe()
   const agora = useAgora()
   const contagens = useContagemAbas()
   const chatsAtivos = useContagemChatsAtivos()
+  const config = useConfigChat()
   const { data: chatsPendentes } = usePendingRatings()
   const { data: ticketsPendentes } = useAvaliacoesPendentesTicket()
   const recentes = useTicketsRecentes(5)
@@ -117,30 +121,50 @@ export function PaginaInicio() {
   const pendentesTicket = ticketsPendentes?.length ?? 0
   const avaliacoesPendentes =
     chatsPendentes === undefined && ticketsPendentes === undefined ? undefined : pendentesChat + pendentesTicket
-  const chatBloqueado = pendentesChat > 0
+
+  const filaAberta = config.data?.queue_open
+  const filaFechada = filaAberta === false
+  const voltaAs = config.data?.queue_opens_at ? dataHora(config.data.queue_opens_at) : null
+  // Dois motivos travam o chat, e a pessoa precisa saber qual: a avaliação
+  // pendente (dela) ou o horário (do suporte).
+  const motivoChatTravado =
+    pendentesChat > 0
+      ? 'Avalie o último chat para iniciar outro'
+      : filaFechada
+        ? `Fora do horário de atendimento por chat${voltaAs ? ` — volta ${voltaAs}` : ''}`
+        : null
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-titulo-lg font-forte tracking-display">
+          {/* A serifa de UM lugar só, como no console: `--f-display`, 26px, peso 400. */}
+          <h1 className="font-display text-[26px] font-normal leading-tight text-tinta">
             {me ? `Olá, ${primeiroNome(me.full_name)}` : <Skeleton className="h-7 w-40" />}
           </h1>
           <p className="mt-1 text-pequeno text-tinta-secundaria">
             {me?.company_name ? `${me.company_name} · ` : ''}Acompanhe seus chamados e fale com o suporte.
+            {filaAberta != null && (
+              <>
+                {' · '}
+                <span className={cn('font-medio', filaAberta ? 'text-ok' : 'text-tinta-terciaria')}>
+                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? ` — volta ${voltaAs}` : ''}`}
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row">
           <Link to="/portal/tickets/novo" className={buttonVariants({ variant: 'default' })}>
-            <Plus /> Abrir ticket
+            <IconPlus /> Abrir ticket
           </Link>
-          {chatBloqueado ? (
-            <Button variant="secondary" disabled title="Avalie o último chat para iniciar outro">
-              <MessageSquarePlus /> Iniciar chat
+          {motivoChatTravado ? (
+            <Button variant="secondary" disabled title={motivoChatTravado}>
+              <IconMessagePlus /> Iniciar chat
             </Button>
           ) : (
             <Link to="/portal/chat" className={buttonVariants({ variant: 'secondary' })}>
-              <MessageSquarePlus /> Iniciar chat
+              <IconMessagePlus /> Iniciar chat
             </Link>
           )}
         </div>
@@ -179,7 +203,7 @@ export function PaginaInicio() {
         <CartaoResumo
           rotulo="Aguardando seu retorno"
           valor={contagens['aguardando-voce']}
-          icone={Clock}
+          icone={IconClock}
           para="/portal/tickets?aba=aguardando-voce"
           destaque
           ajuda="Responder"
@@ -187,15 +211,15 @@ export function PaginaInicio() {
         <CartaoResumo
           rotulo="Aguardando suporte"
           valor={aguardandoSuporte}
-          icone={Ticket}
+          icone={IconTicket}
           para="/portal/tickets?aba=aguardando-suporte"
           ajuda={contagens['em-andamento'] ? `${contagens['em-andamento']} em andamento` : undefined}
         />
-        <CartaoResumo rotulo="Chats ativos" valor={chatsAtivos.data} icone={MessageCircle} para="/portal/chat" />
+        <CartaoResumo rotulo="Chats ativos" valor={chatsAtivos.data} icone={IconMessageCircle} para="/portal/chat" />
         <CartaoResumo
           rotulo="Avaliações pendentes"
           valor={avaliacoesPendentes}
-          icone={Star}
+          icone={IconStar}
           para={pendentesChat > 0 ? '/portal/chat' : '/portal/historico'}
           destaque
           ajuda="Avaliar"
@@ -217,12 +241,12 @@ export function PaginaInicio() {
               recentes.data.map((t) => <CartaoTicket key={t.id} ticket={t} agoraMs={agora} compacto />)
             ) : (
               <EstadoVazio
-                icone={Ticket}
+                icone={IconTicket}
                 titulo="Nenhum ticket ainda"
                 descricao="Quando precisar de ajuda, abra um ticket — você acompanha tudo por aqui."
                 acao={
                   <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                    <Plus /> Abrir ticket
+                    <IconPlus /> Abrir ticket
                   </Link>
                 }
               />
@@ -240,7 +264,7 @@ export function PaginaInicio() {
           <CardContent className="flex flex-col gap-2">
             {chats.isLoading ? (
               [0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-xl border border-divisoria p-4">
+                <div key={i} className="flex items-center gap-3 rounded-md border border-divisoria p-4">
                   <Skeleton className="size-9 rounded-total" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/2" />
@@ -252,13 +276,17 @@ export function PaginaInicio() {
               chats.data.map((c) => <LinhaChat key={c.id} chat={c} agoraMs={agora} />)
             ) : (
               <EstadoVazio
-                icone={MessageCircle}
+                icone={IconMessageCircle}
                 titulo="Nenhuma conversa ainda"
-                descricao="O chat é o caminho mais rápido para uma dúvida curta, dentro do horário de atendimento."
+                descricao={
+                  filaFechada
+                    ? `O chat está fechado agora${voltaAs ? ` — volta ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
+                    : 'O chat é o caminho mais rápido para uma dúvida curta, dentro do horário de atendimento.'
+                }
                 acao={
-                  chatBloqueado ? undefined : (
+                  motivoChatTravado ? undefined : (
                     <Link to="/portal/chat" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
-                      <MessageSquarePlus /> Iniciar chat
+                      <IconMessagePlus /> Iniciar chat
                     </Link>
                   )
                 }

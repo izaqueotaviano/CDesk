@@ -1,6 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import QRCode from 'qrcode'
-import { Mail, ShieldCheck, ShieldOff, Smartphone } from 'lucide-react'
+import { IconDeviceMobile, IconMail, IconShieldCheck, IconShieldOff } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import {
   useConfirmar2fa,
@@ -80,13 +80,13 @@ function CampoCodigo({
   )
 }
 
-const OPCOES: { valor: Metodo; rotulo: string; descricao: string; icone: typeof Mail }[] = [
-  { valor: 'email', rotulo: 'Por e-mail', descricao: 'Um código de 6 dígitos chega no seu e-mail a cada login. Não precisa instalar nada.', icone: Mail },
+const OPCOES: { valor: Metodo; rotulo: string; descricao: string; icone: typeof IconMail }[] = [
+  { valor: 'email', rotulo: 'Por e-mail', descricao: 'Um código de 6 dígitos chega no seu e-mail a cada login. Não precisa instalar nada.', icone: IconMail },
   {
     valor: 'totp',
     rotulo: 'Aplicativo autenticador',
     descricao: 'Google Authenticator, Microsoft Authenticator, Authy, 1Password… Funciona sem internet e sem depender do e-mail chegar.',
-    icone: Smartphone,
+    icone: IconDeviceMobile,
   },
 ]
 
@@ -176,7 +176,7 @@ export function SecaoSeguranca() {
 
   if (status.isLoading) {
     return (
-      <Secao id="seguranca" icone={ShieldCheck} titulo="Verificação em duas etapas" descricao={descricao}>
+      <Secao id="seguranca" icone={IconShieldCheck} titulo="Verificação em duas etapas" descricao={descricao}>
         <Skeleton className="h-6 w-2/3" />
         <Skeleton className="h-10 w-full" />
       </Secao>
@@ -184,7 +184,7 @@ export function SecaoSeguranca() {
   }
   if (status.isError || !status.data) {
     return (
-      <Secao id="seguranca" icone={ShieldCheck} titulo="Verificação em duas etapas" descricao={descricao}>
+      <Secao id="seguranca" icone={IconShieldCheck} titulo="Verificação em duas etapas" descricao={descricao}>
         <Alert
           variant="destructive"
           titulo="Não foi possível carregar a verificação em duas etapas"
@@ -207,17 +207,17 @@ export function SecaoSeguranca() {
   const ocupado = iniciar.isPending || confirmar.isPending || desativar.isPending || pedirCodigo.isPending
 
   const resumo = !ligada
-    ? { titulo: 'Desligada', texto: 'Você entra só com a senha.', tom: 'neutro' as const, Icone: ShieldOff }
+    ? { titulo: 'Desligada', texto: 'Você entra só com a senha.', tom: 'neutro' as const, Icone: IconShieldOff }
     : metodoAtual === 'totp'
-      ? { titulo: 'Ligada', texto: 'O código do login vem do aplicativo autenticador.', tom: 'ok' as const, Icone: ShieldCheck }
+      ? { titulo: 'Ligada', texto: 'O código do login vem do aplicativo autenticador.', tom: 'ok' as const, Icone: IconShieldCheck }
       : metodoAtual === 'email'
-        ? { titulo: 'Ligada', texto: 'O código do login chega por e-mail.', tom: 'ok' as const, Icone: ShieldCheck }
-        : { titulo: 'Exigida pela empresa', texto: 'O código do login chega por e-mail. Se preferir, use o aplicativo autenticador.', tom: 'acento' as const, Icone: ShieldCheck }
+        ? { titulo: 'Ligada', texto: 'O código do login chega por e-mail.', tom: 'ok' as const, Icone: IconShieldCheck }
+        : { titulo: 'Exigida pela empresa', texto: 'O código do login chega por e-mail. Se preferir, use o aplicativo autenticador.', tom: 'acento' as const, Icone: IconShieldCheck }
 
   return (
     <Secao
       id="seguranca"
-      icone={ShieldCheck}
+      icone={IconShieldCheck}
       titulo="Verificação em duas etapas"
       descricao={descricao}
       rodape={
@@ -274,7 +274,7 @@ export function SecaoSeguranca() {
             Método atual: <strong className="text-tinta">{metodoAtual === 'totp' ? 'aplicativo autenticador' : 'e-mail'}</strong>
           </p>
           <Button variant="secondary" size="sm" onClick={() => iniciarAtivacao(metodoAtual === 'totp' ? 'email' : 'totp')} disabled={ocupado}>
-            {metodoAtual === 'totp' ? <Mail /> : <Smartphone />}
+            {metodoAtual === 'totp' ? <IconMail /> : <IconDeviceMobile />}
             {metodoAtual === 'totp' ? 'Trocar para e-mail' : 'Usar o aplicativo autenticador'}
           </Button>
         </div>
@@ -294,7 +294,7 @@ export function SecaoSeguranca() {
                   aria-checked={ativo}
                   onClick={() => setAtivando({ metodo: o.valor, setup: null })}
                   className={cn(
-                    'flex gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color,box-shadow] hover:border-borda-controle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
+                    'flex gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color] hover:border-borda-controle',
                     ativo ? 'border-acento ring-1 ring-acento' : 'border-divisoria',
                   )}
                 >

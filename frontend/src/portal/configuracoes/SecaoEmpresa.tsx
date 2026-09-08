@@ -1,6 +1,6 @@
 import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Building2 } from 'lucide-react'
+import { IconBuilding } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { useAtualizarEmpresa, useMinhaEmpresa, type MinhaEmpresa } from '../api/conta'
@@ -28,7 +28,7 @@ function Dado({ rotulo, children }: { rotulo: string; children: React.ReactNode 
  * mesmo bloco e sabe quem pode mudar.
  */
 export function SecaoEmpresa() {
-  const { data: me } = useMe()
+  const { data: me, isError: erroMe, refetch: recarregarMe } = useMe()
   const empresa = useMinhaEmpresa()
   const atualizar = useAtualizarEmpresa()
   const idBase = useId()
@@ -39,9 +39,28 @@ export function SecaoEmpresa() {
 
   const descricao = 'Os dados da sua empresa no suporte. Nome, plano e gerente de conta são definidos pela nossa equipe.'
 
+  // `useMe` tem retry:false — se /auth/me/ falhar, `me` fica undefined pra
+  // sempre. Sem este ramo a seção mostrava o skeleton indefinidamente.
+  if (!me && erroMe) {
+    return (
+      <Secao id="empresa" icone={IconBuilding} titulo="Empresa" descricao={descricao}>
+        <Alert
+          variant="destructive"
+          titulo="Não foi possível carregar seus dados"
+          acao={
+            <Button size="sm" variant="secondary" onClick={() => recarregarMe()}>
+              Tentar de novo
+            </Button>
+          }
+        >
+          Verifique sua conexão.
+        </Alert>
+      </Secao>
+    )
+  }
   if (empresa.isLoading || !me) {
     return (
-      <Secao id="empresa" icone={Building2} titulo="Empresa" descricao={descricao}>
+      <Secao id="empresa" icone={IconBuilding} titulo="Empresa" descricao={descricao}>
         <div className="grid gap-4 sm:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <Skeleton key={i} className="h-10 w-full" />
@@ -52,7 +71,7 @@ export function SecaoEmpresa() {
   }
   if (empresa.isError || !empresa.data) {
     return (
-      <Secao id="empresa" icone={Building2} titulo="Empresa" descricao={descricao}>
+      <Secao id="empresa" icone={IconBuilding} titulo="Empresa" descricao={descricao}>
         <Alert
           variant="destructive"
           titulo="Não foi possível carregar os dados da empresa"
@@ -98,7 +117,7 @@ export function SecaoEmpresa() {
   return (
     <Secao
       id="empresa"
-      icone={Building2}
+      icone={IconBuilding}
       titulo="Empresa"
       descricao={descricao}
       rodape={

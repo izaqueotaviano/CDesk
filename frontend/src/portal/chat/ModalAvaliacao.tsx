@@ -25,21 +25,41 @@ function Escala({
 }) {
   const notas = Array.from({ length: max - min + 1 }, (_, i) => min + i)
   const idRotulo = `${idBase}-rotulo`
+  // Padrão ARIA de radiogroup: UM tab stop (a nota marcada, ou a primeira) e
+  // as setas movem a marcação — sem isto o grupo eram 11 tab stops e a seta
+  // não fazia nada.
+  const focavel = valor ?? min
+  function escolher(n: number) {
+    const alvo = Math.min(max, Math.max(min, n))
+    onChange(alvo)
+    document.getElementById(`${idBase}-${alvo}`)?.focus()
+  }
+  function aoTeclar(e: React.KeyboardEvent<HTMLDivElement>) {
+    const atual = valor ?? min
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') escolher(atual + 1)
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') escolher(atual - 1)
+    else if (e.key === 'Home') escolher(min)
+    else if (e.key === 'End') escolher(max)
+    else return
+    e.preventDefault()
+  }
   return (
     <div className="flex flex-col gap-2">
       <span id={idRotulo} className="text-pequeno font-medio text-tinta">
         {rotulo}
       </span>
-      <div role="radiogroup" aria-labelledby={idRotulo} className="flex flex-wrap gap-1.5">
+      <div role="radiogroup" aria-labelledby={idRotulo} className="flex flex-wrap gap-1.5" onKeyDown={aoTeclar}>
         {notas.map((n) => (
           <button
             key={n}
+            id={`${idBase}-${n}`}
             type="button"
             role="radio"
             aria-checked={valor === n}
+            tabIndex={focavel === n ? 0 : -1}
             onClick={() => onChange(n)}
             className={cn(
-              'grid h-9 min-w-9 place-items-center rounded-lg border border-divisoria bg-superficie px-1 text-pequeno font-medio text-tinta transition-colors hover:border-acento focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40',
+              'grid h-9 min-w-9 place-items-center rounded-md border border-borda-campo bg-superficie px-1 text-pequeno font-medio text-tinta transition-colors hover:border-acento',
               valor === n && 'border-acento bg-acento text-acento-sobre',
             )}
           >

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Plus, Search, SearchX, SlidersHorizontal, Ticket, X } from 'lucide-react'
+import { IconAdjustmentsHorizontal, IconChevronLeft, IconChevronRight, IconPlus, IconSearch, IconTicket, IconX, IconZoomCancel } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import {
   ABAS,
@@ -114,7 +114,7 @@ export function PaginaTickets() {
           <p className="mt-1 text-pequeno text-tinta-secundaria">Seus chamados com o suporte, do mais urgente ao já resolvido.</p>
         </div>
         <Link to="/portal/tickets/novo" className={buttonVariants()}>
-          <Plus /> Abrir ticket
+          <IconPlus /> Abrir ticket
         </Link>
       </header>
 
@@ -147,7 +147,7 @@ export function PaginaTickets() {
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
+            <IconSearch className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
             <Input
               type="search"
               value={busca}
@@ -164,7 +164,7 @@ export function PaginaTickets() {
             aria-expanded={mostrarFiltros}
             aria-controls="filtros-tickets"
           >
-            <SlidersHorizontal /> Filtros
+            <IconAdjustmentsHorizontal /> Filtros
             {filtrosAtivos > 0 && <Badge variant="acento" className="px-1.5 py-0 text-micro">{filtrosAtivos}</Badge>}
           </Button>
         </div>
@@ -224,7 +224,7 @@ export function PaginaTickets() {
               )}
             </span>
             <Button variant="link" size="sm" onClick={limparTudo}>
-              <X /> Limpar
+              <IconX /> Limpar
             </Button>
           </div>
         )}
@@ -248,7 +248,7 @@ export function PaginaTickets() {
         ) : total === 0 ? (
           temRecorte ? (
             <EstadoVazio
-              icone={SearchX}
+              icone={IconZoomCancel}
               titulo="Nenhum ticket encontrado"
               descricao="Tente outro termo ou limpe os filtros. A busca olha o número do chamado, o assunto e o nº do pedido."
               acao={
@@ -259,13 +259,13 @@ export function PaginaTickets() {
             />
           ) : (
             <EstadoVazio
-              icone={Ticket}
+              icone={IconTicket}
               titulo={definicao.vazio.titulo}
               descricao={definicao.vazio.descricao}
               acao={
                 aba === 'aguardando-suporte' || aba === 'em-andamento' ? (
                   <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                    <Plus /> Abrir ticket
+                    <IconPlus /> Abrir ticket
                   </Link>
                 ) : undefined
               }
@@ -288,7 +288,7 @@ export function PaginaTickets() {
                     disabled={pagina <= 1}
                     onClick={() => definir({ pagina: pagina - 1 > 1 ? String(pagina - 1) : undefined }, { manterPagina: true })}
                   >
-                    <ChevronLeft /> Anterior
+                    <IconChevronLeft /> Anterior
                   </Button>
                   <Button
                     variant="outline"
@@ -296,7 +296,7 @@ export function PaginaTickets() {
                     disabled={pagina >= ultimaPagina}
                     onClick={() => definir({ pagina: String(pagina + 1) }, { manterPagina: true })}
                   >
-                    Próxima <ChevronRight />
+                    Próxima <IconChevronRight />
                   </Button>
                 </span>
               </footer>
