@@ -65,6 +65,15 @@ interface TabsState {
   abrirTicket: (ticketId: number, resumo?: TicketResumo) => void
   abrirSecao: (rota: string, titulo: string, icone: string) => void
   fechar: (chave: string) => void
+  /** Fecha várias de uma vez ("fechar as outras", "as da direita", "todas"):
+   *  UM set e UM sync, em vez de N `fechar` em sequência disparando N
+   *  reconciliações. Se a ativa estiver entre elas, a ativa passa a ser a
+   *  última que sobrou (ou nenhuma — a barra cai no Início). */
+  fecharVarias: (chaves: string[]) => void
+  /** Nova ordem completa da barra (chaves de TODAS as abas, arrastar e
+   *  soltar). Chave desconhecida é ignorada e aba que faltou na lista fica no
+   *  fim — a ordem nunca perde aba. */
+  reordenar: (chaves: string[]) => void
   definirAtiva: (chave: string) => void
   atualizarScroll: (ticketId: number, scroll: number) => void
   atualizarRascunho: (ticketId: number, draft: string) => void
@@ -163,6 +172,41 @@ export const useTabs = create<TabsState>()(
           const active = s.active === chave ? (tabs.length > 0 ? chaveAba(tabs[tabs.length - 1]!) : null) : s.active
           return { tabs, active }
         })
+        sincronizarComServidor()
+      },
+
+      fecharVarias: (chaves) => {
+        if (chaves.length === 0) return
+        const alvo = new Set(chaves)
+        set((s) => {
+          const tabs = s.tabs.filter((a) => !alvo.has(chaveAba(a)))
+          const active =
+            s.active !== null && alvo.has(s.active)
+              ? tabs.length > 0
+                ? chaveAba(tabs[tabs.length - 1]!)
+                : null
+              : s.active
+          return { tabs, active }
+        })
+        sincronizarComServidor()
+      },
+
+      reordenar: (chaves) => {
+        set((s) => {
+          const porChave = new Map(s.tabs.map((a) => [chaveAba(a), a]))
+          const ordenadas: Aba[] = []
+          for (const chave of chaves) {
+            const aba = porChave.get(chave)
+            if (aba) {
+              ordenadas.push(aba)
+              porChave.delete(chave)
+            }
+          }
+          // O que a lista não mencionou vai pro fim, na ordem antiga.
+          return { tabs: [...ordenadas, ...porChave.values()] }
+        })
+        // A ordem dos tickets é parte do espelho (`ticket_ids` na ordem da
+        // barra, docs/06) — outra máquina abre na mesma ordem.
         sincronizarComServidor()
       },
 

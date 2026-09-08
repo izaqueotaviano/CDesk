@@ -98,6 +98,16 @@
   // Um raio só na interface inteira. Quem precisa de círculo de verdade
   // (avatar, ponto de presença) usa 50% direto — é forma, não estilo.
   --raio: 2px;
+  // Exceção nomeada, e só do CROMO do shell: as abas no estilo de navegador
+  // (barra-de-abas.scss) e o painel de conteúdo que flutua sobre o cromo
+  // (shell.scss) dependem da curva — a junção côncava entre a aba ativa e o
+  // painel É o desenho, e a 2px ela some. Botão, campo, card, modal continuam
+  // em `--raio`; nada fora do shell lê estes dois.
+  --raio-aba: 12px;
+  --raio-painel: 16px;
+  // Respiro entre o painel e a borda da janela (direita e baixo), o mesmo que
+  // faz o painel parecer um cartão apoiado no cromo em vez de colado nele.
+  --respiro-painel: 12px;
 
   // ── Foco ──
   // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em

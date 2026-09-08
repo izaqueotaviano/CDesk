@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useConsultaDeMidia } from '../shell/useConsultaDeMidia'
 import { useResumoFila } from './dados'
 import { duracaoEmMinutos } from './format'
 
@@ -47,22 +48,11 @@ const CONSULTA_JANELA_ESTREITA = '(max-width: 1023px)'
  * verdade (não só a carga inicial): é o caso de quem arrasta a borda da
  * janela pra dividir a tela com outra coisa enquanto trabalha, o motivo
  * citado na auditoria — não só de quem já abre em notebook pequeno.
- *
- * jsdom/SSR sem `matchMedia`: cai em "não é estreita", mesma tolerância de
- * `sistemaPrefereEscuro` (stores/prefs.ts).
+ * (O hook em si é o do shell — `useConsultaDeMidia`; o que é deste painel é
+ * só a largura de corte.)
  */
 function useJanelaEstreita(): boolean {
-  const [estreita, setEstreita] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia?.(CONSULTA_JANELA_ESTREITA).matches === true,
-  )
-  useEffect(() => {
-    const consulta = window.matchMedia?.(CONSULTA_JANELA_ESTREITA)
-    if (!consulta) return
-    const aoMudar = (e: MediaQueryListEvent) => setEstreita(e.matches)
-    consulta.addEventListener('change', aoMudar)
-    return () => consulta.removeEventListener('change', aoMudar)
-  }, [])
-  return estreita
+  return useConsultaDeMidia(CONSULTA_JANELA_ESTREITA)
 }
 
 /**

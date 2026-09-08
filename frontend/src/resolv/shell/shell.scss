@@ -1,4 +1,11 @@
-// Shell do design system Resolv: sidebar fixa + corpo (barra de abas + conteúdo).
+// Shell do design system Resolv: sidebar fixa + corpo (barra de abas +
+// painel de conteúdo).
+//
+// O fundo do shell inteiro é o CROMO (`--surface-alt`): sidebar, barra de
+// abas e a moldura em volta do painel são a mesma cor, e o conteúdo vive num
+// painel arredondado (`__painel`, `--surface-canvas`) apoiado sobre ele, com
+// um respiro na direita e embaixo — a leitura é a de uma janela de navegador:
+// a aba ativa se funde no painel (barra-de-abas.scss) e o painel é a página.
 //
 // `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
 // `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa
@@ -9,9 +16,7 @@
 
   display: flex;
   min-height: 100vh;
-  // Fundo geral atrás do conteúdo — não o dos cards/tabelas/painéis em si,
-  // que seguem pintando `--surface` (branco) por cima em cada tela.
-  background: var(--surface-canvas);
+  background: var(--surface-alt);
 
   &--recolhida {
     --largura-sidebar: 64px;
@@ -22,25 +27,52 @@
     flex: 1;
     min-width: 0;
     height: 100vh;
-    overflow-y: auto;
     display: flex;
     flex-direction: column;
+    // Quem rola é o painel, não o corpo: a barra de abas fica sempre à vista
+    // sem precisar de `sticky`, e o painel arredondado corta o próprio
+    // conteúdo nos cantos.
+    overflow: hidden;
+    padding: 0 var(--respiro-painel) var(--respiro-painel) 0;
     transition: margin-left 0.15s ease;
   }
 
-  &__conteudo {
+  // O painel é o antigo `__conteudo` mais a rolagem que era do corpo — a
+  // coluna flex continua (as páginas de altura cheia, como o detalhe do
+  // ticket, dependem disso) e `#resolv-corpo` veio junto.
+  &__painel {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    overflow-y: auto;
+    background: var(--surface-canvas);
+    // Canto de cima à esquerda reto por padrão: é onde a aba Início, a
+    // primeira, se funde no painel. Quando a ativa é outra, o canto volta a
+    // ser curvo (`--canto-esquerdo`) — igual ao navegador.
+    border-radius: 0 var(--raio-painel) var(--raio-painel) var(--raio-painel);
+    transition: border-top-left-radius 0.15s ease;
+
+    &--canto-esquerdo {
+      border-top-left-radius: var(--raio-painel);
+    }
   }
 }
 
-// Abaixo de 768px a barra vira rail à força (ver sidebar.scss): a largura tem
-// que ser imposta aqui também, senão o corpo continuaria recuando 240px contra
-// uma barra de 64.
+// Abaixo de 768px a sidebar vira gaveta por cima do conteúdo (sidebar.scss):
+// o corpo não recua nada, e o painel ocupa a tela inteira, sem moldura — em
+// 390px de largura os 12px de respiro e o canto arredondado só roubariam
+// espaço.
 @media (max-width: 767px) {
   .novo-shell {
-    --largura-sidebar: 64px;
+    --largura-sidebar: 0px;
+
+    &__corpo {
+      padding: 0;
+    }
+    &__painel,
+    &__painel--canto-esquerdo {
+      border-radius: 0;
+    }
   }
 }

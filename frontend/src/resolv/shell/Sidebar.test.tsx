@@ -156,3 +156,51 @@ describe('Sidebar — zona utilitária (Fase 2: absorveu a Topbar)', () => {
     expect(await screen.findByRole('button', { name: /Chats — 3 conversas/ })).toBeInTheDocument()
   })
 })
+
+describe('Sidebar — gaveta em tela pequena', () => {
+  it('aberta, é um diálogo modal com o foco no botão de fechar; Esc fecha', () => {
+    const onFechar = vi.fn()
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={['/inicio']}>
+          <Sidebar onAbrirBusca={vi.fn()} gaveta={{ aberta: true, onFechar }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    const gaveta = screen.getByRole('dialog', { name: 'Navegação principal' })
+    expect(gaveta).toHaveAttribute('aria-modal', 'true')
+    expect(screen.getByRole('button', { name: 'Fechar menu' })).toHaveFocus()
+    // Na gaveta não existe "recolher": ela abre sempre inteira.
+    expect(screen.queryByRole('button', { name: 'Recolher menu' })).not.toBeInTheDocument()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(onFechar).toHaveBeenCalledOnce()
+  })
+
+  it('fechada, some da árvore acessível (está fora da tela)', () => {
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={['/inicio']}>
+          <Sidebar onAbrirBusca={vi.fn()} gaveta={{ aberta: false, onFechar: vi.fn() }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(container.querySelector('.sidebar-rail')).toHaveAttribute('aria-hidden', 'true')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('a preferência "recolhida" não vale na gaveta — ela abre com os rótulos', () => {
+    usePrefs.setState({ sidebarRecolhida: true })
+    const { container } = render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={['/inicio']}>
+          <Sidebar onAbrirBusca={vi.fn()} gaveta={{ aberta: true, onFechar: vi.fn() }} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    )
+
+    expect(container.querySelector('.sidebar-rail')).not.toHaveClass('sidebar-rail--recolhida')
+  })
+})

@@ -1,0 +1,93 @@
+// Menu flutuante do shell (MenuFlutuante.tsx). Mesma linguagem do painel de
+// busca e dos popovers da cvzdesk — cartão branco, linha fina, sombra baixa —
+// só que `position: fixed`, porque ele nasce onde o mouse clicou (menu de
+// contexto) ou logo abaixo do gatilho, calculado em JS.
+.menu-flutuante {
+  position: fixed;
+  // Acima da sidebar (100) e da barra de abas (90): o menu de contexto de uma
+  // aba na ponta esquerda pode se abrir por cima da sidebar. Abaixo do véu da
+  // busca (300) — a busca é modal, o menu não.
+  z-index: 120;
+  min-width: 200px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio);
+  box-shadow: var(--sombra-flutuante);
+  font-family: var(--f-ui);
+  animation: menu-flutuante-entrar 0.1s ease;
+
+  &__cabecalho {
+    padding: 6px 10px 4px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+
+    i {
+      font-size: 15px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    // Hover E foco no mesmo desenho: o item "focado" pelo teclado é o mesmo
+    // que o mouse está por cima — o menu tem um ponteiro só.
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: var(--surface-alt);
+      outline: none;
+    }
+
+    &:disabled {
+      color: var(--text-muted);
+      cursor: default;
+      i {
+        color: var(--text-muted);
+      }
+    }
+
+    &--perigo:not(:disabled) {
+      color: var(--danger);
+      i {
+        color: var(--danger);
+      }
+    }
+  }
+
+  &__separador {
+    height: 1px;
+    margin: 4px 6px;
+    background: var(--stroke);
+  }
+}
+
+@keyframes menu-flutuante-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

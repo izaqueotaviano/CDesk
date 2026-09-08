@@ -259,3 +259,160 @@ describe('BarraDeAbas — abas de seção', () => {
     expect(screen.getByRole('tab', { name: /#1007/ })).toHaveAttribute('aria-selected', 'true')
   })
 })
+
+describe('BarraDeAbas — atalhos de navegador: clique do meio, Delete, menu de contexto', () => {
+  it('clique do meio fecha a aba, como no navegador', () => {
+    montar([
+      { id: 1, ref: '#1001', draft: '' },
+      { id: 2, ref: '#1002', draft: '' },
+    ])
+
+    // A testing-library não tem atalho pra `auxclick`; é o evento nativo que
+    // o navegador dispara no botão do meio (button 1).
+    fireEvent(screen.getByRole('tab', { name: /#1002/ }), new MouseEvent('auxclick', { button: 1, bubbles: true }))
+
+    expect(useTabs.getState().tabs.map((t) => (t.tipo === 'ticket' ? t.ticketId : null))).toEqual([1])
+  })
+
+  it('Delete com a aba focada fecha; na Início não faz nada', () => {
+    montar([
+      { id: 1, ref: '#1001', draft: '' },
+      { id: 2, ref: '#1002', draft: '' },
+    ])
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /#1002/ }), { key: 'Delete' })
+    expect(useTabs.getState().tabs.map((t) => (t.tipo === 'ticket' ? t.ticketId : null))).toEqual([1])
+
+    fireEvent.keyDown(screen.getByRole('tab', { name: /Início/ }), { key: 'Delete' })
+    expect(useTabs.getState().tabs).toHaveLength(1)
+  })
+
+  it('botão direito abre o menu de contexto; "fechar as outras" deixa só a escolhida', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+        { id: 3, ref: '#1003', draft: '' },
+      ],
+      2,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /#1002/ }))
+    const menu = screen.getByRole('menu', { name: 'Ações da aba' })
+    expect(menu).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar as outras abas' }))
+
+    expect(useTabs.getState().tabs.map((t) => (t.tipo === 'ticket' ? t.ticketId : null))).toEqual([2])
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+
+  it('"fechar as abas à direita" e "à esquerda" respeitam a posição; a Início nunca conta', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+        { id: 3, ref: '#1003', draft: '' },
+      ],
+      2,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /#1002/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar as abas à direita' }))
+    expect(useTabs.getState().tabs.map((t) => (t.tipo === 'ticket' ? t.ticketId : null))).toEqual([1, 2])
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /#1002/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar as abas à esquerda' }))
+    expect(useTabs.getState().tabs.map((t) => (t.tipo === 'ticket' ? t.ticketId : null))).toEqual([2])
+
+    // Só sobrou a própria: nada à esquerda (a Início não fecha), nada à direita.
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /#1002/ }))
+    expect(screen.getByRole('menuitem', { name: 'Fechar as abas à esquerda' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Fechar as abas à direita' })).toBeDisabled()
+    expect(screen.getByRole('menuitem', { name: 'Fechar as outras abas' })).toBeDisabled()
+  })
+
+  it('fechar em lote pergunta UMA vez pelo conjunto quando há rascunho, e desiste se a pessoa recusar', () => {
+    confirmar.mockReturnValue(false)
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: 'meio escrito' },
+        { id: 2, ref: '#1002', draft: '' },
+        { id: 3, ref: '#1003', draft: 'outro rascunho' },
+      ],
+      2,
+    )
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: /#1002/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar as outras abas' }))
+
+    expect(confirmar).toHaveBeenCalledOnce()
+    expect(confirmar).toHaveBeenCalledWith('2 abas têm rascunho não enviado. Fechar descarta esses textos.')
+    expect(useTabs.getState().tabs).toHaveLength(3)
+  })
+})
+
+describe('BarraDeAbas — "+" com abertura rápida e "…" com fechar todas', () => {
+  it('seta pra baixo no "+" abre a lista de seções; escolher uma navega pra ela', () => {
+    render(
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<BarraDeAbas />} />
+          <Route path="/clientes" element={<p>tela de clientes</p>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Abrir novo ticket' }), { key: 'ArrowDown' })
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Clientes' }))
+
+    expect(screen.getByText('tela de clientes')).toBeInTheDocument()
+  })
+
+  it('"fechar todas as abas" no menu "…" esvazia o store e volta pro Início', () => {
+    montar(
+      [
+        { id: 1, ref: '#1001', draft: '' },
+        { id: 2, ref: '#1002', draft: '' },
+      ],
+      2,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações das abas' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar todas as abas' }))
+
+    expect(useTabs.getState().tabs).toEqual([])
+    expect(screen.getByText('início')).toBeInTheDocument()
+  })
+
+  it('sem nenhuma aba fechável, "fechar todas" fica desabilitado', () => {
+    render(
+      <MemoryRouter initialEntries={['/inicio']}>
+        <Routes>
+          <Route path="/inicio" element={<BarraDeAbas />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mais ações das abas' }))
+    expect(screen.getByRole('menuitem', { name: 'Fechar todas as abas' })).toBeDisabled()
+  })
+})
+
+describe('stores/tabs — reordenar', () => {
+  it('aplica a nova ordem e manda pro fim o que a lista esqueceu', () => {
+    useTabs.setState({
+      tabs: [
+        { tipo: 'ticket', ticketId: 1, resumo: resumo(1, '#1001'), scroll: 0, draft: '' },
+        { tipo: 'secao', rota: '/clientes', titulo: 'Clientes', icone: 'ti ti-users' },
+        { tipo: 'ticket', ticketId: 2, resumo: resumo(2, '#1002'), scroll: 0, draft: '' },
+      ],
+      active: 'ticket:1',
+      reconciliando: false,
+    })
+
+    useTabs.getState().reordenar(['ticket:2', 'secao:/clientes', 'chave:inventada'])
+
+    expect(useTabs.getState().tabs.map((a) => (a.tipo === 'ticket' ? a.ticketId : a.rota))).toEqual([2, '/clientes', 1])
+    expect(useTabs.getState().active).toBe('ticket:1')
+  })
+})

@@ -1,4 +1,5 @@
-// Sidebar do shell — expandida (240px) e recolhida (64px).
+// Sidebar do shell — expandida (240px), recolhida (64px) e gaveta (tela
+// pequena).
 //
 // A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
 // shell.scss, na raiz, porque quem se mexe junto é o conteúdo — o corpo lê a
@@ -7,8 +8,9 @@
 // (O fallback de 240px cobre a barra renderizada fora do shell, como no teste.)
 //
 // Sem borda vertical à direita: a separação já vem da diferença de fundo
-// (cromo #f0f0f0 contra conteúdo branco), e a linha por cima disso engrossava
-// a moldura à toa.
+// (cromo #f0f0f0 contra o painel de conteúdo), e a linha por cima disso
+// engrossava a moldura à toa. As linhas horizontais que existem — abaixo do
+// cabeçalho e acima do rodapé — marcam as zonas, não a borda.
 .sidebar-rail {
   position: fixed;
   top: 0;
@@ -18,24 +20,20 @@
   width: var(--largura-sidebar, 240px);
   display: flex;
   flex-direction: column;
-  padding: 8px;
-  gap: 2px;
   background: var(--surface-alt);
   color: var(--texto-cromo);
   transition: width 0.15s ease;
 
-  &--recolhida {
-    padding: 8px 0;
-    align-items: center;
-  }
-
-  // ── Marca + alternador ────────────────────────────────────────────────────
+  // ── Cabeçalho: marca + alternador ─────────────────────────────────────────
   &__topo {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     gap: 4px;
-    min-height: 40px;
+    height: 52px;
+    padding: 0 8px 0 12px;
     flex-shrink: 0;
+    border-bottom: 1px solid var(--stroke);
   }
 
   &__marca {
@@ -44,8 +42,8 @@
     gap: 10px;
     flex: 1;
     min-width: 0;
-    height: 40px;
-    padding: 0 8px;
+    height: 36px;
+    padding: 0 4px;
     border: none;
     border-radius: var(--raio);
     background: transparent;
@@ -62,25 +60,36 @@
     }
   }
 
+  // Caixa fixa de 32px em volta da marca: é o que centraliza o logo no rail
+  // recolhido e mantém o nome alinhado ao lado dele no expandido.
+  &__logo {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   &__logo-mark {
     width: 20px;
     height: auto;
-    flex-shrink: 0;
-    color: currentColor;
+    color: var(--text-primary);
   }
 
   &__marca-nome {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   &__alternar {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -88,19 +97,29 @@
     border: none;
     border-radius: var(--raio);
     background: transparent;
-    color: var(--texto-cromo);
+    color: var(--text-secondary);
     cursor: pointer;
 
     i {
-      font-size: 16px;
+      font-size: 17px;
     }
     &:hover {
       background: var(--stroke);
+      color: var(--text-primary);
     }
     &:focus-visible {
       outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
+  }
+
+  // Recolhida: o alternador desce pra uma linha própria abaixo da marca.
+  &__linha-alternar {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--stroke);
   }
 
   // ── Busca ─────────────────────────────────────────────────────────────────
@@ -112,7 +131,7 @@
     align-items: center;
     gap: 8px;
     height: 34px;
-    margin: 6px 0;
+    margin: 12px 12px 4px;
     padding: 0 8px;
     flex-shrink: 0;
     border: 1px solid var(--borda-campo);
@@ -160,9 +179,10 @@
   &__nav {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     flex: 1;
     min-height: 0;
+    padding: 8px 12px;
     overflow-y: auto;
     // A rolagem é da lista, não da barra: com 11 itens mais as zonas fixas,
     // uma janela baixa cortaria o rodapé (conta e tema) se a barra inteira
@@ -171,12 +191,13 @@
   }
 
   &__item {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     width: 100%;
-    min-height: 34px;
-    padding: 0 8px;
+    min-height: 36px;
+    padding: 0 10px;
     flex-shrink: 0;
     border: none;
     border-radius: var(--raio);
@@ -184,25 +205,45 @@
     color: var(--texto-cromo);
     font-family: var(--f-ui);
     font-size: 13px;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
 
     &:hover {
       background: var(--stroke);
+      color: var(--text-primary);
     }
-    // Estado ativo pela COR DE AÇÃO, não só por um cinza mais escuro: com a
-    // barra inteira em bege, o realce cinza mal se via.
+    // Ativo: fundo tingido da cor de ação + a barrinha vertical na borda
+    // esquerda (a marca de "você está aqui" das barras laterais de navegador
+    // e editor). A barrinha fica FORA do padding da lista, encostada na
+    // borda do rail, por isso o `left` negativo.
     &--ativo {
-      background: var(--tom-acento-forte);
-      color: var(--accent-active);
+      background: var(--tom-acento);
+      color: var(--text-primary);
       font-weight: 600;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        border-radius: 0 3px 3px 0;
+        background: var(--accent);
+      }
+      .sidebar-rail__icone i {
+        color: var(--accent);
+      }
     }
     &--inerte {
       color: var(--text-muted);
       cursor: default;
       &:hover {
         background: transparent;
+        color: var(--text-muted);
       }
     }
     &:focus-visible {
@@ -224,9 +265,13 @@
     justify-content: center;
 
     i {
-      font-size: 17px;
+      font-size: 18px;
       line-height: 1;
+      color: var(--text-secondary);
     }
+  }
+  &__item:hover &__icone i {
+    color: var(--text-primary);
   }
 
   &__rotulo {
@@ -240,6 +285,7 @@
   &__em-breve {
     flex-shrink: 0;
     font-size: 10px;
+    font-weight: 400;
     color: var(--text-muted);
   }
 
@@ -247,8 +293,8 @@
   // olha para achar o chat, sem ocupar uma linha própria.
   &__badge {
     position: absolute;
-    top: -3px;
-    right: -6px;
+    top: -4px;
+    right: -7px;
     min-width: 15px;
     height: 15px;
     padding: 0 3px;
@@ -268,10 +314,9 @@
   &__zona-utilitaria {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     flex-shrink: 0;
-    padding-top: 8px;
-    margin-top: 4px;
+    padding: 8px 12px 10px;
     border-top: 1px solid var(--stroke);
     width: 100%;
 
@@ -299,9 +344,8 @@
   // empurra nem cobre conteúdo).
   &--recolhida {
     .sidebar-rail__topo {
-      flex-direction: column;
-      gap: 2px;
-      min-height: auto;
+      justify-content: center;
+      padding: 0;
     }
     .sidebar-rail__marca {
       flex: none;
@@ -319,6 +363,7 @@
     }
     .sidebar-rail__busca {
       width: 40px;
+      margin: 8px auto 0;
       justify-content: center;
       padding: 0;
       border-color: transparent;
@@ -331,7 +376,7 @@
     }
     .sidebar-rail__nav {
       align-items: center;
-      width: 100%;
+      padding: 8px 0;
     }
     .sidebar-rail__item,
     .menu-presenca__gatilho {
@@ -341,74 +386,47 @@
       padding: 0;
       min-height: 40px;
     }
+    // Sem espaço pra barrinha à esquerda do ícone: o ativo se diz pelo fundo
+    // e pela cor do ícone.
+    .sidebar-rail__item--ativo::before {
+      display: none;
+    }
     .sidebar-rail__zona-utilitaria {
       align-items: center;
+      padding: 8px 0 10px;
       // A linha divisória acompanha a largura do rail em vez de atravessar a
       // barra inteira: colada nas bordas ela virava um traço largo demais para
       // 64px.
-      margin: 4px 12px 0;
+      margin: 0 12px;
       width: auto;
     }
   }
 }
 
-// ── Telas pequenas ──────────────────────────────────────────────────────────
-// Abaixo de 768px a barra assume o rail INDEPENDENTE da preferência: o
-// conteúdo é quem precisa da largura (a largura em si é imposta em
-// shell.scss, na mesma faixa). Uma gaveta sobreposta foi descartada — exigiria
-// véu, trava de foco e um botão de abrir em algum lugar do conteúdo, e o rail
-// já mantém a navegação inteira alcançável com um toque.
-@media (max-width: 767px) {
-  .sidebar-rail {
-    padding: 8px 0;
-    align-items: center;
+// ── Gaveta (tela pequena) ───────────────────────────────────────────────────
+// Abaixo de 768px a barra sai do fluxo de vez: o corpo não recua (shell.scss
+// zera `--largura-sidebar`) e ela entra por cima do conteúdo, com véu, quando
+// o botão de menu da barra de abas pede. Fechada, fica fora da tela E
+// `visibility: hidden` — some da ordem de tabulação sem precisar desmontar.
+.sidebar-veu {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--veu);
+}
 
-    .sidebar-rail__topo {
-      flex-direction: column;
-      gap: 2px;
-      min-height: auto;
-    }
-    .sidebar-rail__marca {
-      flex: none;
-      width: 40px;
-      justify-content: center;
-      padding: 0;
-    }
-    .sidebar-rail__marca-nome,
-    .sidebar-rail__busca-rotulo,
-    .sidebar-rail__busca-atalho,
-    .sidebar-rail__rotulo,
-    .sidebar-rail__em-breve,
-    .menu-presenca__nome,
-    // O alternador some: a largura aqui é imposta pela tela, e um botão que
-    // promete expandir sem conseguir seria um botão que mente.
-    .sidebar-rail__alternar {
-      display: none;
-    }
-    .sidebar-rail__busca {
-      width: 40px;
-      justify-content: center;
-      padding: 0;
-      border-color: transparent;
-      background: transparent;
-      color: var(--texto-cromo);
-    }
-    .sidebar-rail__nav {
-      align-items: center;
-      width: 100%;
-    }
-    .sidebar-rail__item,
-    .menu-presenca__gatilho {
-      width: 40px;
-      justify-content: center;
-      gap: 0;
-      padding: 0;
-      min-height: 40px;
-    }
-    .sidebar-rail__zona-utilitaria {
-      align-items: center;
-      margin: 4px 12px 0;
-      width: auto;
+@media (max-width: 767px) {
+  .sidebar-rail--gaveta {
+    width: min(280px, 85vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: var(--sombra-flutuante);
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+
+    &.sidebar-rail--gaveta-aberta {
+      transform: none;
+      visibility: visible;
+      transition: transform 0.2s ease, visibility 0s;
     }
   }
 }
