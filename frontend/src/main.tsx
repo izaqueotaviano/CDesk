@@ -5,6 +5,9 @@ import '@fontsource/inter/600.css'
 import '@fontsource/inter/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
+// Serif de destaque — só a saudação da Início usa (--f-display); um peso
+// já basta, o corpo da interface inteira continua em Inter.
+import '@fontsource/libre-baskerville/400.css'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'

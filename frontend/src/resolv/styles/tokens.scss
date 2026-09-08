@@ -17,20 +17,35 @@
 .resolv-scope {
   // ── Fontes ──
   // Inter na interface; JetBrains Mono só em dado técnico (id, referência de
-  // ticket, atalho de teclado) — nunca em texto corrido.
+  // ticket, atalho de teclado) — nunca em texto corrido. `--f-display` é
+  // serifa de UM lugar só (saudação da Início, ver inicio.scss) — referência:
+  // o título grande do app da Manus (manus.im), que mistura serifa só no
+  // destaque com a mesma pilha sans nativa no resto da interface.
   --f-ui: 'Inter', -apple-system, system-ui, sans-serif;
   --f-mono: 'JetBrains Mono', monospace;
+  --f-display: 'Libre Baskerville', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
 
   // ── Superfícies ──
   // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em
   // relação à paleta antiga é o ponto: antes o cromo era quase igual ao fundo,
   // agora ele recua de verdade e a área de trabalho ganha o branco inteiro.
+  //
+  // `surface-canvas` é nova: o fundo geral ATRÁS do conteúdo (pintado uma vez
+  // só, em .novo-shell — ver shell.scss), não os cards/tabelas/modais em si,
+  // que continuam brancos. Valor do JSON de referência (cluster
+  // copilot.microsoft.com); o mesmo papel no app da Manus é o canvas
+  // (#f8f8f7) por trás dos cards quase-brancos.
   --surface: #ffffff;
   --surface-alt: #efeae7;
   --surface-card: #ffffff;
-  --stroke: #d6d2cf;
-  --stroke-hover: #b5b0ac;
-  --stroke-subtle: #e2dedb;
+  --surface-canvas: #f9f4f2;
+  // Linha estrutural (tabela, card, divisória, cromo) — preta translúcida, do
+  // jeito que o app da Manus faz: a MESMA variável então funciona sobre os
+  // três fundos claros (cromo/canvas/cartão) sem precisar recalibrar por
+  // superfície. `--borda-campo`, abaixo, é outra família — não mexe aqui.
+  --stroke: rgba(0, 0, 0, 0.06);
+  --stroke-hover: rgba(0, 0, 0, 0.14);
+  --stroke-subtle: rgba(0, 0, 0, 0.04);
 
   // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
   // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
@@ -39,9 +54,12 @@
   --borda-campo: #7d7d7d;
 
   // ── Texto ──
-  --text-primary: #171717;
-  --text-secondary: #60646c;
-  --text-muted: #999999;
+  // Fonte: o mesmo material de referência do fundo (app da Manus) —
+  // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
+  // saem daqui (ver conferência de WCAG no commit).
+  --text-primary: #1a1a1a;
+  --text-secondary: #4d4d4d;
+  --text-muted: #737373;
   // Texto e ícone sobre o cromo (#efeae7). Um degrau mais claro que o texto
   // principal: sobre fundo bege ele já tem contraste de sobra (9.4:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
@@ -94,8 +112,8 @@
   --sombra-suave: rgba(0, 0, 0, 0.06);
   --sombra-forte: rgba(0, 0, 0, 0.12);
   --sombra-flutuante: 0 8px 24px var(--sombra-forte), 0 0 0 1px var(--stroke);
-  --veu: rgba(23, 23, 23, 0.42);
-  --veu-suave: rgba(23, 23, 23, 0.24);
+  --veu: rgba(26, 26, 26, 0.42);
+  --veu-suave: rgba(26, 26, 26, 0.24);
 
   color-scheme: light;
   font-family: var(--f-ui);
@@ -123,6 +141,10 @@
   --surface: #1d1b19;
   --surface-alt: #171514;
   --surface-card: #24211f;
+  // Sem referência escura no material desta rodada (o app da Manus só foi
+  // capturado no claro) — valor extrapolado mantendo a MESMA ordem do claro
+  // (chrome < canvas < corpo < cartão), entre o chrome e o corpo.
+  --surface-canvas: #1a1816;
   --stroke: #35312e;
   --stroke-hover: #4f4943;
   --stroke-subtle: #3d3936;

@@ -13,7 +13,8 @@ $blue-hover:      var(--cvz-blue-hover);
 $blue-active:     var(--cvz-blue-active);
 
 // --- cor: superfícies --------------------------------------------------------
-$surface:         var(--cvz-surface);      // fundo do conteúdo
+$surface:         var(--cvz-surface);      // fundo do conteúdo (cards, tabelas, modais)
+$canvas:          var(--cvz-canvas);       // fundo geral atrás do conteúdo (SuperficieCvz)
 $chrome:          var(--cvz-chrome);       // sidebar e topbar
 $raised:          var(--cvz-raised);       // cards, campos, popovers
 $stroke:          var(--cvz-stroke);       // linha estrutural: tabela, card, cromo
@@ -104,8 +105,9 @@ $sp-4: 16px; $sp-5: 24px; $sp-6: 32px;
 $sp-7: 48px; $sp-8: 64px;
 
 // --- tipografia --------------------------------------------------------------
-$f-ui:   var(--f-ui, 'Inter', -apple-system, system-ui, sans-serif);
-$f-mono: var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
+$f-ui:      var(--f-ui, 'Inter', -apple-system, system-ui, sans-serif);
+$f-mono:    var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
+$f-display: var(--f-display, 'Libre Baskerville', ui-serif, Georgia, serif);
 
 $w-light:    300; // texto corrido
 $w-regular:  400;

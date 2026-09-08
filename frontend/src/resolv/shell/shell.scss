@@ -9,7 +9,9 @@
 
   display: flex;
   min-height: 100vh;
-  background: var(--surface);
+  // Fundo geral atrás do conteúdo — não o dos cards/tabelas/painéis em si,
+  // que seguem pintando `--surface` (branco) por cima em cada tela.
+  background: var(--surface-canvas);
 
   &--recolhida {
     --largura-sidebar: 64px;

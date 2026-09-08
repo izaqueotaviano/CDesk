@@ -3,12 +3,17 @@
 
 // Equivalente a `.surface.surface--dashboard` (AppShell.scss), sem o
 // `.app-shell` que a envolvia lá — ver comentário em SuperficieCvz.tsx.
+//
+// Fundo em `$canvas` (não `$surface`): esta é a camada geral atrás do
+// conteúdo das rotas cvz (clientes, configurações, relatórios, auditoria) —
+// os cards/tabelas/modais dentro dela continuam pintando `$surface` (branco)
+// por cima, exatamente como no corpo nativo do shell (ver shell.scss).
 .cvz-superficie {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  background-color: $surface;
+  background-color: $canvas;
   color: $text;
   padding: $sp-5;
   overflow-y: auto;

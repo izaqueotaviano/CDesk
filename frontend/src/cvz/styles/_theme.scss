@@ -32,18 +32,27 @@
   // Conteúdo em branco; o cromo (sidebar, barra de abas) é que recua para o
   // #efeae7. `raised` segue branco e se separa do fundo pela LINHA, não por
   // sombra — a rodada pediu explicitamente para evitar sombra pesada.
+  //
+  // `canvas` é o fundo geral atrás do conteúdo — pintado uma vez em
+  // SuperficieCvz.scss, não nos cards/tabelas/modais em si (que continuam em
+  // `surface`). Cor do JSON de referência (cluster copilot.microsoft.com);
+  // o mesmo papel no app da Manus é o canvas atrás dos cards quase-brancos.
   --cvz-surface:         #ffffff;
+  --cvz-canvas:          #f9f4f2;
   --cvz-chrome:          #efeae7;
   --cvz-raised:          #ffffff;
-  --cvz-stroke:          #d6d2cf;
+  // Preta translúcida (referência: app da Manus) em vez de cinza sólido —
+  // assim a MESMA linha funciona sobre os três fundos claros (cromo, canvas,
+  // cartão) sem precisar de um tom por superfície.
+  --cvz-stroke:          rgba(0, 0, 0, 0.06);
   --cvz-field-border:    #7d7d7d;
   --cvz-hover:           #e8e4e1;
-  --cvz-hover-soft:      rgba(23, 23, 23, 0.04);
+  --cvz-hover-soft:      rgba(26, 26, 26, 0.04);
 
-  --cvz-text:            #171717;
-  --cvz-text-hover:      #0d0d0d;
-  --cvz-text-secondary:  #60646c;
-  --cvz-text-muted:      #999999;
+  --cvz-text:            #1a1a1a;
+  --cvz-text-hover:      #101010;
+  --cvz-text-secondary:  #4d4d4d;
+  --cvz-text-muted:      #737373;
   --cvz-text-on-color:   #ffffff;
   --cvz-text-on-accent:  #ffffff;
 
@@ -56,7 +65,7 @@
   --cvz-away-tint:       #f8f1e3;
 
   --cvz-avatar-bg:       #c6c6c6;
-  --cvz-overlay:         rgba(23, 23, 23, 0.38);
+  --cvz-overlay:         rgba(26, 26, 26, 0.38);
 
   --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
   --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -82,6 +91,10 @@
   --cvz-blue-tint-hover: #24365c;
 
   --cvz-surface:         #141218;  // M3 surface
+  // Sem referência escura no material desta rodada — mesma extrapolação do
+  // lado resolv (tokens.scss): entre o chrome e o corpo, mantendo a ordem
+  // chrome < canvas < corpo < cartão dos dois temas.
+  --cvz-canvas:          #18161b;
   --cvz-chrome:          #1D1B20;  // M3 surface-container-low
   --cvz-raised:          #211F26;  // M3 surface-container
   --cvz-stroke:          #49454F;  // M3 outline-variant
