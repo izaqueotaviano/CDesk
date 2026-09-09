@@ -74,8 +74,10 @@ class NoteViewSet(viewsets.ModelViewSet):
 
         if etiqueta := params.get("tag"):
             # por SLUG e não por id: o filtro sobrevive a um link colado e a
-            # etiqueta é identificada do mesmo jeito que o usuário a digita
-            qs = qs.filter(tags__slug=etiqueta)
+            # etiqueta é identificada do mesmo jeito que o usuário a digita.
+            # Passa por `slug_de` para `?tag=Urgente` e `?tag=urgente` serem o
+            # mesmo filtro — é a mesma normalização que criou a etiqueta.
+            qs = qs.filter(tags__slug=services.slug_de(etiqueta))
 
         if (chamado := params.get("ticket")) and chamado.isdigit():
             qs = qs.filter(ticket_id=int(chamado))

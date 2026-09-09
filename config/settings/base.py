@@ -337,7 +337,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    # Com teto em `?limit=`: sem ele um inteiro maior que o bigint dá 500 em
+    # todo endpoint paginado — ver apps/core/pagination.py.
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.LimitOffsetComTeto",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # `Http404` do get_object_or_404 vaza uma frase em inglês; ver
@@ -644,8 +646,13 @@ if SENTRY_DSN:
             dsn=SENTRY_DSN,
             environment=env("SENTRY_ENVIRONMENT", default="production"),
             # dado de cliente sob LGPD (ver docstring de prod.py): nada de PII
-            # nos eventos de erro por padrão — cabeçalho, corpo de requisição
-            # e usuário autenticado ficam de fora.
+            # nos eventos de erro — cookies e usuário autenticado ficam de fora.
             send_default_pii=False,
+            # `send_default_pii` NÃO cobre o corpo da requisição: quem manda
+            # nele é este parâmetro, e o padrão do SDK ("medium") anexa até
+            # 10 KB do payload a cada evento de erro. Um 500 num PATCH de nota
+            # pessoal ou numa mensagem de chat mandaria o texto inteiro para o
+            # Sentry. "never" é o que o comentário acima sempre prometeu.
+            max_request_body_size="never",
             traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
         )

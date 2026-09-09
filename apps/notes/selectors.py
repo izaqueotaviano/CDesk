@@ -6,7 +6,10 @@ pelo mesmo motivo de `tickets/selectors.py`: a fronteira não pode depender de
 alguém lembrar de escrevê-la em cada view.
 """
 
+from django.db.models import Exists, OuterRef
+
 from apps.notes.models import Note, NoteTag
+from apps.tickets.selectors import visible_tickets
 
 
 def visible_notes(user):
@@ -20,11 +23,19 @@ def visible_notes(user):
     `select_related`/`prefetch_related` porque a listagem lê o protocolo do
     chamado e as etiquetas em toda linha: sem isso, uma página de 25 notas
     dispara 50 queries a mais.
+
+    `ticket_visivel`: o chamado preso à nota AINDA está no escopo de `user`?
+    Foi validado quando a nota foi escrita, mas escopo é por equipe e muda —
+    e a nota não pode virar a única janela para um chamado que a listagem de
+    chamados já não mostra. Subquery correlacionada: entra na mesma consulta,
+    não custa uma query por linha.
     """
+    ainda_ve = visible_tickets(user).filter(pk=OuterRef("ticket_id"))
     return (
         Note.objects.visible_to(user)
         .select_related("ticket")
         .prefetch_related("tags")
+        .annotate(ticket_visivel=Exists(ainda_ve))
     )
 
 

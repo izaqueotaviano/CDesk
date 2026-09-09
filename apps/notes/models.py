@@ -15,6 +15,12 @@ por `visible_to` é um vazamento, e o teste estrutural
 
 `ticket` é opcional e é um ATALHO, não um vínculo de propriedade: o chamado
 some, a anotação de quem trabalhou nele fica (SET_NULL).
+
+`content` é TEXTO PURO. Não é HTML nem Markdown: o projeto não tem editor de
+texto rico, e o texto entra e sai da API tal qual foi digitado — sem saneamento
+(que corromperia "a < b") e sem escape (que é trabalho de quem renderiza). A
+tela tem de mostrar o corpo como nó de texto, nunca como HTML; é esse contrato,
+e não um filtro, que fecha a porta do XSS.
 """
 
 from django.db import models

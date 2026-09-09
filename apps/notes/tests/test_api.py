@@ -8,7 +8,9 @@ payload. O resto — filtros, busca, ordenação — é a tela funcionando.
 
 import pytest
 from django.utils import timezone
+from rest_framework.test import APIClient
 
+from apps.customers.services.embed import issue_access_token
 from apps.notes.models import Note, NoteTag
 
 pytestmark = pytest.mark.django_db
@@ -62,6 +64,16 @@ class TestCriar:
     def test_cliente_nao_entra_na_area_de_notas(self, ana, api):
         """A área é do console interno; o portal não tem notas nesta versão."""
         assert api(ana).get(URL).status_code == 403
+
+    def test_token_do_widget_nao_abre_as_notas(self, ana, api):
+        """O token do mini chat embutido autentica pelo cabeçalho, sem cookie
+        de sessão — e é uma autenticadora GLOBAL. Um cliente com esse token na
+        mão não pode virar leitor de notas por ele."""
+        widget = APIClient()
+        widget.credentials(HTTP_AUTHORIZATION=f"Bearer {issue_access_token(ana.id)}")
+
+        assert widget.get(URL).status_code == 401
+        assert widget.post(URL, {"title": "x"}, format="json").status_code == 401
 
     def test_anonimo_e_recusado(self, db, client):
         assert client.get(URL).status_code in (401, 403)
@@ -158,6 +170,49 @@ class TestVinculoComChamado:
 
         assert r.status_code == 400
         assert "ticket" in r.json()
+
+    def test_inexistente_e_fora_do_escopo_dao_a_mesma_resposta(
+        self, agente_financeiro, chamado, api
+    ):
+        """Texto de erro diferente para "não existe" e "existe mas não é seu"
+        é um oráculo: dava para enumerar os ids de chamado do sistema inteiro
+        sem enxergar nenhum. Para quem escreve, os dois são o mesmo fato."""
+        cliente = api(agente_financeiro)
+
+        fora = cliente.post(URL, {"title": "x", "ticket": chamado.pk}, format="json")
+        inexistente = cliente.post(URL, {"title": "x", "ticket": 999_999}, format="json")
+
+        assert fora.status_code == inexistente.status_code == 400
+        assert fora.json() == inexistente.json()
+
+    def test_chamado_que_saiu_do_meu_escopo_some_da_nota(
+        self, agente_suporte, chamado, financeiro, api
+    ):
+        """Escopo de chamado é por equipe e muda com o tempo. O vínculo foi
+        válido quando a nota nasceu; se o chamado trocar de equipe, a nota não
+        pode continuar sendo a única janela para o protocolo e o assunto dele.
+        O id fica (para a tela oferecer "desvincular"), o resto some."""
+        cliente = api(agente_suporte)
+        nota_id = cliente.post(
+            URL, {"title": "Sobre o caso", "ticket": chamado.pk}, format="json"
+        ).json()["id"]
+
+        chamado.team = financeiro
+        chamado.save(update_fields=["team"])
+
+        na_lista = next(n for n in corpo(cliente.get(URL)) if n["id"] == nota_id)
+        no_detalhe = cliente.get(f"{URL}{nota_id}/").json()
+        apos_editar = cliente.patch(
+            f"{URL}{nota_id}/", {"title": "Editada"}, format="json"
+        ).json()
+        for visao in (na_lista, no_detalhe, apos_editar):
+            assert visao["ticket"] == chamado.pk
+            assert visao["ticket_reference"] is None
+            assert visao["ticket_subject"] is None
+
+        # e religar ao mesmo chamado, agora fora do alcance, é recusado
+        r = cliente.patch(f"{URL}{nota_id}/", {"ticket": chamado.pk}, format="json")
+        assert r.status_code == 400
 
     def test_vinculo_e_opcional(self, agente_suporte, api):
         r = api(agente_suporte).post(URL, {"title": "Solta"}, format="json")
@@ -291,6 +346,15 @@ class TestEstadoEFiltros:
 
         assert [n["title"] for n in corpo(r)] == ["com"]
 
+    def test_filtro_por_etiqueta_aceita_o_nome_como_digitado(self, agente_suporte, api):
+        """`?tag=Urgente` num link colado tem de achar a etiqueta "urgente":
+        o filtro normaliza do mesmo jeito que a etiqueta foi criada."""
+        cliente = api(agente_suporte)
+        cliente.post(URL, {"title": "T", "tag_names": ["Urgente"]}, format="json")
+
+        for como_digitado in ("Urgente", "URGENTE", "urgente"):
+            assert len(corpo(cliente.get(URL, {"tag": como_digitado}))) == 1
+
     def test_nota_com_duas_etiquetas_nao_duplica_na_lista(self, agente_suporte, api):
         cliente = api(agente_suporte)
         cliente.post(URL, {"title": "T", "tag_names": ["A", "B"]}, format="json")
@@ -400,6 +464,29 @@ class TestLixeira:
         viva = nota(agente_suporte)
 
         assert api(agente_suporte).post(f"{URL}{viva.pk}/restore/").status_code == 404
+
+
+class TestTextoPuro:
+    """`content` e `title` são texto puro: entram e saem tal qual.
+
+    Este teste é o CONTRATO com quem fizer a tela: a API não saneia nem
+    escapa, então o corpo tem de ser renderizado como nó de texto (React
+    escapa sozinho), NUNCA via `dangerouslySetInnerHTML`. Sanear aqui
+    corromperia texto legítimo ("a < b"); escapar aqui quebraria a edição
+    (o textarea mostraria "&lt;").
+    """
+
+    def test_html_entra_e_sai_tal_qual(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        titulo = "<b>t</b>"
+        corpo_ = "if a < b && c > d: <script>alert(1)</script>"
+
+        criado = cliente.post(URL, {"title": titulo, "content": corpo_}, format="json").json()
+        detalhe = cliente.get(f"{URL}{criado['id']}/").json()
+
+        assert criado["title"] == detalhe["title"] == titulo
+        assert detalhe["content"] == corpo_
+        assert criado["excerpt"] == corpo_
 
 
 class TestDesempenho:
