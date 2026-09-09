@@ -5,7 +5,7 @@ import {
   useCarregarAnteriores,
   useChat,
   useEditarMensagemChat,
-  useEncerrarChat,
+  useConfigChat,
   useEnviarArquivos,
   useExcluirMensagemChat,
   useMarcarLidas,
@@ -23,6 +23,7 @@ import { ConfirmDialog } from '../ui/confirm-dialog'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { Mensagem, MensagemDoSistema, PilulaChat } from './componentes'
+import { ModalAvaliacao } from './ModalAvaliacao'
 
 function agruparPorDia(msgs: MensagemChat[], agoraMs: number): { rotulo: string; itens: MensagemChat[] }[] {
   const grupos: { rotulo: string; itens: MensagemChat[] }[] = []
@@ -48,15 +49,26 @@ const CAMPO =
  * anexo sempre por REST — funciona mesmo com o socket caído, de propósito.
  * `onVoltar` só aparece no celular (a lista ocupa a largura toda lá).
  */
-export function Conversa({ chatId, onVoltar }: { chatId: number; onVoltar?: () => void }) {
+export function Conversa({
+  chatId,
+  onVoltar,
+  onEncerrada,
+}: {
+  chatId: number
+  onVoltar?: () => void
+  /** O cliente encerrou avaliando. Quem mostra a confirmação é a página: ao
+   *  fechar, este chat sai da consulta de "conversa viva" e a Conversa pode
+   *  desmontar — ver `DialogConversaEncerrada`. */
+  onEncerrada?: () => void
+}) {
   const idBase = useId()
   const agora = useAgora()
   const { data: chat } = useChat(chatId)
+  const { data: configChat } = useConfigChat()
   const { data: mensagens, isLoading } = useMensagensChat(chatId)
   const { status, digitando, erro: erroSocket, enviarMensagem, enviarDigitando } = useSalaChat(chatId)
   const enviarArquivos = useEnviarArquivos(chatId)
   const carregarAnteriores = useCarregarAnteriores(chatId)
-  const encerrar = useEncerrarChat(chatId)
   const reabrir = useReabrirChat(chatId)
   const marcarLidas = useMarcarLidas(chatId)
   const editar = useEditarMensagemChat(chatId)
@@ -126,14 +138,6 @@ export function Conversa({ chatId, onVoltar }: { chatId: number; onVoltar?: () =
     }
   }
 
-  async function encerrarConversa() {
-    try {
-      await encerrar.mutateAsync({})
-    } catch (e) {
-      setErro(e instanceof ApiError ? (e.detail ?? 'Não foi possível encerrar.') : 'Não foi possível encerrar.')
-      throw e
-    }
-  }
 
   return (
     <div className="flex h-full flex-col">
@@ -341,15 +345,22 @@ export function Conversa({ chatId, onVoltar }: { chatId: number; onVoltar?: () =
         </div>
       )}
 
-      <ConfirmDialog
-        aberto={confirmandoEncerrar}
-        onFechar={() => setConfirmandoEncerrar(false)}
-        onConfirmar={encerrarConversa}
-        titulo="Encerrar esta conversa?"
-        descricao="Depois de encerrar, você vai avaliar o atendimento antes de poder abrir um novo chat — é rápido, mas não dá para pular."
-        rotuloConfirmar="Encerrar"
-        perigo
-      />
+      {/* Encerrar É avaliar: o modal manda as duas notas junto do `close`, e o
+          backend grava tudo numa transação — o chat só fecha se a nota gravar
+          (item 1 do brief). Por isso não há mais um "tem certeza?" antes: a
+          própria avaliação é a confirmação, e "Continuar conversando" desiste. */}
+      {confirmandoEncerrar && (
+        <ModalAvaliacao
+          chat={chat}
+          config={configChat}
+          modo="encerrando"
+          onCancelar={() => setConfirmandoEncerrar(false)}
+          onEncerrada={() => {
+            setConfirmandoEncerrar(false)
+            onEncerrada?.()
+          }}
+        />
+      )}
 
       <ConfirmDialog
         aberto={excluindo != null}

@@ -71,7 +71,10 @@ class TestLeitura:
             "origins": [],
             "rotated_at": resp.data["rotated_at"],
             "company_slug": "acme",
-            "snippet": '<script src="http://testserver/embed/widget.js?company=acme" async></script>',
+            "snippet": (
+                '<script src="http://testserver/embed/widget.js?company=acme"'
+                " async></script>"
+            ),
             "iframe_url": "http://testserver/embed/chat/?company=acme",
         }
         assert CompanyChatEmbed.objects.filter(company=acme).exists()

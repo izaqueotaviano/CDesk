@@ -21,7 +21,7 @@ import { toast } from '../ui/toaster'
 import { CartaoConversa } from './componentes'
 import { Conversa } from './Conversa'
 import { ConversaContinua } from './ConversaContinua'
-import { ModalAvaliacao } from './ModalAvaliacao'
+import { DialogConversaEncerrada, ModalAvaliacao } from './ModalAvaliacao'
 
 /** Sentinela de `?chat=` pra ver a linha do tempo costurada em vez de uma
  *  sessão só — nunca colide com um id real (`/^\d+$/`). */
@@ -146,6 +146,7 @@ export function PaginaChat() {
   const abrir = useAbrirChat()
   const [pendentesDoAbrir, setPendentesDoAbrir] = useState<Chat[]>([])
   const [erroAbrir, setErroAbrir] = useState<{ detail: string; code?: string } | null>(null)
+  const [encerrada, setEncerrada] = useState(false)
 
   const chatParam = params.get('chat')
   const mostrandoContinua = chatParam === PARAM_CONTINUA
@@ -223,7 +224,17 @@ export function PaginaChat() {
           {mostrandoContinua ? (
             <ConversaContinua onVoltar={voltarParaLista} />
           ) : conversaSelecionada != null ? (
-            <Conversa chatId={conversaSelecionada} onVoltar={voltarParaLista} />
+            <Conversa
+              chatId={conversaSelecionada}
+              onVoltar={voltarParaLista}
+              onEncerrada={() => {
+                // fixa o chat na URL: encerrado ele sai da "conversa viva", e
+                // sem isso a seleção caía para null e o cliente era jogado numa
+                // lista vazia logo depois de avaliar.
+                selecionar(conversaSelecionada)
+                setEncerrada(true)
+              }}
+            />
           ) : filaFechada && !bloqueadoPorAvaliacao ? (
             <EstadoVazio
               className="h-full justify-center"
@@ -262,7 +273,8 @@ export function PaginaChat() {
         </Alert>
       )}
 
-      {pendente && <ModalAvaliacao chat={pendente} config={config.data} />}
+      {encerrada && <DialogConversaEncerrada onFechar={() => setEncerrada(false)} />}
+      {!encerrada && pendente && <ModalAvaliacao chat={pendente} config={config.data} />}
     </div>
   )
 }

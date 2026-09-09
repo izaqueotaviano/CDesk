@@ -325,6 +325,26 @@ class CloseSerializer(serializers.Serializer):
     note = serializers.CharField(
         required=False, allow_blank=True, default="", max_length=2000
     )
+    #: A avaliação do CLIENTE, quando ele é quem encerra: encerrar e avaliar
+    #: viram uma operação só (ver `close_chat`). Os três campos andam juntos —
+    #: mandar nota sem a outra nota é erro de quem chama, não meio caminho.
+    service_score = serializers.IntegerField(required=False, allow_null=True, default=None)
+    resolution_score = serializers.IntegerField(
+        required=False, allow_null=True, default=None
+    )
+    justification = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
+
+    def validate(self, attrs):
+        atendimento = attrs.get("service_score")
+        resolucao = attrs.get("resolution_score")
+        if (atendimento is None) != (resolucao is None):
+            raise serializers.ValidationError(
+                "Avaliação incompleta: as duas notas (atendimento e resolução) "
+                "vêm juntas ou nenhuma vem."
+            )
+        return attrs
 
 
 class TransferSerializer(serializers.Serializer):

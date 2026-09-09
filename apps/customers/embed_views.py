@@ -319,7 +319,8 @@ _LOADER = """(function () {
 
   var painel = document.createElement('div');
   painel.style.cssText = [
-    'position:fixed', 'bottom:88px', LADO + ':20px', 'width:380px', 'height:min(560px, calc(100vh - 120px))',
+    'position:fixed', 'bottom:88px', LADO + ':20px', 'width:380px',
+    'height:min(560px, calc(100vh - 120px))',
     'max-width:calc(100vw - 40px)', 'border-radius:14px', 'overflow:hidden', 'background:#fff',
     'box-shadow:0 12px 40px rgba(0,0,0,.18)', 'z-index:' + Z, 'display:none'
   ].join(';');
@@ -335,9 +336,11 @@ _LOADER = """(function () {
   ].join(';');
   // SVG e não emoji: emoji depende de fonte do sistema e sai de tamanho
   // (e de cor) diferente em cada plataforma.
-  botao.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"'
-    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'
-    + '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.9 9.9 0 0 1-4.2-.9L3 21l1.9-4.3A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>'
+  botao.innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none"'
+    + ' stroke="currentColor" stroke-width="2" stroke-linecap="round"'
+    + ' stroke-linejoin="round" aria-hidden="true" focusable="false">'
+    + '<path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.9 9.9 0 0 1-4.2-.9L3 21l1.9-4.3'
+    + 'A8.4 8.4 0 0 1 12 3a8.4 8.4 0 0 1 9 8.5z"/>'
     + '</svg>';
   botao.style.display = 'grid';
   botao.style.placeItems = 'center';
@@ -365,7 +368,9 @@ _LOADER = """(function () {
   }
 
   botao.addEventListener('click', function () { aberto ? fechar() : abrir(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && aberto) fechar(); });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && aberto) fechar();
+  });
 
   // Esc digitado DENTRO da janelinha (e o "×" dela) não chega aqui: evento de
   // iframe não sobe pro documento de fora. A janelinha avisa por postMessage —

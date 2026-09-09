@@ -51,6 +51,7 @@ let pendentesRating: unknown[]
 let historico: unknown[]
 let config: Record<string, unknown>
 let chamadas: { url: string; metodo: string }[]
+let encerramentos: unknown[]
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -63,6 +64,7 @@ beforeEach(() => {
   historico = []
   config = CONFIG
   chamadas = []
+  encerramentos = []
   vi.stubGlobal(
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
@@ -81,6 +83,18 @@ beforeEach(() => {
         const id = Number(u.pathname.split('/').filter(Boolean).pop())
         const alvo = [vivo, ...historico].find((c: any) => c?.id === id)
         return Promise.resolve(jsonDe(alvo ?? chat(id)))
+      }
+      if (/\/close\/$/.test(u.pathname)) {
+        encerramentos.push(JSON.parse(String(init?.body ?? '{}')))
+        const fechado = chat((vivo as { id: number }).id, {
+          status: 'closed',
+          closed_at: '2026-09-01T12:00:00Z',
+          rating: { service_score: 9, resolution_score: 9, justification: '', created_at: '' },
+        })
+        // é o que o servidor faz: encerrado, o chat sai da "conversa viva"
+        vivo = null
+        historico = [fechado]
+        return Promise.resolve(jsonDe(fechado))
       }
       if (/\/messages\/$/.test(u.pathname)) return Promise.resolve(jsonDe([]))
       if (u.pathname === '/api/v1/chat/timeline/') return Promise.resolve(jsonDe({ messages: [], sessions: [], has_more: false }))
@@ -133,6 +147,40 @@ describe('PaginaChat (cliente)', () => {
     expect(screen.getByRole('button', { name: /Enviar avaliação/ })).toBeDisabled()
     fireEvent.change(screen.getByLabelText(/Comentário/), { target: { value: 'Não resolveu o problema.' } })
     expect(screen.getByRole('button', { name: /Enviar avaliação/ })).toBeEnabled()
+  })
+
+  it('encerrar É avaliar: as duas notas vão no mesmo POST /close/', async () => {
+    vivo = chat(5, { status: 'active' })
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /Encerrar conversa/ }))
+    await screen.findByText('Antes de encerrar, como foi?')
+    fireEvent.click(screen.getAllByRole('radio', { name: '9' })[0])
+    fireEvent.click(screen.getAllByRole('radio', { name: '9' })[1])
+    fireEvent.click(screen.getByRole('button', { name: /Avaliar e encerrar/ }))
+    await waitFor(() => expect(encerramentos.length).toBe(1))
+    expect(encerramentos[0]).toMatchObject({ service_score: 9, resolution_score: 9 })
+  })
+
+  it('a confirmação de encerramento sobrevive à conversa sumir da lista viva', async () => {
+    // A regressão que este teste tranca: encerrado, o chat sai da consulta de
+    // "conversa viva", a seleção caía para null e a `Conversa` desmontava —
+    // levando junto a confirmação, e o cliente ia parar numa lista vazia sem
+    // nenhum aviso de que tinha terminado.
+    vivo = chat(5, { status: 'active' })
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /Encerrar conversa/ }))
+    await screen.findByText('Antes de encerrar, como foi?')
+    fireEvent.click(screen.getAllByRole('radio', { name: '9' })[0])
+    fireEvent.click(screen.getAllByRole('radio', { name: '9' })[1])
+    fireEvent.click(screen.getByRole('button', { name: /Avaliar e encerrar/ }))
+    expect(await screen.findByText('Conversa encerrada')).toBeInTheDocument()
+    // ...e continua lá DEPOIS que a lista viva se atualiza e a conversa sai
+    // dela. Sem esta espera o teste passaria mesmo com o defeito, porque
+    // afirmaria antes do refetch chegar.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: /Encerrar conversa/, hidden: true })).not.toBeInTheDocument(),
+    )
+    expect(screen.getByText('Conversa encerrada')).toBeInTheDocument()
   })
 
   it('conversa viva: abre selecionada e mostra o compositor', async () => {

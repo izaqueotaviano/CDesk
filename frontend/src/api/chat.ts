@@ -433,6 +433,12 @@ export interface DadosEncerramento {
   agent_score?: number | null
   reason_id?: number | null
   note?: string
+  /** Avaliação do CLIENTE junto do encerramento: as duas notas viajam com o
+   *  `close` e o backend grava tudo numa transação — o chat só fica encerrado
+   *  se a nota gravar (item 1 do brief). As duas vêm juntas ou nenhuma vem. */
+  service_score?: number
+  resolution_score?: number
+  justification?: string
 }
 
 export function useEncerrarChat(chatId: number) {
@@ -443,6 +449,13 @@ export function useEncerrarChat(chatId: number) {
         agent_score: dados.agent_score ?? null,
         reason_id: dados.reason_id ?? null,
         note: dados.note ?? '',
+        ...(dados.service_score != null
+          ? {
+              service_score: dados.service_score,
+              resolution_score: dados.resolution_score,
+              justification: dados.justification ?? '',
+            }
+          : {}),
       }),
     onSuccess: (chat) => {
       gravarChat(qc, chat)

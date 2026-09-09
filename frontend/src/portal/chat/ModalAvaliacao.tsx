@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { useAvaliarChat, type Chat, type ConfigChat } from '@/api/chat'
+import { useAvaliarChat, useEncerrarChat, type Chat, type ConfigChat } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { cn } from '../lib/cn'
 import { primeiroNome } from '../lib/formato'
@@ -72,39 +72,82 @@ function Escala({
 }
 
 /**
- * Avaliação obrigatória: estrelas de atendimento + resolução, em modal sem
- * saída (sem X, sem Esc, sem clicar fora) — a regra é literal: "todo chat ao
- * ser encerrado obriga avaliação" e "não é possível abrir novo chat com
- * avaliação pendente". A escala e o gatilho da justificativa obrigatória
- * vêm do `ChatConfig` do servidor, não são fixos aqui.
+ * Avaliação obrigatória: notas de atendimento + resolução, em modal sem saída
+ * (sem X, sem Esc, sem clicar fora). A escala e o gatilho da justificativa
+ * obrigatória vêm do `ChatConfig` do servidor, não são fixos aqui.
+ *
+ * Dois caminhos chegam neste modal, e a diferença é QUANDO o chat fecha:
+ *
+ * - `modo="encerrando"` — o cliente clicou "Encerrar conversa". Avaliar e
+ *   encerrar viram UMA chamada (`close` levando as notas), atômica no
+ *   serviço: o chat só fica encerrado se a nota gravar. É o "somente
+ *   finalizar depois que a avaliação for salva com sucesso" do brief. Falhou?
+ *   O que a pessoa digitou continua na tela e o botão volta — sem perder nada
+ *   e sem um chat encerrado sem nota.
+ * - `modo="pendente"` (padrão) — o chat JÁ fechou, porque o agente encerrou
+ *   ou o sistema encerrou por inatividade. Aqui o cliente não estava
+ *   necessariamente na tela, então a nota é cobrada na próxima vez que ele
+ *   entra no portal, e a chamada é o `rate` de sempre.
  */
-export function ModalAvaliacao({ chat, config }: { chat: Chat; config: ConfigChat | undefined }) {
+export function ModalAvaliacao({
+  chat,
+  config,
+  modo = 'pendente',
+  onCancelar,
+  onEncerrada,
+}: {
+  chat: Chat
+  config: ConfigChat | undefined
+  modo?: 'pendente' | 'encerrando'
+  /** Só existe em `encerrando`: desistir de encerrar devolve a conversa. */
+  onCancelar?: () => void
+  /** Só existe em `encerrando`: a nota gravou e o chat fechou. Quem avisa é
+   *  este modal, mas quem MOSTRA a confirmação é a página — ver
+   *  `DialogConversaEncerrada`. */
+  onEncerrada?: () => void
+}) {
   const idBase = useId()
   const min = config?.score_min ?? 0
   const max = config?.score_max ?? 10
   const gatilho = config?.low_score_threshold ?? 5
   const avaliar = useAvaliarChat(chat.id)
+  const encerrar = useEncerrarChat(chat.id)
 
   const [atendimento, setAtendimento] = useState<number | null>(null)
   const [resolucao, setResolucao] = useState<number | null>(null)
   const [justificativa, setJustificativa] = useState('')
   const [erro, setErro] = useState<string | null>(null)
 
+  const enviando = avaliar.isPending || encerrar.isPending
   const notaBaixa = (atendimento != null && atendimento < gatilho) || (resolucao != null && resolucao < gatilho)
   const faltaJustificativa = notaBaixa && justificativa.trim().length === 0
-  const podeEnviar = atendimento != null && resolucao != null && !faltaJustificativa && !avaliar.isPending
+  const podeEnviar = atendimento != null && resolucao != null && !faltaJustificativa && !enviando
 
   function enviar() {
     if (atendimento == null || resolucao == null) return
     setErro(null)
-    avaliar.mutate(
-      { service_score: atendimento, resolution_score: resolucao, justification: justificativa.trim() },
-      {
-        onSuccess: () => toast.success('Obrigado pela avaliação!'),
-        onError: (e) =>
-          setErro(e instanceof ApiError ? (e.detail ?? 'Não foi possível enviar a avaliação.') : 'Não foi possível enviar a avaliação.'),
-      },
-    )
+    const notas = {
+      service_score: atendimento,
+      resolution_score: resolucao,
+      justification: justificativa.trim(),
+    }
+    // O erro NÃO limpa os campos: o state local segue intacto e o botão volta
+    // a ficar disponível — tentar de novo é clicar de novo.
+    const aoFalhar = (e: unknown) =>
+      setErro(
+        e instanceof ApiError
+          ? (e.detail ?? 'Não foi possível enviar a avaliação.')
+          : 'Não foi possível enviar a avaliação.',
+      )
+
+    if (modo === 'encerrando') {
+      encerrar.mutate(notas, { onSuccess: () => onEncerrada?.(), onError: aoFalhar })
+      return
+    }
+    avaliar.mutate(notas, {
+      onSuccess: () => toast.success('Obrigado pela avaliação!'),
+      onError: aoFalhar,
+    })
   }
 
   return (
@@ -116,10 +159,13 @@ export function ModalAvaliacao({ chat, config }: { chat: Chat; config: ConfigCha
         onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
-          <DialogTitle>Como foi o atendimento?</DialogTitle>
+          <DialogTitle>
+            {modo === 'encerrando' ? 'Antes de encerrar, como foi?' : 'Como foi o atendimento?'}
+          </DialogTitle>
           <p className="text-pequeno text-tinta-secundaria">
-            Conversa {chat.agent_name ? `com ${primeiroNome(chat.agent_name)}` : 'encerrada'} — avalie para poder
-            iniciar um novo chat.
+            {modo === 'encerrando'
+              ? `A conversa ${chat.agent_name ? `com ${primeiroNome(chat.agent_name)} ` : ''}é encerrada assim que você enviar a avaliação.`
+              : `Conversa ${chat.agent_name ? `com ${primeiroNome(chat.agent_name)}` : 'encerrada'} — avalie para poder iniciar um novo chat.`}
           </p>
         </DialogHeader>
 
@@ -152,10 +198,48 @@ export function ModalAvaliacao({ chat, config }: { chat: Chat; config: ConfigCha
             </p>
           )}
 
-          <Button onClick={enviar} disabled={!podeEnviar} className="w-full">
-            {avaliar.isPending ? 'Enviando…' : 'Enviar avaliação'}
-          </Button>
+          <div className="flex flex-col gap-2">
+            <Button onClick={enviar} disabled={!podeEnviar} className="w-full">
+              {enviando
+                ? (modo === 'encerrando' ? 'Encerrando…' : 'Enviando…')
+                : (modo === 'encerrando' ? 'Avaliar e encerrar' : 'Enviar avaliação')}
+            </Button>
+            {modo === 'encerrando' && onCancelar && (
+              <Button variant="ghost" onClick={onCancelar} disabled={enviando} className="w-full">
+                Continuar conversando
+              </Button>
+            )}
+          </div>
         </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+/**
+ * Confirmação de encerramento (item 1 do brief): quem encerrou precisa VER que
+ * terminou.
+ *
+ * Mora fora do `ModalAvaliacao` de propósito. Ao fechar, o chat sai da consulta
+ * de "conversa viva" e a `Conversa` desmonta junto — um estado interno morreria
+ * com ela e o cliente voltaria para uma lista vazia sem explicação, que é
+ * exatamente o que o item pede para não acontecer. Quem renderiza é a página,
+ * que sobrevive à conversa.
+ */
+export function DialogConversaEncerrada({ onFechar }: { onFechar: () => void }) {
+  return (
+    <Dialog open>
+      <DialogContent semFechar onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Conversa encerrada</DialogTitle>
+          <p className="text-pequeno text-tinta-secundaria">
+            Obrigado pela avaliação. A conversa fica guardada no seu histórico, e você pode
+            iniciar uma nova quando precisar.
+          </p>
+        </DialogHeader>
+        <Button onClick={onFechar} className="w-full">
+          Entendi
+        </Button>
       </DialogContent>
     </Dialog>
   )

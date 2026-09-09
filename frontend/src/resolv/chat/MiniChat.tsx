@@ -1,4 +1,4 @@
-import { type KeyboardEvent, type PointerEvent, useEffect, useState } from 'react'
+import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useConfigChat, useFilaChat, useMeusChats, usePegarChat, type Chat } from '@/api/chat'
 import { ApiError } from '@/api/client'
@@ -6,6 +6,7 @@ import { useMe } from '@/api/queries/useMe'
 import { useChatUi } from '@/stores/chatUi'
 import { LIMITES_MINICHAT, TAMANHOS_MINICHAT, usePrefs, type TamanhoMiniChat } from '@/stores/prefs'
 import { identidadeDe, type IndiceDeIdentidade } from '@/ui/identidade'
+import { FormEncerrar, FormReabrir, FormTransferir } from './acoes'
 import { ConversaChat } from './ConversaChat'
 import { haQuanto, iniciais } from './format'
 import { tonsDistintos } from './tons'
@@ -73,6 +74,115 @@ function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeI
  * (WCAG 2.5.7), e o tamanho é UM só para todos os painéis, guardado por
  * agente (stores/prefs).
  */
+type AcaoMini = 'transferir' | 'encerrar' | 'reabrir' | null
+
+/**
+ * O menu de três pontos do painel (itens 5 e 8 do brief): as ações do console
+ * dentro do mini chat, sem obrigar a pessoa a abrir a página inteira.
+ *
+ * Os formulários são os MESMOS do console (`./acoes`) — não uma segunda
+ * versão simplificada que um dia deixa de pedir o motivo de encerramento
+ * porque ninguém lembrou de copiar a regra para cá.
+ */
+function MenuAcoes({
+  chat,
+  onAbrirNoConsole,
+}: {
+  chat: Chat
+  onAbrirNoConsole: () => void
+}) {
+  const [aberto, setAberto] = useState(false)
+  const [acao, setAcao] = useState<AcaoMini>(null)
+  const caixa = useRef<HTMLDivElement>(null)
+
+  // fechar ao clicar fora / Esc — mesma disciplina do menu de macro do console
+  useEffect(() => {
+    if (!aberto) return
+    const fora = (e: MouseEvent) => {
+      if (caixa.current && !caixa.current.contains(e.target as Node)) {
+        setAberto(false)
+        setAcao(null)
+      }
+    }
+    const escapar = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setAberto(false)
+        setAcao(null)
+      }
+    }
+    document.addEventListener('mousedown', fora)
+    document.addEventListener('keydown', escapar)
+    return () => {
+      document.removeEventListener('mousedown', fora)
+      document.removeEventListener('keydown', escapar)
+    }
+  }, [aberto])
+
+  const encerrado = chat.status === 'closed'
+
+  function fechar() {
+    setAberto(false)
+    setAcao(null)
+  }
+
+  return (
+    <div className="minichat__menu" ref={caixa}>
+      <button
+        type="button"
+        className="minichat__icone"
+        aria-label={`Mais ações do atendimento de ${chat.client_name}`}
+        aria-haspopup="menu"
+        aria-expanded={aberto}
+        title="Mais ações"
+        onClick={() => setAberto((v) => !v)}
+      >
+        <i className="ti ti-dots-vertical" />
+      </button>
+
+      {aberto && (
+        <div className="minichat__menu-painel" role="menu" aria-label="Ações do atendimento">
+          {acao === null ? (
+            <>
+              <button type="button" role="menuitem" onClick={onAbrirNoConsole}>
+                <i className="ti ti-arrows-diagonal" aria-hidden="true" /> Abrir no console
+              </button>
+              {!encerrado && (
+                <button type="button" role="menuitem" onClick={() => setAcao('transferir')}>
+                  <i className="ti ti-arrows-left-right" aria-hidden="true" /> Transferir
+                </button>
+              )}
+              {!encerrado && (
+                <button type="button" role="menuitem" onClick={() => setAcao('encerrar')}>
+                  <i className="ti ti-circle-x" aria-hidden="true" /> Encerrar
+                </button>
+              )}
+              {encerrado && (
+                <button type="button" role="menuitem" onClick={() => setAcao('reabrir')}>
+                  <i className="ti ti-rotate-clockwise" aria-hidden="true" /> Reabrir
+                </button>
+              )}
+              <hr />
+              <p className="minichat__menu-info">
+                <strong>{chat.client_name}</strong>
+                <span>{chat.company_name}</span>
+                {chat.client_email && <span>{chat.client_email}</span>}
+                {chat.client_phone && <span>{chat.client_phone}</span>}
+                <span className="minichat__menu-protocolo">Protocolo #{chat.id}</span>
+              </p>
+            </>
+          ) : acao === 'transferir' ? (
+            <FormTransferir chat={chat} onPronto={fechar} onCancelar={() => setAcao(null)} />
+          ) : acao === 'encerrar' ? (
+            <FormEncerrar chat={chat} comNotaInterna={false} onPronto={fechar} onCancelar={() => setAcao(null)} />
+          ) : (
+            <FormReabrir chat={chat} onPronto={fechar} onCancelar={() => setAcao(null)} />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function PainelConversa({
   chat,
   tom,
@@ -163,6 +273,7 @@ function PainelConversa({
         >
           <i className={preset === 'grande' ? 'ti ti-arrows-minimize' : 'ti ti-arrows-maximize'} />
         </button>
+        <MenuAcoes chat={chat} onAbrirNoConsole={onAbrirNoConsole} />
         <button type="button" className="minichat__icone" aria-label="Abrir no console" title="Abrir no console" onClick={onAbrirNoConsole}>
           <i className="ti ti-arrows-diagonal" />
         </button>

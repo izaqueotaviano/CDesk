@@ -1,31 +1,21 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  useAgentes,
   useChat,
   useConverterChat,
-  useEncerrarChat,
   useEquipes,
   useHistoricoDoCliente,
-  useMotivosEncerramento,
-  useTransferirChat,
 } from '@/api/chat'
-import { ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
+import { FormEncerrar, FormReabrir, FormTransferir, mensagemDe } from './acoes'
 import { dataHoraDe } from './format'
 
-type Acao = 'transferir' | 'converter' | 'encerrar' | null
-
-const NOTAS = Array.from({ length: 11 }, (_, i) => i)
+type Acao = 'transferir' | 'converter' | 'encerrar' | 'reabrir' | null
 
 const ROTULO_STATUS: Record<string, string> = {
   queued: 'na fila',
   active: 'em atendimento',
   closed: 'encerrado',
-}
-
-function mensagemDe(e: unknown, padrao: string): string {
-  return e instanceof ApiError ? (e.detail ?? Object.values(e.fieldErrors ?? {})[0]?.[0] ?? padrao) : padrao
 }
 
 /**
@@ -37,12 +27,8 @@ function mensagemDe(e: unknown, padrao: string): string {
 export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined }) {
   const navigate = useNavigate()
   const { data: chat } = useChat(chatId)
-  const { data: agentes } = useAgentes()
   const { data: equipes } = useEquipes()
-  const transferir = useTransferirChat(chatId)
   const converter = useConverterChat(chatId)
-  const encerrar = useEncerrarChat(chatId)
-  const { data: motivos } = useMotivosEncerramento()
   // Histórico da PESSOA (item 3): os atendimentos anteriores dela que este
   // agente pode ver — o recorte é do backend, não daqui.
   const [verHistorico, setVerHistorico] = useState(false)
@@ -51,57 +37,33 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
   )
 
   const [acao, setAcao] = useState<Acao>(null)
-  const [agenteId, setAgenteId] = useState('')
   const [equipeId, setEquipeId] = useState('')
-  const [nota, setNota] = useState('')
-  // encerramento: motivo + observação interna; transferência: só observação
-  const [motivoId, setMotivoId] = useState('')
-  const [obs, setObs] = useState('')
   const [erro, setErro] = useState<string | null>(null)
 
   if (!chat) return <aside className="cc-painel" />
 
   const souOAgente = me != null && chat.agent_id === me.id
   const podeAgir = chat.status === 'active' && (souOAgente || me?.is_admin === true)
-  const ocupado = transferir.isPending || converter.isPending || encerrar.isPending
-  // o backend recusa encerrar sem observação nesse caso — a tela só antecipa
-  const motivoExigeObs =
-    motivoId !== '' &&
-    (motivos ?? []).some((m) => m.id === Number(motivoId) && m.requires_note)
+  // Transferir e encerrar viraram `FormTransferir`/`FormEncerrar` (./acoes),
+  // compartilhados com o mini chat — aqui sobrou só a conversão em chamado,
+  // que é exclusiva do console (a equipe do ticket entra nela).
+  const ocupado = converter.isPending
 
   function abrir(a: Acao) {
     setErro(null)
-    setObs('')
     setAcao((atual) => (atual === a ? null : a))
   }
 
   function confirmar() {
     setErro(null)
-    if (acao === 'transferir') {
-      if (!agenteId) return
-      transferir.mutate({ agent_id: Number(agenteId), note: obs }, {
-        onSuccess: () => setAcao(null),
-        onError: (e) => setErro(mensagemDe(e, 'Não foi possível transferir.')),
-      })
-    } else if (acao === 'converter') {
-      if (!equipeId) return
-      converter.mutate(Number(equipeId), {
-        onSuccess: (c) => {
-          setAcao(null)
-          navigate(`/chamados/${c.ticket_id}`)
-        },
-        onError: (e) => setErro(mensagemDe(e, 'Não foi possível converter.')),
-      })
-    } else if (acao === 'encerrar') {
-      encerrar.mutate({
-        agent_score: nota === '' ? null : Number(nota),
-        reason_id: motivoId === '' ? null : Number(motivoId),
-        note: obs,
-      }, {
-        onSuccess: () => setAcao(null),
-        onError: (e) => setErro(mensagemDe(e, 'Não foi possível encerrar.')),
-      })
-    }
+    if (acao !== 'converter' || !equipeId) return
+    converter.mutate(Number(equipeId), {
+      onSuccess: (c) => {
+        setAcao(null)
+        navigate(`/chamados/${c.ticket_id}`)
+      },
+      onError: (e) => setErro(mensagemDe(e, 'Não foi possível converter.')),
+    })
   }
 
   return (
@@ -245,6 +207,19 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
         </section>
       )}
 
+      {chat.status === 'closed' && me?.is_internal && (
+        <section className="cc-painel__bloco cc-painel__acoes">
+          <h3>Ações</h3>
+          {acao === 'reabrir' ? (
+            <FormReabrir chat={chat} onPronto={() => setAcao(null)} onCancelar={() => setAcao(null)} />
+          ) : (
+            <button type="button" onClick={() => abrir('reabrir')}>
+              <i className="ti ti-rotate-clockwise" /> Reabrir conversa
+            </button>
+          )}
+        </section>
+      )}
+
       {podeAgir && (
         <section className="cc-painel__bloco cc-painel__acoes">
           <h3>Ações</h3>
@@ -258,36 +233,10 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
             <i className="ti ti-circle-x" /> Encerrar
           </button>
 
+          {/* Os formulários são os MESMOS do mini chat (`./acoes`): uma regra
+              só para transferir e encerrar, nas duas telas. */}
           {acao === 'transferir' && (
-            <div className="cc-painel__form">
-              <label htmlFor="cc-agente">Para quem</label>
-              <select id="cc-agente" value={agenteId} onChange={(e) => setAgenteId(e.target.value)}>
-                <option value="">Escolha um agente</option>
-                {(agentes ?? [])
-                  .filter((a) => a.id !== chat.agent_id)
-                  .map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.full_name}
-                      {a.presence === 'available' ? '' : ` (${a.presence === 'away' ? 'ausente' : 'offline'})`}
-                    </option>
-                  ))}
-              </select>
-              <label htmlFor="cc-obs-transf">Observação interna (opcional)</label>
-              <textarea
-                id="cc-obs-transf"
-                rows={2}
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                placeholder="O que quem receber precisa saber"
-              />
-              <p className="cc-painel__ajuda">
-                Vai direto pro agente escolhido — não volta pra fila. A observação fica na
-                trilha de auditoria; o cliente não a vê.
-              </p>
-              <button type="button" className="cc-painel__confirmar" disabled={!agenteId || ocupado} onClick={confirmar}>
-                {transferir.isPending ? 'Transferindo…' : 'Transferir'}
-              </button>
-            </div>
+            <FormTransferir chat={chat} onPronto={() => setAcao(null)} />
           )}
 
           {acao === 'converter' && (
@@ -311,50 +260,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
           )}
 
           {acao === 'encerrar' && (
-            <div className="cc-painel__form">
-              <label htmlFor="cc-motivo">Motivo do encerramento</label>
-              <select id="cc-motivo" value={motivoId} onChange={(e) => setMotivoId(e.target.value)}>
-                <option value="">Sem motivo</option>
-                {(motivos ?? []).filter((m) => m.is_active).map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
-
-              <label htmlFor="cc-obs-encerrar">
-                Observação interna
-                {motivoExigeObs ? '' : ' (opcional)'}
-              </label>
-              <textarea
-                id="cc-obs-encerrar"
-                rows={2}
-                value={obs}
-                onChange={(e) => setObs(e.target.value)}
-                placeholder={motivoExigeObs ? 'Este motivo pede uma explicação' : 'O que a equipe precisa saber depois'}
-              />
-
-              <label htmlFor="cc-nota">Nota interna do atendimento (opcional)</label>
-              <select id="cc-nota" value={nota} onChange={(e) => setNota(e.target.value)}>
-                <option value="">Sem nota</option>
-                {NOTAS.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
-              <p className="cc-painel__ajuda">
-                Motivo, observação e nota são internos — nada disso sai para o cliente.
-              </p>
-              <button
-                type="button"
-                className="cc-painel__confirmar cc-painel__confirmar--perigo"
-                disabled={ocupado || (motivoExigeObs && obs.trim() === '')}
-                onClick={confirmar}
-              >
-                {encerrar.isPending ? 'Encerrando…' : 'Encerrar conversa'}
-              </button>
-            </div>
+            <FormEncerrar chat={chat} onPronto={() => setAcao(null)} />
           )}
 
           {erro && <p className="cc-painel__erro">{erro}</p>}

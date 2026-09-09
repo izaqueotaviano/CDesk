@@ -507,7 +507,8 @@ def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
 
 
 def close_chat(*, chat: Chat, actor, agent_score: int | None = None,
-               reason=None, note: str = "", automatic: bool = False) -> Chat:
+               reason=None, note: str = "", automatic: bool = False,
+               rating: dict | None = None) -> Chat:
     """Encerra — cliente, agente ou o próprio sistema (inatividade/expediente).
 
     A confirmação de "tem certeza?" é do front; aqui já chega decidido. Nota do
@@ -521,6 +522,18 @@ def close_chat(*, chat: Chat, actor, agent_score: int | None = None,
 
     `automatic=True` marca fechamento sem gente do outro lado. `actor` fica
     `None` nesse caso: `closed_by` é "quem clicou", e ninguém clicou.
+
+    `rating` (só o CLIENTE manda) encerra e avalia numa transação só. É o que
+    faz valer o "só finaliza depois que a avaliação for salva com sucesso" do
+    brief: a avaliação grava com o chat já CLOSED dentro da transação, e se
+    ela falhar TUDO desfaz — o chat continua aberto, e a pessoa tenta de novo
+    com o que digitou ainda na tela. Encerrar primeiro e avaliar depois, em
+    duas chamadas, deixaria a janela onde o chat fecha e a nota se perde.
+
+    Quando quem encerra é o AGENTE (ou o sistema), não há avaliação aqui: o
+    cliente não está necessariamente na tela. A nota fica pendente e o portal
+    a cobra na próxima vez que ele entrar — é o que `rating_pending` e
+    `pending_ratings` já sustentam.
 
     Idempotente por lock: dois cliques simultâneos disputam o
     `select_for_update`, o segundo encontra CLOSED e é recusado — nunca dois
@@ -548,6 +561,12 @@ def close_chat(*, chat: Chat, actor, agent_score: int | None = None,
             campos.append("agent_score")
         chat.save(update_fields=campos)
         ChatMessage.objects.create(chat=chat, is_system=True, body="Conversa encerrada.")
+        if rating is not None:
+            if actor is None or actor.is_internal:
+                raise ChatRuleViolation("Só o cliente avalia o próprio atendimento.")
+            # dentro da MESMA transação: `rate` exige CLOSED e já é essa a
+            # situação aqui. Se levantar, o encerramento desfaz junto.
+            rate(chat=chat, client=actor, **rating)
         transaction.on_commit(lambda: _notify_client_closed(chat.pk))
     quem = "automaticamente" if automatic else (
         actor.full_name if actor is not None else "sistema"

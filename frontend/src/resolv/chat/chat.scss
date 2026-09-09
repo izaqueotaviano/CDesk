@@ -999,3 +999,93 @@
     color: var(--text-muted);
   }
 }
+
+// ============================================================================
+// Ações do atendimento (./acoes.tsx) — os MESMOS formulários no console e no
+// mini chat. Por isso o estilo é neutro e não presume a largura de nenhum dos
+// dois: `width: 100%` e o container decide.
+// ============================================================================
+
+.cc-acao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+
+  label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: 5px 6px;
+    border: 0.7px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+  }
+  textarea {
+    resize: vertical;
+  }
+
+  &__ajuda {
+    margin: 2px 0 0;
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--text-muted);
+  }
+  &__erro {
+    margin: 2px 0 0;
+    font-size: 11px;
+    color: var(--danger);
+  }
+
+  &__botoes {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  &__confirmar {
+    flex: 1;
+    padding: 7px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: var(--surface-card);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    // encerrar é destrutivo: cor E rótulo dizem isso, nunca só a cor
+    &--perigo {
+      background: var(--danger);
+      color: #ffffff;
+    }
+  }
+  &__cancelar {
+    padding: 7px 10px;
+    border: 0.7px solid var(--stroke-hover);
+    border-radius: var(--raio);
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+}

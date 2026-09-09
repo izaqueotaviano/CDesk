@@ -245,11 +245,31 @@ class ChatViewSet(viewsets.GenericViewSet):
             raise PermissionDenied("Campos de atendimento são internos.")
         if chat.agent_id != request.user.pk and not request.user.is_admin:
             raise PermissionDenied("Só quem está atendendo edita o atendimento.")
+        antes = {c: getattr(chat, c) for c in ("name", "category_id", "priority", "assignee_id")}
+        tags_antes = sorted(t.name for t in chat.tags.all())
         ser = self.get_serializer(chat, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
         ser.save()
         if "tags" in request.data:
             chat.tags.set(request.data.get("tags") or [])
+        # Item 12 do brief: etiqueta tem HISTÓRICO de alteração. Sem isto,
+        # "quem tirou a etiqueta de urgente?" não tem resposta — e é a
+        # pergunta que aparece justamente quando alguém tirou.
+        chat.refresh_from_db()
+        tags_depois = sorted(t.name for t in chat.tags.all())
+        mudou = {
+            campo: [antes[campo], getattr(chat, campo)]
+            for campo in antes
+            if antes[campo] != getattr(chat, campo)
+        }
+        if tags_antes != tags_depois:
+            mudou["tags"] = [tags_antes, tags_depois]
+        if mudou:
+            chat_service.auditar(
+                chat=chat, actor=request.user, action="update",
+                summary=f"Atendimento editado: {', '.join(mudou)}",
+                changes=mudou,
+            )
         return Response(self.get_serializer(chat).data)
 
     @action(detail=False, methods=["get"], url_path="pending-ratings")
@@ -414,11 +434,21 @@ class ChatViewSet(viewsets.GenericViewSet):
             motivo = ChatCloseReason.objects.filter(pk=rid, is_active=True).first()
             if motivo is None:
                 raise ValidationError({"reason_id": "Motivo de encerramento não encontrado."})
+        # Encerramento do cliente COM avaliação: uma transação só no serviço —
+        # o chat só fica encerrado se a nota gravar (item 1 do brief).
+        avaliacao = None
+        if ser.validated_data.get("service_score") is not None:
+            avaliacao = {
+                "service_score": ser.validated_data["service_score"],
+                "resolution_score": ser.validated_data["resolution_score"],
+                "justification": ser.validated_data.get("justification", ""),
+            }
         try:
             chat = chat_service.close_chat(
                 chat=chat, actor=request.user,
                 agent_score=ser.validated_data.get("agent_score"),
                 reason=motivo, note=ser.validated_data.get("note", ""),
+                rating=avaliacao,
             )
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
