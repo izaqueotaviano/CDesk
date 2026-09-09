@@ -245,8 +245,9 @@ export function Mensagem({
     <article
       data-msg={msg.id}
       className={cn(
-        'group flex gap-2.5 rounded-md border border-divisoria bg-superficie px-3.5 py-3',
-        doSuporte && 'border-l-2 border-l-acento',
+        'group flex gap-2.5 rounded-md border px-3.5 py-3',
+        // suporte em branco, o meu em azul suave — como qualquer mensageiro
+        doSuporte ? 'border-divisoria bg-superficie' : 'border-acento/20 bg-acento-suave',
         emFoco && 'ring-2 ring-acento',
       )}
       aria-label={`Mensagem de ${msg.author_name}`}

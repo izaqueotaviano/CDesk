@@ -50,7 +50,15 @@ export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
   urgent: 'Urgente',
 }
 
-/** Cor da barra de urgência — mapeada às cores semânticas do design system. */
+/** Ícone da pílula de prioridade (Tabler) — o segundo sinal além da cor. */
+export const ICONE_PRIORIDADE: Record<Prioridade, string> = {
+  low: 'ti-arrow-down',
+  normal: 'ti-minus',
+  high: 'ti-arrow-up',
+  urgent: 'ti-alert-triangle',
+}
+
+/** Cor da pílula de prioridade — mapeada às cores semânticas do design system. */
 export const COR_PRIORIDADE: Record<Prioridade, string> = {
   low: 'var(--text-muted)',
   normal: 'var(--ok)',

@@ -90,6 +90,25 @@
   height: 12px;
   border-radius: 50%;
   border: $border;
+
+  // o chip É o seletor de cor: some a moldura nativa do <input type=color>
+  &--editavel {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    cursor: pointer;
+    appearance: none;
+    background: none;
+
+    &::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    &::-webkit-color-swatch,
+    &::-moz-color-swatch {
+      border: 0;
+      border-radius: 50%;
+    }
+  }
 }
 
 // Grade de permissões do formulário de papel (AbaPapeis) — agrupada pelo

@@ -116,13 +116,16 @@ const ROTULO_STATUS_SOCKET = {
 /** Quanto tempo entre dois sinais de "digitando" mandados pra sala. */
 const INTERVALO_DIGITANDO_MS = 2_000
 
-function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
+function Anexo({ arquivo, destacado = false }: { arquivo: ArquivoChat; destacado?: boolean }) {
   const indisponivel = motivoIndisponivel(arquivo)
+  // "Ver na conversa" no painel de mídia: a rolagem chega perto, e este
+  // marca-texto diz QUAL — numa mensagem com três anexos, chegar não basta.
+  const marca = destacado ? ' cc-anexo--destaque' : ''
   if (indisponivel) {
     // O motivo por extenso, não o nome do estado: cada caso pede uma ação
     // diferente (esperar, reenviar, desistir) e "bloqueado" não diz qual.
     return (
-      <span className="cc-anexo cc-anexo--bloqueado">
+      <span className={"cc-anexo cc-anexo--bloqueado" + marca}>
         <i className="ti ti-shield" aria-hidden="true" />
         {arquivo.filename} · {indisponivel}
       </span>
@@ -134,7 +137,7 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
   if (ehImagemVisivel(arquivo)) {
     return (
       <a
-        className="cc-anexo cc-anexo--imagem"
+        className={"cc-anexo cc-anexo--imagem" + marca}
         href={`${API_BASE_URL}${arquivo.url}`}
         target="_blank"
         rel="noreferrer"
@@ -145,7 +148,7 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
     )
   }
   return (
-    <a className="cc-anexo" href={`${API_BASE_URL}${arquivo.url}`} target="_blank" rel="noreferrer">
+    <a className={"cc-anexo" + marca} href={`${API_BASE_URL}${arquivo.url}`} target="_blank" rel="noreferrer">
       {/* ícone pelo TIPO detectado no servidor, não pela extensão do nome */}
       <i className={'ti ' + iconeDoArquivo(arquivo.content_type)} aria-hidden="true" />
       {arquivo.filename} · {fileSize(arquivo.size_bytes)}
@@ -172,12 +175,17 @@ function Citacao({ citacao, onIr }: { citacao: CitacaoChat; onIr: () => void }) 
 
 /** O corpo com os trechos da busca em <mark> — sem regex montada com o que
  *  a pessoa digitou (ver `destacar`). */
-function Corpo({ texto, termo }: { texto: string; termo: string }) {
-  if (!termo.trim()) return <>{texto}</>
+function Corpo({ texto, termo, marcar = '' }: { texto: string; termo: string; marcar?: string }) {
+  // `marcar` é o link vindo do painel ("ver na conversa"): entra como
+  // marca-texto igual ao termo da busca, mas com a própria classe — um é
+  // "o que você procurou", o outro é "aqui está o que você clicou".
+  const alvo = termo.trim() || marcar
+  if (!alvo) return <>{texto}</>
+  const classe = termo.trim() ? undefined : 'cc-marca-alvo'
   return (
     <>
-      {destacar(texto, termo).map((p, i) =>
-        p.destacado ? <mark key={i}>{p.texto}</mark> : <span key={i}>{p.texto}</span>,
+      {destacar(texto, alvo).map((p, i) =>
+        p.destacado ? <mark key={i} className={classe}>{p.texto}</mark> : <span key={i}>{p.texto}</span>,
       )}
     </>
   )
@@ -193,6 +201,7 @@ export function Bolha({
   termo = '',
   ehMinha = false,
   emFoco = false,
+  destaque = null,
   onResponder,
   onIrPara,
 }: {
@@ -203,6 +212,9 @@ export function Bolha({
   ehMinha?: boolean
   /** Resultado da busca em que a navegação está agora. */
   emFoco?: boolean
+  /** "Ver na conversa" do painel de mídia: `arquivo:<id>` marca o anexo, uma
+   *  URL marca o link no texto, `''` só a mensagem. `null` = nada. */
+  destaque?: string | null
   onResponder?: (msg: MensagemChat) => void
   onIrPara?: (id: number) => void
 }) {
@@ -221,7 +233,8 @@ export function Bolha({
         'cc-msg' +
         (msg.author_is_internal ? ' cc-msg--agente' : '') +
         (msg.is_internal_note ? ' cc-msg--nota' : '') +
-        (emFoco ? ' cc-msg--achada' : '')
+        (emFoco ? ' cc-msg--achada' : '') +
+        (destaque != null ? ' cc-msg--destaque' : '')
       }
       data-msg={msg.id}
     >
@@ -256,13 +269,21 @@ export function Bolha({
         {/* só anexo, sem texto: não desenha balão vazio em cima do arquivo */}
         {(msg.is_deleted || msg.body) && (
           <div className={'cc-msg__balao' + (msg.is_deleted ? ' cc-msg__balao--apagada' : '')}>
-            {msg.is_deleted ? <em>Mensagem apagada</em> : <Corpo texto={msg.body} termo={termo} />}
+            {msg.is_deleted ? (
+              <em>Mensagem apagada</em>
+            ) : (
+              <Corpo
+                texto={msg.body}
+                termo={termo}
+                marcar={destaque && !destaque.startsWith('arquivo:') ? destaque : ''}
+              />
+            )}
           </div>
         )}
         {msg.files.length > 0 && (
           <div className="cc-msg__anexos">
             {msg.files.map((f) => (
-              <Anexo key={f.id} arquivo={f} />
+              <Anexo key={f.id} arquivo={f} destacado={destaque === `arquivo:${f.id}`} />
             ))}
           </div>
         )}
@@ -392,6 +413,10 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const [aviso, setAviso] = useState<string | null>(null)
   const [fimDoHistorico, setFimDoHistorico] = useState(false)
   const inputAnexo = useRef<HTMLInputElement>(null)
+  // Mensagem (e anexo/link dentro dela) que o "ver na conversa" acabou de
+  // apontar — marca-texto passageiro, ver `irPara`.
+  const [destaque, setDestaque] = useState<{ id: number; alvo: string } | null>(null)
+  const apagarDestaque = useRef<number | undefined>(undefined)
   const fimMensagens = useRef<HTMLDivElement>(null)
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const ultimoSinalDigitando = useRef(0)
@@ -563,10 +588,15 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
 
   /** Leva a thread até uma mensagem; se ela ainda não foi carregada, busca a
    *  janela ao redor antes — é o que faz o achado antigo ser alcançável. */
-  function irPara(id: number) {
+  function irPara(id: number, alvo = '') {
     const rolar = () => {
-      const alvo = document.querySelector(`[data-msg="${id}"]`)
-      alvo?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      const el = document.querySelector(`[data-msg="${id}"]`)
+      el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+      // o marca-texto fica o bastante para o olho achar e sai sozinho —
+      // uma marca permanente viraria ruído na próxima leitura
+      setDestaque({ id, alvo })
+      window.clearTimeout(apagarDestaque.current)
+      apagarDestaque.current = window.setTimeout(() => setDestaque(null), 3500)
     }
     if (mensagens?.some((m) => m.id === id)) {
       rolar()
@@ -809,6 +839,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                   termo={termo}
                   ehMinha={me != null && item.msg.author_is_internal === me.is_internal && !item.msg.is_system}
                   emFoco={resultados[posicao]?.id === item.msg.id}
+                  destaque={destaque?.id === item.msg.id ? destaque.alvo : null}
                   onResponder={podeEscrever ? setRespondendo : undefined}
                   onIrPara={irPara}
                 />
@@ -891,7 +922,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
               <ul className="cc-midia__lista">
                 {midia.data!.files.map((f) => (
                   <li key={f.id}>
-                    <button type="button" className="cc-midia__ir" onClick={() => irPara(f.message_id)}>
+                    <button type="button" className="cc-midia__ir" onClick={() => irPara(f.message_id, `arquivo:${f.id}`)}>
                       <i className={'ti ' + (f.content_type.startsWith('image/') ? 'ti-photo' : 'ti-file')} aria-hidden="true" />
                       <span className="cc-midia__nome">{f.filename}</span>
                       <span className="cc-midia__meta">{fileSize(f.size_bytes)}</span>
@@ -911,7 +942,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                       <i className="ti ti-link" aria-hidden="true" />
                       <span className="cc-midia__nome">{l.url}</span>
                     </a>
-                    <button type="button" className="cc-link cc-midia__contexto" onClick={() => irPara(l.message_id)}>
+                    <button type="button" className="cc-link cc-midia__contexto" onClick={() => irPara(l.message_id, l.url)}>
                       ver na conversa
                     </button>
                   </li>

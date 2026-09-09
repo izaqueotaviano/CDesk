@@ -178,7 +178,7 @@ function MenuAcoes({
           ) : acao === 'transferir' ? (
             <FormTransferir chat={chat} onPronto={fechar} onCancelar={() => setAcao(null)} />
           ) : acao === 'encerrar' ? (
-            <FormEncerrar chat={chat} comNotaInterna={false} onPronto={fechar} onCancelar={() => setAcao(null)} />
+            <FormEncerrar chat={chat} onPronto={fechar} onCancelar={() => setAcao(null)} />
           ) : (
             <FormReabrir chat={chat} onPronto={fechar} onCancelar={() => setAcao(null)} />
           )}

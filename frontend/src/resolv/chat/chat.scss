@@ -343,6 +343,12 @@
     flex: 1;
     overflow-y: auto;
     padding: 16px 20px;
+    // A rolagem tem FUNDO: sobre um cinza leve, o balão branco de quem
+    // escreve do outro lado e o balão tingido do agente viram figura, não
+    // linhas numa folha em branco — o contrato visual de qualquer mensageiro.
+    // `--surface-canvas` é branco no claro, por isso o tom sai de
+    // `--surface-alt` diluído; no escuro os dois tokens já se separam.
+    background: color-mix(in srgb, var(--surface-alt) 55%, var(--surface-card));
     display: flex;
     flex-direction: column;
     gap: 14px;
@@ -513,8 +519,12 @@
     font-size: 13px;
     line-height: 1.5;
     color: var(--text-primary);
+    // Quem fala do outro lado: balão branco, sem borda — sobre o canvas a
+    // própria diferença de superfície já recorta; a borda virava sujeira.
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 0.7px solid transparent;
+    border-radius: 12px 12px 12px 4px;
+    box-shadow: 0 1px 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
     white-space: pre-wrap;
     word-break: break-word;
 
@@ -523,10 +533,16 @@
     }
   }
   &--agente &__balao {
-    // O balão do agente é o accent diluído. Cravado em rgba ele ficava no azul
-    // ESCURO do tema claro e desaparecia sobre a superfície escura.
-    background: color-mix(in srgb, var(--accent) 6%, transparent);
-    border-color: color-mix(in srgb, var(--accent) 16%, transparent);
+    // O balão do agente é o accent diluído sobre o cartão — sólido, para não
+    // depender do que está atrás (cravado em rgba ele sumia no escuro).
+    background: color-mix(in srgb, var(--accent) 14%, var(--surface-card));
+    border-radius: 12px 12px 4px 12px;
+  }
+
+  // "Ver na conversa": a mensagem apontada, e dentro dela o anexo ou o link
+  // clicado, como marca-texto — some sozinho (ver `irPara`).
+  &--destaque &__balao {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--away) 55%, transparent);
   }
   &__anexos {
     display: flex;
@@ -1180,8 +1196,20 @@
 .cc-msg__balao mark {
   padding: 0 1px;
   border-radius: 2px;
-  background: var(--aviso-suave, #fff3bf);
+  background: color-mix(in srgb, var(--away) 28%, transparent);
   color: inherit;
+}
+
+/* o link apontado pelo painel: marca-texto mais forte que o da busca */
+.cc-msg__balao mark.cc-marca-alvo {
+  background: color-mix(in srgb, var(--away) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--away) 45%, transparent);
+}
+
+.cc-anexo--destaque {
+  outline: 2px solid var(--away);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--away) 22%, transparent);
 }
 
 /* A ocorrência em que a navegação está agora. */

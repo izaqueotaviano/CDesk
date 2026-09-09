@@ -158,20 +158,15 @@ export function FormEncerrar({
   chat,
   onPronto,
   onCancelar,
-  comNotaInterna = true,
 }: {
   chat: Chat
   onPronto?: () => void
   onCancelar?: () => void
-  /** No mini chat a nota interna do agente fica de fora: é o campo menos
-   *  usado e o espaço ali é curto. O console mantém os três. */
-  comNotaInterna?: boolean
 }) {
   const { data: motivos } = useMotivosEncerramento()
   const { encerrar, erro, setErro, ocupado } = useAcoesAtendimento(chat.id)
   const [motivoId, setMotivoId] = useState('')
   const [nota, setNota] = useState('')
-  const [notaInterna, setNotaInterna] = useState('')
 
   const exigeNota =
     motivoId !== '' &&
@@ -183,7 +178,8 @@ export function FormEncerrar({
       {
         reason_id: motivoId === '' ? null : Number(motivoId),
         note: nota,
-        agent_score: notaInterna === '' ? null : Number(notaInterna),
+        // Nota do atendimento é do CLIENTE (avaliação em duas notas depois
+        // do encerramento) — o agente não dá nota para si mesmo aqui.
       },
       {
         onSuccess: () => onPronto?.(),
@@ -217,22 +213,8 @@ export function FormEncerrar({
         placeholder={exigeNota ? 'Este motivo pede uma explicação' : 'O que a equipe precisa saber depois'}
       />
 
-      {comNotaInterna && (
-        <>
-          <label htmlFor={`en-score-${chat.id}`}>Nota interna do atendimento (opcional)</label>
-          <select id={`en-score-${chat.id}`} value={notaInterna} onChange={(e) => setNotaInterna(e.target.value)}>
-            <option value="">Sem nota</option>
-            {Array.from({ length: 11 }, (_, i) => i).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-        </>
-      )}
-
       <p className="cc-acao__ajuda">
-        Motivo, observação e nota são internos — nada disso sai para o cliente.
+        Motivo e observação são internos — nada disso sai para o cliente.
       </p>
 
       {erro && (

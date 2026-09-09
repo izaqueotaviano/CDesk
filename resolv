@@ -261,7 +261,6 @@ api_no_ar() {
 # que este script sobe; nada é escrito no .env, e produção segue fail-closed.
 CLAMAV_ARGS=""
 avaliar_clamav() {
-  [ "$MODO" = "nativo" ] || return 0
   local host porta
   host=$(sed -n 's/^CLAMAV_HOST=//p' .env 2>/dev/null | tail -1)
   porta=$(sed -n 's/^CLAMAV_PORT=//p' .env 2>/dev/null | tail -1)
@@ -271,13 +270,19 @@ avaliar_clamav() {
   case "$(sed -n 's/^CLAMAV_ENABLED=//p' .env 2>/dev/null | tail -1)" in
     0|false|False|no) return 0 ;;
   esac
-  if (exec 3<>"/dev/tcp/$host/$porta") 2>/dev/null; then
+  # No Docker o daemon é um profile opcional: só existe se alguém pediu.
+  if [ "$MODO" = "docker" ]; then
+    docker compose ps --services --status running 2>/dev/null | grep -qx clamav && return 0
+  elif (exec 3<>"/dev/tcp/$host/$porta") 2>/dev/null; then
     exec 3<&- 2>/dev/null || true
     return 0
   fi
   CLAMAV_ARGS="0"
+  # Persiste no .env também: quem sobe a API por fora deste script (IDE,
+  # `manage.py runserver`) herdaria o 1 e cairia na mesma quarentena eterna.
+  sed -i -E 's#^CLAMAV_ENABLED=.*#CLAMAV_ENABLED=0#' .env
   aviso "ClamAV não responde em $host:$porta — anexos entram como “não verificados”."
-  aviso "É o esperado fora do Docker. Em produção a varredura continua obrigatória."
+  aviso "Gravei CLAMAV_ENABLED=0 no .env. Em produção a varredura continua obrigatória."
 }
 
 subir_api_nativa() {
@@ -372,6 +377,8 @@ esperar_backend_nativo() {
 
 subir_backend_docker() {
   passo "Subindo backend (banco, Redis, API, worker)"
+  # antes do `up`: o .env corrigido é o que os containers vão ler
+  avaliar_clamav
   docker compose up -d
   ok "Containers no ar."
 }
@@ -404,6 +411,10 @@ migrar() {
   passo "Aplicando migrações do banco"
   manage migrate --no-input >/dev/null
   ok "Banco em dia."
+  # Anexos que ficaram presos numa subida anterior (esperando um ClamAV que
+  # não existia) — com a varredura desligada, viram "não verificado". Sem
+  # isto o anexo antigo continuaria bloqueado mesmo depois da correção.
+  manage liberar_quarentena >/dev/null 2>&1 || true
 }
 
 # semeia só quando o banco está vazio: rodar de novo por cima não estraga nada,

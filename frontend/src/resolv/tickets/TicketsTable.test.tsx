@@ -193,15 +193,14 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
 })
 
 describe('TicketsTable — urgência e cadeado têm nome pra leitor de tela (item 27)', () => {
-  it('a barra de urgência expõe o rótulo por texto, não só um atributo', () => {
+  it('a prioridade é escrita na pílula — visível, não só para leitor de tela', () => {
     montar({
       linhas: [{ ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }), priority: 'urgent' }],
     })
 
-    // `.tickets-tabela__sr` é texto de verdade na árvore (recortado da tela),
-    // não um `aria-label` num <span> genérico — que browsers modernos não
-    // expõem como nome acessível.
-    expect(screen.getByText('Urgente', { selector: '.tickets-tabela__sr' })).toBeInTheDocument()
+    // texto de verdade na árvore E na tela: a barra colorida sozinha não se
+    // lia entre uma linha e outra, e cor nunca devia ser o único sinal
+    expect(screen.getByText('Urgente', { selector: '.tickets-tabela__prio' })).toBeInTheDocument()
   })
 
   it('o cadeado de ticket restrito diz o motivo em texto fixo, não fica mudo', () => {

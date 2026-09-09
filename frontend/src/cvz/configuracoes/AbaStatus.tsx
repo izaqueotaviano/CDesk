@@ -87,7 +87,7 @@ export function AbaStatus() {
   }
 
   const colunas: Column<Status>[] = [
-    { key: 'color', header: '', width: '32px', render: (s) => <ChipCor cor={s.color} /> },
+    { key: 'color', header: '', width: '32px', render: (s) => <CampoCorStatus item={s} /> },
     {
       key: 'name',
       header: 'Nome',
@@ -169,8 +169,39 @@ export function AbaStatus() {
   )
 }
 
-function ChipCor({ cor }: { cor: string }) {
-  return <span className="cfg-chip-cor" style={{ backgroundColor: cor }} aria-hidden />
+/** A cor editável direto na linha: o chip É o seletor. Salva ao soltar o
+ *  seletor (`onBlur`/`change`), só se mudou — igual ao nome ao lado. */
+function CampoCorStatus({ item }: { item: Status }) {
+  const atualizar = useAtualizarStatus(item.id)
+  const { push } = useToast()
+  const [valor, setValor] = useState(item.color)
+  function salvar() {
+    if (valor.toLowerCase() === item.color.toLowerCase()) return
+    atualizar.mutate(
+      { color: valor },
+      {
+        onError: (e) => {
+          setValor(item.color)
+          push({
+            tone: 'danger',
+            title: 'Não foi possível trocar a cor',
+            description: e instanceof ApiError ? e.detail : undefined,
+          })
+        },
+      },
+    )
+  }
+  return (
+    <input
+      type="color"
+      className="cfg-chip-cor cfg-chip-cor--editavel"
+      value={valor}
+      aria-label={`Cor do status ${item.name}`}
+      title="Trocar a cor"
+      onChange={(e) => setValor(e.target.value)}
+      onBlur={salvar}
+    />
+  )
 }
 
 /** Nome editável direto na célula — salva ao sair do campo, só se mudou. */

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
   COR_PRIORIDADE,
+  ICONE_PRIORIDADE,
   ROTULO_PRIORIDADE,
   ROTULO_STATUS,
   corEstadoSla,
@@ -206,23 +207,17 @@ export function TicketsTable({
               </td>
               <td className="col-resp">{t.assignee_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
               <td className="col-cat">{t.category_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
-              {/* Item 27: a barra colorida sozinha falha WCAG 1.4.1 (cor não
-                  pode ser o único jeito de saber a prioridade — daltonismo
-                  não distingue) e o `aria-label` antigo, num <span> sem role
-                  (papel implícito "generic"), não tem nome de autor exposto
-                  — o leitor de tela não ouvia nada. Visualmente continua só
-                  a barra (o `title` cobre quem passa o mouse); o nome
-                  acessível vem de ROTULO_PRIORIDADE num texto real ao lado,
-                  só recortado da tela — não de um atributo que este elemento
-                  não consegue expor. */}
+              {/* Prioridade escrita, com ícone e cor: a barra de 4px de
+                  antes não se distinguia entre uma linha e outra — e cor
+                  sozinha nunca devia ser o único sinal (WCAG 1.4.1). */}
               <td className="col-urg">
                 <span
-                  className="tickets-tabela__urg"
-                  style={{ background: COR_PRIORIDADE[t.priority] }}
-                  title={ROTULO_PRIORIDADE[t.priority]}
-                  aria-hidden="true"
-                />
-                <span className="tickets-tabela__sr">{ROTULO_PRIORIDADE[t.priority]}</span>
+                  className="tickets-tabela__prio"
+                  style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
+                >
+                  <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
+                  {ROTULO_PRIORIDADE[t.priority]}
+                </span>
               </td>
               <td className="col-status">
                 <span className="tickets-tabela__status">

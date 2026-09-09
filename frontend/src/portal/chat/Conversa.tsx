@@ -350,7 +350,8 @@ export function Conversa({
         </form>
       )}
 
-      <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+      {/* fundo na rolagem: sobre ele o balão branco do suporte e o meu tingido viram figura, não linhas numa folha em branco */}
+      <div className="flex flex-1 flex-col gap-4 overflow-y-auto bg-navegacao p-4">
         {total >= LIMITE_MENSAGENS && !fimDoHistorico && (
           <Button
             variant="ghost"
