@@ -391,6 +391,17 @@ semear_se_vazio() {
       passo "Sem conversas de chat — criando as de demonstração"
       manage seed_demo >/dev/null 2>&1 || true
     fi
+    # Mesmo raciocínio para os CADASTROS que o seed cria e que nasceram depois
+    # deste banco: `seed_defaults` só rodava em banco vazio, então quem já
+    # tinha o sistema instalado ficava sem os motivos de encerramento e abria
+    # "Encerrar" com um seletor vazio. O comando é idempotente
+    # (`update_or_create`) — rodar de novo só preenche o que falta.
+    if ! manage shell -c \
+        "import sys; from apps.chat.models import ChatCloseReason; sys.exit(0 if ChatCloseReason.objects.exists() else 1)" \
+        >/dev/null 2>&1; then
+      passo "Cadastros novos desde a última versão — atualizando"
+      manage seed_defaults >/dev/null 2>&1 || true
+    fi
     return 0
   fi
   passo "Banco vazio — populando com dados de demonstração"
