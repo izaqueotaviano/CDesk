@@ -71,6 +71,7 @@ from apps.customers.admin_api import CompanyAdminViewSet, PlanAdminViewSet
 from apps.customers.views import CompanyViewSet, MaintenanceView, MyCompanyView, QuotaView
 from apps.kanban.views import BoardLaneViewSet, BoardViewSet
 from apps.knowledge.views import ArticleViewSet
+from apps.notes.views import NoteTagViewSet, NoteViewSet
 from apps.notifications.views import NotificationPreferenceView, NotificationViewSet
 from apps.reports.views import (
     ChatStatsView,
@@ -119,6 +120,12 @@ router.register("announcements", AnnouncementViewSet, basename="announcement")
 router.register("kanban/boards", BoardViewSet, basename="kanban-board")
 router.register("kanban/lanes", BoardLaneViewSet, basename="kanban-lane")
 router.register("knowledge/articles", ArticleViewSet, basename="knowledge-article")
+# Notas pessoais de quem atende. `notes/tags` ANTES de `notes`, e a ordem é
+# obrigatória: o detalhe de nota vira `^notes/(?P<pk>[^/.]+)/$`, que casa com
+# `notes/tags/` — registrado depois, o autocomplete de etiqueta viraria um
+# 404 de "nota com id 'tags'".
+router.register("notes/tags", NoteTagViewSet, basename="note-tag")
+router.register("notes", NoteViewSet, basename="note")
 router.register("reports/exports", ReportExportViewSet, basename="report-export")
 
 # --- configuração (telas de admin) ---
