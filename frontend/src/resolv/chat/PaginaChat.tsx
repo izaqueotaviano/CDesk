@@ -4,6 +4,7 @@ import { useConfigChat, useFilaChat, useMeusChats, usePegarChat } from '@/api/ch
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { ConversaChat } from './ConversaChat'
+import { Finalizados } from './Finalizados'
 import { ListaConversas } from './ListaConversas'
 import { PainelChat } from './PainelChat'
 import './chat.scss'
@@ -26,6 +27,9 @@ export function PaginaChat() {
   const config = useConfigChat()
   const pegar = usePegarChat()
   const [erroFila, setErroFila] = useState<string | null>(null)
+  // "Ativos" (fila + meus) ou "Finalizados". Mora na URL como a conversa:
+  // recarregar a página não devolve a pessoa para a aba errada.
+  const aba = params.get('aba') === 'finalizados' ? 'finalizados' : 'ativos'
 
   // "agora" de referência para os tempos relativos — o instante do último
   // fetch da fila, não Date.now() em render (impuro; recalcularia à toa)
@@ -34,11 +38,22 @@ export function PaginaChat() {
   // sem seleção, cai no primeiro atendimento em andamento
   const primeiroMeu = meus.data?.[0]?.id
   useEffect(() => {
-    if (chatId == null && primeiroMeu != null) setParams({ chat: String(primeiroMeu) }, { replace: true })
-  }, [chatId, primeiroMeu, setParams])
+    if (aba === 'ativos' && chatId == null && primeiroMeu != null) {
+      setParams({ chat: String(primeiroMeu) }, { replace: true })
+    }
+  }, [aba, chatId, primeiroMeu, setParams])
 
   function selecionar(id: number) {
-    setParams({ chat: String(id) })
+    const proximo: Record<string, string> = { chat: String(id) }
+    if (aba === 'finalizados') proximo.aba = 'finalizados'
+    setParams(proximo)
+  }
+
+  function trocarAba(proxima: 'ativos' | 'finalizados') {
+    const atual: Record<string, string> = {}
+    if (chatParam) atual.chat = chatParam
+    if (proxima === 'finalizados') atual.aba = 'finalizados'
+    setParams(atual)
   }
 
   function pegarChat(id: number) {
@@ -54,19 +69,46 @@ export function PaginaChat() {
 
   return (
     <div className="chat-console">
-      <ListaConversas
-        fila={fila.data ?? []}
-        meus={meus.data ?? []}
-        selecionado={chatId}
-        onSelecionar={selecionar}
-        onPegar={pegarChat}
-        pegando={pegar.isPending}
-        erroFila={erroFila}
-        filaAberta={config.data?.queue_open}
-        abreEm={config.data?.queue_opens_at}
-        limite={config.data?.max_chats_per_agent}
-        agoraMs={agoraMs}
-      />
+      <aside className="cc-lista" aria-label="Conversas">
+        <div className="cc-lista__abas" role="tablist" aria-label="Fila e finalizados">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'ativos'}
+            className={'cc-lista__aba' + (aba === 'ativos' ? ' cc-lista__aba--ativa' : '')}
+            onClick={() => trocarAba('ativos')}
+          >
+            Ativos
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'finalizados'}
+            className={'cc-lista__aba' + (aba === 'finalizados' ? ' cc-lista__aba--ativa' : '')}
+            onClick={() => trocarAba('finalizados')}
+          >
+            Finalizados
+          </button>
+        </div>
+
+        {aba === 'ativos' ? (
+          <ListaConversas
+            fila={fila.data ?? []}
+            meus={meus.data ?? []}
+            selecionado={chatId}
+            onSelecionar={selecionar}
+            onPegar={pegarChat}
+            pegando={pegar.isPending}
+            erroFila={erroFila}
+            filaAberta={config.data?.queue_open}
+            abreEm={config.data?.queue_opens_at}
+            limite={config.data?.max_chats_per_agent}
+            agoraMs={agoraMs}
+          />
+        ) : (
+          <Finalizados selecionado={chatId} onSelecionar={selecionar} />
+        )}
+      </aside>
 
       {chatId != null ? (
         <>

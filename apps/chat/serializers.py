@@ -11,6 +11,7 @@ from rest_framework.validators import UniqueValidator
 from apps.chat.models import (
     BannedWord,
     Chat,
+    ChatCloseReason,
     ChatConfig,
     ChatFile,
     ChatMessage,
@@ -177,6 +178,25 @@ class ChatTimelineMediaSerializer(serializers.Serializer):
 _EDITAVEIS_DO_CHAT = ("name", "category", "priority", "assignee")
 
 
+class ChatCloseReasonSerializer(serializers.ModelSerializer):
+    """O cadastro de motivos. `slug` é gerado do nome quando não vem — quem
+    cadastra escreve "Sem resposta", não "sem-resposta"."""
+
+    slug = serializers.SlugField(required=False, allow_blank=True)
+
+    class Meta:
+        model = ChatCloseReason
+        fields = ["id", "name", "slug", "requires_note", "is_active", "order"]
+
+    def validate(self, attrs):
+        from django.utils.text import slugify
+
+        if not attrs.get("slug"):
+            nome = attrs.get("name") or getattr(self.instance, "name", "")
+            attrs["slug"] = slugify(nome)[:50]
+        return attrs
+
+
 class ChatSerializer(serializers.ModelSerializer):
     client_id = serializers.IntegerField(read_only=True)
     client_name = serializers.CharField(source="client.full_name", read_only=True)
@@ -200,6 +220,12 @@ class ChatSerializer(serializers.ModelSerializer):
     ticket_reference = serializers.SerializerMethodField()
     # nota interna do agente — NUNCA sai para o cliente (ver to_representation)
     agent_score = serializers.IntegerField(read_only=True, allow_null=True)
+    # motivo/observação/quem encerrou — a observação é INTERNA (some no
+    # to_representation para o cliente, junto com a nota do agente)
+    close_reason_name = serializers.CharField(
+        source="close_reason.name", read_only=True, default=None
+    )
+    closed_by_name = serializers.SerializerMethodField()
     ws_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -212,6 +238,8 @@ class ChatSerializer(serializers.ModelSerializer):
             "category", "category_name", "priority", "assignee", "assignee_name",
             "tag_ids",
             "queued_at", "accepted_at", "closed_at", "reopen_count",
+            "close_reason", "close_reason_name", "close_note",
+            "closed_automatically", "closed_by_name",
             "agent_score", "timeout_converted",
             "unread_count", "last_message_preview",
             "rating", "rating_pending", "ticket_id", "ticket_reference",
@@ -226,8 +254,14 @@ class ChatSerializer(serializers.ModelSerializer):
             # o que é interno morre aqui: nota do agente sobre o cliente e o
             # nome interno do chat (o cliente só o vê se virar ticket/assunto)
             data.pop("agent_score", None)
+            # observação de encerramento é anotação de operação, não recado:
+            # o cliente vê QUE encerrou, não o que a equipe escreveu sobre
+            data.pop("close_note", None)
             data["name"] = ""
         return data
+
+    def get_closed_by_name(self, obj) -> str | None:
+        return obj.closed_by.full_name if obj.closed_by else None
 
     def get_client_avatar(self, obj) -> str | None:
         return obj.client.avatar_url or None
@@ -282,11 +316,31 @@ class RateSerializer(serializers.Serializer):
 
 
 class CloseSerializer(serializers.Serializer):
+    """Entrada do encerramento. Motivo e observação são opcionais AQUI e a
+    obrigatoriedade real (motivo que exige nota) mora no serviço — é lá que
+    o `requires_note` do cadastro é lido, com o valor corrente."""
+
     agent_score = serializers.IntegerField(required=False, allow_null=True, default=None)
+    reason_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
 
 
 class TransferSerializer(serializers.Serializer):
     agent_id = serializers.IntegerField()
+    #: observação INTERNA de quem transfere ("cliente quer falar de fatura").
+    #: Vai para a auditoria, nunca para a conversa.
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
+
+
+class ReopenSerializer(serializers.Serializer):
+    #: por que está reabrindo — interno, entra na trilha de auditoria
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
 
 
 class ConvertSerializer(serializers.Serializer):

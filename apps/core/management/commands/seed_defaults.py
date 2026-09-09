@@ -9,9 +9,10 @@ import datetime as dt
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils.text import slugify
 
 from apps.accounts.models import Team, TeamVisibility
-from apps.chat.models import ClientQuickReply
+from apps.chat.models import ChatCloseReason, ClientQuickReply
 from apps.core.models import BusinessCalendar, Holiday
 from apps.customers.models import LimitPeriod, Plan
 from apps.tickets.models import SLAPolicy, TicketCategory
@@ -75,6 +76,20 @@ QUICK_REPLIES_TICKET = [
 
 class Command(BaseCommand):
     help = "Popula planos, equipes, calendário comercial e políticas de SLA."
+
+    #: Motivos de encerramento do chat. Nascem cadastrados pelo mesmo motivo
+    #: dos atalhos: catálogo vazio faz o seletor sumir da tela de encerrar, e
+    #: o relatório por motivo nasce sem eixo nenhum. O admin edita.
+    #: (nome, exige observação)
+    CLOSE_REASONS = [
+        ("Resolvido", False),
+        ("Sem resposta do cliente", False),
+        ("Cliente desistiu", False),
+        ("Duplicado", False),
+        ("Virou chamado", False),
+        ("Transferido para outro canal", True),
+        ("Outro", True),
+    ]
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -191,10 +206,17 @@ class Command(BaseCommand):
                     defaults={"texto": texto, "order": ordem},
                 )
 
+        for ordem, (nome, exige_nota) in enumerate(self.CLOSE_REASONS):
+            ChatCloseReason.objects.update_or_create(
+                slug=slugify(nome)[:50],
+                defaults={"name": nome, "requires_note": exige_nota, "order": ordem},
+            )
+
         self.stdout.write(self.style.SUCCESS(
             f"Defaults ok: {Plan.objects.count()} planos, "
             f"{Team.objects.count()} equipes, "
             f"{SLAPolicy.objects.count()} políticas de SLA, "
             f"{Holiday.objects.count()} feriados, "
-            f"{ClientQuickReply.objects.count()} atalhos de mensagem."
+            f"{ClientQuickReply.objects.count()} atalhos de mensagem, "
+            f"{ChatCloseReason.objects.count()} motivos de encerramento."
         ))

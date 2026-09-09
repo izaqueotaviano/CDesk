@@ -6,6 +6,8 @@ import {
   useConverterChat,
   useEncerrarChat,
   useEquipes,
+  useHistoricoDoCliente,
+  useMotivosEncerramento,
   useTransferirChat,
 } from '@/api/chat'
 import { ApiError } from '@/api/client'
@@ -15,6 +17,12 @@ import { dataHoraDe } from './format'
 type Acao = 'transferir' | 'converter' | 'encerrar' | null
 
 const NOTAS = Array.from({ length: 11 }, (_, i) => i)
+
+const ROTULO_STATUS: Record<string, string> = {
+  queued: 'na fila',
+  active: 'em atendimento',
+  closed: 'encerrado',
+}
 
 function mensagemDe(e: unknown, padrao: string): string {
   return e instanceof ApiError ? (e.detail ?? Object.values(e.fieldErrors ?? {})[0]?.[0] ?? padrao) : padrao
@@ -34,11 +42,21 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
   const transferir = useTransferirChat(chatId)
   const converter = useConverterChat(chatId)
   const encerrar = useEncerrarChat(chatId)
+  const { data: motivos } = useMotivosEncerramento()
+  // Histórico da PESSOA (item 3): os atendimentos anteriores dela que este
+  // agente pode ver — o recorte é do backend, não daqui.
+  const [verHistorico, setVerHistorico] = useState(false)
+  const { data: historico, isLoading: carregandoHistorico } = useHistoricoDoCliente(
+    verHistorico ? (chat?.client_id ?? null) : null,
+  )
 
   const [acao, setAcao] = useState<Acao>(null)
   const [agenteId, setAgenteId] = useState('')
   const [equipeId, setEquipeId] = useState('')
   const [nota, setNota] = useState('')
+  // encerramento: motivo + observação interna; transferência: só observação
+  const [motivoId, setMotivoId] = useState('')
+  const [obs, setObs] = useState('')
   const [erro, setErro] = useState<string | null>(null)
 
   if (!chat) return <aside className="cc-painel" />
@@ -46,9 +64,14 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
   const souOAgente = me != null && chat.agent_id === me.id
   const podeAgir = chat.status === 'active' && (souOAgente || me?.is_admin === true)
   const ocupado = transferir.isPending || converter.isPending || encerrar.isPending
+  // o backend recusa encerrar sem observação nesse caso — a tela só antecipa
+  const motivoExigeObs =
+    motivoId !== '' &&
+    (motivos ?? []).some((m) => m.id === Number(motivoId) && m.requires_note)
 
   function abrir(a: Acao) {
     setErro(null)
+    setObs('')
     setAcao((atual) => (atual === a ? null : a))
   }
 
@@ -56,7 +79,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
     setErro(null)
     if (acao === 'transferir') {
       if (!agenteId) return
-      transferir.mutate(Number(agenteId), {
+      transferir.mutate({ agent_id: Number(agenteId), note: obs }, {
         onSuccess: () => setAcao(null),
         onError: (e) => setErro(mensagemDe(e, 'Não foi possível transferir.')),
       })
@@ -70,7 +93,11 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
         onError: (e) => setErro(mensagemDe(e, 'Não foi possível converter.')),
       })
     } else if (acao === 'encerrar') {
-      encerrar.mutate(nota === '' ? null : Number(nota), {
+      encerrar.mutate({
+        agent_score: nota === '' ? null : Number(nota),
+        reason_id: motivoId === '' ? null : Number(motivoId),
+        note: obs,
+      }, {
         onSuccess: () => setAcao(null),
         onError: (e) => setErro(mensagemDe(e, 'Não foi possível encerrar.')),
       })
@@ -125,10 +152,71 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
         </dl>
       </section>
 
+      <section className="cc-painel__bloco">
+        <h3>
+          Histórico do cliente
+          <button
+            type="button"
+            className="cc-link cc-painel__ver-mais"
+            aria-expanded={verHistorico}
+            onClick={() => setVerHistorico((v) => !v)}
+          >
+            {verHistorico ? 'ocultar' : 'ver'}
+          </button>
+        </h3>
+        {verHistorico && (
+          carregandoHistorico ? (
+            <p className="cc-painel__ajuda">Carregando…</p>
+          ) : (historico ?? []).length <= 1 ? (
+            <p className="cc-painel__ajuda">Este é o primeiro atendimento desta pessoa.</p>
+          ) : (
+            <ul className="cc-painel__historico">
+              {(historico ?? [])
+                .filter((h) => h.id !== chat.id)
+                .map((h) => (
+                  <li key={h.id}>
+                    <button type="button" className="cc-painel__historico-item" onClick={() => navigate(`/chat?chat=${h.id}`)}>
+                      <span className="cc-painel__historico-topo">
+                        <span className="cc-painel__historico-protocolo">#{h.id}</span>
+                        <span>{dataHoraDe(h.closed_at ?? h.queued_at)}</span>
+                      </span>
+                      <span className="cc-painel__historico-meta">
+                        {ROTULO_STATUS[h.status]}
+                        {h.agent_name ? ` · ${h.agent_name}` : ''}
+                        {h.close_reason_name ? ` · ${h.close_reason_name}` : ''}
+                        {h.rating ? ` · nota ${h.rating.service_score}` : ''}
+                        {h.reopen_count > 0 ? ` · ${h.reopen_count} reabertura(s)` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          )
+        )}
+      </section>
+
       {chat.status === 'closed' && (
         <section className="cc-painel__bloco">
           <h3>Desfecho</h3>
           <dl>
+            <dt>Encerrado por</dt>
+            <dd>
+              {chat.closed_automatically
+                ? 'automaticamente'
+                : (chat.closed_by_name ?? '—')}
+            </dd>
+            {chat.close_reason_name && (
+              <>
+                <dt>Motivo</dt>
+                <dd>{chat.close_reason_name}</dd>
+              </>
+            )}
+            {chat.close_note && (
+              <>
+                <dt>Observação</dt>
+                <dd title="Interna — o cliente não vê">{chat.close_note}</dd>
+              </>
+            )}
             {chat.ticket_reference && (
               <>
                 <dt>Chamado</dt>
@@ -184,7 +272,18 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
                     </option>
                   ))}
               </select>
-              <p className="cc-painel__ajuda">Vai direto pro agente escolhido — não volta pra fila.</p>
+              <label htmlFor="cc-obs-transf">Observação interna (opcional)</label>
+              <textarea
+                id="cc-obs-transf"
+                rows={2}
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                placeholder="O que quem receber precisa saber"
+              />
+              <p className="cc-painel__ajuda">
+                Vai direto pro agente escolhido — não volta pra fila. A observação fica na
+                trilha de auditoria; o cliente não a vê.
+              </p>
               <button type="button" className="cc-painel__confirmar" disabled={!agenteId || ocupado} onClick={confirmar}>
                 {transferir.isPending ? 'Transferindo…' : 'Transferir'}
               </button>
@@ -213,6 +312,28 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
 
           {acao === 'encerrar' && (
             <div className="cc-painel__form">
+              <label htmlFor="cc-motivo">Motivo do encerramento</label>
+              <select id="cc-motivo" value={motivoId} onChange={(e) => setMotivoId(e.target.value)}>
+                <option value="">Sem motivo</option>
+                {(motivos ?? []).filter((m) => m.is_active).map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+
+              <label htmlFor="cc-obs-encerrar">
+                Observação interna
+                {motivoExigeObs ? '' : ' (opcional)'}
+              </label>
+              <textarea
+                id="cc-obs-encerrar"
+                rows={2}
+                value={obs}
+                onChange={(e) => setObs(e.target.value)}
+                placeholder={motivoExigeObs ? 'Este motivo pede uma explicação' : 'O que a equipe precisa saber depois'}
+              />
+
               <label htmlFor="cc-nota">Nota interna do atendimento (opcional)</label>
               <select id="cc-nota" value={nota} onChange={(e) => setNota(e.target.value)}>
                 <option value="">Sem nota</option>
@@ -222,8 +343,15 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
                   </option>
                 ))}
               </select>
-              <p className="cc-painel__ajuda">Só a equipe vê esta nota — ela nunca sai para o cliente.</p>
-              <button type="button" className="cc-painel__confirmar cc-painel__confirmar--perigo" disabled={ocupado} onClick={confirmar}>
+              <p className="cc-painel__ajuda">
+                Motivo, observação e nota são internos — nada disso sai para o cliente.
+              </p>
+              <button
+                type="button"
+                className="cc-painel__confirmar cc-painel__confirmar--perigo"
+                disabled={ocupado || (motivoExigeObs && obs.trim() === '')}
+                onClick={confirmar}
+              >
                 {encerrar.isPending ? 'Encerrando…' : 'Encerrar conversa'}
               </button>
             </div>

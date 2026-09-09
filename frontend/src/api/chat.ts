@@ -73,11 +73,28 @@ export interface Chat {
   timeout_converted: boolean
   unread_count: number
   last_message_preview: string | null
+  /** Encerramento: por que terminou, quem encerrou e se foi automático.
+   *  `close_note` é INTERNA — o backend nem manda para o cliente. */
+  close_reason: number | null
+  close_reason_name: string | null
+  close_note?: string
+  closed_automatically: boolean
+  closed_by_name: string | null
   rating: AvaliacaoChat | null
   rating_pending: boolean
   ticket_id: number | null
   ticket_reference: string | null
   ws_url: string
+}
+
+/** Motivo de encerramento — cadastro do admin (`chat/close-reasons/`). */
+export interface MotivoEncerramento {
+  id: number
+  name: string
+  slug: string
+  requires_note: boolean
+  is_active: boolean
+  order: number
 }
 
 export interface ConfigChat {
@@ -120,6 +137,10 @@ export const chaves = {
   config: ['chat', 'config'] as const,
   chat: (id: number) => ['chat', id] as const,
   mensagens: (id: number) => ['chat', id, 'messages'] as const,
+  motivos: ['chat', 'close-reasons'] as const,
+  /** Finalizados: a chave carrega os filtros — cada recorte é um cache. */
+  finalizados: (filtros: FiltrosFinalizados) => ['chat', 'finalizados', filtros] as const,
+  historico: (clienteId: number) => ['chat', 'historico', clienteId] as const,
 }
 
 const lista = <T,>(d: Paginado<T> | T[]): T[] => (Array.isArray(d) ? d : d.results)
@@ -198,6 +219,85 @@ export function usePendingRatings(habilitado = true) {
   })
 }
 
+/** O cadastro de motivos de encerramento. Vem inteiro (inclusive os
+ *  desativados): o seletor de encerrar filtra pelos ativos, mas a aba
+ *  Finalizados precisa do nome de um motivo já aposentado para escrever a
+ *  legenda de quem o usou. `staleTime` alto — é cadastro, não fila. */
+export function useMotivosEncerramento(habilitado = true) {
+  return useQuery({
+    queryKey: chaves.motivos,
+    queryFn: () =>
+      api.get<Paginado<MotivoEncerramento> | MotivoEncerramento[]>(
+        '/api/v1/chat/close-reasons/?limit=100',
+      ),
+    select: lista,
+    enabled: habilitado,
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** Os recortes da aba Finalizados. Tudo opcional; o que estiver vazio não
+ *  vira parâmetro (a URL fica legível e o cache não fragmenta à toa). */
+export interface FiltrosFinalizados {
+  q?: string
+  agent?: number | null
+  reason?: number | null
+  tag?: number | null
+  category?: number | null
+  /** 'sem' = não avaliados; número = nota mínima. */
+  rating?: string | null
+  desde?: string | null
+  ate?: string | null
+  ordering?: string | null
+  mine?: boolean
+}
+
+function queryDeFinalizados(f: FiltrosFinalizados): string {
+  const p = new URLSearchParams({ status: 'closed', limit: '50' })
+  if (f.q?.trim()) p.set('q', f.q.trim())
+  if (f.agent) p.set('agent', String(f.agent))
+  if (f.reason) p.set('reason', String(f.reason))
+  if (f.tag) p.set('tag', String(f.tag))
+  if (f.category) p.set('category', String(f.category))
+  if (f.rating) p.set('rating', f.rating)
+  if (f.desde) p.set('desde', f.desde)
+  if (f.ate) p.set('ate', f.ate)
+  if (f.ordering) p.set('ordering', f.ordering)
+  if (f.mine) p.set('mine', '1')
+  return p.toString()
+}
+
+/** A aba "Finalizados": atendimentos encerrados que este agente pode ver.
+ *  Lista à parte da fila de propósito (item 2 do brief) — misturar as duas
+ *  faria o encerrado voltar a disputar atenção com quem está esperando. */
+export function useFinalizados(filtros: FiltrosFinalizados, habilitado = true) {
+  return useQuery({
+    queryKey: chaves.finalizados(filtros),
+    queryFn: () =>
+      api.get<Paginado<Chat> | Chat[]>(
+        `/api/v1/chat/chats/?${queryDeFinalizados(filtros)}`,
+      ),
+    select: lista,
+    enabled: habilitado,
+    staleTime: 30_000,
+  })
+}
+
+/** Todos os atendimentos de uma pessoa — o histórico que abre ao lado da
+ *  conversa (item 3). O backend já recorta pelo que quem pergunta pode ver. */
+export function useHistoricoDoCliente(clienteId: number | null) {
+  return useQuery({
+    queryKey: chaves.historico(clienteId ?? 0),
+    queryFn: () =>
+      api.get<Paginado<Chat> | Chat[]>(
+        `/api/v1/chat/chats/?client=${clienteId}&limit=50`,
+      ),
+    select: lista,
+    enabled: clienteId != null,
+    staleTime: 30_000,
+  })
+}
+
 export function useConfigChat() {
   return useQuery({
     queryKey: chaves.config,
@@ -270,6 +370,13 @@ function invalidarListas(qc: QueryClient) {
   void qc.invalidateQueries({ queryKey: chaves.fila })
   void qc.invalidateQueries({ queryKey: chaves.meus })
   void qc.invalidateQueries({ queryKey: chaves.meuVivo })
+  // Finalizados e histórico entram aqui porque TODA mudança de ciclo de vida
+  // muda os dois: encerrar põe na lista, reabrir tira. É o critério 3 do
+  // aceite ("aparece imediatamente em Finalizados") — sem esta linha, a aba
+  // só se corrigiria no próximo refetch por tempo. O prefixo invalida todos
+  // os recortes de filtro de uma vez, sem precisar saber quais estão vivos.
+  void qc.invalidateQueries({ queryKey: ['chat', 'finalizados'] })
+  void qc.invalidateQueries({ queryKey: ['chat', 'historico'] })
 }
 
 /** Cliente abre (ou retoma) a conversa. O 400 traz `code`
@@ -310,8 +417,8 @@ export function usePegarChat() {
 export function useTransferirChat(chatId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (agent_id: number) =>
-      api.post<Chat>(`/api/v1/chat/chats/${chatId}/transfer/`, { agent_id }),
+    mutationFn: ({ agent_id, note = '' }: { agent_id: number; note?: string }) =>
+      api.post<Chat>(`/api/v1/chat/chats/${chatId}/transfer/`, { agent_id, note }),
     onSuccess: (chat) => {
       gravarChat(qc, chat)
       invalidarListas(qc)
@@ -319,11 +426,24 @@ export function useTransferirChat(chatId: number) {
   })
 }
 
+/** Encerrar: nota interna do agente (opcional), motivo e observação.
+ *  A obrigatoriedade da observação para certos motivos é do BACKEND — a tela
+ *  mostra o campo, o servidor é quem recusa. */
+export interface DadosEncerramento {
+  agent_score?: number | null
+  reason_id?: number | null
+  note?: string
+}
+
 export function useEncerrarChat(chatId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (agent_score?: number | null) =>
-      api.post<Chat>(`/api/v1/chat/chats/${chatId}/close/`, { agent_score: agent_score ?? null }),
+    mutationFn: (dados: DadosEncerramento = {}) =>
+      api.post<Chat>(`/api/v1/chat/chats/${chatId}/close/`, {
+        agent_score: dados.agent_score ?? null,
+        reason_id: dados.reason_id ?? null,
+        note: dados.note ?? '',
+      }),
     onSuccess: (chat) => {
       gravarChat(qc, chat)
       invalidarListas(qc)
@@ -335,7 +455,8 @@ export function useEncerrarChat(chatId: number) {
 export function useReabrirChat(chatId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: () => api.post<Chat>(`/api/v1/chat/chats/${chatId}/reopen/`),
+    mutationFn: (note?: string) =>
+      api.post<Chat>(`/api/v1/chat/chats/${chatId}/reopen/`, { note: note ?? '' }),
     onSuccess: (chat) => {
       gravarChat(qc, chat)
       invalidarListas(qc)

@@ -45,6 +45,7 @@ from apps.audit.views import (
 )
 from apps.chat.views import (
     BannedWordViewSet,
+    ChatCloseReasonViewSet,
     ChatConfigView,
     ChatFileDownloadView,
     ChatMacroViewSet,
@@ -106,6 +107,9 @@ router.register("companies", CompanyViewSet, basename="company")
 router.register("chat/chats", ChatViewSet, basename="chat")
 router.register("chat/macros", ChatMacroViewSet, basename="chat-macro")
 router.register("chat/banned-words", BannedWordViewSet, basename="chat-banned-word")
+router.register(
+    "chat/close-reasons", ChatCloseReasonViewSet, basename="chat-close-reason"
+)
 # atalhos de mensagem do chat — o PORTAL lê (é quem usa), o admin gerencia
 router.register(
     "chat/quick-replies", ClientQuickReplyViewSet, basename="chat-quick-reply"

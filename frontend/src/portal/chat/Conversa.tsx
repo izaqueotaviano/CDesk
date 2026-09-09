@@ -128,7 +128,7 @@ export function Conversa({ chatId, onVoltar }: { chatId: number; onVoltar?: () =
 
   async function encerrarConversa() {
     try {
-      await encerrar.mutateAsync(undefined)
+      await encerrar.mutateAsync({})
     } catch (e) {
       setErro(e instanceof ApiError ? (e.detail ?? 'Não foi possível encerrar.') : 'Não foi possível encerrar.')
       throw e

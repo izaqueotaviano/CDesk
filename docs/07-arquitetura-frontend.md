@@ -241,6 +241,37 @@ recebida no cache — mas a reconexão sempre faz catch-up por REST
 (`GET /chat/sessions/:id/messages/?after=<últimoId>`), que é o que garante zero
 perda. Esse endpoint já existe.
 
+#### Finalizados, motivo de encerramento e auditoria (Fase 1 da rodada de chat)
+
+O console tem DUAS listas na coluna esquerda, em abas (`?aba=finalizados` na
+URL, como a conversa selecionada): **Ativos** (fila + meus atendimentos) e
+**Finalizados**. Separadas de propósito — encerrado não some, mas também não
+volta a disputar atenção com quem espera agora.
+
+Todo recorte de Finalizados é do SERVIDOR (`?agent=`, `?reason=`, `?rating=`,
+`?desde=`/`?ate=`, `?ordering=`, e `?q=` que também varre protocolo, telefone
+e o corpo das mensagens): filtrar no navegador só valeria para a página já
+baixada, e essa lista cresce para sempre. A ordenação é uma lista FECHADA no
+backend (`ChatViewSet.ORDENACOES`) — `order_by` com string livre do cliente
+ordenaria por qualquer coluna do modelo, inclusive as que o serializer
+esconde. Duração e espera não são colunas: saem de diferenças entre carimbos,
+anotadas na consulta.
+
+O **motivo de encerramento** é cadastro (`chat.ChatCloseReason`), não enum:
+muda por empresa e por época, e congelá-lo no código pediria deploy para cada
+palavra nova. Cada motivo declara se `requires_note`; quem cobra a observação
+é o SERVIÇO (`close_chat`), não a tela — esconder o campo no front não é
+validação. Motivo desativado sai do seletor mas continua legível em quem já o
+usou (por isso `is_active`, e nunca apagar).
+
+A **auditoria do chat** escreve no `audit.AuditLog` de sempre, via
+`chat_service.auditar()`. Uma trilha própria seria uma segunda tabela
+append-only com as mesmas colunas, e a tela de Auditoria teria de aprender a
+juntar duas fontes. `AuditLog` já é genérico, já barra update/delete de linha
+(`AppendOnlyModel`) e já entra no expurgo de retenção. Aceite, transferência,
+encerramento, reabertura e avaliação deixam rastro; um erro ao auditar nunca
+derruba a operação que já aconteceu.
+
 ### 3.4 Autenticação e sessão
 
 `useQuery(['me'])` sobre `/auth/me/` é a fonte única. Um `<AuthGate>` no topo

@@ -92,6 +92,26 @@ class Chat(TimeStampedModel):
         on_delete=models.SET_NULL, null=True, blank=True,
         related_name="chats_encerrados",
     )
+    # Por que terminou + a observação interna de quem encerrou. `PROTECT` no
+    # motivo pelo mesmo motivo do `is_active`: relatório de trás não pode
+    # perder a legenda porque alguém limpou o cadastro.
+    close_reason = models.ForeignKey(
+        "chat.ChatCloseReason",
+        on_delete=models.PROTECT, null=True, blank=True,
+        related_name="chats", verbose_name="motivo do encerramento",
+    )
+    close_note = models.TextField(
+        blank=True, verbose_name="observação do encerramento",
+        help_text="Interna: o cliente nunca vê.",
+    )
+    # Encerrou sozinho (inatividade/expediente) ou alguém encerrou? O
+    # `closed_by` não responde isso: fechamento automático não tem ator, e
+    # `closed_by IS NULL` também acontece quando a conta do agente é
+    # removida depois. Um booleano explícito é o que o relatório consegue
+    # somar sem adivinhar.
+    closed_automatically = models.BooleanField(
+        default=False, verbose_name="encerrado automaticamente"
+    )
     reopen_count = models.PositiveSmallIntegerField(default=0)
 
     # nota do AGENTE sobre o atendimento (0–10) — interna, o cliente nunca vê
@@ -238,6 +258,41 @@ class ChatFile(models.Model):
         if self.scan_status == ChatScanStatus.ERROR:
             return not settings.ATTACHMENT_BLOCK_ON_SCAN_ERROR
         return False
+
+
+class ChatCloseReason(models.Model):
+    """Por que o atendimento terminou — cadastro do admin, não enum no código.
+
+    É a mesma escolha do `TicketStatus`/`TicketTag`: motivo de encerramento
+    é vocabulário de operação, muda por empresa e por época ("abandono",
+    "duplicado", "transferido para o financeiro"), e congelar isso num
+    `TextChoices` obrigaria deploy para cada palavra nova.
+
+    `requires_note` é por motivo, não global: "resolvido" não precisa de
+    explicação, "outro" precisa. Quem decide é quem cadastra.
+
+    Desativar (`is_active=False`) em vez de apagar: o motivo sai do seletor
+    mas os atendimentos que já o usaram continuam legíveis no relatório —
+    apagar reescreveria o passado.
+    """
+
+    name = models.CharField(max_length=60, unique=True, verbose_name="motivo")
+    slug = models.SlugField(unique=True)
+    requires_note = models.BooleanField(
+        default=False,
+        verbose_name="exige observação",
+        help_text="O agente precisa escrever uma observação interna ao escolher este motivo.",
+    )
+    is_active = models.BooleanField(default=True, verbose_name="ativo")
+    order = models.PositiveSmallIntegerField(default=0, verbose_name="ordem")
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "motivo de encerramento"
+        verbose_name_plural = "motivos de encerramento"
+
+    def __str__(self):
+        return self.name
 
 
 class ChatRating(models.Model):

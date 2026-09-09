@@ -10,6 +10,8 @@ Toda leitura parte de `chat_service.visible_chats(user)` — mesma disciplina
 anti-vazamento dos tickets, vigiada pelo teste estrutural.
 """
 
+import datetime as dt
+
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
@@ -27,6 +29,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import Team, User
 from apps.chat.models import (
     BannedWord,
+    ChatCloseReason,
     ChatConfig,
     ChatMessage,
     ChatScanStatus,
@@ -35,6 +38,7 @@ from apps.chat.models import (
 )
 from apps.chat.serializers import (
     BannedWordSerializer,
+    ChatCloseReasonSerializer,
     ChatConfigSerializer,
     ChatLinkSerializer,
     ChatMessageEditSerializer,
@@ -51,6 +55,7 @@ from apps.chat.serializers import (
     CloseSerializer,
     ConvertSerializer,
     RateSerializer,
+    ReopenSerializer,
     TransferSerializer,
 )
 from apps.chat.services import chat_service
@@ -91,18 +96,52 @@ class ChatViewSet(viewsets.GenericViewSet):
     # Listagem e abertura
     # ------------------------------------------------------------------ #
 
+    #: Como a lista de FINALIZADOS pode ser ordenada. Lista fechada de
+    #: propósito: `order_by` com string livre do cliente ordena por qualquer
+    #: coluna do modelo — inclusive as que o serializer esconde.
+    ORDENACOES = {
+        "recentes": ["-closed_at", "-queued_at"],
+        "antigos": ["closed_at", "queued_at"],
+        # duração e espera não são colunas: saem de diferenças entre
+        # carimbos, anotadas na consulta (ver abaixo)
+        "duracao": ["-duracao"],
+        "duracao_asc": ["duracao"],
+        "espera": ["-espera"],
+        "nota": ["-rating__service_score", "-closed_at"],
+        "nota_asc": ["rating__service_score", "-closed_at"],
+    }
+
     @extend_schema(parameters=[
         OpenApiParameter("status", str, description="queued | active | closed"),
-        OpenApiParameter("q", str, description="busca por cliente, empresa ou nome do chat"),
+        OpenApiParameter("q", str, description=(
+            "busca por cliente, empresa, nome do chat, e-mail, telefone, "
+            "protocolo (#id) ou conteúdo das mensagens"
+        )),
         OpenApiParameter("mine", str, description="'1' = só os chats do agente logado"),
         OpenApiParameter("client", int, description="id do cliente — as conversas dele"),
+        OpenApiParameter("agent", int, description="finalizados: quem atendeu"),
+        OpenApiParameter("reason", int, description="finalizados: id do motivo de encerramento"),
+        OpenApiParameter("tag", int, description="finalizados: id da etiqueta"),
+        OpenApiParameter("category", int, description="finalizados: id do assunto/categoria"),
+        OpenApiParameter("rating", str, description=(
+            "finalizados: 'sem' (não avaliados), ou nota mínima 0-10"
+        )),
+        OpenApiParameter("desde", str, description=(
+            "finalizados: encerrados a partir de (AAAA-MM-DD)"
+        )),
+        OpenApiParameter("ate", str, description="finalizados: encerrados até (AAAA-MM-DD)"),
+        OpenApiParameter("ordering", str, description=(
+            "recentes | antigos | duracao | duracao_asc | espera | nota | nota_asc"
+        )),
     ])
     def list(self, request):
-        qs = self.get_queryset().order_by("-queued_at")
+        qs = self.get_queryset()
         if st := request.query_params.get("status"):
             qs = qs.filter(status=st)
         if request.query_params.get("mine") == "1" and request.user.is_internal:
             qs = qs.filter(agent=request.user)
+        qs = self._filtros_de_finalizados(request, qs)
+        qs = self._ordenar(request, qs)
         # "todas as conversas desta pessoa" — o que o agente abre ao lado da
         # conversa atual. Não precisa de guarda extra: para o cliente o
         # queryset já é só o dele, então filtrar por outro id devolve vazio.
@@ -112,13 +151,67 @@ class ChatViewSet(viewsets.GenericViewSet):
             qs = qs.filter(client_id=int(cliente))
         if term := request.query_params.get("q"):
             filtro = (Q(client__full_name__icontains=term)
-                      | Q(company__name__icontains=term))
+                      | Q(company__name__icontains=term)
+                      | Q(client__email__icontains=term)
+                      | Q(client__phone__icontains=term))
+            # protocolo: o id do atendimento, com ou sem "#"
+            if (protocolo := term.strip().lstrip("#")).isdigit():
+                filtro |= Q(pk=int(protocolo))
             if request.user.is_internal:
                 filtro |= Q(name__icontains=term)  # nome interno: só interno busca
-            qs = qs.filter(filtro)
+                # conteúdo das mensagens (item 2 do brief). Só para interno:
+                # o cliente já vê apenas as próprias conversas, e varrer o
+                # corpo delas não acrescenta nada a ele. Mensagem apagada
+                # fica de fora — o texto sumiu da tela, não pode voltar pela
+                # busca.
+                filtro |= Q(messages__body__icontains=term,
+                            messages__deleted_at__isnull=True)
+            qs = qs.filter(filtro).distinct()
         page = self.paginate_queryset(qs)
         ser = self.get_serializer(page, many=True)
         return self.get_paginated_response(ser.data)
+
+    def _filtros_de_finalizados(self, request, qs):
+        """Os recortes da aba Finalizados (item 2 do brief).
+
+        Todos opcionais e combináveis; nenhum deles alarga o que a pessoa
+        pode ver — `visible_chats` já recortou isso antes, e filtrar sobre um
+        queryset já restrito não tem como devolver o chat de outra empresa.
+        """
+        p = request.query_params
+        if (agente := p.get("agent")) and agente.isdigit():
+            qs = qs.filter(agent_id=int(agente))
+        if (motivo := p.get("reason")) and motivo.isdigit():
+            qs = qs.filter(close_reason_id=int(motivo))
+        if (tag := p.get("tag")) and tag.isdigit():
+            qs = qs.filter(tags__id=int(tag))
+        if (cat := p.get("category")) and cat.isdigit():
+            qs = qs.filter(category_id=int(cat))
+        if nota := p.get("rating"):
+            if nota == "sem":
+                qs = qs.filter(rating__isnull=True)
+            elif nota.isdigit():
+                qs = qs.filter(rating__service_score__gte=int(nota))
+        # Período pelo dia local de quem pergunta, não pelo UTC do servidor:
+        # "encerrados hoje" tem de bater com o calendário de quem lê a tela.
+        if desde := _data(p.get("desde")):
+            qs = qs.filter(closed_at__gte=_inicio_do_dia(desde))
+        if ate := _data(p.get("ate")):
+            qs = qs.filter(closed_at__lt=_inicio_do_dia(ate + dt.timedelta(days=1)))
+        return qs
+
+    def _ordenar(self, request, qs):
+        """Ordenação da lista. Fora do dicionário, a ordem é a de sempre
+        (fila primeiro pelo mais antigo esperando; o resto, mais recente)."""
+        escolha = request.query_params.get("ordering")
+        campos = self.ORDENACOES.get(escolha or "")
+        if campos is None:
+            return qs.order_by("-queued_at")
+        if any("duracao" in c for c in campos):
+            qs = qs.annotate(duracao=F("closed_at") - F("accepted_at"))
+        if any("espera" in c for c in campos):
+            qs = qs.annotate(espera=F("accepted_at") - F("queued_at"))
+        return qs.order_by(*campos)
 
     def retrieve(self, request, pk=None):
         return Response(self.get_serializer(self._get_chat()).data)
@@ -301,7 +394,10 @@ class ChatViewSet(viewsets.GenericViewSet):
         if para is None:
             raise ValidationError({"agent_id": "Agente não encontrado."})
         try:
-            chat = chat_service.transfer(chat=chat, actor=request.user, to_agent=para)
+            chat = chat_service.transfer(
+                chat=chat, actor=request.user, to_agent=para,
+                note=ser.validated_data.get("note", ""),
+            )
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(self.get_serializer(chat).data)
@@ -311,10 +407,18 @@ class ChatViewSet(viewsets.GenericViewSet):
         chat = self._get_chat()
         ser = CloseSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        motivo = None
+        if (rid := ser.validated_data.get("reason_id")) is not None:
+            # só motivo ATIVO entra num encerramento novo; os desativados
+            # seguem legíveis nos atendimentos que já os usaram
+            motivo = ChatCloseReason.objects.filter(pk=rid, is_active=True).first()
+            if motivo is None:
+                raise ValidationError({"reason_id": "Motivo de encerramento não encontrado."})
         try:
             chat = chat_service.close_chat(
                 chat=chat, actor=request.user,
                 agent_score=ser.validated_data.get("agent_score"),
+                reason=motivo, note=ser.validated_data.get("note", ""),
             )
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
@@ -323,8 +427,12 @@ class ChatViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def reopen(self, request, pk=None):
         chat = self._get_chat()
+        ser = ReopenSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
         try:
-            chat = chat_service.reopen(chat=chat, actor=request.user)
+            chat = chat_service.reopen(
+                chat=chat, actor=request.user, note=ser.validated_data.get("note", ""),
+            )
         except ChatRuleViolation as exc:
             # corpo montado à mão para levar o `code` (fora_do_expediente)
             return Response(
@@ -446,6 +554,24 @@ class ChatFileDownloadView(APIView):
 TIMELINE_PADRAO = 60
 #: Teto por pedido, para um `?limit=100000` não virar um despejo do histórico.
 TIMELINE_MAX = 200
+
+
+def _data(valor: str | None) -> dt.date | None:
+    """"AAAA-MM-DD" → date. Texto inválido vira `None` (o filtro some) em vez
+    de 400: um parâmetro de recorte digitado errado não deve derrubar a
+    listagem inteira."""
+    if not valor:
+        return None
+    try:
+        return dt.date.fromisoformat(valor)
+    except ValueError:
+        return None
+
+
+def _inicio_do_dia(dia: dt.date) -> dt.datetime:
+    """Meia-noite DAQUELE dia no fuso da aplicação — o filtro de período
+    precisa bater com o calendário de quem lê, não com o UTC do banco."""
+    return timezone.make_aware(dt.datetime.combine(dia, dt.time.min))
 
 
 def _so_cliente(user):
@@ -646,6 +772,21 @@ class BannedWordViewSet(viewsets.ModelViewSet):
 
     queryset = BannedWord.objects.order_by("word")
     serializer_class = BannedWordSerializer
+    permission_classes = [IsInternalReadAdminWrite]
+
+
+class ChatCloseReasonViewSet(viewsets.ModelViewSet):
+    """Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+    admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+    A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+    do motivo antigo para filtrar e para escrever a legenda de um atendimento
+    que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+    — e o backend recusa encerrar com motivo inativo (ver `close`).
+    """
+
+    queryset = ChatCloseReason.objects.all()
+    serializer_class = ChatCloseReasonSerializer
     permission_classes = [IsInternalReadAdminWrite]
 
 

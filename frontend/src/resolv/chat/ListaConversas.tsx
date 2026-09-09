@@ -37,8 +37,11 @@ export function ListaConversas({
 }: Props) {
   const noLimite = limite != null && meus.length >= limite
 
+  // Sem <aside> próprio: quem desenha a coluna (e o rótulo acessível dela) é
+  // a PaginaChat, que também abriga a aba "Finalizados". Dois <aside> um
+  // dentro do outro dariam dois marcos de navegação para a mesma coluna.
   return (
-    <aside className="cc-lista" aria-label="Conversas">
+    <>
       <section className="cc-lista__secao">
         <header className="cc-lista__cabecalho">
           <h2>Na fila</h2>
@@ -119,6 +122,6 @@ export function ListaConversas({
           ))
         )}
       </section>
-    </aside>
+    </>
   )
 }
