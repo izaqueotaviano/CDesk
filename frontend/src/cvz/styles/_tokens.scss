@@ -71,11 +71,15 @@ $focus-w:         2px;   // espessura do anel de foco
 $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
 
 // --- raio --------------------------------------------------------------------
-// Um raio só na interface inteira: 2px. O `--pill` de 7px que os badges usavam
-// saiu — cápsula ao lado de botão/campo quadrado quebrava a leitura de "mesma
-// família". Só forma circular de verdade (avatar, ponto de status) mantém 50%.
-$radius:          2px;   // padrão em tudo
-$radius-pill:     $radius;
+// Um raio só em botão/campo/cartão: 2px. A cápsula (Toggle, Tag, Progress)
+// VOLTOU a ser pílula de verdade — não 2px como o resto. É a mesma exceção
+// que `resolv/styles/tokens.scss` já faz com `--r-total` (avatar, interruptor,
+// ponto): forma circular/pílula não lê como "quadrado com raio pequeno", e um
+// interruptor com trilho quase reto e bolinha redonda (o que os 2px davam)
+// lia como quebrado, não como consistente. Só forma circular de verdade
+// (avatar, ponto de status) segue em 50%.
+$radius:          2px;   // padrão em botão, campo, cartão, popover…
+$radius-pill:     999px;
 $radius-circle:   50%;
 
 // --- métricas do shell ------------------------------------------------------

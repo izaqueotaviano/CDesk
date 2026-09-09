@@ -81,7 +81,7 @@ export function AbaTags() {
         <Field label="Cor">
           <input type="color" className="cfg-cor-input" value={corNova} onChange={(e) => setCorNova(e.target.value)} />
         </Field>
-        <Button Icon={IconPlus} size="sm" onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
+        <Button Icon={IconPlus} onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
           Adicionar
         </Button>
       </div>

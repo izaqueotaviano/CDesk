@@ -65,7 +65,7 @@ export function AbaModeracao() {
           onChange={(e) => setNova(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && adicionar()}
         />
-        <Button Icon={IconPlus} size="sm" onClick={adicionar} disabled={criar.isPending || !nova.trim()}>
+        <Button Icon={IconPlus} onClick={adicionar} disabled={criar.isPending || !nova.trim()}>
           Adicionar
         </Button>
       </div>

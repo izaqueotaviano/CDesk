@@ -24,7 +24,7 @@
      valor NÃO pode seguir o tema. */
   --neutro-0:   #ffffff;
   --neutro-25:  #fafafa;
-  --neutro-50:  #f8f8f7;  /* canvas (claro) */
+  --neutro-50:  #ffffff;  /* canvas (claro) — era #f8f8f7, agora branco puro; separacao por linha */
   --neutro-100: #f0f0f0;  /* cromo (claro) */
   --neutro-200: #e6e6e6;
   --neutro-300: #cfcfcf;
@@ -152,7 +152,7 @@
                     precisa se anunciar como editável; com a linha estrutural
                     o formulário sumia dentro da página
      --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      rgba(0, 0, 0, .06);
+  --divisoria:      rgba(0, 0, 0, .075);  /* 25% mais escura que os .06 originais */
   --borda-controle: rgba(0, 0, 0, .14);
   --borda-campo:    var(--neutro-600);
 
