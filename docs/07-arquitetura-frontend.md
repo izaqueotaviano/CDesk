@@ -327,12 +327,18 @@ profundidade, não substituto da API.)
 `/login` · `/sessao-expirada`
 
 (`/login/google` existiu como rota própria da SPA, um redirect client-side
-sem nenhum botão apontando pra ela — removida. O login por Google voltou,
-mas não como rota da SPA: é um `<a href>` comum em `/login` para
-`{API_BASE_URL}/accounts/google/login/`, porque o handshake OAuth é redirect
-de navegador de ponta a ponta, allauth cuida dele por fora do React Router —
-ver `config/urls.py` e `apps/accounts/adapters.py`. Erro de volta chega como
-`/login?erro=dominio|inativo`, lido por `PaginaLogin.tsx`.)
+sem nenhum botão apontando pra ela — removida. O login por Google chegou a
+voltar como um `<a href>` em `/login` para `{API_BASE_URL}/accounts/google/login/`,
+e saiu de novo da tela por decisão de produto (Rodada 14: sem rede social).
+A rota do backend continua existindo; quem chegar por ela e for recusado
+volta em `/login?erro=dominio|inativo`, que `PaginaLogin.tsx` ainda lê.)
+
+A tela em si (Rodada 14) segue a referência "auth-page" do 21st.dev, sem os
+botões sociais: painel da marca à esquerda (superfície sutil com 36 linhas
+animadas em CSS puro — `features/auth/login.css`, `stroke-dashoffset` com
+`pathLength="1"`, sem framer-motion — ou a imagem do admin no lugar), brilhos
+radiais atrás do formulário, e-mail + senha, 2FA em segundo passo. Marca,
+chamada e destaques continuam vindo de Configurações → Tela de login.
 
 ### 4.6 Filtros em query params, não em estado
 

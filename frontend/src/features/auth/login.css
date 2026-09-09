@@ -1,0 +1,112 @@
+/*
+ * Tela de login — o que não cabe em utilitário do Tailwind v3.
+ *
+ * 1. As LINHAS do painel da marca: 36 curvas em SVG que "escorrem" pela
+ *    tela. A referência (21st.dev, auth-page) animava com framer-motion
+ *    (pathLength/pathOffset); aqui é CSS puro sobre `stroke-dashoffset`,
+ *    com `pathLength="1"` no <path> pra cada curva contar de 0 a 1 — sem
+ *    adicionar uma biblioteca de animação só pra uma tela.
+ * 2. Os BRILHOS radiais atrás do formulário: `color-mix` sobre `--tinta`,
+ *    então seguem o tema (claro e escuro) sem dois conjuntos de cor.
+ */
+
+.login-linhas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  /* Camada própria de composição: a animação repinta só este SVG, não o
+     painel inteiro nem o formulário ao lado (sem isto, cada frame
+     invalidava os tiles da página toda — 72 curvas a 60 fps). */
+  contain: strict;
+  will-change: transform;
+}
+.login-linhas svg {
+  width: 100%;
+  height: 100%;
+}
+.login-linhas path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  /* Desenha UMA vez ao abrir (escalonado por `--atraso`) e fica. Animar
+     `stroke-dashoffset` em loop repintava 48 curvas a cada frame — medido a
+     11 fps em raster por software; um login não pode custar um núcleo. */
+  animation: login-desenhar 2.4s cubic-bezier(0.2, 0, 0.38, 0.9) var(--atraso, 0s) forwards;
+}
+@keyframes login-desenhar {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* Depois de desenhadas, as linhas derivam devagar — `transform` no wrapper,
+   que é camada própria: o compositor move a textura pronta, sem repintar. */
+.login-linhas {
+  animation: login-deriva 36s ease-in-out infinite alternate;
+}
+.login-linhas--espelho {
+  animation-direction: alternate-reverse;
+}
+@keyframes login-deriva {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
+  }
+}
+
+.login-brilhos {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0.6;
+  contain: strict;
+  isolation: isolate;
+}
+.login-brilho {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 1280px;
+  border-radius: 9999px;
+}
+.login-brilho--1 {
+  width: 560px;
+  transform: translateY(-350px);
+  background: radial-gradient(
+    68.54% 68.72% at 55.02% 31.46%,
+    color-mix(in srgb, var(--tinta) 6%, transparent) 0,
+    color-mix(in srgb, var(--tinta) 2%, transparent) 50%,
+    color-mix(in srgb, var(--tinta) 1%, transparent) 80%
+  );
+}
+.login-brilho--2,
+.login-brilho--3 {
+  width: 240px;
+  background: radial-gradient(
+    50% 50% at 50% 50%,
+    color-mix(in srgb, var(--tinta) 4%, transparent) 0,
+    color-mix(in srgb, var(--tinta) 1%, transparent) 80%,
+    transparent 100%
+  );
+}
+.login-brilho--2 {
+  transform: translate(5%, -50%);
+}
+.login-brilho--3 {
+  transform: translateY(-350px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-linhas,
+  .login-linhas path {
+    animation: none;
+  }
+  .login-linhas path {
+    stroke-dashoffset: 0;
+  }
+}

@@ -127,22 +127,27 @@ describe('PaginaLogin', () => {
     expect(await screen.findByText('Muitas tentativas. Aguarde 43 minutos e tente de novo.')).toBeInTheDocument()
   })
 
-  it('a equipe tem "Continuar com o Google"; o cliente não (não se auto-cadastra)', () => {
+  it('não há login por rede social — nem pra equipe, nem pro cliente', () => {
     const { unmount } = montar('/login')
-    expect(screen.getByRole('link', { name: 'Continuar com o Google' })).toHaveAttribute(
-      'href',
-      'http://localhost:8000/accounts/google/login/',
-    )
+    expect(screen.queryByRole('link', { name: /Google/ })).not.toBeInTheDocument()
+    expect(screen.queryByText(/ou entre com e-mail e senha/)).not.toBeInTheDocument()
     unmount()
     montar('/login/cliente')
-    expect(screen.queryByRole('link', { name: 'Continuar com o Google' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Google/ })).not.toBeInTheDocument()
+  })
+
+  it('a marca configurada pelo admin aparece no painel e em linha', async () => {
+    montar('/login/cliente')
+    expect(await screen.findByText('Chamada')).toBeInTheDocument()
+    expect(screen.getByText('Um')).toBeInTheDocument()
+    expect(screen.getAllByText('Central de Suporte').length).toBeGreaterThan(0)
   })
 
   it('?erro=dominio (allauth recusou o domínio) mostra o motivo, só pra equipe', () => {
     const { unmount } = montar('/login', undefined, '?erro=dominio')
     expect(screen.getByText(/Esse e-mail do Google não tem acesso ao painel/)).toBeInTheDocument()
     unmount()
-    // no /login/cliente o parâmetro é ignorado — não existe botão de Google ali
+    // no /login/cliente o parâmetro é ignorado — o fluxo do Google é só da equipe
     montar('/login/cliente', undefined, '?erro=dominio')
     expect(screen.queryByText(/Esse e-mail do Google não tem acesso ao painel/)).not.toBeInTheDocument()
   })
