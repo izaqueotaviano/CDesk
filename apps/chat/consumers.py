@@ -100,7 +100,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 return
             bruto = content.get("reply_to")
             citada = bruto if isinstance(bruto, int) else None
-            payload = await self._persist_message(body, reply_to_id=citada)
+            # só interno escreve nota interna: o cliente pedindo isso não
+            # esconderia a própria mensagem dele de ninguém
+            nota = bool(content.get("is_internal_note")) and self.user.is_internal
+            payload = await self._persist_message(
+                body, reply_to_id=citada, is_internal_note=nota
+            )
             if payload is None:
                 await self.send_json(
                     {"type": "error",
@@ -111,21 +116,40 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.group, {"type": "chat.message", **payload}
             )
-            await self._badge_counterpart(payload)
+            # nota interna não vira notificação no celular do cliente — seria
+            # o vazamento pela porta dos fundos, com o texto na prévia
+            if not nota:
+                await self._badge_counterpart(payload)
 
     # ------------------------------------------------------------------ #
     # Eventos do grupo → cliente
     # ------------------------------------------------------------------ #
 
+    def _esconder(self, event) -> bool:
+        """A trava da NOTA INTERNA no socket.
+
+        `group_send` fala com a sala inteira, e a sala tem o cliente dentro.
+        Esta é a segunda metade do par: a primeira é
+        `chat_service.mensagens_visiveis`, que cobre o REST. Sem as duas, uma
+        nota interna que o REST esconde chegaria pelo tempo real assim mesmo.
+        """
+        return bool(event.get("is_internal_note")) and not self.user.is_internal
+
     async def chat_message(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message"})
 
     async def chat_message_edited(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message_edited"})
 
     async def chat_message_deleted(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message_deleted"})
 
@@ -183,7 +207,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return User.objects.filter(pk=user_id, kind=UserKind.CLIENT, is_active=True).first()
 
     @database_sync_to_async
-    def _persist_message(self, body, reply_to_id=None):
+    def _persist_message(self, body, reply_to_id=None, is_internal_note=False):
         from apps.chat.models import Chat, ChatMessage
         from apps.chat.serializers import ChatMessageSerializer
         from apps.chat.services.chat_service import can_send
@@ -199,7 +223,8 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 pk=reply_to_id, deleted_at__isnull=True
             ).first()
         msg = ChatMessage.objects.create(
-            chat=chat, author=self.user, body=body, reply_to=citada
+            chat=chat, author=self.user, body=body, reply_to=citada,
+            is_internal_note=is_internal_note,
         )
         return dict(ChatMessageSerializer(msg, context={"user": self.user}).data)
 

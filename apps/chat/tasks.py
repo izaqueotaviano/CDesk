@@ -252,3 +252,109 @@ def notify_queued_chats() -> int:
                 )
             avisados += 1
     return avisados
+
+
+@shared_task
+def close_inactive_chats() -> dict:
+    """Inatividade DURANTE o atendimento: avisa e, depois, encerra sozinho.
+
+    Diferente do `convert_unattended_chats`, que é ninguém ter PEGADO. Aqui
+    alguém pegou e a conversa parou — o caso do cliente que abriu, foi
+    procurar um documento e não voltou.
+
+    Duas coisas importam nesta rotina:
+
+    1. **O aviso vem antes.** Encerrar sem avisar deixa a pessoa voltando
+       para uma conversa que sumiu. O aviso é uma mensagem de sistema na
+       própria conversa, mandada uma vez só (`inactivity_warned_at`), e
+       QUALQUER mensagem nova zera o relógio — quem voltou a falar não está
+       inativo.
+    2. **Zero desliga.** É o padrão dos dois campos, de propósito: encerrar
+       automaticamente o atendimento de quem foi buscar um documento é pior
+       do que deixar a conversa aberta. Quem liga escolhe o tempo sabendo do
+       próprio público.
+
+    O corte conta a partir da ÚLTIMA MENSAGEM, não do aceite: uma conversa
+    de duas horas que trocou mensagem agora não está parada.
+    """
+    from django.db.models import Max, Q
+
+    from apps.chat.models import Chat, ChatConfig, ChatMessage, ChatStatus
+    from apps.chat.services import chat_service
+
+    config = ChatConfig.load()
+    if not config.inactivity_warning_minutes and not config.inactivity_close_minutes:
+        return {"avisados": 0, "encerrados": 0}
+
+    agora = timezone.now()
+    # A última fala de uma PESSOA, não a última linha da conversa: a
+    # boas-vindas, o "fulano entrou" e o próprio aviso de inatividade são do
+    # sistema, e deixá-los contar faria o relógio reiniciar sozinho — o aviso
+    # zeraria o silêncio que ele acabou de anunciar, e nada nunca encerraria.
+    ativos = (
+        Chat.objects.filter(status=ChatStatus.ACTIVE)
+        .annotate(
+            ultima=Max("messages__sent_at", filter=Q(messages__is_system=False))
+        )
+        .select_related("client", "agent")
+    )
+
+    avisados = encerrados = 0
+    for chat in ativos:
+        # sem mensagem nenhuma, o relógio corre desde o aceite
+        referencia = chat.ultima or chat.accepted_at or chat.queued_at
+        if referencia is None:
+            continue
+        parado = (agora - referencia).total_seconds() / 60
+
+        if config.inactivity_close_minutes and parado >= config.inactivity_close_minutes:
+            try:
+                chat_service.close_chat(chat=chat, actor=None, automatic=True)
+            except chat_service.ChatRuleViolation:
+                # corrida com um encerramento manual — o outro ganhou, tudo bem
+                continue
+            encerrados += 1
+            logger.info("Chat #%s encerrado por %s min de inatividade.",
+                        chat.pk, config.inactivity_close_minutes)
+            continue
+
+        if (
+            config.inactivity_warning_minutes
+            and parado >= config.inactivity_warning_minutes
+            # o aviso é UMA vez por silêncio: se veio mensagem depois dele, o
+            # `referencia` andou para frente e o carimbo antigo não vale mais
+            and (chat.inactivity_warned_at is None or chat.inactivity_warned_at < referencia)
+        ):
+            msg = ChatMessage.objects.create(
+                chat=chat, is_system=True,
+                body=_aviso_de_inatividade(config),
+            )
+            Chat.objects.filter(pk=chat.pk).update(inactivity_warned_at=agora)
+            chat_service._sala(
+                chat.pk,
+                {"type": "chat.message",
+                 **_serializar_sistema(msg)},
+            )
+            avisados += 1
+
+    return {"avisados": avisados, "encerrados": encerrados}
+
+
+def _aviso_de_inatividade(config) -> str:
+    """O texto do aviso diz QUANTO tempo resta, não só que vai encerrar —
+    "ainda está aí?" sem prazo não ajuda ninguém a decidir se responde."""
+    if config.inactivity_close_minutes:
+        restante = max(1, config.inactivity_close_minutes - config.inactivity_warning_minutes)
+        return (
+            f"Ainda está aí? Sem resposta, esta conversa encerra em "
+            f"{restante} minuto{'s' if restante != 1 else ''}."
+        )
+    return "Ainda está aí? A conversa segue aberta enquanto você precisar."
+
+
+def _serializar_sistema(msg) -> dict:
+    """O payload mínimo de uma mensagem de sistema para o socket — sem
+    montar um `request` falso só para serializar o que não tem autor."""
+    from apps.chat.serializers import ChatMessageSerializer
+
+    return dict(ChatMessageSerializer(msg).data)

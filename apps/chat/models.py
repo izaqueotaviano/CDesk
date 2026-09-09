@@ -120,6 +120,10 @@ class Chat(TimeStampedModel):
     # timeout de fila: ninguém pegou e o sistema converteu sozinho
     timeout_converted = models.BooleanField(default=False)
 
+    # Aviso de inatividade já mandado — para não repetir a cada passagem da
+    # rotina. Zera a cada mensagem nova: quem voltou a falar não está inativo.
+    inactivity_warned_at = models.DateTimeField(null=True, blank=True)
+
     # O ticket gerado é acessível por `self.generated_ticket` (OneToOne em
     # tickets.Ticket.origin_chat — a FK mora lá para evitar ciclo de import).
 
@@ -168,6 +172,18 @@ class ChatMessage(models.Model):
     )
     body = models.TextField()
     is_system = models.BooleanField(default=False)
+
+    # NOTA INTERNA: fica na conversa, mas o cliente nunca a vê. É o recado da
+    # equipe sobre o atendimento ("já pedi o estorno pro financeiro") no lugar
+    # onde ele faz sentido — dentro da conversa — em vez de num canal paralelo
+    # que ninguém encontra depois.
+    #
+    # Quem decide o que sai é `chat_service.mensagens_visiveis()`, UM lugar só.
+    # Espalhar `if user.is_internal` por cada consulta é como um vazamento
+    # destes acontece: alguém acrescenta a sétima consulta e esquece a
+    # condição. O socket tem o mesmo cuidado no `chat_message` do consumer.
+    is_internal_note = models.BooleanField(default=False, db_index=True)
+
     sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
     read_at = models.DateTimeField(null=True, blank=True)
 
@@ -367,6 +383,24 @@ class ChatConfig(TimeStampedModel):
         on_delete=models.SET_NULL, null=True, blank=True,
         related_name="+",
         help_text="Equipe que recebe o ticket da conversão automática (timeout).",
+    )
+
+    # Inatividade DURANTE o atendimento — diferente do `queue_timeout_minutes`,
+    # que é ninguém ter PEGADO. Aqui alguém pegou e a conversa parou.
+    #
+    # Zero DESLIGA, e é o padrão de propósito: encerrar sozinho o atendimento
+    # de quem foi procurar um documento é pior do que deixar a conversa aberta.
+    # Quem liga escolhe o tempo sabendo do próprio público.
+    inactivity_warning_minutes = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Sem mensagem nenhuma por esse tempo, o chat avisa que vai "
+                  "encerrar. 0 desliga o aviso.",
+    )
+    inactivity_close_minutes = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Sem mensagem nenhuma por esse tempo, o chat encerra sozinho "
+                  "(contado desde a última mensagem, não desde o aviso). "
+                  "0 desliga o encerramento automático.",
     )
 
     class Meta:

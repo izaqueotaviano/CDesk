@@ -877,6 +877,8 @@ export type ChatCfgEscrita = Partial<{
   score_max: number
   low_score_threshold: number
   default_team: number | null
+  inactivity_warning_minutes: number
+  inactivity_close_minutes: number
 }>
 
 export function useAtualizarChatCfg() {

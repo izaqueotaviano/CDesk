@@ -77,6 +77,8 @@ export interface EnvioDeAnexo {
   progresso: number
   estado: 'enviando' | 'erro' | 'cancelado'
   erro?: string
+  /** Sobe como nota interna — o "tentar de novo" precisa lembrar disso. */
+  notaInterna?: boolean
 }
 
 let sequencia = 0
@@ -100,13 +102,14 @@ export function useFilaDeAnexos(chatId: number) {
   }, [])
 
   const subir = useCallback(
-    async (envio: EnvioDeAnexo, texto?: string, replyTo?: number | null) => {
+    async (envio: EnvioDeAnexo, texto?: string, replyTo?: number | null, notaInterna = false) => {
       const controle = new AbortController()
       abortos.current.set(envio.id, controle)
       const form = new FormData()
       form.append('files', envio.arquivo)
       if (texto) form.append('body', texto)
       if (replyTo != null) form.append('reply_to', String(replyTo))
+      if (notaInterna) form.append('is_internal_note', 'true')
       try {
         const msg = await enviarComProgresso<MensagemChat>(
           `/api/v1/chat/chats/${chatId}/files/`,
@@ -138,19 +141,31 @@ export function useFilaDeAnexos(chatId: number) {
   )
 
   const enviar = useCallback(
-    (arquivos: File[], opcoes: { texto?: string; replyTo?: number | null } = {}) => {
+    (
+      arquivos: File[],
+      opcoes: { texto?: string; replyTo?: number | null; notaInterna?: boolean } = {},
+    ) => {
       const novos: EnvioDeAnexo[] = arquivos.map((arquivo) => ({
         id: `envio-${++sequencia}`,
         arquivo,
         previa: arquivo.type.startsWith('image/') ? URL.createObjectURL(arquivo) : null,
         progresso: 0,
         estado: 'enviando' as const,
+        notaInterna: opcoes.notaInterna,
       }))
       setFila((f) => [...f, ...novos])
       // o texto do compositor vai junto do PRIMEIRO: repetir a mesma legenda
       // em cada arquivo mandaria a frase três vezes para o cliente
       novos.forEach((envio, i) => {
-        void subir(envio, i === 0 ? opcoes.texto : undefined, i === 0 ? opcoes.replyTo : null)
+        void subir(
+          envio,
+          i === 0 ? opcoes.texto : undefined,
+          i === 0 ? opcoes.replyTo : null,
+          // o modo vale para TODOS: metade dos anexos indo para o cliente
+          // porque a fila perdeu a marca no segundo arquivo é o defeito que
+          // esta linha existe para não ter
+          opcoes.notaInterna,
+        )
       })
       return novos.length
     },
@@ -167,7 +182,7 @@ export function useFilaDeAnexos(chatId: number) {
       const envio = fila.find((e) => e.id === id)
       if (!envio) return
       atualizar(id, { estado: 'enviando', progresso: 0, erro: undefined })
-      void subir({ ...envio, estado: 'enviando', progresso: 0 })
+      void subir({ ...envio, estado: 'enviando', progresso: 0 }, undefined, null, envio.notaInterna)
     },
     [atualizar, fila, subir],
   )

@@ -50,10 +50,40 @@ function normalizar(s: string): string {
  *  (`interpolarMacro`), copiada por ser de outra feature. O chat não tem
  *  `{{referencia}}` (não virou chamado ainda) — usada numa macro, a marca
  *  fica como está e entra em `marcadoresPendentes`, pedindo revisão. */
-function interpolarMacro(texto: string, ctx: { solicitante?: string; empresa?: string }): string {
+interface ContextoDaMacro {
+  solicitante?: string
+  empresa?: string
+  agente?: string
+  protocolo?: number
+}
+
+/** As variáveis que o chat sabe preencher, com o que cada uma vira. Fica
+ *  exportada e visível no menu: uma marca que ninguém conhece nunca é usada,
+ *  e uma que ninguém preenche vira `{{assim}}` na cara do cliente. */
+const VARIAVEIS_DA_MACRO: { marca: string; explica: string }[] = [
+  { marca: '{{solicitante}}', explica: 'primeiro nome do cliente' },
+  { marca: '{{empresa}}', explica: 'empresa do cliente' },
+  { marca: '{{agente}}', explica: 'seu primeiro nome' },
+  { marca: '{{protocolo}}', explica: 'número do atendimento' },
+  { marca: '{{saudacao}}', explica: 'bom dia / boa tarde / boa noite' },
+]
+
+/** Bom dia até 12h, boa tarde até 18h — pelo relógio de QUEM ESCREVE, que é
+ *  o mesmo fuso do cliente na esmagadora maioria dos atendimentos. */
+function saudacaoDaHora(agora: Date): string {
+  const h = agora.getHours()
+  if (h < 12) return 'bom dia'
+  if (h < 18) return 'boa tarde'
+  return 'boa noite'
+}
+
+function interpolarMacro(texto: string, ctx: ContextoDaMacro, agora: Date): string {
   return texto.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (original, chave: string) => {
     if (chave === 'solicitante' && ctx.solicitante) return ctx.solicitante.trim().split(/\s+/)[0] ?? ''
     if (chave === 'empresa' && ctx.empresa) return ctx.empresa
+    if (chave === 'agente' && ctx.agente) return ctx.agente.trim().split(/\s+/)[0] ?? ''
+    if (chave === 'protocolo' && ctx.protocolo != null) return `#${ctx.protocolo}`
+    if (chave === 'saudacao') return saudacaoDaHora(agora)
     return original
   })
 }
@@ -180,6 +210,7 @@ function Bolha({
       className={
         'cc-msg' +
         (msg.author_is_internal ? ' cc-msg--agente' : '') +
+        (msg.is_internal_note ? ' cc-msg--nota' : '') +
         (emFoco ? ' cc-msg--achada' : '')
       }
       data-msg={msg.id}
@@ -190,6 +221,13 @@ function Bolha({
           <span className="cc-msg__autor">{msg.author_name}</span>
           <time>{horaDe(msg.sent_at)}</time>
           {msg.edited_at && <em>editada</em>}
+          {/* dito por extenso, não só pela cor de fundo: é a diferença entre
+              "a equipe lê isto" e "o cliente lê isto" */}
+          {msg.is_internal_note && (
+            <span className="cc-msg__selo-nota">
+              <i className="ti ti-lock" aria-hidden="true" /> Nota interna — o cliente não vê
+            </span>
+          )}
           {onResponder && !msg.is_deleted && (
             <button
               type="button"
@@ -218,7 +256,10 @@ function Bolha({
             ))}
           </div>
         )}
-        {ehMinha && !msg.is_deleted && (
+        {/* nota interna não tem escada de entrega: não há destinatário para
+            receber nem para ler, e "Enviada" para sempre seria uma promessa
+            sobre alguém que não existe */}
+        {ehMinha && !msg.is_deleted && !msg.is_internal_note && (
           <span className={'cc-msg__estado cc-msg__estado--' + estado}>
             <i className={'ti ' + ICONE_DO_ESTADO[estado]} aria-hidden="true" />
             {/* o rótulo por extenso, não só o ícone e a cor (item 22) */}
@@ -350,6 +391,10 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
   const [posicao, setPosicao] = useState(0)
   const [painelMidia, setPainelMidia] = useState(false)
   const [respondendo, setRespondendo] = useState<MensagemChat | null>(null)
+  // Nota interna: MESMO rascunho da mensagem normal, de propósito. Quem
+  // começou a escrever e percebeu no meio que aquilo é recado para a equipe
+  // não deveria perder o texto ao trocar o modo.
+  const [modoNota, setModoNota] = useState(false)
   const achados = useBuscaNaConversa(termo.length >= 2 ? chatId : null, termo)
   const irAoRedor = useCarregarAoRedor(chatId)
   const midia = useMidiaDoChat(chatId, painelMidia)
@@ -454,8 +499,11 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
 
   function enviar() {
     if (!podeEnviarTexto) return
-    enviarMensagem(texto.trim(), respondendo?.id ?? null)
+    enviarMensagem(texto.trim(), respondendo?.id ?? null, modoNota)
     setRespondendo(null)
+    // o modo NÃO se desliga sozinho: quem está anotando o atendimento
+    // costuma escrever mais de uma linha, e voltar para "público" a cada
+    // envio é o caminho curto para mandar a segunda nota ao cliente
     enviarDigitando(false)
     limparRascunho(chatId)
   }
@@ -476,7 +524,11 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     // O erro de UM arquivo agora mora na própria linha da fila (com
     // "tentar de novo"), não numa faixa de erro que some ao mandar o
     // seguinte — por isso aqui não há mais `onError` global.
-    anexos.enviar(lista, { texto: texto.trim() || undefined, replyTo: respondendo?.id ?? null })
+    anexos.enviar(lista, {
+      texto: texto.trim() || undefined,
+      replyTo: respondendo?.id ?? null,
+      notaInterna: modoNota,
+    })
     limparRascunho(chatId)
     setRespondendo(null)
   }
@@ -519,10 +571,16 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     setMenuMacro(false)
     setFiltroMacro('')
     setMacroAtiva(0)
-    const corpo = interpolarMacro(m.body ?? '', {
-      solicitante: chat.client_name,
-      empresa: chat.company_name,
-    })
+    const corpo = interpolarMacro(
+      m.body ?? '',
+      {
+        solicitante: chat.client_name,
+        empresa: chat.company_name,
+        agente: me?.full_name,
+        protocolo: chat.id,
+      },
+      new Date(),
+    )
     if (corpo) setTexto(texto.trim() ? `${texto}\n${corpo}` : corpo)
     const pendentes = marcadoresPendentes(corpo)
     const temAtendimento = Boolean(
@@ -581,6 +639,18 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
             {chat.status === 'queued' && ' · na fila'}
             {chat.status === 'active' && chat.agent_name && ` · com ${chat.agent_name}`}
             {chat.status === 'closed' && ' · encerrada'}
+            {/* "o cliente ainda está na tela?" é a pergunta que decide entre
+                esperar a resposta e encerrar — some quando a conversa fecha */}
+            {chat.status === 'active' && chat.client_presence && (
+              <span className={'cc-conversa__presenca cc-conversa__presenca--' + chat.client_presence}>
+                <i className="ti ti-point-filled" aria-hidden="true" />
+                {chat.client_presence === 'available'
+                  ? 'cliente na tela'
+                  : chat.client_presence === 'away'
+                    ? 'cliente ausente'
+                    : 'cliente offline'}
+              </span>
+            )}
           </p>
         </div>
         <div className="cc-conversa__acoes-topo">
@@ -853,7 +923,13 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
       {(erroAcao || erroSocket) && <p className="cc-conversa__erro">{erroAcao ?? erroSocket}</p>}
 
       {podeEscrever && (
-        <div className="cc-composer">
+        <div className={'cc-composer' + (modoNota ? ' cc-composer--nota' : '')}>
+          {modoNota && (
+            <p className="cc-composer__aviso-nota" role="status">
+              <i className="ti ti-lock" aria-hidden="true" /> Isto vai para a EQUIPE. O
+              cliente não vê nota interna.
+            </p>
+          )}
           {respondendo && (
             <div className="cc-composer__citando">
               <span className="cc-composer__citando-autor">
@@ -874,7 +950,13 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
           <textarea
             ref={areaRef}
             className="cc-composer__textarea"
-            placeholder={socketAberto ? 'Escreva para o cliente… (Enter envia, Shift+Enter quebra linha, Ctrl+V cola print)' : 'Sem conexão — o texto espera a conexão voltar; anexos continuam indo.'}
+            placeholder={
+              !socketAberto
+                ? 'Sem conexão — o texto espera a conexão voltar; anexos continuam indo.'
+                : modoNota
+                  ? 'Anotação para a equipe — o cliente não vê…'
+                  : 'Escreva para o cliente… (Enter envia, Shift+Enter quebra linha, Ctrl+V cola print)'
+            }
             value={texto}
             onChange={(e) => aoDigitar(e.target.value)}
             onPaste={colar}
@@ -901,6 +983,22 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
               >
                 <i className="ti ti-paperclip" />
                 Anexar
+              </button>
+
+              {/* `aria-pressed` e não um checkbox: é um interruptor de MODO do
+                  compositor, e o que ele muda é para onde o texto vai. */}
+              <button
+                type="button"
+                className={'cc-composer__anexar' + (modoNota ? ' cc-composer__anexar--nota' : '')}
+                aria-pressed={modoNota}
+                title={
+                  modoNota
+                    ? 'Voltar a escrever para o cliente'
+                    : 'Escrever uma nota interna — o cliente não vê'
+                }
+                onClick={() => setModoNota((v) => !v)}
+              >
+                <i className="ti ti-lock" aria-hidden="true" /> Nota interna
               </button>
               <input
                 ref={inputAnexo}
@@ -1022,14 +1120,31 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
                           ))
                         )}
                       </ul>
+                      {/* As variáveis ficam à vista: uma marca que ninguém
+                          conhece nunca é usada, e uma que ninguém preenche vai
+                          para o cliente escrita como `{{assim}}`. */}
+                      <p className="cc-composer__macro-vars">
+                        Variáveis:{' '}
+                        {VARIAVEIS_DA_MACRO.map((v, i) => (
+                          <span key={v.marca}>
+                            {i > 0 && ' · '}
+                            <code>{v.marca}</code> {v.explica}
+                          </span>
+                        ))}
+                      </p>
                     </div>
                   )}
                 </div>
               )}
             </div>
 
-            <button type="button" className="cc-composer__enviar" disabled={!podeEnviarTexto} onClick={enviar}>
-              Enviar
+            <button
+              type="button"
+              className={'cc-composer__enviar' + (modoNota ? ' cc-composer__enviar--nota' : '')}
+              disabled={!podeEnviarTexto}
+              onClick={enviar}
+            >
+              {modoNota ? 'Salvar nota' : 'Enviar'}
             </button>
           </div>
         </div>

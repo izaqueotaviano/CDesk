@@ -49,7 +49,8 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ChatMessage
         fields = ["id", "author_name", "author_is_internal", "body",
-                  "is_system", "sent_at", "read_at", "delivered_at", "files",
+                  "is_system", "is_internal_note",
+                  "sent_at", "read_at", "delivered_at", "files",
                   # espelha TicketMessageSerializer: a tela precisa saber que
                   # o texto mudou depois de enviado, e só oferece editar/
                   # apagar onde o backend deixaria de verdade
@@ -254,6 +255,10 @@ class ChatSerializer(serializers.ModelSerializer):
     rating_pending = serializers.BooleanField(read_only=True)
     ticket_id = serializers.SerializerMethodField()
     ticket_reference = serializers.SerializerMethodField()
+    #: Disponibilidade do CLIENTE — "ele ainda está na tela?" é a pergunta
+    #: que decide se vale esperar a resposta ou encerrar. Some para o próprio
+    #: cliente no `to_representation` (ele não precisa saber de si mesmo).
+    client_presence = serializers.CharField(source="client.presence", read_only=True)
     # nota interna do agente — NUNCA sai para o cliente (ver to_representation)
     agent_score = serializers.IntegerField(read_only=True, allow_null=True)
     # motivo/observação/quem encerrou — a observação é INTERNA (some no
@@ -277,7 +282,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "close_reason", "close_reason_name", "close_note",
             "closed_automatically", "closed_by_name",
             "agent_score", "timeout_converted",
-            "unread_count", "last_message_preview",
+            "unread_count", "last_message_preview", "client_presence",
             "rating", "rating_pending", "ticket_id", "ticket_reference",
             "ws_url",
         ]
@@ -293,6 +298,9 @@ class ChatSerializer(serializers.ModelSerializer):
             # observação de encerramento é anotação de operação, não recado:
             # o cliente vê QUE encerrou, não o que a equipe escreveu sobre
             data.pop("close_note", None)
+            # a presença é para quem ATENDE decidir se espera; devolvê-la ao
+            # próprio cliente seria contar a ele o que já sabe de si
+            data.pop("client_presence", None)
             data["name"] = ""
         return data
 
@@ -316,11 +324,18 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def get_unread_count(self, obj) -> int:
         user = self.context["request"].user
-        return obj.messages.filter(read_at__isnull=True, is_system=False)\
-            .exclude(author=user).count()
+        return chat_service.mensagens_visiveis(
+            obj.messages.filter(read_at__isnull=True, is_system=False), user
+        ).exclude(author=user).count()
 
     def get_last_message_preview(self, obj) -> str | None:
-        last = obj.messages.filter(is_system=False).order_by("-id").first()
+        # a prévia é o lugar mais fácil de esquecer: ela aparece na LISTA, não
+        # na conversa, e uma nota interna vazando ali chegaria ao cliente sem
+        # ninguém abrir nada
+        user = self.context["request"].user
+        last = chat_service.mensagens_visiveis(
+            obj.messages.filter(is_system=False), user
+        ).order_by("-id").first()
         if last is None:
             return None
         if last.body:
@@ -496,6 +511,7 @@ class ChatConfigSerializer(serializers.ModelSerializer):
             "score_min", "score_max", "low_score_threshold",
             "default_team", "default_team_name",
             "queue_open", "queue_opens_at",
+            "inactivity_warning_minutes", "inactivity_close_minutes",
         ]
 
     def _fila(self):
@@ -525,6 +541,22 @@ class ChatConfigSerializer(serializers.ModelSerializer):
         if not (minimo <= gatilho <= maximo):
             raise serializers.ValidationError(
                 {"low_score_threshold": "O gatilho da justificativa precisa caber na escala."}
+            )
+
+        # Avisar DEPOIS de encerrar não existe: o chat já fechou quando o
+        # relógio do aviso o alcança, e o aviso nunca chegaria a ninguém.
+        aviso = data.get(
+            "inactivity_warning_minutes",
+            getattr(self.instance, "inactivity_warning_minutes", 0),
+        )
+        fechar = data.get(
+            "inactivity_close_minutes",
+            getattr(self.instance, "inactivity_close_minutes", 0),
+        )
+        if aviso and fechar and aviso >= fechar:
+            raise serializers.ValidationError(
+                {"inactivity_warning_minutes":
+                 "O aviso precisa vir antes do encerramento — use um tempo menor."}
             )
         return data
 

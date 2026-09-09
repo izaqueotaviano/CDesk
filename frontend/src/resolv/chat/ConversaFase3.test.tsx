@@ -240,7 +240,7 @@ describe('resposta citada', () => {
     const campo = screen.getByPlaceholderText(/Escreva para o cliente/)
     fireEvent.change(campo, { target: { value: 'já verifiquei' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    expect(enviarMensagem).toHaveBeenCalledWith('já verifiquei', 1)
+    expect(enviarMensagem).toHaveBeenCalledWith('já verifiquei', 1, false)
   })
 
   it('desistir da citação manda sem `reply_to`', async () => {
@@ -252,7 +252,7 @@ describe('resposta citada', () => {
     const campo = screen.getByPlaceholderText(/Escreva para o cliente/)
     fireEvent.change(campo, { target: { value: 'sem citar' } })
     fireEvent.keyDown(campo, { key: 'Enter' })
-    expect(enviarMensagem).toHaveBeenCalledWith('sem citar', null)
+    expect(enviarMensagem).toHaveBeenCalledWith('sem citar', null, false)
   })
 
   it('a citação recebida aparece com autor e trecho', async () => {

@@ -15,6 +15,9 @@ interface FormularioChat {
   gatilhoJustificativa: string
   /** '' = nenhuma equipe. */
   equipePadrao: string
+  /** Minutos de silêncio até avisar / até encerrar. '0' desliga cada um. */
+  avisoInatividade: string
+  encerraInatividade: string
 }
 
 type Erros = Partial<Record<keyof FormularioChat, string>>
@@ -28,6 +31,8 @@ function formularioDe(cfg: ConfigChat): FormularioChat {
     notaMax: String(cfg.score_max),
     gatilhoJustificativa: String(cfg.low_score_threshold),
     equipePadrao: cfg.default_team != null ? String(cfg.default_team) : '',
+    avisoInatividade: String(cfg.inactivity_warning_minutes ?? 0),
+    encerraInatividade: String(cfg.inactivity_close_minutes ?? 0),
   }
 }
 
@@ -58,6 +63,16 @@ function validar(f: FormularioChat): Erros {
   else if (min != null && maxNota != null && (gatilho < min || gatilho > maxNota)) {
     erros.gatilhoJustificativa = 'O gatilho da justificativa precisa caber na escala.'
   }
+
+  const aviso = inteiro(f.avisoInatividade)
+  const encerra = inteiro(f.encerraInatividade)
+  if (aviso == null || aviso < 0) erros.avisoInatividade = 'Minutos inteiros (0 desliga).'
+  if (encerra == null || encerra < 0) erros.encerraInatividade = 'Minutos inteiros (0 desliga).'
+  // avisar depois de encerrar não existe: o chat já fechou quando o relógio
+  // do aviso o alcança
+  if (aviso && encerra && aviso >= encerra) {
+    erros.avisoInatividade = 'O aviso precisa vir antes do encerramento.'
+  }
   return erros
 }
 
@@ -77,6 +92,10 @@ function payloadDe(f: FormularioChat, base: ConfigChat): ChatCfgEscrita {
   if (gatilho !== base.low_score_threshold) p.low_score_threshold = gatilho
   const equipe = f.equipePadrao === '' ? null : Number(f.equipePadrao)
   if (equipe !== (base.default_team ?? null)) p.default_team = equipe
+  const aviso = Number(f.avisoInatividade)
+  if (aviso !== (base.inactivity_warning_minutes ?? 0)) p.inactivity_warning_minutes = aviso
+  const encerra = Number(f.encerraInatividade)
+  if (encerra !== (base.inactivity_close_minutes ?? 0)) p.inactivity_close_minutes = encerra
   return p
 }
 
@@ -88,6 +107,8 @@ const CAMPO_POR_CHAVE_API: Record<string, keyof FormularioChat> = {
   score_max: 'notaMax',
   low_score_threshold: 'gatilhoJustificativa',
   default_team: 'equipePadrao',
+  inactivity_warning_minutes: 'avisoInatividade',
+  inactivity_close_minutes: 'encerraInatividade',
 }
 
 /**
@@ -214,6 +235,32 @@ export function AbaChat() {
             value={form.gatilhoJustificativa}
             onChange={(e) => atualizarCampo('gatilhoJustificativa', e.target.value)}
             error={erros.gatilhoJustificativa}
+          />
+        </FormRow>
+      </FormSection>
+
+      <FormSection
+        title="Conversa parada"
+        description="Depois que um agente já pegou o atendimento e a conversa silencia. Diferente do tempo na fila acima, que é ninguém ter pegado. Zero desliga cada um — encerrar sozinho o atendimento de quem foi buscar um documento é pior do que a conversa ficar aberta."
+      >
+        <FormRow columns={2}>
+          <TextInput
+            label="Avisar depois de (minutos)"
+            type="number"
+            min={0}
+            value={form.avisoInatividade}
+            onChange={(e) => atualizarCampo('avisoInatividade', e.target.value)}
+            error={erros.avisoInatividade}
+            helper="Uma mensagem na conversa: “ainda está aí?”. 0 desliga."
+          />
+          <TextInput
+            label="Encerrar depois de (minutos)"
+            type="number"
+            min={0}
+            value={form.encerraInatividade}
+            onChange={(e) => atualizarCampo('encerraInatividade', e.target.value)}
+            error={erros.encerraInatividade}
+            helper="Contado desde a última mensagem, não desde o aviso. 0 desliga."
           />
         </FormRow>
       </FormSection>

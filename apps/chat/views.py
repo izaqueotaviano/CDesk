@@ -308,9 +308,10 @@ class ChatViewSet(viewsets.GenericViewSet):
         a pedido de quem lê.
         """
         chat = self._get_chat()
-        base = (
+        base = chat_service.mensagens_visiveis(
             chat.messages.select_related("author", "reply_to", "reply_to__author")
-            .prefetch_related("files")
+            .prefetch_related("files"),
+            request.user,
         )
         qs = base.order_by("id")
 
@@ -368,8 +369,10 @@ class ChatViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
         chat = self._get_chat()
-        pendentes = chat.messages.filter(read_at__isnull=True, is_system=False)\
-            .exclude(author=request.user)
+        pendentes = chat_service.mensagens_visiveis(
+            chat.messages.filter(read_at__isnull=True, is_system=False),
+            request.user,
+        ).exclude(author=request.user)
         ids = list(pendentes.values_list("id", flat=True))
         updated = chat.messages.filter(id__in=ids).update(read_at=timezone.now()) if ids else 0
         # O indicador de "lida" é do REMETENTE, e ele pode estar com a
@@ -383,7 +386,7 @@ class ChatViewSet(viewsets.GenericViewSet):
     def media(self, request, pk=None):
         """Anexos e links DESTE atendimento — o painel lateral da conversa."""
         chat = self._get_chat()
-        arquivos, links = chat_service.chat_media(chat)
+        arquivos, links = chat_service.chat_media(chat, request.user)
         return Response({
             "files": ChatTimelineFileSerializer(
                 arquivos, many=True, context={"request": request}
@@ -409,9 +412,15 @@ class ChatViewSet(viewsets.GenericViewSet):
             # a citação tem de ser deste chat: aceitar um id qualquer deixaria
             # vazar o trecho de uma conversa de outro cliente no preview
             citada = chat.messages.filter(pk=bruto, deleted_at__isnull=True).first()
+        # nota interna só existe para quem é interno — o cliente mandando
+        # `is_internal_note=true` não esconderia a própria mensagem dele
+        nota = (
+            str(request.data.get("is_internal_note", "")).lower() in ("1", "true", "on")
+            and request.user.is_internal
+        )
         message = ChatMessage.objects.create(
             chat=chat, author=request.user, body=request.data.get("body", "").strip(),
-            reply_to=citada,
+            reply_to=citada, is_internal_note=nota,
         )
         try:
             attach_to_chat_message(message=message, uploads=uploads, uploaded_by=request.user)

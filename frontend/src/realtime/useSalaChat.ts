@@ -73,14 +73,18 @@ export function useSalaChat(chatId: number | null) {
     }
   }, [chatId, queryClient])
 
-  const enviarMensagem = useCallback((body: string, replyTo?: number | null) => {
-    setErro(null)
-    assinaturaRef.current?.enviar({
-      type: 'message',
-      body,
-      ...(replyTo != null ? { reply_to: replyTo } : {}),
-    } satisfies MensagemClienteChat)
-  }, [])
+  const enviarMensagem = useCallback(
+    (body: string, replyTo?: number | null, notaInterna = false) => {
+      setErro(null)
+      assinaturaRef.current?.enviar({
+        type: 'message',
+        body,
+        ...(replyTo != null ? { reply_to: replyTo } : {}),
+        ...(notaInterna ? { is_internal_note: true } : {}),
+      } satisfies MensagemClienteChat)
+    },
+    [],
+  )
 
   /**
    * Confirma ao remetente que estas mensagens chegaram AQUI.

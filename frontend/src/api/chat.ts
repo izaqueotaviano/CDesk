@@ -39,6 +39,10 @@ export interface MensagemChat {
   /** Já censurada pelo backend — os dois lados veem a mesma coisa. */
   body: string
   is_system: boolean
+  /** Recado da equipe DENTRO da conversa — o cliente nunca recebe. Quem
+   *  filtra é o servidor (`chat_service.mensagens_visiveis` + a trava do
+   *  consumer); aqui é só o que a tela desenha diferente. */
+  is_internal_note: boolean
   sent_at: string
   read_at: string | null
   /** Carimbado pelo DESTINATÁRIO ao receber, não pelo servidor ao gravar —
@@ -84,6 +88,8 @@ export interface Chat {
   client_email: string
   client_phone: string
   client_avatar: string | null
+  /** Disponibilidade do CLIENTE — só chega para quem atende. */
+  client_presence?: 'available' | 'away' | 'offline'
   company_name: string
   agent_name: string | null
   agent_id: number | null
@@ -132,6 +138,8 @@ export interface ConfigChat {
   score_min: number
   score_max: number
   low_score_threshold: number
+  inactivity_warning_minutes?: number
+  inactivity_close_minutes?: number
   queue_open: boolean
   queue_opens_at: string | null
   // só para interno

@@ -317,6 +317,62 @@ Miniatura de imagem só depois que a varredura LIBEROU (`is_downloadable`):
 renderizar a `<img>` de um anexo em quarentena seria servi-lo pela porta da
 frente, que é o que a quarentena existe para impedir (D19).
 
+#### Nota interna e inatividade (Fase 4 da rodada de chat)
+
+A **nota interna** (`ChatMessage.is_internal_note`) é o recado da equipe
+DENTRO da conversa — "já pedi o estorno pro financeiro" no lugar onde faz
+sentido, em vez de num canal paralelo que ninguém acha depois. O cliente
+nunca a vê.
+
+Quem decide isso é UMA função, `chat_service.mensagens_visiveis(qs, user)`,
+e não um `if user.is_internal` repetido por consulta. É assim que um
+vazamento destes acontece de verdade: a sétima consulta a mensagens é
+escrita meses depois, por outra pessoa, e ninguém lembra da condição. Os
+caminhos que passam por ela: listagem, busca (`?q=`), janela (`?around=`),
+prévia da lista (`last_message_preview` — o mais fácil de esquecer, porque
+aparece sem ninguém abrir a conversa), contagem de não lidas, `read/`,
+conversa contínua, PDF e painel de mídia.
+
+O **socket é a outra metade do par**, porque `group_send` fala com a sala
+inteira e a sala tem o cliente dentro: `ChatConsumer._esconder()` corta
+`message`/`message_edited`/`message_deleted` de nota para quem não é
+interno, e `_badge_counterpart` não dispara — senão o texto sairia na
+prévia da notificação do celular. Só interno consegue MARCAR uma mensagem
+como nota; o cliente pedindo isso é ignorado (não esconderia nada de
+ninguém, e daria a ele um campo que não é dele).
+
+Na tela, o modo é dito de três jeitos ao mesmo tempo — faixa de aviso, cor
+do compositor inteiro e o botão virando "Salvar nota". Um botão pressionado
+no canto é fácil demais de não ver na terceira hora de plantão, e o erro
+aqui manda para fora o que era da equipe. O modo NÃO se desliga sozinho ao
+enviar (quem anota escreve mais de uma linha), e o rascunho sobrevive à
+troca de modo (quem percebeu no meio que aquilo é recado interno não perde
+o texto). Nota não tem escada de entrega: não há destinatário para receber
+nem para ler.
+
+A **inatividade** é o `ChatConfig.inactivity_warning_minutes` /
+`inactivity_close_minutes` + a rotina `close_inactive_chats`. Diferente do
+`queue_timeout_minutes`, que é ninguém ter PEGADO; aqui alguém pegou e a
+conversa parou. Três decisões:
+
+- **Zero desliga, e é o padrão dos dois.** Encerrar sozinho o atendimento de
+  quem foi buscar um documento é pior do que a conversa ficar aberta.
+- **O aviso vem antes**, uma vez por silêncio (`Chat.inactivity_warned_at`),
+  e diz quanto tempo resta — "ainda está aí?" sem prazo não ajuda ninguém a
+  decidir se responde. Quem volta a falar e some de novo é avisado outra vez.
+- **O relógio conta da última fala de uma PESSOA**, não da última linha: a
+  boas-vindas, o "fulano entrou" e o próprio aviso são do sistema, e
+  deixá-los contar faria o aviso zerar o silêncio que acabou de anunciar.
+
+As **variáveis da macro** ganharam `{{agente}}`, `{{protocolo}}` e
+`{{saudacao}}` além de `{{solicitante}}` e `{{empresa}}`, e a lista aparece
+no rodapé do menu: uma marca que ninguém conhece nunca é usada, e uma que
+ninguém preenche vai para o cliente escrita como `{{assim}}`.
+
+O **rascunho por conversa** já existia (`stores/chatUi`, persistido e
+compartilhado entre console e mini chat) — a Fase 4 só o fez atravessar a
+troca de modo do compositor.
+
 ### 3.4 Autenticação e sessão
 
 `useQuery(['me'])` sobre `/auth/me/` é a fonte única. Um `<AuthGate>` no topo

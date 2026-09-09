@@ -155,6 +155,24 @@ def visible_chats(user):
     return qs.filter(client=user)
 
 
+def mensagens_visiveis(qs, user):
+    """O filtro de NOTA INTERNA — o único lugar que decide o que o cliente vê.
+
+    Existe como função, e não como um `if user.is_internal` repetido, porque
+    é assim que um vazamento destes acontece de verdade: a sétima consulta a
+    mensagens é escrita meses depois, por outra pessoa, e ninguém lembra da
+    condição. Aqui, esquecer é impossível de um jeito silencioso — ou a
+    consulta passa por esta função, ou ela não filtra nada e isso salta aos
+    olhos na revisão.
+
+    O socket é o outro caminho por onde a nota poderia escapar, e ele tem a
+    mesma trava no `chat_message` do consumer.
+    """
+    if user is not None and getattr(user, "is_internal", False):
+        return qs
+    return qs.filter(is_internal_note=False)
+
+
 def can_send(user, chat: Chat) -> bool:
     """Quem pode ESCREVER: o dono do chat, ou — em atendimento — só o agente
     que pegou. Chat em fila não recebe mensagem de interno (pegue primeiro);
@@ -362,7 +380,9 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     tela se vale desenhar o "carregar mensagens anteriores": contar o total
     de uma conversa de meses para exibir um botão seria caro à toa.
     """
-    base = _mensagens_do_cliente(client)
+    # o cliente é quem chama, mas o filtro fica explícito: é daqui que sai
+    # também o PDF da conversa
+    base = mensagens_visiveis(_mensagens_do_cliente(client), client)
     qs = base.order_by("id")
     if q:
         qs = qs.filter(body__icontains=q)
@@ -385,7 +405,7 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     return mensagens, anteriores.exists()
 
 
-def chat_media(chat) -> tuple[list, list]:
+def chat_media(chat, user=None) -> tuple[list, list]:
     """Anexos e links DESTE atendimento — o painel lateral da conversa.
 
     Irmão de `timeline_media`, que faz o mesmo para todas as sessões do
@@ -397,7 +417,9 @@ def chat_media(chat) -> tuple[list, list]:
     navegador só se acha o que já foi rolado até a tela.
     """
     arquivos = list(
-        ChatFile.objects.filter(message__chat=chat)
+        ChatFile.objects.filter(
+            message__in=mensagens_visiveis(chat.messages.all(), user)
+        )
         .select_related("message", "message__chat")
         .order_by("-message__sent_at")
     )
@@ -405,7 +427,7 @@ def chat_media(chat) -> tuple[list, list]:
     links = []
     vistos = set()
     mensagens = (
-        chat.messages.select_related("author")
+        mensagens_visiveis(chat.messages.select_related("author"), user)
         .filter(is_system=False, deleted_at__isnull=True)
         .exclude(body="")
         .order_by("-id")
@@ -463,7 +485,7 @@ def timeline_media(client) -> tuple[list, list]:
     links = []
     vistos = set()
     mensagens = (
-        _mensagens_do_cliente(client)
+        mensagens_visiveis(_mensagens_do_cliente(client), client)
         .filter(is_system=False)
         .exclude(body="")
         .order_by("-id")

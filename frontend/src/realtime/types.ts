@@ -10,7 +10,7 @@ import type { MensagemChat } from '@/api/chat'
 // ---------- ws/chat/<id>/ — sala de uma conversa ----------
 
 export type MensagemClienteChat =
-  | { type: 'message'; body: string; reply_to?: number | null }
+  | { type: 'message'; body: string; reply_to?: number | null; is_internal_note?: boolean }
   | { type: 'typing'; is_typing: boolean }
   /** O DESTINATÁRIO confirmando que a mensagem chegou no aparelho dele — é
    *  o que sustenta o "entregue" sem o servidor ter de adivinhar. */

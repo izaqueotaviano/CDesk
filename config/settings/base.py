@@ -458,6 +458,12 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.chat.tasks.notify_queued_chats",
         "schedule": 30.0,
     },
+    # inatividade DURANTE o atendimento (avisa e depois encerra) — desligada
+    # por padrão no ChatConfig; a cada minuto porque os tempos são em minutos
+    "chat-inactivity": {
+        "task": "apps.chat.tasks.close_inactive_chats",
+        "schedule": 60.0,
+    },
     "sla-scan": {
         "task": "apps.notifications.tasks.sla_scan",
         "schedule": 300.0,  # docs/01 §5
