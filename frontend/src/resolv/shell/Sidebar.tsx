@@ -10,8 +10,8 @@
  * própria abaixo da marca), a busca, a navegação, e a zona utilitária
  * (notificações, tema, conta) no rodapé, porque `__nav` tem `flex: 1`.
  *
- * Só os itens com rota real navegam; Calendário e Notas seguem visíveis mas
- * inertes ("em breve"), em vez de levarem a um 404.
+ * Só os itens com rota real navegam; Calendário segue visível mas inerte
+ * ("em breve"), em vez de levar a um 404.
  *
  * Sem tooltip de pseudo-elemento: o `::after` que existia aqui escapava por
  * cima do conteúdo quando a barra estava recolhida. Quem dá o nome do ícone
@@ -45,7 +45,7 @@ export const NAV: Item[] = [
   { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
   { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
   { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },
-  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: false },
+  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: true },
 ]
 
 interface Props {

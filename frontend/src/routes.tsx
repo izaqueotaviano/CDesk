@@ -22,6 +22,7 @@ import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets
 import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
 import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
 import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
+import { PaginaNotas } from '@/resolv/notas/PaginaNotas'
 import { SuperficieCvz } from '@/cvz/SuperficieCvz'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
@@ -180,6 +181,20 @@ export const router = createBrowserRouter([
               <SuperficieCvz>
                 <PaginaAvisos />
               </SuperficieCvz>
+            </NovoShell>
+          </RotaProtegida>
+        ),
+      },
+
+      // ---- Notas pessoais (apps/notes) — rascunho de quem atende, privado
+      // por dono. O mesmo `api/notas.ts` alimenta o painel de notas do
+      // detalhe do chamado ----
+      {
+        path: '/notas',
+        element: (
+          <RotaProtegida>
+            <NovoShell>
+              <PaginaNotas />
             </NovoShell>
           </RotaProtegida>
         ),
