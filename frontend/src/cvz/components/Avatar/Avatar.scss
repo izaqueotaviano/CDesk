@@ -20,7 +20,17 @@
   &--md { width: $avatar; height: $avatar; }
   &--lg { width: $control-h-lg; height: $control-h-lg; font-size: $fs-meta; }
 
-  // O anel de presença precisa de um recorte na cor da superfície de trás.
+  // A presença é a BOLINHA, não um anel em volta do avatar inteiro.
+  //
+  // O anel de antes (box-shadow no elemento todo) desenhava um contorno fino
+  // e distante do olho: à distância de leitura ele lia como uma borda de
+  // foco, não como estado de alguém. A bolinha recortada no canto é o
+  // vocabulário que todo mundo já conhece de mensageiro, e sobrevive ao
+  // avatar pequeno.
+  //
+  // `currentColor` continua carregando a cor do estado para a bolinha; o
+  // recorte é uma BORDA dela, na cor da superfície de trás — é isso que a
+  // separa do avatar sem depender de contraste entre as duas cores.
   &--available { color: $success; }
   &--away { color: $away; }
   &--offline { color: $offline; }
@@ -31,27 +41,23 @@
     > span[aria-hidden] { color: $text-on-dark; }
   }
 
-  &--on-chrome#{&}--available,
-  &--on-chrome#{&}--away,
-  &--on-chrome#{&}--offline { box-shadow: 0 0 0 $marker-w $chrome, 0 0 0 4px currentColor; }
-
-  &--on-surface#{&}--available,
-  &--on-surface#{&}--away,
-  &--on-surface#{&}--offline { box-shadow: 0 0 0 $marker-w $surface, 0 0 0 4px currentColor; }
-
-  &--on-raised#{&}--available,
-  &--on-raised#{&}--away,
-  &--on-raised#{&}--offline { box-shadow: 0 0 0 $marker-w $raised, 0 0 0 4px currentColor; }
-
   &__presence {
     position: absolute;
-    right: -2px;
-    bottom: -2px;
-    width: 10px;
-    height: 10px;
+    right: -1px;
+    bottom: -1px;
+    // ~1/3 do avatar: menor que isto vira sujeira na tela em vez de sinal
+    width: 11px;
+    height: 11px;
     border-radius: 50%;
     background-color: currentColor;
+    // a borda vem por box-shadow, e não por `border`, para não empurrar a
+    // caixa nem desalinhar o círculo
+    box-shadow: 0 0 0 $marker-w $chrome;
   }
 
-  &--sm &__presence { width: 8px; height: 8px; }
+  &--on-surface &__presence { box-shadow: 0 0 0 $marker-w $surface; }
+  &--on-raised &__presence { box-shadow: 0 0 0 $marker-w $raised; }
+
+  &--sm &__presence { width: 9px; height: 9px; right: -1px; bottom: -1px; }
+  &--lg &__presence { width: 14px; height: 14px; right: 0; bottom: 0; }
 }

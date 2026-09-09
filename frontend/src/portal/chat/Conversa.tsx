@@ -18,10 +18,12 @@ import { ApiError } from '@/api/client'
 import {
   imagensColadas,
   primeiraNaoLida,
+  TIPOS_ACEITOS,
   useFilaDeAnexos,
 } from '@/chat/conversa'
-import { rotuloDia } from '@/resolv/tickets/detalhe/linhaDoTempo'
+import { rotuloDia, urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import { useSalaChat } from '@/realtime/useSalaChat'
+import { Avatar } from '@/ui/Avatar'
 import { cn } from '../lib/cn'
 import { useAgora } from '../lib/formato'
 import { Badge } from '../ui/badge'
@@ -231,6 +233,17 @@ export function Conversa({
           <Button variant="ghost" size="icon-sm" onClick={onVoltar} aria-label="Voltar para a lista" className="md:hidden">
             <IconArrowLeft />
           </Button>
+        )}
+        {/* O avatar de quem atende, com a bolinha: "o Samuel ainda está
+            aí?" é a pergunta que decide entre esperar e voltar depois. */}
+        {chat.agent_name && (
+          <Avatar
+            nome={chat.agent_name}
+            urlFoto={chat.agent_avatar ? urlApi(chat.agent_avatar) : null}
+            tamanho="md"
+            presenca={chat.agent_presence ?? null}
+            fundo="superficie"
+          />
         )}
         <div className="min-w-0 flex-1">
           <p className="truncate text-corpo font-medio text-tinta">
@@ -544,6 +557,7 @@ export function Conversa({
               ref={inputAnexo}
               type="file"
               multiple
+              accept={TIPOS_ACEITOS}
               hidden
               aria-label="Escolher arquivos"
               onChange={(e) => {

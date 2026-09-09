@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LIMITE_MENSAGENS,
@@ -20,10 +20,13 @@ import {
   destacar,
   ehImagemVisivel,
   estadoDaMensagem,
+  iconeDoArquivo,
   ICONE_DO_ESTADO,
+  motivoIndisponivel,
   imagensColadas,
   primeiraNaoLida,
   ROTULO_DO_ESTADO,
+  TIPOS_ACEITOS,
   useFilaDeAnexos,
   type EnvioDeAnexo,
 } from '@/chat/conversa'
@@ -114,11 +117,14 @@ const ROTULO_STATUS_SOCKET = {
 const INTERVALO_DIGITANDO_MS = 2_000
 
 function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
-  if (!arquivo.is_downloadable) {
+  const indisponivel = motivoIndisponivel(arquivo)
+  if (indisponivel) {
+    // O motivo por extenso, não o nome do estado: cada caso pede uma ação
+    // diferente (esperar, reenviar, desistir) e "bloqueado" não diz qual.
     return (
-      <span className="cc-anexo cc-anexo--bloqueado" title={arquivo.scan_status}>
-        <i className="ti ti-shield" />
-        {arquivo.filename} · {arquivo.scan_status === 'pending' ? 'em verificação' : 'bloqueado'}
+      <span className="cc-anexo cc-anexo--bloqueado">
+        <i className="ti ti-shield" aria-hidden="true" />
+        {arquivo.filename} · {indisponivel}
       </span>
     )
   }
@@ -140,7 +146,8 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
   }
   return (
     <a className="cc-anexo" href={`${API_BASE_URL}${arquivo.url}`} target="_blank" rel="noreferrer">
-      <i className="ti ti-paperclip" />
+      {/* ícone pelo TIPO detectado no servidor, não pela extensão do nome */}
+      <i className={'ti ' + iconeDoArquivo(arquivo.content_type)} aria-hidden="true" />
       {arquivo.filename} · {fileSize(arquivo.size_bytes)}
     </a>
   )
@@ -178,7 +185,10 @@ function Corpo({ texto, termo }: { texto: string; termo: string }) {
 
 type ItemDaLista = { tipo: 'dia'; rotulo: string; chave: string } | { tipo: 'msg'; msg: MensagemChat }
 
-function Bolha({
+/** Uma mensagem na rolagem. Exportada porque a thread por cliente desenha
+ *  o histórico das aberturas anteriores com a MESMA bolha — dois desenhos
+ *  para a mesma coisa seria a garantia de divergirem. */
+export function Bolha({
   msg,
   termo = '',
   ehMinha = false,
@@ -289,7 +299,7 @@ function LinhaDeEnvio({
       {envio.previa ? (
         <img className="cc-envio__previa" src={envio.previa} alt="" />
       ) : (
-        <i className="ti ti-file cc-envio__icone" aria-hidden="true" />
+        <i className={'ti cc-envio__icone ' + iconeDoArquivo(envio.arquivo.type)} aria-hidden="true" />
       )}
       <div className="cc-envio__texto">
         <span className="cc-envio__nome">{envio.arquivo.name}</span>
@@ -329,6 +339,16 @@ interface Props {
   /** Dentro de um painel do mini chat: sem o cabeçalho grande (o painel já
    *  mostra quem é) e com espaçamento mais apertado. */
   compacto?: boolean
+  /**
+   * O que veio ANTES desta abertura, desenhado no topo da mesma rolagem.
+   *
+   * É como a thread por cliente do console mostra os atendimentos passados
+   * sem abrir uma segunda caixa de mensagens: quem monta o trecho é quem
+   * conhece o histórico (`ThreadDoCliente`); aqui ele só entra acima da
+   * conversa de agora, dentro do mesmo scroll — uma rolagem só, um
+   * compositor só.
+   */
+  historico?: ReactNode
 }
 
 /**
@@ -337,7 +357,7 @@ interface Props {
  * quando o backend aceitaria a mensagem (`can_send`), e nos outros casos
  * a tela diz o que fazer em vez de deixar um botão que ia falhar.
  */
-export function ConversaChat({ chatId, me, compacto = false }: Props) {
+export function ConversaChat({ chatId, me, compacto = false, historico }: Props) {
   const idBase = useId()
   const navigate = useNavigate()
   const { data: chat, isLoading, isError } = useChat(chatId)
@@ -754,6 +774,7 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
       )}
 
       <div className="cc-conversa__mensagens">
+        {historico}
         {total >= LIMITE_MENSAGENS && !fimDoHistorico && (
           <button
             type="button"
@@ -1004,6 +1025,7 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
                 ref={inputAnexo}
                 type="file"
                 multiple
+                accept={TIPOS_ACEITOS}
                 hidden
                 onChange={(e) => {
                   anexar(e.target.files)

@@ -5,10 +5,11 @@ import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { useChatUi } from '@/stores/chatUi'
 import { LIMITES_MINICHAT, TAMANHOS_MINICHAT, usePrefs, type TamanhoMiniChat } from '@/stores/prefs'
-import { identidadeDe, type IndiceDeIdentidade } from '@/ui/identidade'
+import { type IndiceDeIdentidade } from '@/ui/identidade'
 import { FormEncerrar, FormReabrir, FormTransferir } from './acoes'
+import { AvatarComPresenca } from './AvatarComPresenca'
 import { ConversaChat } from './ConversaChat'
-import { haQuanto, iniciais } from './format'
+import { haQuanto } from './format'
 import { tonsDistintos } from './tons'
 import '../styles/tokens.scss'
 import './chat.scss'
@@ -56,9 +57,13 @@ function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeI
       onClick={onAlternar}
       style={{ '--tom': `var(--identidade-${tom})` } as React.CSSProperties}
     >
-      <span className="minichat__avatar" data-identidade={tom}>
-        {iniciais(chat.client_name)}
-      </span>
+      <AvatarComPresenca
+        nome={chat.client_name}
+        presenca={chat.status === 'active' ? chat.client_presence : null}
+        classe="minichat__avatar"
+        fundo="superficie"
+        tom={tom}
+      />
       <span className="minichat__aba-nome">{chat.client_name}</span>
       {chat.unread_count > 0 && <span className="minichat__badge">{chat.unread_count > 9 ? '9+' : chat.unread_count}</span>}
     </button>
@@ -259,7 +264,13 @@ function PainelConversa({
         onKeyDown={teclar}
       />
       <header className="minichat__painel-cabecalho" data-identidade={tom}>
-        <span className="minichat__avatar minichat__avatar--cabecalho">{iniciais(chat.client_name)}</span>
+        <AvatarComPresenca
+          nome={chat.client_name}
+          presenca={chat.status === 'active' ? chat.client_presence : null}
+          classe="minichat__avatar minichat__avatar--cabecalho"
+          fundo="cabecalho"
+          tom={null}
+        />
         <span className="minichat__painel-titulo">
           <strong>{chat.client_name}</strong>
           <small>{chat.company_name}</small>
@@ -352,9 +363,12 @@ function FilaPopover({
         <ul className="minichat__fila-lista">
           {fila.map((c) => (
             <li key={c.id} className="minichat__fila-item">
-              <span className="minichat__avatar" {...identidadeDe(c.client_name)}>
-                {iniciais(c.client_name)}
-              </span>
+              <AvatarComPresenca
+                nome={c.client_name}
+                presenca={c.client_presence}
+                classe="minichat__avatar"
+                fundo="superficie"
+              />
               <span className="minichat__fila-texto">
                 <span className="minichat__fila-nome">{c.client_name}</span>
                 <span className="minichat__fila-meta">

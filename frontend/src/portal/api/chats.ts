@@ -63,6 +63,10 @@ export interface SessaoLinhaDoTempo {
   closed_at: string | null
   agent_name: string | null
   rating: AvaliacaoChat | null
+  close_reason_name: string | null
+  /** Quando o atendimento virou chamado: é o protocolo que a pessoa procura
+   *  depois, não o número do chat. */
+  ticket_reference: string | null
 }
 
 export interface PaginaLinhaDoTempo {
@@ -73,12 +77,15 @@ export interface PaginaLinhaDoTempo {
 
 const LIMITE_LINHA_DO_TEMPO = 60
 
-function opcoesPaginaLinhaDoTempo(before: number | undefined, q: string) {
+function opcoesPaginaLinhaDoTempo(before: number | undefined, q: string, clientId?: number) {
   const params = new URLSearchParams({ limit: String(LIMITE_LINHA_DO_TEMPO) })
   if (before) params.set('before', String(before))
   if (q) params.set('q', q)
+  // `?client=` é a leitura do CONSOLE: a mesma conversa costurada, só que de
+  // outra pessoa. Sem ele, é a de quem pede — o portal, como sempre.
+  if (clientId != null) params.set('client', String(clientId))
   return {
-    queryKey: ['portal', 'chats', 'continua', before ?? null, q],
+    queryKey: ['portal', 'chats', 'continua', clientId ?? 'eu', before ?? null, q],
     queryFn: () => api.get<PaginaLinhaDoTempo>(`/api/v1/chat/timeline/?${params.toString()}`),
     staleTime: 15_000,
   }
@@ -91,8 +98,10 @@ function opcoesPaginaLinhaDoTempo(before: number | undefined, q: string) {
  * estado próprio; aqui o cache do React Query já é o acumulador, e cada
  * página velha fica disponível para reordenar sem refazer a chamada.
  */
-export function useConversaContinua(cursores: (number | undefined)[], q = '') {
-  const paginas = useQueries({ queries: cursores.map((before) => opcoesPaginaLinhaDoTempo(before, q)) })
+export function useConversaContinua(cursores: (number | undefined)[], q = '', clientId?: number) {
+  const paginas = useQueries({
+    queries: cursores.map((before) => opcoesPaginaLinhaDoTempo(before, q, clientId)),
+  })
 
   const carregando = paginas.some((p) => p.isLoading)
   const erro = paginas.find((p) => p.isError)?.error

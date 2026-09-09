@@ -2,9 +2,16 @@ import {
   IconArrowBackUp,
   IconCheck,
   IconChecks,
+  IconFileSpreadsheet,
+  IconFileText,
+  IconFileTypeDoc,
+  IconFileTypePdf,
+  IconFileZip,
   IconHeadset,
   IconLock,
   IconPaperclip,
+  IconPhoto,
+  IconPresentation,
 } from '@tabler/icons-react'
 import { urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import type { Chat, MensagemChat, StatusChat } from '@/api/chat'
@@ -12,12 +19,22 @@ import {
   destacar,
   ehImagemVisivel,
   estadoDaMensagem,
+  iconeDoArquivo,
+  motivoIndisponivel,
   ROTULO_DO_ESTADO,
 } from '@/chat/conversa'
-import { Avatar } from '@/ui/Avatar'
+import { Avatar, PontoDePresenca, type Presenca } from '@/ui/Avatar'
 import { cn } from '../lib/cn'
 import { hora, relativo, tamanhoArquivo } from '../lib/formato'
 import { Badge } from '../ui/badge'
+
+/** O ponto é `aria-hidden`; o rótulo por extenso é o que sobra para quem usa
+ *  leitor de tela. */
+const ROTULO_PRESENCA: Record<Presenca, string> = {
+  available: 'disponível',
+  away: 'ausente',
+  offline: 'offline',
+}
 
 export const ROTULO_CHAT: Record<StatusChat, { rotulo: string; tom: 'acento' | 'ok' | 'neutro' }> = {
   queued: { rotulo: 'Na fila', tom: 'acento' },
@@ -67,6 +84,15 @@ export function CartaoConversa({
         <span className="grid size-10 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
           <IconHeadset className="size-4" aria-hidden="true" />
         </span>
+        {/* "o atendente ainda está aí?" decide entre esperar a resposta e
+            voltar depois — some quando a conversa fecha, onde o estado de
+            agora não diz nada sobre uma conversa que já terminou */}
+        {chat.status === 'active' && chat.agent_presence && (
+          <>
+            <PontoDePresenca presenca={chat.agent_presence} tamanho="lg" />
+            <span className="sr-only">{`${chat.agent_name ?? 'Atendente'}, ${ROTULO_PRESENCA[chat.agent_presence]}`}</span>
+          </>
+        )}
         {chat.unread_count > 0 && (
           <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-total bg-perigo text-[10px] font-forte text-white">
             {chat.unread_count > 9 ? '9+' : chat.unread_count}
@@ -87,6 +113,28 @@ export function CartaoConversa({
       </span>
     </button>
   )
+}
+
+/** O ícone do tipo, no vocabulário de ícones do portal (Tabler React). */
+function IconeDeArquivo({ tipo }: { tipo: string }) {
+  const nome = iconeDoArquivo(tipo)
+  const Icone =
+    nome === 'ti-file-type-pdf'
+      ? IconFileTypePdf
+      : nome === 'ti-file-spreadsheet'
+        ? IconFileSpreadsheet
+        : nome === 'ti-file-type-doc'
+          ? IconFileTypeDoc
+          : nome === 'ti-presentation'
+            ? IconPresentation
+            : nome === 'ti-file-zip'
+              ? IconFileZip
+              : nome === 'ti-file-text'
+                ? IconFileText
+                : nome === 'ti-photo'
+                  ? IconPhoto
+                  : IconPaperclip
+  return <Icone className="size-3" aria-hidden="true" />
 }
 
 export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
@@ -121,7 +169,8 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
               rel="noreferrer"
               className="inline-flex min-h-6 items-center gap-1.5 rounded-md border border-divisoria bg-superficie px-2 py-0.5 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
             >
-              <IconPaperclip className="size-3" aria-hidden="true" />
+              {/* ícone pelo TIPO detectado no servidor, não pela extensão */}
+              <IconeDeArquivo tipo={f.content_type} />
               {f.filename}
               <span className="text-tinta-terciaria">{tamanhoArquivo(f.size_bytes)}</span>
             </a>
@@ -130,10 +179,11 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
           <li
             key={f.id}
             className="inline-flex min-h-6 items-center gap-1.5 rounded-md border border-divisoria bg-navegacao px-2 py-0.5 text-legenda text-tinta-secundaria"
-            title="Em verificação de segurança"
           >
             <IconLock className="size-3" aria-hidden="true" />
-            {f.filename} · em verificação
+            {/* o motivo por extenso: cada caso pede uma ação diferente, e
+                "bloqueado" sozinho não diz qual */}
+            {f.filename} · {motivoIndisponivel(f)}
           </li>
         ),
       )}

@@ -6,8 +6,8 @@ import {
   type Chat,
   type FiltrosFinalizados,
 } from '@/api/chat'
-import { identidadeDe } from '@/ui/identidade'
-import { dataHoraDe, iniciais } from './format'
+import { AvatarComPresenca } from './AvatarComPresenca'
+import { dataHoraDe } from './format'
 
 /**
  * A lista de atendimentos ENCERRADOS (item 2 do brief).
@@ -214,9 +214,9 @@ function CardFinalizado({
       className={'cc-card cc-card--final' + (ativo ? ' cc-card--ativo' : '')}
       onClick={onSelecionar}
     >
-      <span className="cc-card__avatar" {...identidadeDe(chat.client_name)}>
-        {iniciais(chat.client_name)}
-      </span>
+      {/* encerrado não mostra presença: o estado de agora não diz nada
+          sobre uma conversa que já terminou */}
+      <AvatarComPresenca nome={chat.client_name} />
       <span className="cc-card__texto">
         <span className="cc-card__nome">
           {chat.client_name}

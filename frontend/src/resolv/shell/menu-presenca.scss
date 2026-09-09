@@ -136,13 +136,17 @@
   }
 
   // No avatar o ponto é uma marca sobreposta, com anel para destacar do fundo.
+  // O recorte é uma borda POR FORA (box-shadow), não por dentro: com
+  // `border` os 2px comiam o ponto e sobravam 6px de cor num avatar de 30 —
+  // pequeno demais para ser lido de relance. Mesma proporção (~1/3) e mesma
+  // técnica da bolinha do console (`.cc-avatar__ponto`).
   &__avatar &__ponto {
     position: absolute;
     bottom: -1px;
     right: -1px;
-    width: 10px;
-    height: 10px;
-    border: 2px solid var(--surface-alt);
+    width: 11px;
+    height: 11px;
+    box-shadow: 0 0 0 2px var(--surface-alt);
   }
 
   // ── Painel ──

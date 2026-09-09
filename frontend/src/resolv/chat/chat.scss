@@ -135,6 +135,8 @@
   &--ativo {
     border-color: var(--accent);
     background: color-mix(in srgb, var(--accent) 5%, var(--surface-card));
+    /* o recorte da bolinha acompanha o fundo do cartão selecionado */
+    --fundo-do-ponto: color-mix(in srgb, var(--accent) 5%, var(--surface-card));
   }
   &--fila {
     padding: 0;
@@ -1579,15 +1581,125 @@
   margin-left: 6px;
   font-size: 11px;
 
+  /* `--alerta` e `--texto-3` não existem no tema do console (são nomes do
+     portal): o de ausente vinha do fallback fixo, que não vira nada no
+     escuro, e o de offline não pintava nada. Os tokens certos são estes. */
   &--available {
-    color: var(--ok, #0f7b3f);
+    color: var(--ok);
   }
 
   &--away {
-    color: var(--alerta, #8a5d0f);
+    color: var(--away);
   }
 
   &--offline {
-    color: var(--texto-3, var(--texto-2));
+    color: var(--text-muted);
   }
+}
+
+/* ------------------------------------------------------------------ *
+ * Bolinha de disponibilidade no avatar do console
+ * ------------------------------------------------------------------ */
+
+/* `position` no avatar existente, para o ponto se ancorar nele sem que a
+   marcação de nenhuma das telas precise mudar. */
+.cc-avatar {
+  position: relative;
+}
+
+.cc-avatar__ponto {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  /* ~1/3 do avatar de 28px: menor que isto vira sujeira em vez de sinal */
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  /* O recorte é uma BORDA na cor da superfície de trás — é ela que separa o
+     ponto do avatar sem depender de contraste entre as duas cores, que
+     mudam as duas (seis tons de identidade, e o fundo muda com o tema).
+     Via variável para o cartão SELECIONADO, que tem outro fundo, poder
+     corrigir a cor sem uma segunda regra para cada superfície. */
+  box-shadow: 0 0 0 2px var(--fundo-do-ponto, var(--surface-card));
+
+  &--em-canvas {
+    --fundo-do-ponto: var(--surface-canvas);
+  }
+
+  &--em-superficie {
+    --fundo-do-ponto: var(--surface);
+  }
+
+  /* o cabeçalho do painel do mini chat é escuro — o recorte acompanha, ou a
+     borda clara viraria um halo em volta do ponto */
+  &--em-cabecalho {
+    --fundo-do-ponto: var(--text-primary);
+  }
+
+  /* Os tokens do tema, não cores novas: `--ok`, `--away` e `--text-muted`
+     são os mesmos do resto do console e viram os tons do escuro sozinhos. */
+  &--available {
+    background: var(--ok);
+  }
+
+  &--away {
+    background: var(--away);
+  }
+
+  &--offline {
+    background: var(--text-muted);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Thread por cliente — o histórico das aberturas anteriores no topo da
+ * mesma rolagem da conversa de agora.
+ * ------------------------------------------------------------------ */
+
+.cc-thread {
+  &__historico {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* O divisor entre uma abertura e a seguinte: mesma linguagem da faixa de
+     dia (`.cc-conversa__dia`) de propósito — é a mesma ideia, um marco do
+     histórico que não se clica nem se edita. As hairlines dos lados são o
+     que o diferencia de "mais um dia": ali começa outro atendimento. */
+  &__marco {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0;
+    color: var(--text-muted);
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke);
+    }
+
+    span {
+      font-size: 11px;
+      text-align: center;
+      background: var(--surface-alt);
+      border-radius: var(--raio);
+      padding: 2px 10px;
+    }
+  }
+
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+    text-align: center;
+  }
+}
+
+/* O que já passou é leitura: sem hover de ação, um tom mais apagado, para o
+   olho achar de imediato onde a conversa de HOJE começa. */
+.cc-msg--historico {
+  opacity: 0.86;
 }

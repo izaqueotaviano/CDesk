@@ -249,6 +249,37 @@ api_no_ar() {
   [ -n "$code" ] && [ "$code" != "000" ]
 }
 
+# ClamAV só existe como serviço do compose ("clamav" no CLAMAV_HOST). No modo
+# nativo esse nome não resolve, e o efeito é silencioso e total: o anexo SOBE
+# (201), fica em quarentena esperando uma varredura que nunca vem, tenta cinco
+# vezes, vira `error` — e o fail-closed do D19 o mantém bloqueado para sempre.
+# Da tela, isso se lê como "não dá para enviar anexo nenhum".
+#
+# A saída honesta é desligar a varredura nesta execução: o anexo nasce
+# `skipped` ("não verificado"), que é exatamente o que o modelo já documenta
+# para este caso — e nunca `clean`, que seria mentir. Só vale para o processo
+# que este script sobe; nada é escrito no .env, e produção segue fail-closed.
+CLAMAV_ARGS=""
+avaliar_clamav() {
+  [ "$MODO" = "nativo" ] || return 0
+  local host porta
+  host=$(sed -n 's/^CLAMAV_HOST=//p' .env 2>/dev/null | tail -1)
+  porta=$(sed -n 's/^CLAMAV_PORT=//p' .env 2>/dev/null | tail -1)
+  host=${host:-clamav}
+  porta=${porta:-3310}
+  # a varredura já está desligada no .env: nada a fazer
+  case "$(sed -n 's/^CLAMAV_ENABLED=//p' .env 2>/dev/null | tail -1)" in
+    0|false|False|no) return 0 ;;
+  esac
+  if (exec 3<>"/dev/tcp/$host/$porta") 2>/dev/null; then
+    exec 3<&- 2>/dev/null || true
+    return 0
+  fi
+  CLAMAV_ARGS="0"
+  aviso "ClamAV não responde em $host:$porta — anexos entram como “não verificados”."
+  aviso "É o esperado fora do Docker. Em produção a varredura continua obrigatória."
+}
+
 subir_api_nativa() {
   if api_no_ar; then
     ok "API já no ar."
@@ -263,6 +294,7 @@ subir_api_nativa() {
   # pasta inteira do projeto — sem o recorte ele vigiaria .venv e
   # node_modules, dezenas de milhares de arquivos que nunca mudam.
   ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+    [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
     nohup "$VENV/bin/uvicorn" config.asgi:application --host 0.0.0.0 --port 8000 \
       --reload --reload-dir apps --reload-dir config \
       >"$API_LOG" 2>&1 & )
@@ -283,6 +315,7 @@ subir_jobs_nativos() {
     ok "Worker já no ar."
   else
     ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+      [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
       nohup "$VENV/bin/celery" -A config worker -Q default,reports -l info \
         >"$WORKER_LOG" 2>&1 & )
     ok "Worker no ar."
@@ -315,6 +348,7 @@ parar_backend_nativo() {
 
 subir_backend_nativo() {
   passo "Subindo backend nativo (PostgreSQL, Redis, API)"
+  avaliar_clamav
   subir_postgres
   preparar_banco
   subir_redis

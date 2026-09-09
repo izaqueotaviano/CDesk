@@ -1,10 +1,9 @@
 import type { Chat } from '@/api/chat'
-import { identidadeDe } from '@/ui/identidade'
-import { dataHoraDe, haQuanto, iniciais } from './format'
+import { AvatarComPresenca } from './AvatarComPresenca'
+import { dataHoraDe, haQuanto } from './format'
 
 interface Props {
   fila: Chat[]
-  meus: Chat[]
   selecionado: number | null
   onSelecionar: (id: number) => void
   onPegar: (id: number) => void
@@ -13,18 +12,24 @@ interface Props {
   filaAberta: boolean | undefined
   abreEm: string | null | undefined
   limite: number | undefined
+  /** Quantos o agente já tem em andamento — é o que trava o "Pegar". */
+  emAtendimento: number
   agoraMs: number
 }
 
 /**
- * Coluna da esquerda do console: a FILA (todo agente vê tudo, sem recorte
- * de equipe — a equipe só entra na conversão) e os atendimentos do agente
- * logado. O card da fila some daqui quando QUALQUER agente pega: o backend
- * manda `chat_taken` pra todo mundo e a bridge invalida a lista.
+ * A FILA — quem está esperando ser atendido. Todo agente vê tudo, sem
+ * recorte de equipe (a equipe só entra na conversão), e o card some daqui
+ * quando QUALQUER agente pega: o backend manda `chat_taken` pra todo mundo
+ * e a bridge invalida a lista.
+ *
+ * As conversas EM ANDAMENTO saíram daqui para `ListaClientes`, que as
+ * agrupa por pessoa. A separação é a diferença entre as duas coisas: fila é
+ * trabalho a fazer, e some ao ser pego; conversa é com quem se está
+ * falando, e continua existindo depois.
  */
 export function ListaConversas({
   fila,
-  meus,
   selecionado,
   onSelecionar,
   onPegar,
@@ -33,9 +38,10 @@ export function ListaConversas({
   filaAberta,
   abreEm,
   limite,
+  emAtendimento,
   agoraMs,
 }: Props) {
-  const noLimite = limite != null && meus.length >= limite
+  const noLimite = limite != null && emAtendimento >= limite
 
   // Sem <aside> próprio: quem desenha a coluna (e o rótulo acessível dela) é
   // a PaginaChat, que também abriga a aba "Finalizados". Dois <aside> um
@@ -70,7 +76,7 @@ export function ListaConversas({
               className={'cc-card cc-card--fila' + (selecionado === c.id ? ' cc-card--ativo' : '')}
             >
               <button type="button" className="cc-card__corpo" onClick={() => onSelecionar(c.id)}>
-                <span className="cc-card__avatar" {...identidadeDe(c.client_name)}>{iniciais(c.client_name)}</span>
+                <AvatarComPresenca nome={c.client_name} presenca={c.client_presence} />
                 <span className="cc-card__texto">
                   <span className="cc-card__nome">{c.client_name}</span>
                   <span className="cc-card__meta">
@@ -91,37 +97,6 @@ export function ListaConversas({
         )}
       </section>
 
-      <section className="cc-lista__secao">
-        <header className="cc-lista__cabecalho">
-          <h2>Meus atendimentos</h2>
-          <span className="cc-lista__contador">
-            {meus.length}
-            {limite != null ? `/${limite}` : ''}
-          </span>
-        </header>
-        {meus.length === 0 ? (
-          <p className="cc-lista__vazio">Nenhum atendimento em andamento.</p>
-        ) : (
-          meus.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={'cc-card' + (selecionado === c.id ? ' cc-card--ativo' : '')}
-              onClick={() => onSelecionar(c.id)}
-            >
-              <span className="cc-card__avatar cc-card__avatar--ativo" {...identidadeDe(c.client_name)}>{iniciais(c.client_name)}</span>
-              <span className="cc-card__texto">
-                <span className="cc-card__nome">
-                  {c.client_name}
-                  {c.unread_count > 0 && <span className="cc-card__badge">{c.unread_count}</span>}
-                </span>
-                <span className="cc-card__meta">{c.company_name}</span>
-                {c.last_message_preview && <span className="cc-card__preview">{c.last_message_preview}</span>}
-              </span>
-            </button>
-          ))
-        )}
-      </section>
     </>
   )
 }

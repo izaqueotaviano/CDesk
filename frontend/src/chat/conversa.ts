@@ -290,6 +290,84 @@ export function destacar(corpo: string, termo: string): PedacoDeTexto[] {
   return pedacos.length > 0 ? pedacos : [{ texto: corpo, destacado: false }]
 }
 
+/* ------------------------------------------------------------------ *
+ * Anexos: ícone por tipo e o porquê de um arquivo estar indisponível
+ * ------------------------------------------------------------------ */
+
+/**
+ * O ícone que representa o arquivo, pelo TIPO detectado no servidor — não
+ * pela extensão do nome, que qualquer um renomeia.
+ *
+ * Um clipe genérico para tudo obriga a ler o nome inteiro para saber se
+ * aquilo é a nota fiscal em PDF ou a planilha; o ícone é o que se enxerga
+ * antes de ler. Devolve o sufixo do Tabler (`ti-...`), que é a família que
+ * o console usa; o portal mapeia para o componente equivalente.
+ */
+/**
+ * O que o seletor de arquivos do sistema mostra por padrão.
+ *
+ * Espelha `ATTACHMENT_ALLOWED_MIME` (config/settings/base.py): é uma DICA
+ * para o diálogo do sistema abrir já filtrado, não a regra — quem valida é
+ * o servidor, que fareja os primeiros bytes e não confia na extensão nem no
+ * `Content-Type` que o navegador declara. Uma lista aqui que ficasse velha
+ * custa um filtro desatualizado no diálogo; a recusa continua correta e
+ * explicada do outro lado.
+ *
+ * "Todos os arquivos" continua disponível no próprio diálogo — `accept` não
+ * impede escolher outra coisa, e não deve mesmo: quem tenta um tipo não
+ * aceito merece a mensagem que diz o motivo, não um arquivo invisível.
+ */
+export const TIPOS_ACEITOS = [
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'application/pdf',
+  'text/plain',
+  'text/csv',
+  'application/zip',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+].join(',')
+
+export function iconeDoArquivo(contentType: string): string {
+  const t = contentType.toLowerCase()
+  if (t.startsWith('image/')) return 'ti-photo'
+  if (t === 'application/pdf') return 'ti-file-type-pdf'
+  if (t.includes('spreadsheet') || t === 'text/csv') return 'ti-file-spreadsheet'
+  if (t.includes('wordprocessing')) return 'ti-file-type-doc'
+  if (t.includes('presentation')) return 'ti-presentation'
+  if (t === 'application/zip') return 'ti-file-zip'
+  if (t.startsWith('text/')) return 'ti-file-text'
+  return 'ti-file'
+}
+
+/**
+ * Por que este anexo não pode ser baixado — em português, não pelo nome do
+ * estado.
+ *
+ * "bloqueado" sozinho é o pior recado possível: quem lê não sabe se espera,
+ * se reenvia, ou se o arquivo está infectado. Cada caso pede uma ação
+ * diferente, e é isso que a frase precisa dizer.
+ */
+export function motivoIndisponivel(arquivo: {
+  scan_status: string
+  is_downloadable: boolean
+}): string | null {
+  if (arquivo.is_downloadable) return null
+  switch (arquivo.scan_status) {
+    case 'pending':
+      return 'em verificação — disponível assim que a checagem terminar'
+    case 'infected':
+      return 'bloqueado: o antivírus encontrou uma ameaça'
+    case 'error':
+      return 'a verificação falhou — peça para reenviar'
+    default:
+      return 'indisponível'
+  }
+}
+
 /** Só imagem LIBERADA pela varredura vira miniatura — o resto continua link. */
 export function ehImagemVisivel(arquivo: {
   content_type: string

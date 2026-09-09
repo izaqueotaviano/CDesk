@@ -154,6 +154,13 @@ class ChatTimelineSessionSerializer(serializers.ModelSerializer):
 
     agent_name = serializers.CharField(source="agent.full_name", default=None)
     rating = ChatRatingSerializer(read_only=True)
+    #: O motivo e o chamado gerado fecham a frase do marcador: quando o
+    #: atendimento virou chamado, é o protocolo do chamado que a pessoa
+    #: procura depois, não o número do chat.
+    close_reason_name = serializers.CharField(
+        source="close_reason.name", read_only=True, default=None
+    )
+    ticket_reference = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -161,7 +168,14 @@ class ChatTimelineSessionSerializer(serializers.ModelSerializer):
         # atendimentos precisa dizer QUANDO um começou e terminou, não só
         # quem atendeu — "Meus chats" (LinhaChat, portal) já mostra isso,
         # e aqui é o mesmo dado, só que por sessão dentro da conversa.
-        fields = ["id", "status", "queued_at", "closed_at", "agent_name", "rating"]
+        fields = [
+            "id", "status", "queued_at", "closed_at", "agent_name", "rating",
+            "close_reason_name", "ticket_reference",
+        ]
+
+    def get_ticket_reference(self, obj) -> str | None:
+        ticket = getattr(obj, "generated_ticket", None)
+        return ticket.reference if ticket else None
 
 
 class ChatTimelineFileSerializer(ChatFileSerializer):
@@ -259,6 +273,12 @@ class ChatSerializer(serializers.ModelSerializer):
     #: que decide se vale esperar a resposta ou encerrar. Some para o próprio
     #: cliente no `to_representation` (ele não precisa saber de si mesmo).
     client_presence = serializers.CharField(source="client.presence", read_only=True)
+    #: Disponibilidade de QUEM ATENDE — o espelho da de cima, e este vai para
+    #: os dois lados: "o Samuel ainda está aí?" é a pergunta do cliente que
+    #: decide se ele espera a resposta ou volta depois.
+    agent_presence = serializers.CharField(
+        source="agent.presence", read_only=True, default=None
+    )
     # nota interna do agente — NUNCA sai para o cliente (ver to_representation)
     agent_score = serializers.IntegerField(read_only=True, allow_null=True)
     # motivo/observação/quem encerrou — a observação é INTERNA (some no
@@ -282,7 +302,8 @@ class ChatSerializer(serializers.ModelSerializer):
             "close_reason", "close_reason_name", "close_note",
             "closed_automatically", "closed_by_name",
             "agent_score", "timeout_converted",
-            "unread_count", "last_message_preview", "client_presence",
+            "unread_count", "last_message_preview",
+            "client_presence", "agent_presence",
             "rating", "rating_pending", "ticket_id", "ticket_reference",
             "ws_url",
         ]

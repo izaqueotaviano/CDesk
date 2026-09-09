@@ -90,6 +90,8 @@ export interface Chat {
   client_avatar: string | null
   /** Disponibilidade do CLIENTE — só chega para quem atende. */
   client_presence?: 'available' | 'away' | 'offline'
+  /** Disponibilidade de quem ATENDE — chega para os dois lados. */
+  agent_presence?: 'available' | 'away' | 'offline' | null
   company_name: string
   agent_name: string | null
   agent_id: number | null
@@ -179,6 +181,8 @@ export const chaves = {
   midia: (id: number) => ['chat', id, 'media'] as const,
   busca: (id: number, termo: string) => ['chat', id, 'busca', termo] as const,
   metricas: (filtros: string) => ['chat', 'metricas', filtros] as const,
+  clientes: ['chat', 'clientes'] as const,
+  threadDoCliente: (id: number) => ['chat', 'thread-cliente', id] as const,
   /** Finalizados: a chave carrega os filtros — cada recorte é um cache. */
   finalizados: (filtros: FiltrosFinalizados) => ['chat', 'finalizados', filtros] as const,
   historico: (clienteId: number) => ['chat', 'historico', clienteId] as const,
@@ -271,6 +275,42 @@ export function useBuscaNaConversa(chatId: number | null, termo: string) {
         .then((r) => r.results),
     enabled: chatId != null && limpo.length >= 2,
     staleTime: 30_000,
+  })
+}
+
+/** Uma linha da caixa de entrada do console: uma PESSOA, não uma abertura. */
+export interface LinhaDeCliente {
+  client_id: number
+  client_name: string
+  client_avatar: string | null
+  client_presence: 'available' | 'away' | 'offline'
+  company_name: string
+  last_activity: string | null
+  last_message_preview: string
+  /** Quantas aberturas essa pessoa já teve — o que a thread costura. */
+  sessions: number
+  /** O chat vivo, quando existe: é nele que a mensagem nova entra. */
+  open_chat_id: number | null
+  open_agent_id: number | null
+  /** A abertura mais recente — é nela que a thread abre quando não há
+   *  nenhuma viva (em leitura, sem compositor). */
+  last_chat_id: number
+  unread: number
+}
+
+/**
+ * A caixa de entrada agrupada POR CLIENTE.
+ *
+ * Uma linha por pessoa, ordenada pela atividade mais recente. O agrupamento
+ * é de apresentação — cada `Chat` continua sendo uma linha no banco, com o
+ * próprio SLA e a própria avaliação.
+ */
+export function useCaixaDeClientes(habilitado = true) {
+  return useQuery({
+    queryKey: chaves.clientes,
+    queryFn: () => api.get<LinhaDeCliente[]>('/api/v1/chat/chats/clients/'),
+    enabled: habilitado,
+    staleTime: 15_000,
   })
 }
 
@@ -697,7 +737,36 @@ export function useMarcarLidas(chatId: number) {
   return useMutation({
     mutationFn: () => api.post<{ marked_read: number }>(`/api/v1/chat/chats/${chatId}/read/`),
     onSuccess: (r) => {
-      if (r.marked_read > 0) void qc.invalidateQueries({ queryKey: chaves.meus })
+      if (r.marked_read > 0) {
+        void qc.invalidateQueries({ queryKey: chaves.meus })
+        // a caixa por cliente soma as não lidas de TODAS as aberturas: sem
+        // isto o número dela ficaria parado depois de ler a conversa
+        void qc.invalidateQueries({ queryKey: chaves.clientes })
+      }
+    },
+  })
+}
+
+/**
+ * Marca lidas as aberturas ANTERIORES que a thread por cliente pôs na tela.
+ *
+ * A abertura de agora é do `ConversaChat`, que já faz isso; estas são o
+ * histórico costurado acima dela — e como o contador da caixa soma todas as
+ * aberturas, sem isto ele travaria num número que ninguém consegue zerar:
+ * mensagem visível na tela e "não lida" para sempre.
+ */
+export function useMarcarThreadLida() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (ids: number[]) =>
+      Promise.all(
+        ids.map((id) => api.post<{ marked_read: number }>(`/api/v1/chat/chats/${id}/read/`)),
+      ),
+    onSuccess: (respostas) => {
+      if (respostas.some((r) => r.marked_read > 0)) {
+        void qc.invalidateQueries({ queryKey: chaves.meus })
+        void qc.invalidateQueries({ queryKey: chaves.clientes })
+      }
     },
   })
 }

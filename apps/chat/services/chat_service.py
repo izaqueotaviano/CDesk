@@ -306,7 +306,12 @@ def _mensagens_do_cliente(client):
     """
     return (
         ChatMessage.objects.filter(chat__in=visible_chats(client))
-        .select_related("author", "chat", "chat__agent", "chat__rating")
+        .select_related(
+            "author", "chat", "chat__agent", "chat__rating",
+            # o marcador entre atendimentos diz o motivo do encerramento e o
+            # chamado que saiu dali — sem isto seriam duas consultas por sessão
+            "chat__close_reason", "chat__generated_ticket",
+        )
         .prefetch_related("files")
     )
 
@@ -369,7 +374,7 @@ def delete_message(*, message: ChatMessage, actor) -> ChatMessage:
 
 
 def timeline(client, *, before: int | None = None, limit: int | None = None,
-             q: str = "") -> tuple[list, bool]:
+             q: str = "", para=None) -> tuple[list, bool]:
     """As mensagens de todas as sessões do cliente e se ainda há anteriores.
 
     Mesmo contrato de recorte do `messages/` de um chat, de propósito —
@@ -380,9 +385,11 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     tela se vale desenhar o "carregar mensagens anteriores": contar o total
     de uma conversa de meses para exibir um botão seria caro à toa.
     """
-    # o cliente é quem chama, mas o filtro fica explícito: é daqui que sai
-    # também o PDF da conversa
-    base = mensagens_visiveis(_mensagens_do_cliente(client), client)
+    # `client` é DE QUEM é a conversa; `para` é QUEM está lendo. Eram a
+    # mesma pessoa enquanto a conversa contínua existia só no portal; agora
+    # o console também a usa, e é a segunda que decide o que aparece — o
+    # agente enxerga as notas internas, o cliente não.
+    base = mensagens_visiveis(_mensagens_do_cliente(client), para or client)
     qs = base.order_by("id")
     if q:
         qs = qs.filter(body__icontains=q)
@@ -403,6 +410,105 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     if q:
         anteriores = anteriores.filter(body__icontains=q)
     return mensagens, anteriores.exists()
+
+
+def caixa_de_entrada(agente) -> list[dict]:
+    """A lista do console agrupada POR CLIENTE, não por abertura.
+
+    Uma linha por pessoa, ordenada pela atividade mais recente — o formato
+    de caixa de entrada que todo mensageiro usa. Com cinquenta clientes e
+    várias aberturas cada, uma linha por abertura vira uma lista que ninguém
+    navega, e a mesma pessoa aparece cinco vezes sem relação visível entre
+    elas.
+
+    O agrupamento é de APRESENTAÇÃO. Cada `Chat` continua sendo uma linha no
+    banco, com o próprio SLA, a própria avaliação e o próprio ciclo — nada
+    disso muda. O que muda é que a tela do agente pergunta "com quem estou
+    falando" em vez de "que aberturas existem".
+
+    A fila (quem ainda não foi pego) NÃO entra aqui: ela é uma lista de
+    trabalho a fazer, não uma conversa em andamento, e some assim que
+    alguém pega. Continua na sua própria seção.
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count, Max, OuterRef, Subquery
+
+    ultima = (
+        ChatMessage.objects.filter(chat__client=OuterRef("client"), is_system=False)
+        .order_by("-id")
+        .values("body")[:1]
+    )
+    linhas = (
+        visible_chats(agente)
+        .exclude(status=ChatStatus.QUEUED)
+        .values("client")
+        .annotate(
+            atividade=Max("messages__sent_at"),
+            aberturas=Count("pk", distinct=True),
+            # a abertura mais recente da pessoa: sem nenhuma viva, é nela que
+            # a thread abre (em leitura) — a conversa não pode sumir da tela
+            # só porque o último atendimento foi encerrado
+            ultima_abertura=Max("pk"),
+            previa=Subquery(ultima),
+        )
+        .order_by("-atividade")
+    )
+
+    por_cliente = {ligacao["client"]: ligacao for ligacao in linhas}
+    if not por_cliente:
+        return []
+
+    clientes = {
+        u.pk: u
+        for u in get_user_model().objects.filter(pk__in=por_cliente).select_related("company")
+    }
+
+    # A sessão ABERTA de cada cliente (no máximo uma, pela constraint
+    # `uniq_chat_aberto_por_login`) — é ela que decide se dá para escrever.
+    abertas = {
+        c.client_id: c
+        for c in visible_chats(agente).filter(status=ChatStatus.ACTIVE)
+    }
+
+    resultado = []
+    for cid, dados in por_cliente.items():
+        cliente = clientes.get(cid)
+        if cliente is None:
+            continue
+        aberta = abertas.get(cid)
+        resultado.append({
+            "client_id": cid,
+            "client_name": cliente.full_name,
+            "client_avatar": cliente.avatar_url or None,
+            "client_presence": cliente.presence,
+            "company_name": cliente.company.name if cliente.company else "",
+            "last_activity": dados["atividade"],
+            "last_message_preview": (dados["previa"] or "")[:120],
+            "sessions": dados["aberturas"],
+            # o chat vivo, quando existe: é nele que a mensagem nova entra
+            "open_chat_id": aberta.pk if aberta else None,
+            "last_chat_id": dados["ultima_abertura"],
+            "open_agent_id": aberta.agent_id if aberta else None,
+            "unread": _nao_lidas_do_cliente(agente, cid),
+        })
+    return resultado
+
+
+def _nao_lidas_do_cliente(agente, client_id: int) -> int:
+    """Não lidas somadas de TODAS as aberturas — a linha é uma só, o contador
+    também tem de ser."""
+    return (
+        mensagens_visiveis(
+            ChatMessage.objects.filter(
+                chat__in=visible_chats(agente).filter(client_id=client_id),
+                read_at__isnull=True,
+                is_system=False,
+            ),
+            agente,
+        )
+        .exclude(author=agente)
+        .count()
+    )
 
 
 def chat_media(chat, user=None) -> tuple[list, list]:

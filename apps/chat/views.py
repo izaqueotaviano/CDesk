@@ -273,6 +273,20 @@ class ChatViewSet(viewsets.GenericViewSet):
         return Response(self.get_serializer(chat).data)
 
     @action(detail=False, methods=["get"])
+    def clients(self, request):
+        """A caixa de entrada do console, agrupada POR CLIENTE.
+
+        Uma linha por pessoa em vez de uma por abertura — com cinquenta
+        clientes e várias aberturas cada, a lista por abertura é a que
+        ninguém navega. O agrupamento é de apresentação: cada `Chat`
+        continua sendo uma linha no banco, com o próprio SLA e a própria
+        avaliação.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("A caixa de entrada por cliente é do console.")
+        return Response(chat_service.caixa_de_entrada(request.user))
+
+    @action(detail=False, methods=["get"])
     def metrics(self, request):
         """Como foram os atendimentos do período — espera, duração, desfecho
         e nota. Só interno: são números de operação, não do titular.
@@ -736,6 +750,36 @@ def _inicio_do_dia(dia: dt.date) -> dt.datetime:
     return timezone.make_aware(dt.datetime.combine(dia, dt.time.min))
 
 
+def _dono_da_conversa(request):
+    """De QUEM é a conversa contínua que está sendo pedida.
+
+    Sem `?client=`, é a de quem pede — o portal, como sempre. Com
+    `?client=<id>`, é a daquele cliente, e só interno pode pedir: é a visão
+    do console, onde o agente vê todas as aberturas da mesma pessoa numa
+    thread só.
+
+    Interno SEM `?client=` continua sendo 403 pelo motivo de sempre: "todas
+    as minhas sessões" não quer dizer nada para quem atende várias pessoas,
+    e `visible_chats` devolveria a conversa de todo mundo numa resposta só.
+    """
+    alvo = request.query_params.get("client")
+    if not alvo:
+        _so_cliente(request.user)
+        return request.user
+
+    if not request.user.is_internal:
+        raise PermissionDenied("A conversa de outra pessoa não é sua para ler.")
+    if not str(alvo).isdigit():
+        raise ValidationError({"client": "Informe o id do cliente."})
+
+    from apps.accounts.models import User, UserKind
+
+    cliente = User.objects.filter(pk=int(alvo), kind=UserKind.CLIENT).first()
+    if cliente is None:
+        raise NotFound("Cliente não encontrado.")
+    return cliente
+
+
 def _so_cliente(user):
     """A conversa contínua é do cliente.
 
@@ -784,13 +828,14 @@ class ChatTimelineView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _so_cliente(request.user)
+        dono = _dono_da_conversa(request)
         mensagens, tem_anteriores = chat_service.timeline(
-            request.user,
+            dono,
             before=_inteiro(request.query_params, "before"),
             limit=_inteiro(request.query_params, "limit", maximo=TIMELINE_MAX)
             or TIMELINE_PADRAO,
             q=(request.query_params.get("q") or "").strip(),
+            para=request.user,
         )
         # as sessões que aparecem NESTE recorte — não todas as do cliente:
         # quem carregou as 60 últimas mensagens não precisa do resumo de um
