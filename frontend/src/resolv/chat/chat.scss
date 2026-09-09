@@ -256,7 +256,8 @@
     &--conectando i {
       color: var(--away);
     }
-    &--fechado {
+    &--fechado,
+    &--recusado {
       color: var(--danger);
       i {
         color: var(--danger);

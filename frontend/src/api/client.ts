@@ -28,7 +28,14 @@
 // (`/avatars/...`, `/media/...`) — quem for montar um <img src> a partir
 // deles precisa desta mesma base, senão o navegador resolve contra a origem
 // do Vite (5174) em vez da API (8000) e o avatar 404.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000'
+//
+// Sem a variável, o build de PRODUÇÃO usa a própria origem ('' → URL relativa:
+// `/api/v1/...`), que é o que o nginx de deploy/ espera — `/api/` e `/ws/`
+// no mesmo host da SPA. O `localhost:8000` só vale no dev server do Vite
+// (porta 5173, API em outra porta). Antes o fallback era localhost SEMPRE, e
+// um build sem `.env.production` saía apontando pra máquina de quem buildou.
+export const API_BASE_URL: string =
+  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '')
 
 export class ApiError extends Error {
   status: number

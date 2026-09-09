@@ -108,7 +108,9 @@ export function Conversa({ chatId, onVoltar }: { chatId: number; onVoltar?: () =
     ? { tom: 'ok' as const, texto: 'Conectado' }
     : status === 'conectando'
       ? { tom: 'alerta' as const, texto: 'Conectando…' }
-      : { tom: 'perigo' as const, texto: 'Reconectando…' }
+      : status === 'recusado'
+        ? { tom: 'perigo' as const, texto: 'Sessão expirada — recarregue a página' }
+        : { tom: 'alerta' as const, texto: 'Reconectando…' }
 
   function enviar() {
     if (!podeEnviarTexto) return

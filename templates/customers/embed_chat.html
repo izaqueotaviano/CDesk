@@ -230,8 +230,15 @@ Dois jeitos de a página chegar aqui, decididos no `embed_views`:
         marcarConectado(true, 'conectado');
         habilitarComposer(true);
       };
-      socket.onclose = function () {
+      socket.onclose = function (ev) {
         habilitarComposer(false);
+        // 4401/4403/4404 (apps/chat/consumers.py): a sessão do visitante
+        // expirou ou o chat sumiu — reconectar não resolve, e ficar tentando
+        // a cada 2–30s era o "erro de conexão toda hora"
+        if (ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 4404)) {
+          marcarConectado(false, 'sessão expirada — recarregue a página');
+          return;
+        }
         marcarConectado(false, 'reconectando…');
         // backoff simples: 2s, 4s, 8s, até 30s — uma aba de iframe esquecida
         // aberta não pode martelar o servidor pra sempre

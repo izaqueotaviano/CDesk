@@ -35,11 +35,29 @@ export function assinarEventoPessoal(ouvinte: OuvinteDoCanalPessoal): () => void
  *  já aberta, nunca abre uma segunda. */
 export function conectarCanalPessoal(queryClient: QueryClient): Socket {
   if (canalPessoal) return canalPessoal
+  // "já esteve aberto" — distingue a primeira conexão (as queries iniciais
+  // cobrem) de uma reconexão (o que mudou enquanto esteve fora não chegou)
+  let jaAbriu = false
   canalPessoal = criarSocket<EventoServidorPessoal>({
     path: '/ws/me/',
     onEvento: (evento) => {
       aplicarEventoPessoal(evento, queryClient)
       for (const ouvinte of ouvintes) ouvinte(evento)
+    },
+    onStatus: (status) => {
+      if (status !== 'aberto') return
+      if (jaAbriu) {
+        // O consumer reenvia a fila que já esperava ao conectar; o resto —
+        // meus atendimentos, notificações, avaliações pendentes, tickets —
+        // não tem reenvio. Sem isto, depois de uma queda a barra ficava
+        // com o número velho até o refetchInterval de 30s.
+        for (const chave of [chaves.fila, chaves.meus, chaves.meuVivo, chaves.pendentes]) {
+          void queryClient.invalidateQueries({ queryKey: chave })
+        }
+        void queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        void queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      }
+      jaAbriu = true
     },
   })
   return canalPessoal

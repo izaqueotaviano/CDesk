@@ -16,7 +16,8 @@ import { API_BASE_URL, ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
 import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
-import { identidadeDe } from '@/ui/identidade'
+import { useChatUi } from '@/stores/chatUi'
+import { identidadeDe, indiceDeIdentidade } from '@/ui/identidade'
 import { useAplicarMacroChat, useMacros, type Macro } from './dados'
 import { horaDe, iniciais, rotuloDoDia } from './format'
 
@@ -62,6 +63,7 @@ const ROTULO_STATUS_SOCKET = {
   conectando: 'Conectando…',
   aberto: 'Conectado',
   fechado: 'Sem conexão — reconectando',
+  recusado: 'Sem acesso — recarregue a página',
 } as const
 
 /** Quanto tempo entre dois sinais de "digitando" mandados pra sala. */
@@ -153,7 +155,13 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
   const { data: macros } = useMacros()
   const aplicarMacro = useAplicarMacroChat(chatId)
 
-  const [texto, setTexto] = useState('')
+  // Rascunho POR CONVERSA, compartilhado com o mini chat (stores/chatUi):
+  // o que se digita aqui aparece lá e vice-versa — a mesma conversa pode ser
+  // respondida de onde for melhor, e trocar de tela não perde o texto.
+  const texto = useChatUi((s) => s.rascunhos[chatId] ?? '')
+  const definirRascunho = useChatUi((s) => s.definirRascunho)
+  const limparRascunho = useChatUi((s) => s.limparRascunho)
+  const setTexto = (valor: string) => definirRascunho(chatId, valor)
   const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [fimDoHistorico, setFimDoHistorico] = useState(false)
@@ -209,9 +217,10 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     return () => clearTimeout(h)
   }, [aviso])
 
-  // texto digitado, erro e "fim do histórico" são POR conversa — quem troca
-  // de chat remonta este componente (`key={chatId}` em PaginaChat), então
-  // o estado nasce zerado sem precisar de efeito de reset
+  // erro e "fim do histórico" são POR conversa — quem troca de chat remonta
+  // este componente (`key={chatId}` em PaginaChat), então esse estado nasce
+  // zerado sem precisar de efeito de reset. O rascunho NÃO zera: mora no
+  // store, de propósito (ver acima).
 
   if (isLoading) {
     return (
@@ -243,7 +252,7 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     if (!podeEnviarTexto) return
     enviarMensagem(texto.trim())
     enviarDigitando(false)
-    setTexto('')
+    limparRascunho(chatId)
   }
 
   function aoDigitar(valor: string) {
@@ -261,7 +270,7 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     enviarArquivos.mutate(
       { arquivos: Array.from(arquivos), texto: texto.trim() || undefined },
       {
-        onSuccess: () => setTexto(''),
+        onSuccess: () => limparRascunho(chatId),
         onError: (e) =>
           setErroAcao(
             e instanceof ApiError
@@ -284,7 +293,7 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
       solicitante: chat.client_name,
       empresa: chat.company_name,
     })
-    if (corpo) setTexto((t) => (t.trim() ? `${t}\n${corpo}` : corpo))
+    if (corpo) setTexto(texto.trim() ? `${texto}\n${corpo}` : corpo)
     const pendentes = marcadoresPendentes(corpo)
     const temAtendimento = Boolean(
       m.chat_name || m.category || m.priority || m.assignee || (m.tags && m.tags.length > 0),
@@ -329,7 +338,9 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
   return (
     <section className={'cc-conversa' + (compacto ? ' cc-conversa--compacta' : '')}>
       {!compacto && (
-      <header className="cc-conversa__header">
+      // a cor do atendimento (a mesma do avatar da pessoa) numa linha no topo:
+      // com várias conversas abertas no dia, o olho acha pela cor
+      <header className="cc-conversa__header" style={{ borderTop: `3px solid var(--identidade-${indiceDeIdentidade(chat.client_name)})` }}>
         <div>
           <h1 className="cc-conversa__titulo">
             {chat.client_name}

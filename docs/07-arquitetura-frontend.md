@@ -151,13 +151,39 @@ conexão cairia. ⚑ Isso foi verificado: com o widget fora, navegar para o Kanb
 com uma conversa aberta preserva as mensagens e o socket.
 
 Na base atual o widget é o **mini chat** (`frontend/src/resolv/chat/MiniChat.tsx`):
-docado embaixo à direita, montado como irmão do `<main>` nos dois shells internos
-(`NovoShell` e `CvzAppLayout`), com os atendimentos do agente como abas e cada
-aba abrindo um painel com o mesmo `ConversaChat` do console (mesma sala de
-socket — o registro em `realtime/salaChat.ts` é contado por assinante). Quais
-painéis estão abertos mora em `stores/chatUi.ts` (zustand, fora do React Router),
-e o teto de painéis simultâneos é o `max_chats_per_agent` da configuração do
-chat — o mesmo número que limita quantos atendimentos o agente pega.
+docado embaixo à direita, montado como irmão do `<main>` no `NovoShell`. Três
+peças (Rodada 13):
+
+- o **balão** — sempre presente pra quem é interno, fora do `/chat`. Abre a
+  fila com "Pegar" (quem entra na fila aparece na hora, pelo canal pessoal)
+  e mostra o que pede atenção: quantos esperam (âmbar, pulsando, se ainda
+  cabe) ou quantas mensagens não lidas. É por ele que se atende de qualquer
+  tela — ticket, cliente, relatório — sem ir ao console;
+- as **abas**, uma por atendimento em andamento;
+- os **painéis** — cada aba aberta vira um painel com o mesmo `ConversaChat`
+  do console (mesma sala de socket — o registro em `realtime/salaChat.ts` é
+  contado por assinante — mesmo composer, mesmos anexos, **mesmo rascunho**).
+
+Sincronia console ↔ mini chat: mensagens são o cache do TanStack Query pela
+chave do chat (`chaves.mensagens(id)`), então os dois leem a mesma lista; o
+**rascunho** mora em `stores/chatUi.ts` (`rascunhos[chatId]`) — o que se
+digita num aparece no outro, e a conversa é respondida de onde for melhor.
+Cada painel aberto tem o **cabeçalho na cor do atendimento** (`tonsDistintos`,
+`resolv/chat/tons.ts`: parte da cor de identidade da pessoa e desvia só se
+dois abertos colidirem — nunca dois painéis iguais). O **tamanho** dos painéis
+é preferência do agente (`stores/prefs.ts::miniChat`): alça no canto superior
+esquerdo (arrasto ou setas) e um botão que cicla três presets, a alternativa
+sem arrasto da WCAG 2.5.7.
+
+Quais painéis estão abertos mora em `stores/chatUi.ts` (zustand, fora do React
+Router), e o teto de painéis simultâneos é o `max_chats_per_agent` da
+configuração do chat — o mesmo número que limita quantos atendimentos o agente
+pega. Painéis abertos e rascunhos **persistem** (localStorage `resolv:chat-ui`):
+um F5 ou um link aberto no meio do atendimento devolve a mesma tela. Ids de
+atendimentos que encerraram desde então são podados com a lista do servidor
+(`podar`, chamado pelo `MiniChat` quando "meus atendimentos" chega), e o logout
+— explícito ou por sessão expirada — zera tudo (`limparTudo`), pra próxima
+pessoa nesta máquina não herdar painéis nem texto de outra.
 
 **Dois sockets, ciclos de vida distintos:**
 
@@ -174,6 +200,17 @@ assina. Razões:
   conexões (aconteceu no protótipo);
 - HMR não deixa socket órfão;
 - backoff exponencial de reconexão fica num lugar só, testável sem render.
+
+**O que `socket.ts` faz pra conexão não "dar erro toda hora" (Rodada 13):**
+
+| Situação | Antes | Agora |
+|---|---|---|
+| Build sem `VITE_WS_BASE_URL` | ia pra `ws://localhost:8000` e falhava pra sempre | deriva de `VITE_API_BASE_URL` (http→ws) ou da própria origem (wss em https); em dev sem `.env`, `localhost:8000` como o `api/client.ts` |
+| Sessão expirou / sem acesso (4401, 4403, 4404) | reconectava a cada 2–30s, "reconectando…" o dia inteiro | status `recusado`, sem nova tentativa; a tela pede pra recarregar |
+| Socket meio-morto (laptop dormiu, trocou de rede) | "Conectado" com nada chegando, por minutos | ping a cada 30s exige resposta em 10s; sem ela fecha e reconecta |
+| Rede voltou / aba voltou ao primeiro plano | esperava o backoff (até 30s) | `online`/`visibilitychange` tentam na hora |
+| `new WebSocket()` lançando (esquema proibido) | derrubava o componente | vira tentativa falha |
+| Reconexão do canal pessoal | só a sala fazia catch-up | invalida fila, meus, notificações, pendentes e tickets |
 
 **A ponte WebSocket → Query (o padrão central do tempo real):**
 

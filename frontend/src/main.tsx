@@ -15,6 +15,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { aoDeslogar } from '@/api/client'
 import { desconectarCanalPessoal } from '@/realtime/bridge'
+import { useChatUi } from '@/stores/chatUi'
 import { router } from './routes'
 import './styles/index.css'
 
@@ -39,6 +40,7 @@ aoDeslogar(() => {
   // pessoal sobrevive à sessão que acabou de cair, e a próxima pessoa a
   // logar nesta aba herda um socket morto em vez de um novo.
   desconectarCanalPessoal()
+  useChatUi.getState().limparTudo()
   queryClient.clear()
   const paraLogin = window.location.pathname.startsWith('/portal') ? '/login/cliente' : '/login'
   router.navigate(paraLogin, { replace: true })

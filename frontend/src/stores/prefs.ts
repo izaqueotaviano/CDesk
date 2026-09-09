@@ -7,6 +7,23 @@ export type Tema = 'claro' | 'escuro' | 'sistema'
 export type TemaResolvido = 'claro' | 'escuro'
 export type Densidade = 'confortavel' | 'compacta'
 
+/** Largura × altura de cada painel do mini chat, em px — um tamanho só para
+ *  todos os painéis, escolhido pelo agente (arrasto ou preset). */
+export interface TamanhoMiniChat {
+  largura: number
+  altura: number
+}
+export const TAMANHOS_MINICHAT = {
+  pequeno: { largura: 320, altura: 420 },
+  medio: { largura: 380, altura: 500 },
+  grande: { largura: 460, altura: 640 },
+} as const satisfies Record<string, TamanhoMiniChat>
+/** Até onde o arrasto vai — abaixo disso a conversa não cabe, acima cobre a tela. */
+export const LIMITES_MINICHAT = {
+  largura: [300, 640] as const,
+  altura: [360, 800] as const,
+}
+
 interface PrefsState {
   tema: Tema
   densidade: Densidade
@@ -15,7 +32,10 @@ interface PrefsState {
    *  recolhido no dia seguinte — por isso mora aqui, persistido, e não num
    *  `useState` do shell. */
   sidebarRecolhida: boolean
+  /** Tamanho dos painéis do mini chat — preferência de conforto de quem atende. */
+  miniChat: TamanhoMiniChat
   setTema: (tema: Tema) => void
+  setMiniChat: (tamanho: TamanhoMiniChat) => void
   setDensidade: (densidade: Densidade) => void
   alternarSidebar: () => void
 }
@@ -60,11 +80,13 @@ export const usePrefs = create<PrefsState>()(
       tema: 'sistema',
       densidade: 'confortavel',
       sidebarRecolhida: false,
+      miniChat: TAMANHOS_MINICHAT.medio,
       setTema: (tema) => {
         aplicarTema(tema)
         set({ tema })
       },
       setDensidade: (densidade) => set({ densidade }),
+      setMiniChat: (miniChat) => set({ miniChat }),
       alternarSidebar: () => set((s) => ({ sidebarRecolhida: !s.sidebarRecolhida })),
     }),
     {

@@ -677,10 +677,19 @@ def _validar_nota(valor: int):
 # ---------------------------------------------------------------------- #
 
 def _group_send(group: str, event: dict) -> None:
+    """Broadcast pelo channel layer — TRANSPORTE, não verdade. A operação
+    (pegar, encerrar, converter…) já foi gravada quando chega aqui; se o
+    Redis estiver fora do ar, o que se perde é o aviso ao vivo, e o front
+    recupera por REST (`refetchInterval` das listas, `?after=` da sala).
+    Deixar a exceção subir devolvia 500 a uma ação que tinha dado certo."""
     layer = get_channel_layer()
     if layer is None:
         return
-    async_to_sync(layer.group_send)(group, event)
+    try:
+        async_to_sync(layer.group_send)(group, event)
+    except Exception:  # noqa: BLE001 — qualquer falha do layer é só perda do aviso
+        logger.warning("channel layer indisponível — evento %s para %s não foi entregue",
+                       event.get("type"), group, exc_info=True)
 
 
 def _sala(chat_id: int, event: dict) -> None:

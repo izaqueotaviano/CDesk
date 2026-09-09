@@ -101,7 +101,15 @@ quebrada):
    `docs/14-seguranca.md` §8/§9, agora automática e **bloqueando o deploy**
    em vez de depender de alguém lembrar de rodar à mão
 4. build do frontend (`npm ci && npm run build` em `frontend/`) — pulável
-   com `DEPLOY_SKIP_FRONTEND=1` se outro pipeline publica `frontend/dist`
+   com `DEPLOY_SKIP_FRONTEND=1` se outro pipeline publica `frontend/dist`.
+   O build **não precisa de variável nenhuma**: sem `VITE_API_BASE_URL` e
+   `VITE_WS_BASE_URL`, a SPA fala com a própria origem (`/api/` e `/ws/`
+   no mesmo host — exatamente o que `deploy/nginx/resolv.conf` faz). Só
+   crie `frontend/.env.production` com essas duas se a API viver em OUTRO
+   host que não o da SPA — e aí `CORS_ALLOWED_ORIGINS`/`CSRF_TRUSTED_ORIGINS`
+   precisam da origem da SPA. (Antes da Rodada 13 o fallback era
+   `localhost:8000`, e um build sem `.env.production` saía apontando pra
+   máquina de quem buildou — o WebSocket ficava em "reconectando" pra sempre.)
    por fora
 5. `manage.py migrate --noinput` com `DATABASE_URL_MIGRATE` (papel
    `resolv_owner`) — nunca com o papel de aplicação, mesmo padrão de

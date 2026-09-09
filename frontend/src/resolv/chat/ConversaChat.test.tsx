@@ -3,6 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Chat } from '@/api/chat'
 import type { Me } from '@/api/types'
+import { useChatUi } from '@/stores/chatUi'
 import { ConversaChat } from './ConversaChat'
 import type { Macro } from './dados'
 
@@ -145,6 +146,9 @@ function textoDoCompositor() {
 }
 
 beforeEach(() => {
+  // o rascunho mora no store (compartilhado com o mini chat) — sem isto o
+  // texto de um teste vazaria pro seguinte
+  useChatUi.setState({ rascunhos: {}, abertos: [], filaAberta: false })
   aplicarMacroMock.mockReset()
   macros = []
   chatAtual = chat()

@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useChatUi } from '@/stores/chatUi'
+import { TAMANHOS_MINICHAT, usePrefs } from '@/stores/prefs'
 import { MiniChat } from './MiniChat'
 
 vi.mock('@/realtime/useSalaChat', () => ({
@@ -27,9 +28,9 @@ const MENSAGENS = [
 ]
 
 let me: Record<string, unknown>
-let meus: unknown[]
-let fila: unknown[]
-let chamadas: { url: string; search: string }[]
+let meus: ReturnType<typeof chat>[]
+let fila: ReturnType<typeof chat>[]
+let chamadas: { url: string; search: string; metodo: string }[]
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -37,23 +38,33 @@ function jsonDe(body: unknown, status = 200) {
 const pagina = (results: unknown[]) => ({ count: results.length, next: null, previous: null, results })
 
 beforeEach(() => {
-  useChatUi.setState({ abertos: [] })
+  useChatUi.setState({ abertos: [], filaAberta: false, rascunhos: {} })
+  usePrefs.setState({ miniChat: TAMANHOS_MINICHAT.medio })
   me = AGENTE
   meus = [chat(5), chat(6, { client_name: 'Bruno Cliente', company_name: 'Beta', unread_count: 2 })]
   fila = []
   chamadas = []
   vi.stubGlobal(
     'fetch',
-    vi.fn((url: string) => {
+    vi.fn((url: string, init?: RequestInit) => {
       const u = new URL(String(url), 'http://x')
-      chamadas.push({ url: u.pathname, search: u.search })
+      const metodo = init?.method ?? 'GET'
+      chamadas.push({ url: u.pathname, search: u.search, metodo })
       if (u.pathname === '/api/v1/auth/me/') return Promise.resolve(jsonDe(me))
       if (u.pathname === '/api/v1/chat/config/') return Promise.resolve(jsonDe({ welcome_message: '', score_min: 0, score_max: 10, low_score_threshold: 5, queue_open: true, queue_opens_at: null, max_chats_per_agent: 3 }))
       if (u.pathname === '/api/v1/chat/chats/' && u.searchParams.get('mine') === '1') return Promise.resolve(jsonDe(pagina(meus)))
       if (u.pathname === '/api/v1/chat/chats/' && u.searchParams.get('status') === 'queued') return Promise.resolve(jsonDe(pagina(fila)))
+      const take = u.pathname.match(/\/api\/v1\/chat\/chats\/(\d+)\/take\/$/)
+      if (take && metodo === 'POST') {
+        const id = Number(take[1])
+        const pego = { ...(fila.find((c) => c.id === id) ?? chat(id)), status: 'active', agent_id: 3, agent_name: 'Samuel Suporte' }
+        fila = fila.filter((c) => c.id !== id)
+        meus = [...meus, pego]
+        return Promise.resolve(jsonDe(pego))
+      }
       if (/\/api\/v1\/chat\/chats\/\d+\/$/.test(u.pathname)) {
         const id = Number(u.pathname.split('/').filter(Boolean).pop())
-        return Promise.resolve(jsonDe((meus as { id: number }[]).find((c) => c.id === id) ?? chat(id)))
+        return Promise.resolve(jsonDe(meus.find((c) => c.id === id) ?? chat(id)))
       }
       if (/\/messages\/$/.test(u.pathname)) return Promise.resolve(jsonDe(MENSAGENS))
       if (/\/mark-read\/$/.test(u.pathname) || /\/read\/$/.test(u.pathname)) return Promise.resolve(jsonDe({}))
@@ -81,10 +92,10 @@ describe('MiniChat', () => {
   it('lista os atendimentos do agente como abas, com contador e badge de não lidas', async () => {
     montar()
     expect(await screen.findByRole('toolbar', { name: 'Meus atendimentos' })).toBeInTheDocument()
-    expect(screen.getByText('2/3')).toBeInTheDocument()
+    expect(await screen.findByText('2/3')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Abrir conversa com Ana Cliente' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Abrir conversa com Bruno Cliente' })).toBeInTheDocument()
-    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getAllByText('2').length).toBeGreaterThan(0)
   })
 
   it('clicar numa aba abre o painel com a conversa inteira e o compositor; minimizar fecha', async () => {
@@ -106,12 +117,6 @@ describe('MiniChat', () => {
     expect(screen.queryByRole('region')).not.toBeInTheDocument()
   })
 
-  it('mostra a fila como atalho pro console', async () => {
-    fila = [chat(9, { status: 'queued', agent_id: null, agent_name: null })]
-    montar()
-    expect(await screen.findByRole('button', { name: '1 na fila' })).toBeInTheDocument()
-  })
-
   it('no console (/chat) não aparece nem consulta os atendimentos', async () => {
     montar('/chat')
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/auth/me/')).toBe(true))
@@ -124,5 +129,81 @@ describe('MiniChat', () => {
     montar()
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/auth/me/')).toBe(true))
     expect(screen.queryByRole('toolbar')).not.toBeInTheDocument()
+  })
+
+  it('sem atendimento nenhum o balão continua lá — é por ele que se pega a fila de qualquer tela', async () => {
+    meus = []
+    fila = [chat(9, { status: 'queued', agent_id: null, agent_name: null, client_name: 'Carla Costa', company_name: 'Cetus' })]
+    montar()
+    const balao = await screen.findByRole('button', { name: /^Chat: 1 na fila/ })
+    expect(balao).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: '1 na fila' })).toBeInTheDocument()
+
+    fireEvent.click(balao)
+    const dialogo = await screen.findByRole('dialog', { name: 'Fila de chat' })
+    expect(within(dialogo).getByText('Carla Costa')).toBeInTheDocument()
+    expect(within(dialogo).getByText(/Cetus · esperando/)).toBeInTheDocument()
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Pegar' }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/chat/chats/9/take/' && c.metodo === 'POST')).toBe(true))
+    // pegou: a fila fecha e o painel da conversa abre na hora
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Fila de chat' })).not.toBeInTheDocument())
+    expect(await screen.findByRole('region', { name: 'Conversa com Carla Costa' })).toBeInTheDocument()
+  })
+
+  it('no limite de atendimentos, a fila aparece mas "Pegar" fica travado com o motivo', async () => {
+    meus = [chat(5), chat(6, { client_name: 'Bruno Cliente' }), chat(7, { client_name: 'Dani Dias' })]
+    fila = [chat(9, { status: 'queued', agent_id: null, agent_name: null, client_name: 'Carla Costa' })]
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /^Chat:/ }))
+    const dialogo = await screen.findByRole('dialog', { name: 'Fila de chat' })
+    expect(within(dialogo).getByText(/no limite de 3 atendimentos/)).toBeInTheDocument()
+    expect(within(dialogo).getByRole('button', { name: 'Pegar' })).toBeDisabled()
+  })
+
+  it('cada painel aberto ao mesmo tempo tem um tom de identidade diferente no cabeçalho — e a aba repete o tom', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Bruno Cliente' }))
+    const a = await screen.findByRole('region', { name: 'Conversa com Ana Cliente' })
+    const b = await screen.findByRole('region', { name: 'Conversa com Bruno Cliente' })
+    const tomA = a.querySelector('header')?.getAttribute('data-identidade')
+    const tomB = b.querySelector('header')?.getAttribute('data-identidade')
+    expect(tomA).toMatch(/^[1-6]$/)
+    expect(tomB).toMatch(/^[1-6]$/)
+    expect(tomA).not.toBe(tomB)
+    const abaA = screen.getByRole('button', { name: 'Recolher conversa com Ana Cliente' })
+    expect(abaA.querySelector('[data-identidade]')?.getAttribute('data-identidade')).toBe(tomA)
+  })
+
+  it('o botão de tamanho cicla os presets e a preferência fica guardada por agente', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    await screen.findByRole('region', { name: 'Conversa com Ana Cliente' })
+    expect(usePrefs.getState().miniChat).toEqual(TAMANHOS_MINICHAT.medio)
+    fireEvent.click(screen.getByRole('button', { name: /^Tamanho do painel: médio/ }))
+    expect(usePrefs.getState().miniChat).toEqual(TAMANHOS_MINICHAT.grande)
+    fireEvent.click(screen.getByRole('button', { name: /^Tamanho do painel: grande/ }))
+    expect(usePrefs.getState().miniChat).toEqual(TAMANHOS_MINICHAT.pequeno)
+    // o root expõe o tamanho como variável CSS pros painéis
+    expect(screen.getByLabelText('Mini chat').getAttribute('style')).toContain('--minichat-largura: 320px')
+  })
+
+  it('a alça de redimensionar aceita setas do teclado (alternativa ao arrasto)', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    const alca = await screen.findByRole('slider', { name: /Redimensionar painel/ })
+    fireEvent.keyDown(alca, { key: 'ArrowLeft' })
+    expect(usePrefs.getState().miniChat.largura).toBe(TAMANHOS_MINICHAT.medio.largura + 24)
+    fireEvent.keyDown(alca, { key: 'ArrowDown' })
+    expect(usePrefs.getState().miniChat.altura).toBe(TAMANHOS_MINICHAT.medio.altura - 24)
+  })
+
+  it('o rascunho digitado no painel é o mesmo que o console vê (store compartilhado)', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    const campo = await screen.findByPlaceholderText(/Escreva para o cliente/)
+    fireEvent.change(campo, { target: { value: 'já estou verificando' } })
+    expect(useChatUi.getState().rascunhos[5]).toBe('já estou verificando')
   })
 })
