@@ -124,6 +124,11 @@ class Chat(TimeStampedModel):
     # rotina. Zera a cada mensagem nova: quem voltou a falar não está inativo.
     inactivity_warned_at = models.DateTimeField(null=True, blank=True)
 
+    # Retenção (D18): o CONTEÚDO da conversa expira, a linha fica. Mesmo
+    # carimbo do `Ticket.retention_purged_at`, e pelo mesmo motivo — sem ele
+    # a rotina não sabe o que já passou e reprocessaria tudo toda vez.
+    retention_purged_at = models.DateTimeField(null=True, blank=True)
+
     # O ticket gerado é acessível por `self.generated_ticket` (OneToOne em
     # tickets.Ticket.origin_chat — a FK mora lá para evitar ciclo de import).
 
@@ -262,6 +267,12 @@ class ChatFile(models.Model):
         related_name="chat_files",
     )
 
+    # Retenção/LGPD: o BLOB sai, a linha fica — mesmo campo e mesma semântica
+    # de `TicketAttachment.purged_at`, para o `purge_blob` servir aos dois. Sem
+    # ele o anexo de chat era o único conteúdo do sistema que nenhuma política
+    # alcançava: a mensagem virava "[expurgado]" e o arquivo continuava no disco.
+    purged_at = models.DateTimeField(null=True, blank=True)
+
     scan_status = models.CharField(
         max_length=10, choices=ChatScanStatus.choices,
         default=ChatScanStatus.PENDING, db_index=True,
@@ -279,11 +290,19 @@ class ChatFile(models.Model):
         return self.filename
 
     @property
+    def is_purged(self) -> bool:
+        return self.purged_at is not None
+
+    @property
     def is_downloadable(self) -> bool:
         """Quarentena: só sai do servidor o que a varredura liberou. `ERROR`
         segue o fail-closed global (`ATTACHMENT_BLOCK_ON_SCAN_ERROR`)."""
         from django.conf import settings
 
+        # expurgado não tem o que servir — e o teste vem antes da varredura
+        # porque um arquivo limpo apagado continua apagado
+        if self.purged_at is not None:
+            return False
         if self.scan_status in (ChatScanStatus.CLEAN, ChatScanStatus.SKIPPED):
             return True
         if self.scan_status == ChatScanStatus.ERROR:

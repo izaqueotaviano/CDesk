@@ -1,6 +1,7 @@
 import { PageHeader, Tabs } from '@/cvz/components'
 import { PainelChatDesempenho } from './PainelChatDesempenho'
 import { PainelChats } from './PainelChats'
+import { PainelDesfechos } from './PainelDesfechos'
 import { PainelDetalhado } from './PainelDetalhado'
 import { PainelIndicadores } from './PainelIndicadores'
 import './relatorios.scss'
@@ -17,6 +18,11 @@ import './relatorios.scss'
  * agente atendeu. "Desempenho do chat" (`PainelChatDesempenho`) é qualidade
  * — tempo de espera/atendimento e nota — e vem de outro endpoint
  * (`ChatReportView`, `apps.chat`) que ficou sem tela até esta rodada.
+ * "Desfechos" (`PainelDesfechos`/`chats/metrics/`) é a terceira pergunta:
+ * COMO terminaram — motivo de encerramento, quantos o sistema fechou
+ * sozinho, quantos voltaram e quantas pessoas não avaliaram. São três abas
+ * e não uma porque são três perguntas que se fazem em momentos diferentes;
+ * juntá-las daria uma tela que responde tudo e não se lê.
  */
 export function PaginaRelatorios() {
   return (
@@ -28,6 +34,7 @@ export function PaginaRelatorios() {
           { id: 'detalhado', label: 'Relatório detalhado', content: <PainelDetalhado /> },
           { id: 'chats', label: 'Chats', content: <PainelChats /> },
           { id: 'chat-desempenho', label: 'Desempenho do chat', content: <PainelChatDesempenho /> },
+          { id: 'chat-desfechos', label: 'Desfechos', content: <PainelDesfechos /> },
         ]}
       />
     </>

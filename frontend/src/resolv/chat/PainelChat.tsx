@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
+  baixarTranscricao,
   useChat,
   useConverterChat,
   useEquipes,
   useHistoricoDoCliente,
 } from '@/api/chat'
+import { ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
 import { FormEncerrar, FormReabrir, FormTransferir, mensagemDe } from './acoes'
 import { dataHoraDe } from './format'
@@ -39,6 +41,24 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
   const [acao, setAcao] = useState<Acao>(null)
   const [equipeId, setEquipeId] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  const [baixando, setBaixando] = useState(false)
+  const [erroExport, setErroExport] = useState<string | null>(null)
+
+  async function baixar(id: number, comNotas: boolean) {
+    setErroExport(null)
+    setBaixando(true)
+    try {
+      await baixarTranscricao(id, comNotas)
+    } catch (e) {
+      setErroExport(
+        e instanceof ApiError
+          ? (e.detail ?? 'Não foi possível exportar.')
+          : 'Não foi possível exportar.',
+      )
+    } finally {
+      setBaixando(false)
+    }
+  }
 
   if (!chat) return <aside className="cc-painel" />
 
@@ -204,6 +224,30 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
                   : '—'}
             </dd>
           </dl>
+        </section>
+      )}
+
+      {me?.is_internal && (
+        <section className="cc-painel__bloco cc-painel__acoes">
+          <h3>Transcrição</h3>
+          <button type="button" disabled={baixando} onClick={() => baixar(chat.id, false)}>
+            <i className="ti ti-file-download" /> Exportar PDF
+          </button>
+          {/* Duas opções e não uma caixinha: a diferença entre os dois
+              arquivos é grande demais para depender de alguém notar um
+              checkbox marcado. O que leva notas se identifica como interno
+              no próprio rodapé. */}
+          <button type="button" disabled={baixando} onClick={() => baixar(chat.id, true)}>
+            <i className="ti ti-lock" /> Exportar com notas internas
+          </button>
+          <p className="cc-painel__ajuda">
+            O PDF com notas é de uso interno — não envie ao cliente.
+          </p>
+          {erroExport && (
+            <p className="cc-painel__erro" role="alert">
+              {erroExport}
+            </p>
+          )}
         </section>
       )}
 

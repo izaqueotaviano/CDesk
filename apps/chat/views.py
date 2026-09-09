@@ -58,7 +58,7 @@ from apps.chat.serializers import (
     ReopenSerializer,
     TransferSerializer,
 )
-from apps.chat.services import chat_service
+from apps.chat.services import chat_service, metrics
 from apps.chat.services.attachments import AttachmentRejected, attach_to_chat_message
 from apps.chat.services.chat_service import ChatRuleViolation
 from apps.core.permissions import IsAuthenticatedReadAdminWrite, IsInternalReadAdminWrite
@@ -272,6 +272,28 @@ class ChatViewSet(viewsets.GenericViewSet):
             )
         return Response(self.get_serializer(chat).data)
 
+    @action(detail=False, methods=["get"])
+    def metrics(self, request):
+        """Como foram os atendimentos do período — espera, duração, desfecho
+        e nota. Só interno: são números de operação, não do titular.
+
+        O recorte é por ENCERRAMENTO, não por abertura: as medidas só existem
+        depois que o chat fecha, e contar pela abertura deixaria o mês passado
+        mudando de valor conforme conversas antigas vão terminando.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Métricas do atendimento são internas.")
+
+        desde = _data(request.query_params.get("desde")) or (
+            timezone.now() - timezone.timedelta(days=30)
+        )
+        ate = _data(request.query_params.get("ate"))
+        ate = _inicio_do_dia(ate) + timezone.timedelta(days=1) if ate else timezone.now()
+        agente = None
+        if (aid := request.query_params.get("agent")) and aid.isdigit():
+            agente = int(aid)
+        return Response(metrics.metricas(desde=_inicio_do_dia(desde), ate=ate, agente=agente))
+
     @action(detail=False, methods=["get"], url_path="pending-ratings")
     def pending_ratings(self, request):
         """Os fechados sem nota do cliente logado — o que trava chat novo."""
@@ -381,6 +403,45 @@ class ChatViewSet(viewsets.GenericViewSet):
         if ids:
             chat_service._sala(chat.pk, {"type": "chat.message_read", "ids": ids})
         return Response({"marked_read": updated})
+
+    @action(detail=True, methods=["get"])
+    def export(self, request, pk=None):
+        """PDF de UM atendimento, para quem atende.
+
+        `?notes=1` leva as notas internas junto — e só para quem é interno,
+        porque é a mesma regra do resto: o cliente não vê nota nem por esta
+        porta. Com notas, o documento se identifica como interno no rodapé e
+        cada nota leva o selo escrito; o arquivo sai do sistema e ninguém
+        controla para onde vai depois.
+
+        Fica na trilha de auditoria (`AuditAction.EXPORT`) porque exportar
+        uma conversa inteira é justamente o que alguém quer poder revisar
+        depois — inclusive se as notas foram junto.
+        """
+        chat = self._get_chat()
+        com_notas = (
+            str(request.query_params.get("notes", "")).lower() in ("1", "true", "on")
+            and request.user.is_internal
+        )
+        base = chat.messages.select_related("author").prefetch_related("files")
+        if not com_notas:
+            base = base.filter(is_internal_note=False)
+        mensagens = list(chat_service.mensagens_visiveis(base, request.user).order_by("id"))
+        try:
+            pdf, nome = transcript.atendimento_pdf(
+                chat, mensagens, para=request.user, com_notas=com_notas
+            )
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
+
+        chat_service.auditar(
+            chat=chat, actor=request.user, action="export",
+            summary=f"Transcrição exportada{' COM notas internas' if com_notas else ''}",
+            changes={"com_notas": com_notas, "mensagens": len(mensagens)},
+        )
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return resp
 
     @action(detail=True, methods=["get"])
     def media(self, request, pk=None):

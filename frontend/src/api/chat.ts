@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { api, ApiError, type Paginado } from '@/api/client'
+import { api, ApiError, API_BASE_URL, type Paginado } from '@/api/client'
 
 /**
  * Dados do chat v2 — compartilhado pelo console do agente (resolv/chat) e
@@ -178,6 +178,7 @@ export const chaves = {
   motivos: ['chat', 'close-reasons'] as const,
   midia: (id: number) => ['chat', id, 'media'] as const,
   busca: (id: number, termo: string) => ['chat', id, 'busca', termo] as const,
+  metricas: (filtros: string) => ['chat', 'metricas', filtros] as const,
   /** Finalizados: a chave carrega os filtros — cada recorte é um cache. */
   finalizados: (filtros: FiltrosFinalizados) => ['chat', 'finalizados', filtros] as const,
   historico: (clienteId: number) => ['chat', 'historico', clienteId] as const,
@@ -271,6 +272,73 @@ export function useBuscaNaConversa(chatId: number | null, termo: string) {
     enabled: chatId != null && limpo.length >= 2,
     staleTime: 30_000,
   })
+}
+
+export interface MetricasChat {
+  periodo: { desde: string; ate: string }
+  total: number
+  atendidos: number
+  nao_atendidos: number
+  encerrados_automaticamente: number
+  reabertos: number
+  espera_minutos: { media: number | null; mediana: number | null }
+  duracao_minutos: { media: number | null; mediana: number | null }
+  avaliacao: {
+    respondidas: number
+    sem_resposta: number
+    media_atendimento: number | null
+    media_resolucao: number | null
+    detratoras: number
+  }
+  por_motivo: { id: number | null; nome: string; total: number }[]
+  por_agente: {
+    id: number
+    nome: string
+    total: number
+    media_nota: number | null
+    duracao_media: number | null
+  }[]
+  por_dia: { dia: string; total: number }[]
+}
+
+/** Como foram os atendimentos do período. Só interno — o recorte é por
+ *  ENCERRAMENTO, e é o servidor que faz a conta. */
+export function useMetricasChat(filtros: { desde?: string; ate?: string; agent?: number | null }) {
+  const params = new URLSearchParams()
+  if (filtros.desde) params.set('desde', filtros.desde)
+  if (filtros.ate) params.set('ate', filtros.ate)
+  if (filtros.agent) params.set('agent', String(filtros.agent))
+  const busca = params.toString()
+  return useQuery({
+    queryKey: chaves.metricas(busca),
+    queryFn: () => api.get<MetricasChat>(`/api/v1/chat/chats/metrics/${busca ? `?${busca}` : ''}`),
+    staleTime: 60_000,
+  })
+}
+
+/**
+ * Baixa o PDF de um atendimento.
+ *
+ * `fetch` + blob em vez de um `<a href>`: a rota exige o cookie de sessão E
+ * devolve um anexo, e um link simples não carrega a credencial de forma
+ * confiável entre origens diferentes (API em outra porta no dev).
+ */
+export async function baixarTranscricao(chatId: number, comNotas: boolean) {
+  const resp = await fetch(
+    `${API_BASE_URL}/api/v1/chat/chats/${chatId}/export/${comNotas ? '?notes=1' : ''}`,
+    { credentials: 'include' },
+  )
+  if (!resp.ok) {
+    const corpo = await resp.json().catch(() => ({}))
+    throw new ApiError(resp.status, corpo)
+  }
+  const blob = await resp.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `atendimento-${chatId}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 /** Anexos e links DESTE atendimento — o painel lateral da conversa. */

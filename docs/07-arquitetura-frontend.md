@@ -373,6 +373,56 @@ O **rascunho por conversa** já existia (`stores/chatUi`, persistido e
 compartilhado entre console e mini chat) — a Fase 4 só o fez atravessar a
 troca de modo do compositor.
 
+#### Exportação, métricas e retenção (Fase 5 da rodada de chat)
+
+**Exportar um atendimento** (`GET chats/<id>/export/`) gera o PDF de UMA
+conversa, para quem atende — irmão do `chat/timeline/export/`, que é a
+conversa contínua do cliente. `?notes=1` leva as notas internas, e só para
+quem é interno.
+
+O documento se IDENTIFICA: com notas, o rodapé diz "CONTÉM NOTAS INTERNAS —
+documento de uso interno, não envie ao cliente", e cada nota leva o selo
+escrito (texto, não só a barra lateral: impresso em preto e branco a cor não
+sobrevive). O arquivo sai do sistema e ninguém controla para onde vai
+depois, então ele precisa dizer o que é sem depender de quem o abriu
+lembrar. São dois botões e não uma caixinha pelo mesmo motivo. A exportação
+entra na auditoria com `com_notas` no `changes`.
+
+**Métricas** (`GET chats/metrics/`, `chat/services/metrics.py`) respondem
+COMO foram os atendimentos: espera, duração, desfecho e nota. A aba
+"Desfechos" em Relatórios é a terceira sobre chat — "Chats" é volume,
+"Desempenho do chat" são médias por eixo, e nenhuma delas lia o motivo de
+encerramento que existe desde a Fase 1. Três decisões:
+
+- **O recorte é por ENCERRAMENTO.** As medidas só existem depois que o chat
+  fecha; contar pela abertura deixaria o mês passado mudando de valor
+  conforme conversas antigas terminam.
+- **Mediana ao lado da média.** Um chat esquecido no fim de semana leva a
+  média de espera para as alturas enquanto a experiência de quase todo mundo
+  foi outra — o par é o que denuncia o outlier.
+- **Quem NÃO avaliou aparece.** Uma média 9 sobre 5% dos atendimentos não é
+  uma média 9.
+
+**Retenção** (`purge_chat_content`) fechou um buraco: o chat só era expurgado
+quando VIRAVA ticket, e a conversa resolvida no próprio chat — a maioria —
+ficava guardada para sempre num sistema que promete o contrário. Agora tem
+política própria, com o mesmo prazo do ticket (`RETENTION_DAYS`
+`chat_after_close`) e a mesma forma: o CONTEÚDO sai (corpo, anexos,
+observação de encerramento e a justificativa da avaliação, que é texto livre
+do cliente) e o que sustenta métrica fica (datas, status, motivo, notas, quem
+atendeu). `ChatFile` ganhou `purged_at` — sem ele o anexo de chat era o único
+conteúdo do sistema que nenhuma política alcançava: a mensagem virava
+"[expurgado]" e o arquivo continuava no disco.
+
+**Anonimização LGPD** passou a alcançar os três lugares onde o titular
+escreve no chat: corpo das mensagens dele, justificativa da avaliação e a
+observação de encerramento dos chats dele. O que a EQUIPE escreveu na
+conversa não é apagado — é fala de terceiro, e um pedido do titular não
+apaga o registro de outra pessoa. A revisão assistida de PII
+(`find_free_text_pii`) também varre o chat: antes olhava só o chamado, e
+quem mandou o CPF por chat passava batido — o admin aprovava uma lista que
+dizia "nada encontrado" sobre metade do conteúdo do titular.
+
 ### 3.4 Autenticação e sessão
 
 `useQuery(['me'])` sobre `/auth/me/` é a fonte única. Um `<AuthGate>` no topo

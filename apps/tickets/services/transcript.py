@@ -44,6 +44,9 @@ h1 { font-size: 15pt; margin: 0 0 1mm; letter-spacing: -0.2pt; }
 .corpo { white-space: pre-wrap; }
 .anexos { color: #6b665e; font-size: 8.5pt; margin-top: 2mm; }
 .marco { text-align: center; color: #726c64; font-size: 8.5pt; margin: 4mm 0; }
+.msg--nota { border-left: 1.2mm solid #8a5d0f; background: #fdf8ec; }
+.selo { color: #8a5d0f; font-weight: bold; font-size: 8pt;
+        text-transform: uppercase; letter-spacing: 0.3pt; }
 .rodape { color: #726c64; font-size: 8pt; margin-top: 10mm;
           border-top: 0.4pt solid #e5e0d8; padding-top: 3mm; }
 """
@@ -72,29 +75,40 @@ def _render(html: str) -> bytes:
     return HTML(string=html).write_pdf()
 
 
-def _documento(titulo: str, ref: str, meta: str, blocos: str) -> str:
+def _documento(titulo: str, ref: str, meta: str, blocos: str, *, com_notas=False) -> str:
+    """O rodapé é uma AFIRMAÇÃO sobre o conteúdo do arquivo, e por isso muda
+    quando o conteúdo muda. Um PDF com notas internas carimbado "contém apenas
+    mensagens públicas" é o tipo de arquivo que alguém encaminha ao cliente
+    confiando no rodapé."""
     agora = timezone.localtime().strftime("%d/%m/%Y às %H:%M")
+    aviso = (
+        "CONTÉM NOTAS INTERNAS — documento de uso interno, não envie ao cliente."
+        if com_notas
+        else "Contém apenas mensagens públicas."
+    )
     return (
         f'<html><head><meta charset="utf-8"><style>{_ESTILO}</style></head><body>'
         f'<p class="ref">{ref}</p>'
         f"<h1>{titulo}</h1>"
         f'<p class="meta">{meta}</p>'
         f"{blocos}"
-        f'<p class="rodape">Transcrição gerada em {agora}. '
-        f"Contém apenas mensagens públicas.</p>"
+        f'<p class="rodape">Transcrição gerada em {agora}. {aviso}</p>'
         f"</body></html>"
     )
 
 
-def _bloco(autor: str, quando, corpo: str, *, propria: bool, anexos=()) -> str:
-    classe = "msg msg--propria" if propria else "msg"
+def _bloco(autor: str, quando, corpo: str, *, propria: bool, anexos=(), nota=False) -> str:
+    classe = "msg msg--nota" if nota else ("msg msg--propria" if propria else "msg")
     linha_anexos = ""
     if anexos:
         nomes = ", ".join(_e(a) for a in anexos)
         linha_anexos = f'<p class="anexos">Anexos: {nomes}</p>'
+    # o selo é TEXTO, não só a barra lateral: impresso em preto e branco, ou
+    # relido meses depois, a cor não sobrevive e a frase sobrevive
+    selo = '<span class="selo">Nota interna</span> · ' if nota else ""
     return (
         f'<div class="{classe}">'
-        f'<p class="cab"><span class="quem">{_e(autor)}</span>'
+        f'<p class="cab">{selo}<span class="quem">{_e(autor)}</span>'
         f'<span class="quando">{_e(_quando(quando))}</span></p>'
         f'<div class="corpo">{_e(corpo)}</div>'
         f"{linha_anexos}"
@@ -183,3 +197,77 @@ def chat_pdf(mensagens, sessoes, *, para) -> tuple[bytes, str]:
         "Conversa com o atendimento", "", _e(meta.strip(" ·")), "".join(partes)
     )
     return _render(html), "conversa-com-o-atendimento.pdf"
+
+
+def atendimento_pdf(chat, mensagens, *, para, com_notas: bool) -> tuple[bytes, str]:
+    """Transcrição de UM atendimento, para quem ATENDE.
+
+    Irmã de `chat_pdf`, que é a conversa contínua do cliente. São duas porque
+    o recorte e o público são outros: aqui é um atendimento só, com a ficha
+    dele no topo (protocolo, espera, duração, desfecho, nota) e a opção de
+    levar as notas internas junto.
+
+    `com_notas` é decisão de QUEM EXPORTA, e chega aqui já resolvida — a view
+    é que sabe se quem pediu é interno. Com notas, o documento se identifica
+    como interno no rodapé e cada nota leva o selo escrito: o arquivo sai do
+    sistema e ninguém controla para onde vai depois, então ele precisa dizer
+    o que é sem depender de quem o abriu lembrar.
+    """
+    from apps.chat.services import chat_service
+
+    partes = []
+    for m in mensagens:
+        interno = bool(m.author and m.author.is_internal)
+        apagada = m.deleted_at is not None
+        corpo = "Mensagem apagada." if apagada else chat_service.censor(m.body)
+        if m.is_system:
+            partes.append(f'<p class="marco">{_e(corpo)}</p>')
+            continue
+        partes.append(
+            _bloco(
+                (m.author.full_name if m.author else "Sistema"),
+                m.sent_at,
+                corpo,
+                propria=not interno,
+                anexos=[f.filename for f in m.files.all()],
+                nota=m.is_internal_note,
+            )
+        )
+
+    html = _documento(
+        f"Atendimento #{chat.pk}",
+        _e(f"{chat.client.full_name} · {chat.company.name if chat.company else ''}".strip(" ·")),
+        _e(_ficha(chat)),
+        "".join(partes),
+        com_notas=com_notas,
+    )
+    return _render(html), f"atendimento-{chat.pk}.pdf"
+
+
+def _ficha(chat) -> str:
+    """A linha de contexto do topo: o que alguém precisa saber sobre este
+    atendimento antes de ler a conversa."""
+    pedacos = []
+    if chat.accepted_at and chat.queued_at:
+        pedacos.append(f"espera {_duracao(chat.queued_at, chat.accepted_at)}")
+    if chat.closed_at and chat.accepted_at:
+        pedacos.append(f"duração {_duracao(chat.accepted_at, chat.closed_at)}")
+    if chat.agent:
+        pedacos.append(f"atendido por {chat.agent.full_name}")
+    if chat.close_reason_id:
+        pedacos.append(f"desfecho: {chat.close_reason.name}")
+    if chat.closed_automatically:
+        pedacos.append("encerrado automaticamente")
+    avaliacao = getattr(chat, "rating", None)
+    if avaliacao:
+        pedacos.append(
+            f"nota {avaliacao.service_score}/{avaliacao.resolution_score}"
+        )
+    return " · ".join(pedacos)
+
+
+def _duracao(inicio, fim) -> str:
+    minutos = int((fim - inicio).total_seconds() // 60)
+    if minutos < 60:
+        return f"{minutos} min"
+    return f"{minutos // 60}h{minutos % 60:02d}"

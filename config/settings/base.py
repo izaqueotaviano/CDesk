@@ -550,6 +550,10 @@ RETENTION_REQUIRE_REVIEWED_DRY_RUN = env.bool(
 BACKUP_ROTATION_DAYS = env.int("BACKUP_ROTATION_DAYS", default=30)
 RETENTION_DAYS = {
     "ticket_after_close": 365 * 5,
+    # Mesmo prazo do ticket: a conversa de chat é o mesmo tipo de registro de
+    # atendimento, e dois prazos diferentes para a mesma coisa seriam uma
+    # pergunta a mais para quem audita ("por que aquela sumiu e esta não?").
+    "chat_after_close": 365 * 5,
     "audit_log": 365 * 2,
     "ticket_access_log": 365,
     "notification_read": 90,

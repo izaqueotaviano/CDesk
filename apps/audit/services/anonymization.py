@@ -126,15 +126,45 @@ def _purge_attachments(users) -> int:
 
 
 def _redact_chat(users) -> int:
-    """Chat é conversa do titular como qualquer outra — não podia ficar de fora."""
-    from apps.chat.models import ChatMessage
+    """Chat é conversa do titular como qualquer outra — não podia ficar de fora.
+
+    Três lugares, não um. O corpo das mensagens que o titular ESCREVEU é o
+    óbvio; os outros dois passavam batido e guardam texto livre dele do mesmo
+    jeito:
+
+    - a **justificativa da avaliação**, que é o titular escrevendo o que achou
+      do atendimento (a NOTA fica: é número, sustenta métrica e não identifica
+      ninguém sozinha);
+    - a **observação de encerramento** da equipe nos chats DELE, que costuma
+      citar o caso pelo nome — "cliente pediu estorno do pedido 998".
+
+    O que a equipe escreveu NA CONVERSA não é apagado: aquilo é fala de outra
+    pessoa, e um pedido do titular não apaga o registro de terceiros. O que
+    some é o que é dele.
+    """
+    from apps.chat.models import Chat, ChatMessage, ChatRating
 
     if not users:
         return 0
 
-    return ChatMessage.objects.filter(
+    tocados = ChatMessage.objects.filter(
         author__in=users, is_system=False
     ).exclude(body=REDACTED).update(body=REDACTED)
+
+    tocados += (
+        ChatRating.objects.filter(chat__client__in=users)
+        .exclude(justification="")
+        .exclude(justification=REDACTED)
+        .update(justification=REDACTED)
+    )
+
+    tocados += (
+        Chat.objects.filter(client__in=users)
+        .exclude(close_note="")
+        .exclude(close_note=REDACTED)
+        .update(close_note=REDACTED)
+    )
+    return tocados
 
 
 def find_free_text_pii(users) -> list[dict]:
@@ -168,6 +198,23 @@ def find_free_text_pii(users) -> list[dict]:
                 "reference": message.ticket.reference, "pattern": label,
             })
 
+    # O CHAT faltava aqui: a revisão assistida varria só o chamado, e quem
+    # mandou o CPF por chat passava batido — o admin aprovava uma lista que
+    # dizia "nada encontrado" sobre metade do conteúdo do titular.
+    from apps.chat.models import ChatMessage
+
+    chat_messages = (
+        ChatMessage.objects.filter(author__in=users, is_system=False)
+        .exclude(body=REDACTED)
+        .select_related("chat")
+    )
+    for message in chat_messages.only("pk", "body", "chat_id"):
+        for label in _match_labels(message.body):
+            found.append({
+                "model": "chat_message", "pk": message.pk, "field": "body",
+                "reference": f"Chat #{message.chat_id}", "pattern": label,
+            })
+
     return found
 
 
@@ -186,12 +233,15 @@ def redact_free_text(*, model: str, pk: int, actor) -> bool:
     from django.contrib.contenttypes.models import ContentType
 
     from apps.audit.models import AuditAction, AuditLog
+    from apps.chat.models import ChatMessage
     from apps.tickets.models import Ticket, TicketMessage
 
     if model == "ticket":
         obj, field = Ticket.objects.filter(pk=pk).first(), "subject"
     elif model == "message":
         obj, field = TicketMessage.objects.filter(pk=pk).first(), "body"
+    elif model == "chat_message":
+        obj, field = ChatMessage.objects.filter(pk=pk).first(), "body"
     else:
         raise ValueError(f"Alvo de redação desconhecido: {model!r}")
 

@@ -506,3 +506,40 @@
     align-items: stretch;
   }
 }
+
+// --- Desfechos ---------------------------------------------------------------
+// KPI simples, sem cartão: nove números lado a lado com moldura em cada um
+// viram uma parede. A hierarquia vem do tamanho, não da borda.
+
+.relatorios-kpi {
+  padding: $sp-3 0;
+  border-top: $border;
+
+  dt {
+    @include type($fs-label, $w-medium);
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  dd {
+    margin: $sp-1 0 0;
+    @include type($fs-display, $w-medium);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  // A mediana ao lado da média: é o par que denuncia o outlier — vê-las
+  // separadas, em telas diferentes, não conta a mesma história.
+  &__apoio {
+    @include type($fs-label, $w-regular);
+    color: $text-muted;
+  }
+}
+
+.relatorios-nota {
+  margin: 0 0 $sp-4;
+  @include type($fs-label, $w-regular);
+  color: $text-muted;
+}
