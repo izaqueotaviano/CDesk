@@ -97,17 +97,21 @@
 // -----------------------------------------------------------------------------
 // Escuro
 // -----------------------------------------------------------------------------
-// Superfícies do Material 3 (baseline dark) mantidas; o azul acompanha a
-// família do #0f62fe clareada até passar contraste sobre fundo escuro — o
-// #0f62fe cru dá 2.6:1 ali e sumiria.
+// Superfícies do Material 3 (baseline dark) mantidas — já batem com os
+// tone-stops oficiais (surface/-container-low/-container/-container-high).
+// O azul agora é o role `primary` REAL do M3 (não aproximação): calculado
+// via @material/material-color-utilities (DynamicScheme/SchemeTonalSpot, a
+// mesma classe do Material Theme Builder do Google) a partir do #0f62fe —
+// tom 80 dá #b4c5ff, mais claro que a aproximação manual anterior e com
+// contraste maior (9,6–10,9:1 como texto, contra os 7,4:1 de antes).
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --cvz-blue:            #78a9ff;
-  --cvz-blue-hover:      #a6c8ff;
-  --cvz-blue-active:     #4589ff;
-  --cvz-blue-tint:       #1c2b4a;
-  --cvz-blue-tint-hover: #24365c;
+  --cvz-blue:            #b4c5ff;
+  --cvz-blue-hover:      #d3dcff;
+  --cvz-blue-active:     #98a9e4;
+  --cvz-blue-tint:       #334478;  // M3 primary-container (tom 30)
+  --cvz-blue-tint-hover: #3f5085;
 
   --cvz-surface:         #141218;  // M3 surface
   // Sem referência escura no material desta rodada — mesma extrapolação do
@@ -128,24 +132,32 @@
   --cvz-text-secondary:  #CAC4D0;  // M3 on-surface-variant
   --cvz-text-muted:      #938F99;  // M3 outline
   --cvz-text-on-color:   #E6E0E9;
-  --cvz-text-on-accent:  #001d6c;  // texto sobre o azul claro do escuro
+  --cvz-text-on-accent:  #1B2D60;  // M3 on-primary (tom 20) sobre o novo --cvz-blue
 
-  --cvz-danger:          #F2B8B5;  // M3 error dark
-  --cvz-danger-hover:    #F7CFCD;
-  --cvz-danger-tint:     #3B2223;
-  --cvz-success:         #81C784;  // Material Green 300
-  --cvz-success-tint:    #1B2E20;
-  --cvz-away:            #FFD54F;  // Material Amber 300
-  --cvz-away-tint:       #332B14;
+  // error/success/warning pela MESMA metodologia e MESMA cor-fonte do resto
+  // do produto (#b3261e/#1d7a4c/#8a5d0f — as mesmas de --danger/--ok/--away
+  // em resolv/styles/tokens.scss e styles/tokens.css). Antes o success/away
+  // daqui eram cores genéricas do Material (Green 300 / Amber 300),
+  // desconectadas do hue da marca — essa inconsistência foi corrigida.
+  --cvz-danger:          #FFB4AB;  // M3 error (tom 80)
+  --cvz-danger-hover:    #FFD3CD;
+  // error-container (tom 30): mais vívido que o wash sutil de antes de
+  // propósito — o croma-alvo da paleta de erro do M3 é bem mais alto que o
+  // de primary, então o container de erro é propositalmente mais saturado.
+  --cvz-danger-tint:     #93000A;
+  --cvz-success:         #81D9A2;  // retonado (HCT, tom 80) do hue/chroma de #1d7a4c
+  --cvz-success-tint:    #00522F;  // container (tom 30)
+  --cvz-away:            #F7BC68;  // retonado (HCT, tom 80) do hue/chroma de #8a5d0f
+  --cvz-away-tint:       #624000;  // container (tom 30)
 
   // Identidade: o preenchimento não muda (tons médios, branco em cima segue
   // AA); só o TEXTO clareia — mesmos valores de resolv/styles/tokens.scss.
-  --cvz-identity-1-text: #8184D4;
-  --cvz-identity-2-text: #0F9AA7;
-  --cvz-identity-3-text: #5691B5;
-  --cvz-identity-4-text: #C4775B;
-  --cvz-identity-5-text: #7D8CA1;
-  --cvz-identity-6-text: #C86FA5;
+  --cvz-identity-1-text: #7C81EB;
+  --cvz-identity-2-text: #4597A0;
+  --cvz-identity-3-text: #6191B1;
+  --cvz-identity-4-text: #C87658;
+  --cvz-identity-5-text: #808C9F;
+  --cvz-identity-6-text: #D266A5;
   --cvz-overlay:         rgba(0, 0, 0, 0.62);
 
   --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
@@ -153,5 +165,5 @@
   --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
 
   --cvz-chrome-glass: rgba(29, 27, 32, 0.72);
-  --cvz-on-accent-soft: rgba(0, 50, 88, 0.18);
+  --cvz-on-accent-soft: rgba(27, 45, 96, 0.18);
 }

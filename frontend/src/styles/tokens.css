@@ -32,25 +32,37 @@
   --neutro-500: #8d8d8d;  /* borda de campo (escuro) */
   --neutro-600: #7d7d7d;  /* borda de campo (claro) */
   --neutro-700: #4d4d4d;  /* texto secundário (claro) */
-  --neutro-800: #35312e;  /* linha estrutural (escuro) */
-  --neutro-850: #24211f;  /* cartão (escuro) */
-  --neutro-875: #1d1b19;  /* superfície (escuro) */
+  /* Degraus escuros pelos ROLES de escala do Material 3 (m3.material.io/
+     styles/color/roles), calculados via @material/material-color-utilities
+     (DynamicScheme/SchemeTonalSpot — a mesma classe do Material Theme
+     Builder do Google): outline-variant (tom 30) / surface-container
+     (tom 12) / surface-container-low (tom 10) / surface-container-lowest
+     (tom 4) / surface·surface-dim (tom 6). Mesma ordem de antes
+     (cromo < canvas < superfície < cartão), nos tom-stops reais do M3. */
+  --neutro-800: #50453a;  /* linha estrutural (escuro) */
+  --neutro-850: #241f1a;  /* cartão (escuro) */
+  --neutro-875: #201b16;  /* superfície (escuro) */
   --neutro-900: #1a1a1a;  /* tinta (claro) */
-  --neutro-950: #171514;  /* cromo (escuro) */
-  --neutro-975: #1a1816;  /* canvas (escuro) */
+  --neutro-950: #120d09;  /* cromo (escuro) */
+  --neutro-975: #17130e;  /* canvas (escuro) */
 
   /* ---------- primitivos: acento e estado ----------
      O azul é o Carbon #0f62fe do console (5,05:1 sobre branco, e branco sobre
      ele dá os mesmos 5,05:1 — por isso o botão primário escreve em branco).
-     No escuro a família clareia até passar AA sobre as superfícies escuras. */
+     No escuro é o role `primary` REAL do M3 (TonalSpot, tom 80) para essa
+     mesma cor — não mais uma aproximação manual "clareada": mais claro/
+     pastel que o valor anterior e com contraste MAIOR (9,6–10,9:1 como
+     texto, contra 7,4:1 de antes). perigo/alerta/ok seguem o mesmo método
+     (retonados no hue/chroma reais de cada um; M3 não tem role nativo para
+     sucesso/atenção). */
   --acento-escuro: #0f62fe;
   --acento-escuro-hover: #0043ce;
-  --acento-claro:  #78a9ff;
-  --acento-claro-hover: #a6c8ff;
-  --acento-tinta-sobre-claro: #001d6c;
-  --perigo-claro: #b3261e;  --perigo-escuro: #f08a82;
-  --alerta-claro: #8a5d0f;  --alerta-escuro: #d9a53d;
-  --ok-claro:     #1d7a4c;  --ok-escuro:     #4fbf85;
+  --acento-claro:  #b4c5ff;
+  --acento-claro-hover: #d3dcff;
+  --acento-tinta-sobre-claro: #1b2d60;
+  --perigo-claro: #b3261e;  --perigo-escuro: #ffb4ab;
+  --alerta-claro: #8a5d0f;  --alerta-escuro: #f7bc68;
+  --ok-claro:     #1d7a4c;  --ok-escuro:     #81d9a2;
 
   /* ---------- primitivos: identidade (idêntico nos dois temas) ----------
      Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
@@ -201,32 +213,32 @@
   --navegacao:          var(--neutro-950);
 
   --divisoria:      var(--neutro-800);
-  --borda-controle: #4f4943;
+  --borda-controle: #9d8e81;
   /* No escuro o contraste de campo se ganha CLAREANDO a linha. */
   --borda-campo:    var(--neutro-500);
 
-  --tinta:            #e9e5e1;
-  --tinta-secundaria: #b3aaa3;
-  --tinta-terciaria:  #948b84;
-  --texto-cromo:      #e9e5e1;
+  --tinta:            #ebe0d9;
+  --tinta-secundaria: #cfc5be;
+  --tinta-terciaria:  #a59c96;
+  --texto-cromo:      #ebe0d9;
 
   --acento:       var(--acento-claro);
   --acento-hover: var(--acento-claro-hover);
   --acento-tinta: var(--acento-claro);
   --acento-sobre: var(--acento-tinta-sobre-claro);
-  --acento-suave: rgba(120, 169, 255, .14);
+  --acento-suave: rgba(180, 197, 255, .14);
 
-  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(240, 138, 130, .14);
-  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(217, 165, 61, .16);
-  --ok:     var(--ok-escuro);      --ok-suave:     rgba(79, 191, 133, .14);
+  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+  --ok:     var(--ok-escuro);      --ok-suave:     rgba(129, 217, 162, .14);
 
-  --hover: rgba(233, 229, 225, .06);
-  --ativo: rgba(233, 229, 225, .10);
+  --hover: rgba(235, 224, 217, .06);
+  --ativo: rgba(235, 224, 217, .10);
 
   --elevacao-1: none;
   --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
   --sobreposicao: rgba(0, 0, 0, .62);
-  --esqueleto: linear-gradient(90deg, rgba(233,229,225,.06), rgba(233,229,225,.12), rgba(233,229,225,.06));
+  --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
 
   --esquema: dark;
   color-scheme: dark;
@@ -238,22 +250,22 @@
     --canvas: var(--neutro-975);          --superficie: var(--neutro-875);
     --superficie-sutil: var(--neutro-975); --superficie-elevada: var(--neutro-850);
     --navegacao: var(--neutro-950);
-    --divisoria: var(--neutro-800);        --borda-controle: #4f4943;
+    --divisoria: var(--neutro-800);        --borda-controle: #9d8e81;
     --borda-campo: var(--neutro-500);
-    --tinta: #e9e5e1;                      --tinta-secundaria: #b3aaa3;
-    --tinta-terciaria: #948b84;            --texto-cromo: #e9e5e1;
+    --tinta: #ebe0d9;                      --tinta-secundaria: #cfc5be;
+    --tinta-terciaria: #a59c96;            --texto-cromo: #ebe0d9;
     --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
     --acento-tinta: var(--acento-claro);
     --acento-sobre: var(--acento-tinta-sobre-claro);
-    --acento-suave: rgba(120, 169, 255, .14);
-    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(240, 138, 130, .14);
-    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(217, 165, 61, .16);
-    --ok: var(--ok-escuro);          --ok-suave: rgba(79, 191, 133, .14);
-    --hover: rgba(233, 229, 225, .06);    --ativo: rgba(233, 229, 225, .10);
+    --acento-suave: rgba(180, 197, 255, .14);
+    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+    --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);
+    --hover: rgba(235, 224, 217, .06);    --ativo: rgba(235, 224, 217, .10);
     --elevacao-1: none;
     --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
     --sobreposicao: rgba(0, 0, 0, .62);
-    --esqueleto: linear-gradient(90deg, rgba(233,229,225,.06), rgba(233,229,225,.12), rgba(233,229,225,.06));
+    --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
     --esquema: dark;
     color-scheme: dark;
   }

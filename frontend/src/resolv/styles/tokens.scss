@@ -178,48 +178,58 @@
 @mixin paleta-escura {
   color-scheme: dark;
 
-  --surface: #1d1b19;
-  --surface-alt: #171514;
-  --surface-card: #24211f;
-  // Sem referência escura no material desta rodada (o app da Manus só foi
-  // capturado no claro) — valor extrapolado mantendo a MESMA ordem do claro
-  // (chrome < canvas < corpo < cartão), entre o chrome e o corpo.
-  --surface-canvas: #1a1816;
-  --stroke: #35312e;
-  --stroke-hover: #4f4943;
-  --stroke-subtle: #3d3936;
+  // Superfícies pelos ROLES de escala do Material 3 (m3.material.io/styles/
+  // color/roles), calculados de verdade via @material/material-color-utilities
+  // (DynamicScheme/SchemeTonalSpot, a mesma classe do Material Theme Builder)
+  // a partir do accent da marca (#0f62fe): surface-container-lowest (tom 4) <
+  // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
+  // surface-container (tom 12) — a MESMA ordem relativa de antes
+  // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
+  --surface: #201b16;
+  --surface-alt: #120d09;
+  --surface-card: #241f1a;
+  --surface-canvas: #17130e;
+  // outline-variant (tom 30) / outline (tom 60) / outline-variant discreto (tom 24)
+  --stroke: #50453a;
+  --stroke-hover: #9d8e81;
+  --stroke-subtle: #42372d;
   // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
   --borda-campo: #8d8d8d;
 
-  --text-primary: #e9e5e1;
-  --text-secondary: #b3aaa3;
-  --text-muted: #948b84;
+  // on-surface (tom 90) / on-surface-variant (tom 80) / on-surface-variant
+  // com menos ênfase (tom 65) — mesmos roles do M3 para texto sobre superfície.
+  --text-primary: #ebe0d9;
+  --text-secondary: #cfc5be;
+  --text-muted: #a59c96;
   // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
   // o mesmo texto principal (um cinza #333 ali seria ilegível).
   --texto-cromo: var(--text-primary);
 
-  // Mesma família do #0f62fe, clareada até passar contraste: o azul cru dá
-  // 3.5:1 sobre --surface e reprova AA como texto; este dá 7.4:1. Vale para as
-  // quatro semânticas — elas são usadas como COR DE TEXTO (inicio.scss pinta
-  // prazo em --danger e --ok), então todas passam 4.5:1 nas três superfícies.
-  --accent: #78a9ff;
-  --accent-hover: #a6c8ff;
-  --accent-active: #4589ff;
-  --danger: #f08a82;
-  --ok: #4fbf85;
-  --away: #d9a53d;
+  // O role `primary` do M3 (TonalSpot, tom 80) para a source color #0f62fe —
+  // não é mais uma aproximação manual "clareada": é o HCT real. Mais claro/
+  // pastel que o valor antigo (#78a9ff, tom≈69), e com contraste MAIOR
+  // (9,6–10,9:1 como texto nas três superfícies, contra os 7,4:1 de antes).
+  // hover/active seguem a MESMA paleta tonal do primary (tons 88/70).
+  --accent: #b4c5ff;
+  --accent-hover: #d3dcff;
+  --accent-active: #98a9e4;
+  // role `error` do M3 (tom 80) para #b3261e.
+  --danger: #ffb4ab;
+  // Sem role nativo no M3 para sucesso/atenção — retonados pelo MESMO método
+  // (HCT, tom 80) preservando o hue/chroma reais de #1d7a4c e #8a5d0f.
+  --ok: #81d9a2;
+  --away: #f7bc68;
 
   // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e
-  // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, senão
-  // o selo de plano cai a 2:1 sobre --surface-card. Cada um sobe pela
-  // luminosidade mantendo matiz, até passar 4,5:1 nas duas superfícies
+  // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, retonado
+  // pelo mesmo método M3 (tom 58) até passar 4,5:1 nas duas superfícies
   // escuras do resolv e nas duas do cvz.
-  --identidade-1-texto: #8184D4;
-  --identidade-2-texto: #0F9AA7;
-  --identidade-3-texto: #5691B5;
-  --identidade-4-texto: #C4775B;
-  --identidade-5-texto: #7D8CA1;
-  --identidade-6-texto: #C86FA5;
+  --identidade-1-texto: #7c81eb;
+  --identidade-2-texto: #4597a0;
+  --identidade-3-texto: #6191b1;
+  --identidade-4-texto: #c87658;
+  --identidade-5-texto: #808c9f;
+  --identidade-6-texto: #d266a5;
 
   // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
   // aparece, e a peça flutuante perde a separação do fundo — que é a única
@@ -231,7 +241,7 @@
 
   // Os dois cremes sólidos do claro viram wash do próprio --away: sólidos aqui
   // eles brilhariam e o texto por cima sumiria (a pílula escreve em --away, a
-  // nota em --text-primary). 16% deixa --away sobre a pílula em 5.3:1.
+  // nota em --text-primary). 16% deixa --away sobre a pílula em 6,66:1.
   --tom-alerta: color-mix(in srgb, var(--away) 16%, transparent);
   --tom-nota: color-mix(in srgb, var(--away) 10%, transparent);
 }

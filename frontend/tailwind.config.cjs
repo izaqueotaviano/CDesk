@@ -53,11 +53,14 @@ module.exports = {
 
         // primitivos — use só quando o valor não puder seguir o tema.
         // A rampa é a do console (ver tokens.css); a quente antiga saiu.
+        // 800/850/875/950/975 (degraus escuros) pelos roles de escala do
+        // Material 3 — têm que ficar IDÊNTICOS aos mesmos primitivos em
+        // src/styles/tokens.css (--neutro-*), que é quem documenta o porquê.
         neutro: {
           0: '#ffffff', 25: '#fafafa', 50: '#f8f8f7', 100: '#f0f0f0',
           200: '#e6e6e6', 300: '#cfcfcf', 400: '#a8a8a8', 500: '#8d8d8d',
-          600: '#7d7d7d', 700: '#4d4d4d', 800: '#35312e', 850: '#24211f',
-          875: '#1d1b19', 900: '#1a1a1a', 950: '#171514', 975: '#1a1816',
+          600: '#7d7d7d', 700: '#4d4d4d', 800: '#50453a', 850: '#241f1a',
+          875: '#201b16', 900: '#1a1a1a', 950: '#120d09', 975: '#17130e',
         },
       },
 
