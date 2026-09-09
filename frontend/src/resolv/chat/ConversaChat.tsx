@@ -1,18 +1,32 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LIMITE_MENSAGENS,
+  useBuscaNaConversa,
   useCarregarAnteriores,
+  useCarregarAoRedor,
   useChat,
-  useEnviarArquivos,
   useMarcarLidas,
   useMensagensChat,
+  useMidiaDoChat,
   usePegarChat,
   useReabrirChat,
   type ArquivoChat,
+  type CitacaoChat,
   type MensagemChat,
 } from '@/api/chat'
 import { API_BASE_URL, ApiError } from '@/api/client'
+import {
+  destacar,
+  ehImagemVisivel,
+  estadoDaMensagem,
+  ICONE_DO_ESTADO,
+  imagensColadas,
+  primeiraNaoLida,
+  ROTULO_DO_ESTADO,
+  useFilaDeAnexos,
+  type EnvioDeAnexo,
+} from '@/chat/conversa'
 import type { Me } from '@/api/types'
 import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
@@ -78,6 +92,22 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
       </span>
     )
   }
+  // Miniatura só depois que a varredura LIBEROU: renderizar a imagem antes
+  // disso seria servir o arquivo em quarentena pela porta da frente, que é
+  // justamente o que a quarentena existe para impedir (D19).
+  if (ehImagemVisivel(arquivo)) {
+    return (
+      <a
+        className="cc-anexo cc-anexo--imagem"
+        href={`${API_BASE_URL}${arquivo.url}`}
+        target="_blank"
+        rel="noreferrer"
+        title={`${arquivo.filename} · ${fileSize(arquivo.size_bytes)}`}
+      >
+        <img src={`${API_BASE_URL}${arquivo.url}`} alt={arquivo.filename} loading="lazy" />
+      </a>
+    )
+  }
   return (
     <a className="cc-anexo" href={`${API_BASE_URL}${arquivo.url}`} target="_blank" rel="noreferrer">
       <i className="ti ti-paperclip" />
@@ -86,30 +116,99 @@ function Anexo({ arquivo }: { arquivo: ArquivoChat }) {
   )
 }
 
+/** O trecho citado dentro do balão. Clicar leva à mensagem original — que
+ *  pode estar fora do que já foi carregado, e aí quem chama busca a janela. */
+function Citacao({ citacao, onIr }: { citacao: CitacaoChat; onIr: () => void }) {
+  return (
+    <button type="button" className="cc-msg__citacao" onClick={onIr}>
+      <span className="cc-msg__citacao-autor">{citacao.author_name}</span>
+      <span className="cc-msg__citacao-corpo">
+        {citacao.is_deleted ? (
+          <em>Mensagem apagada</em>
+        ) : (
+          citacao.excerpt || (citacao.has_files ? 'Anexo' : '')
+        )}
+      </span>
+    </button>
+  )
+}
+
+/** O corpo com os trechos da busca em <mark> — sem regex montada com o que
+ *  a pessoa digitou (ver `destacar`). */
+function Corpo({ texto, termo }: { texto: string; termo: string }) {
+  if (!termo.trim()) return <>{texto}</>
+  return (
+    <>
+      {destacar(texto, termo).map((p, i) =>
+        p.destacado ? <mark key={i}>{p.texto}</mark> : <span key={i}>{p.texto}</span>,
+      )}
+    </>
+  )
+}
+
 type ItemDaLista = { tipo: 'dia'; rotulo: string; chave: string } | { tipo: 'msg'; msg: MensagemChat }
 
-function Bolha({ msg }: { msg: MensagemChat }) {
+function Bolha({
+  msg,
+  termo = '',
+  ehMinha = false,
+  emFoco = false,
+  onResponder,
+  onIrPara,
+}: {
+  msg: MensagemChat
+  /** Termo da busca — destaca os trechos que casam. */
+  termo?: string
+  /** Escrita por MIM: é a única que ganha o indicador de estado. */
+  ehMinha?: boolean
+  /** Resultado da busca em que a navegação está agora. */
+  emFoco?: boolean
+  onResponder?: (msg: MensagemChat) => void
+  onIrPara?: (id: number) => void
+}) {
   if (msg.is_system) {
     return (
-      <div className="cc-msg cc-msg--sistema">
+      <div className="cc-msg cc-msg--sistema" data-msg={msg.id}>
         <span>{msg.body}</span>
         <time>{horaDe(msg.sent_at)}</time>
       </div>
     )
   }
+  const estado = estadoDaMensagem(msg)
   return (
-    <div className={'cc-msg' + (msg.author_is_internal ? ' cc-msg--agente' : '')}>
+    <div
+      className={
+        'cc-msg' +
+        (msg.author_is_internal ? ' cc-msg--agente' : '') +
+        (emFoco ? ' cc-msg--achada' : '')
+      }
+      data-msg={msg.id}
+    >
       <span className="cc-msg__avatar" {...identidadeDe(msg.author_name)}>{iniciais(msg.author_name)}</span>
       <div className="cc-msg__corpo">
         <div className="cc-msg__meta">
           <span className="cc-msg__autor">{msg.author_name}</span>
           <time>{horaDe(msg.sent_at)}</time>
           {msg.edited_at && <em>editada</em>}
+          {onResponder && !msg.is_deleted && (
+            <button
+              type="button"
+              className="cc-msg__responder"
+              aria-label={`Responder à mensagem de ${msg.author_name}`}
+              title="Responder"
+              onClick={() => onResponder(msg)}
+            >
+              <i className="ti ti-arrow-back-up" aria-hidden="true" />
+            </button>
+          )}
         </div>
+        {msg.reply_preview && onIrPara && (
+          <Citacao citacao={msg.reply_preview} onIr={() => onIrPara(msg.reply_preview!.id)} />
+        )}
         {/* só anexo, sem texto: não desenha balão vazio em cima do arquivo */}
         {(msg.is_deleted || msg.body) && (
           <div className={'cc-msg__balao' + (msg.is_deleted ? ' cc-msg__balao--apagada' : '')}>
-            {msg.is_deleted ? <em>Mensagem apagada</em> : msg.body}
+            {msg.is_deleted ? <em>Mensagem apagada</em> : <Corpo texto={msg.body} termo={termo} />}
           </div>
         )}
         {msg.files.length > 0 && (
@@ -119,7 +218,66 @@ function Bolha({ msg }: { msg: MensagemChat }) {
             ))}
           </div>
         )}
+        {ehMinha && !msg.is_deleted && (
+          <span className={'cc-msg__estado cc-msg__estado--' + estado}>
+            <i className={'ti ' + ICONE_DO_ESTADO[estado]} aria-hidden="true" />
+            {/* o rótulo por extenso, não só o ícone e a cor (item 22) */}
+            {ROTULO_DO_ESTADO[estado]}
+          </span>
+        )}
       </div>
+    </div>
+  )
+}
+
+/** Um envio em andamento, ainda fora da thread: barra, cancelar e repetir. */
+function LinhaDeEnvio({
+  envio,
+  onCancelar,
+  onRepetir,
+  onDescartar,
+}: {
+  envio: EnvioDeAnexo
+  onCancelar: (id: string) => void
+  onRepetir: (id: string) => void
+  onDescartar: (id: string) => void
+}) {
+  const pct = Math.round(envio.progresso * 100)
+  return (
+    <div className={'cc-envio cc-envio--' + envio.estado}>
+      {envio.previa ? (
+        <img className="cc-envio__previa" src={envio.previa} alt="" />
+      ) : (
+        <i className="ti ti-file cc-envio__icone" aria-hidden="true" />
+      )}
+      <div className="cc-envio__texto">
+        <span className="cc-envio__nome">{envio.arquivo.name}</span>
+        {envio.estado === 'erro' ? (
+          <span className="cc-envio__erro">{envio.erro}</span>
+        ) : (
+          <progress className="cc-envio__barra" value={pct} max={100}>
+            {pct}%
+          </progress>
+        )}
+      </div>
+      {envio.estado === 'erro' ? (
+        <>
+          <button type="button" onClick={() => onRepetir(envio.id)}>
+            Tentar de novo
+          </button>
+          <button type="button" onClick={() => onDescartar(envio.id)} aria-label="Descartar envio">
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onCancelar(envio.id)}
+          aria-label={`Cancelar envio de ${envio.arquivo.name}`}
+        >
+          Cancelar
+        </button>
+      )}
     </div>
   )
 }
@@ -146,8 +304,15 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
   // "agora" das faixas de dia = instante do último fetch, não Date.now()
   // em render (impuro) — o mesmo padrão da lista de tickets
   const agoraMs = dataUpdatedAt || 0
-  const { status, digitando, erro: erroSocket, enviarMensagem, enviarDigitando } = useSalaChat(chatId)
-  const enviarArquivos = useEnviarArquivos(chatId)
+  const {
+    status,
+    digitando,
+    erro: erroSocket,
+    enviarMensagem,
+    enviarDigitando,
+    confirmarEntrega,
+  } = useSalaChat(chatId)
+  const anexos = useFilaDeAnexos(chatId)
   const marcarLidas = useMarcarLidas(chatId)
   const carregarAnteriores = useCarregarAnteriores(chatId)
   const pegar = usePegarChat()
@@ -177,6 +342,18 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
   const [macroAtiva, setMacroAtiva] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
 
+  // Busca na conversa: `termo` é o que já foi submetido (o campo tem estado
+  // próprio) e `posicao` é em qual ocorrência a navegação está.
+  const [buscando, setBuscando] = useState(false)
+  const [rascunhoBusca, setRascunhoBusca] = useState('')
+  const [termo, setTermo] = useState('')
+  const [posicao, setPosicao] = useState(0)
+  const [painelMidia, setPainelMidia] = useState(false)
+  const [respondendo, setRespondendo] = useState<MensagemChat | null>(null)
+  const achados = useBuscaNaConversa(termo.length >= 2 ? chatId : null, termo)
+  const irAoRedor = useCarregarAoRedor(chatId)
+  const midia = useMidiaDoChat(chatId, painelMidia)
+
   const total = mensagens?.length ?? 0
   const ultimoId = total > 0 ? mensagens![total - 1].id : null
 
@@ -192,6 +369,33 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     if (ultimoId == null || document.hidden) return
     marcar()
   }, [ultimoId, chatId, marcar])
+
+  // Régua "Novas mensagens": calculada UMA vez, na abertura da conversa, e
+  // congelada. Recalcular a cada render faria a linha subir sozinha conforme
+  // as mensagens vão sendo marcadas como lidas — exatamente o oposto do que
+  // ela serve, que é lembrar onde a leitura parou.
+  const temMensagens = (mensagens?.length ?? 0) > 0
+  const regua = useMemo(
+    () => (mensagens?.length ? primeiraNaoLida(mensagens, me?.is_internal === true) : null),
+    // Dependências ESTREITAS de propósito — congela na abertura da conversa.
+    // Com `mensagens` na lista, cada chegada nova recalcularia e a régua
+    // pularia para a última mensagem enquanto a pessoa ainda lê as de cima,
+    // que é o oposto do que ela serve. Trocar de chat remonta o componente
+    // (`key={chatId}` em PaginaChat), então a régua nasce certa de novo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [temMensagens, chatId],
+  )
+
+  // Confirma a ENTREGA do que chegou do outro lado. Entregue é o aparelho,
+  // lida é a pessoa: as duas coisas existem separadas de propósito, e esta
+  // roda mesmo com a aba escondida — a mensagem chegou aqui de qualquer jeito.
+  useEffect(() => {
+    if (!mensagens) return
+    const pendentes = mensagens
+      .filter((m) => !m.is_system && m.delivered_at === null && m.author_is_internal !== (me?.is_internal === true))
+      .map((m) => m.id)
+    confirmarEntrega(pendentes)
+  }, [mensagens, me?.is_internal, confirmarEntrega])
 
   // menu de macro fecha ao clicar fora / Esc — mesmo efeito do Compositor
   useEffect(() => {
@@ -250,7 +454,8 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
 
   function enviar() {
     if (!podeEnviarTexto) return
-    enviarMensagem(texto.trim())
+    enviarMensagem(texto.trim(), respondendo?.id ?? null)
+    setRespondendo(null)
     enviarDigitando(false)
     limparRascunho(chatId)
   }
@@ -264,21 +469,46 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
     }
   }
 
-  function anexar(arquivos: FileList | null) {
-    if (!arquivos || arquivos.length === 0) return
+  function anexar(arquivos: File[] | FileList | null) {
+    const lista = arquivos ? Array.from(arquivos) : []
+    if (lista.length === 0) return
     setErroAcao(null)
-    enviarArquivos.mutate(
-      { arquivos: Array.from(arquivos), texto: texto.trim() || undefined },
-      {
-        onSuccess: () => limparRascunho(chatId),
-        onError: (e) =>
-          setErroAcao(
-            e instanceof ApiError
-              ? (e.detail ?? e.fieldErrors?.files?.[0] ?? 'Não foi possível enviar o anexo.')
-              : 'Não foi possível enviar o anexo.',
-          ),
-      },
-    )
+    // O erro de UM arquivo agora mora na própria linha da fila (com
+    // "tentar de novo"), não numa faixa de erro que some ao mandar o
+    // seguinte — por isso aqui não há mais `onError` global.
+    anexos.enviar(lista, { texto: texto.trim() || undefined, replyTo: respondendo?.id ?? null })
+    limparRascunho(chatId)
+    setRespondendo(null)
+  }
+
+  /** Ctrl+V com um print na área de transferência vira anexo. */
+  function colar(e: React.ClipboardEvent) {
+    const imagens = imagensColadas(e.clipboardData?.items ?? null, new Date())
+    if (imagens.length === 0) return
+    e.preventDefault()
+    anexar(imagens)
+  }
+
+  /** Leva a thread até uma mensagem; se ela ainda não foi carregada, busca a
+   *  janela ao redor antes — é o que faz o achado antigo ser alcançável. */
+  function irPara(id: number) {
+    const rolar = () => {
+      const alvo = document.querySelector(`[data-msg="${id}"]`)
+      alvo?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    }
+    if (mensagens?.some((m) => m.id === id)) {
+      rolar()
+      return
+    }
+    irAoRedor.mutate(id, { onSuccess: () => setTimeout(rolar, 60) })
+  }
+
+  const resultados = achados.data ?? []
+  function navegarBusca(passo: number) {
+    if (resultados.length === 0) return
+    const proximo = (posicao + passo + resultados.length) % resultados.length
+    setPosicao(proximo)
+    irPara(resultados[proximo].id)
   }
 
   function usarMacro(m: Macro) {
@@ -353,11 +583,104 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
             {chat.status === 'closed' && ' · encerrada'}
           </p>
         </div>
-        <span className={'cc-conversa__socket cc-conversa__socket--' + status} title={ROTULO_STATUS_SOCKET[status]}>
-          <i className="ti ti-point" />
-          {ROTULO_STATUS_SOCKET[status]}
-        </span>
+        <div className="cc-conversa__acoes-topo">
+          <button
+            type="button"
+            className={'cc-conversa__icone' + (buscando ? ' cc-conversa__icone--ativo' : '')}
+            aria-label="Buscar nesta conversa"
+            aria-expanded={buscando}
+            title="Buscar nesta conversa"
+            onClick={() => {
+              setBuscando((v) => !v)
+              if (buscando) {
+                setTermo('')
+                setRascunhoBusca('')
+              }
+            }}
+          >
+            <i className="ti ti-search" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={'cc-conversa__icone' + (painelMidia ? ' cc-conversa__icone--ativo' : '')}
+            aria-label="Anexos e links da conversa"
+            aria-expanded={painelMidia}
+            title="Anexos e links da conversa"
+            onClick={() => setPainelMidia((v) => !v)}
+          >
+            <i className="ti ti-photo" aria-hidden="true" />
+          </button>
+          <span className={'cc-conversa__socket cc-conversa__socket--' + status} title={ROTULO_STATUS_SOCKET[status]}>
+            <i className="ti ti-point" />
+            {ROTULO_STATUS_SOCKET[status]}
+          </span>
+        </div>
       </header>
+      )}
+
+      {buscando && !compacto && (
+        <form
+          className="cc-busca"
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setTermo(rascunhoBusca)
+            setPosicao(0)
+          }}
+        >
+          <label className="cc-visualmente-oculto" htmlFor={`${idBase}-busca`}>
+            Termo da busca
+          </label>
+          <input
+            id={`${idBase}-busca`}
+            type="search"
+            autoFocus
+            value={rascunhoBusca}
+            placeholder="Procurar na conversa inteira"
+            onChange={(e) => setRascunhoBusca(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setBuscando(false)
+                setTermo('')
+                setRascunhoBusca('')
+              }
+            }}
+          />
+          <button type="submit" disabled={rascunhoBusca.trim().length < 2}>
+            Buscar
+          </button>
+          {termo.length >= 2 && (
+            <>
+              <span className="cc-busca__contagem" role="status">
+                {achados.isLoading
+                  ? 'procurando…'
+                  : resultados.length === 0
+                    ? 'nada encontrado'
+                    : `${posicao + 1} de ${resultados.length}`}
+              </span>
+              <button
+                type="button"
+                aria-label="Resultado anterior"
+                disabled={resultados.length === 0}
+                onClick={() => navegarBusca(-1)}
+              >
+                <i className="ti ti-chevron-up" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                aria-label="Próximo resultado"
+                disabled={resultados.length === 0}
+                onClick={() => navegarBusca(1)}
+              >
+                <i className="ti ti-chevron-down" aria-hidden="true" />
+              </button>
+            </>
+          )}
+          {/* A busca é do SERVIDOR: acha o que está no histórico inteiro,
+              inclusive o que esta tela ainda não baixou. Por isso o aviso
+              abaixo — o resultado pode estar fora do trecho visível. */}
+          <p className="cc-busca__ajuda">Procura na conversa inteira, não só no que está na tela.</p>
+        </form>
       )}
 
       <div className="cc-conversa__mensagens">
@@ -384,7 +707,21 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
                 <span>{item.rotulo}</span>
               </div>
             ) : (
-              <Bolha key={item.msg.id} msg={item.msg} />
+              <div key={item.msg.id}>
+                {item.msg.id === regua && (
+                  <div className="cc-conversa__regua" role="separator">
+                    <span>Novas mensagens</span>
+                  </div>
+                )}
+                <Bolha
+                  msg={item.msg}
+                  termo={termo}
+                  ehMinha={me != null && item.msg.author_is_internal === me.is_internal && !item.msg.is_system}
+                  emFoco={resultados[posicao]?.id === item.msg.id}
+                  onResponder={podeEscrever ? setRespondendo : undefined}
+                  onIrPara={irPara}
+                />
+              </div>
             ),
           )
         )}
@@ -450,6 +787,64 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
         </div>
       )}
 
+      {painelMidia && !compacto && (
+        <aside className="cc-midia" aria-label="Anexos e links desta conversa">
+          <h2>Nesta conversa</h2>
+          {midia.isLoading && <p className="cc-midia__vazio">Carregando…</p>}
+          {midia.data && midia.data.files.length === 0 && midia.data.links.length === 0 && (
+            <p className="cc-midia__vazio">Nenhum anexo ou link ainda.</p>
+          )}
+          {(midia.data?.files.length ?? 0) > 0 && (
+            <>
+              <h3>Arquivos</h3>
+              <ul className="cc-midia__lista">
+                {midia.data!.files.map((f) => (
+                  <li key={f.id}>
+                    <button type="button" className="cc-midia__ir" onClick={() => irPara(f.message_id)}>
+                      <i className={'ti ' + (f.content_type.startsWith('image/') ? 'ti-photo' : 'ti-file')} aria-hidden="true" />
+                      <span className="cc-midia__nome">{f.filename}</span>
+                      <span className="cc-midia__meta">{fileSize(f.size_bytes)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          {(midia.data?.links.length ?? 0) > 0 && (
+            <>
+              <h3>Links</h3>
+              <ul className="cc-midia__lista">
+                {midia.data!.links.map((l) => (
+                  <li key={`${l.message_id}-${l.url}`}>
+                    <a href={l.url} target="_blank" rel="noreferrer noopener" className="cc-midia__link">
+                      <i className="ti ti-link" aria-hidden="true" />
+                      <span className="cc-midia__nome">{l.url}</span>
+                    </a>
+                    <button type="button" className="cc-link cc-midia__contexto" onClick={() => irPara(l.message_id)}>
+                      ver na conversa
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+        </aside>
+      )}
+
+      {anexos.fila.length > 0 && (
+        <div className="cc-envios" aria-label="Anexos em envio">
+          {anexos.fila.map((envio) => (
+            <LinhaDeEnvio
+              key={envio.id}
+              envio={envio}
+              onCancelar={anexos.cancelar}
+              onRepetir={anexos.repetir}
+              onDescartar={anexos.descartar}
+            />
+          ))}
+        </div>
+      )}
+
       {aviso && (
         <p className="cc-conversa__aviso" role="status">
           <i className="ti ti-bolt" aria-hidden="true" /> {aviso}
@@ -459,13 +854,36 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
 
       {podeEscrever && (
         <div className="cc-composer">
+          {respondendo && (
+            <div className="cc-composer__citando">
+              <span className="cc-composer__citando-autor">
+                Respondendo {respondendo.author_name}
+              </span>
+              <span className="cc-composer__citando-corpo">
+                {respondendo.body || (respondendo.files.length > 0 ? 'Anexo' : '')}
+              </span>
+              <button
+                type="button"
+                aria-label="Cancelar resposta"
+                onClick={() => setRespondendo(null)}
+              >
+                <i className="ti ti-x" aria-hidden="true" />
+              </button>
+            </div>
+          )}
           <textarea
             ref={areaRef}
             className="cc-composer__textarea"
-            placeholder={socketAberto ? 'Escreva para o cliente… (Enter envia, Shift+Enter quebra linha)' : 'Sem conexão — o texto espera a conexão voltar; anexos continuam indo.'}
+            placeholder={socketAberto ? 'Escreva para o cliente… (Enter envia, Shift+Enter quebra linha, Ctrl+V cola print)' : 'Sem conexão — o texto espera a conexão voltar; anexos continuam indo.'}
             value={texto}
             onChange={(e) => aoDigitar(e.target.value)}
+            onPaste={colar}
             onKeyDown={(e) => {
+              if (e.key === 'Escape' && respondendo) {
+                e.preventDefault()
+                setRespondendo(null)
+                return
+              }
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 enviar()
@@ -478,12 +896,11 @@ export function ConversaChat({ chatId, me, compacto = false }: Props) {
                 type="button"
                 className="cc-composer__anexar"
                 aria-label="Anexar arquivo"
-                title="Anexo vai por REST — funciona mesmo sem conexão de socket"
-                disabled={enviarArquivos.isPending}
+                title="Anexo vai por REST — funciona mesmo sem conexão de socket. Ctrl+V cola print."
                 onClick={() => inputAnexo.current?.click()}
               >
                 <i className="ti ti-paperclip" />
-                {enviarArquivos.isPending ? 'Enviando…' : 'Anexar'}
+                Anexar
               </button>
               <input
                 ref={inputAnexo}

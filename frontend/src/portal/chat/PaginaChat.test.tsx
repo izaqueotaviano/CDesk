@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaginaChat } from './PaginaChat'
 
 vi.mock('@/realtime/useSalaChat', () => ({
-  useSalaChat: () => ({ status: 'aberto', digitando: null, erro: null, enviarMensagem: vi.fn(), enviarDigitando: vi.fn() }),
+  useSalaChat: () => ({ status: 'aberto', digitando: null, erro: null, enviarMensagem: vi.fn(), enviarDigitando: vi.fn(), confirmarEntrega: vi.fn() }),
 }))
 
 function chat(id: number, extra: Record<string, unknown> = {}) {

@@ -10,8 +10,11 @@ import type { MensagemChat } from '@/api/chat'
 // ---------- ws/chat/<id>/ — sala de uma conversa ----------
 
 export type MensagemClienteChat =
-  | { type: 'message'; body: string }
+  | { type: 'message'; body: string; reply_to?: number | null }
   | { type: 'typing'; is_typing: boolean }
+  /** O DESTINATÁRIO confirmando que a mensagem chegou no aparelho dele — é
+   *  o que sustenta o "entregue" sem o servidor ter de adivinhar. */
+  | { type: 'delivered'; ids: number[] }
   | { type: 'ping' }
 
 export type EventoServidorChat =
@@ -20,6 +23,8 @@ export type EventoServidorChat =
   | ({ type: 'message_edited' } & MensagemChat)
   | ({ type: 'message_deleted' } & MensagemChat)
   | { type: 'typing'; user_id: number; user_name: string; is_typing: boolean }
+  | { type: 'message_delivered'; ids: number[] }
+  | { type: 'message_read'; ids: number[] }
   | { type: 'accepted'; agent_name: string }
   | { type: 'transferred'; agent_name: string }
   | { type: 'closed'; by_internal: boolean }

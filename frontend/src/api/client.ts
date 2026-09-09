@@ -137,6 +137,61 @@ async function requisitar<T>(path: string, opcoes: Opcoes = {}): Promise<T> {
   return payload as T
 }
 
+/**
+ * POST multipart COM progresso e cancelamento.
+ *
+ * XMLHttpRequest e não `fetch` por um motivo só: `fetch` não expõe progresso
+ * de UPLOAD. Sem isto, anexar um arquivo de 8 MB é uma barra que não existe e
+ * um botão que fica cinza por trinta segundos — a pessoa clica de novo e manda
+ * duas vezes. O resto (cookie de sessão, CSRF, ApiError) segue igual ao
+ * `requisitar`, de propósito: quem chama trata erro do mesmo jeito.
+ */
+export function enviarComProgresso<T>(
+  path: string,
+  form: FormData,
+  opcoes: { onProgresso?: (fracao: number) => void; signal?: AbortSignal } = {},
+): Promise<T> {
+  const { onProgresso, signal } = opcoes
+  return new Promise<T>((resolver, rejeitar) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `${API_BASE_URL}${path}`)
+    xhr.withCredentials = true
+    xhr.setRequestHeader('X-CSRFToken', lerCsrfToken() ?? '')
+
+    xhr.upload.onprogress = (e) => {
+      // `lengthComputable` falso acontece de verdade (proxy sem
+      // Content-Length): melhor não mostrar barra nenhuma do que mostrar uma
+      // barra que anda sozinha sem relação com o arquivo.
+      if (e.lengthComputable && e.total > 0) onProgresso?.(e.loaded / e.total)
+    }
+
+    xhr.onload = () => {
+      const tipo = xhr.getResponseHeader('content-type') ?? ''
+      const corpo = tipo.includes('application/json')
+        ? (JSON.parse(xhr.responseText || 'null') as unknown)
+        : xhr.responseText
+      if (xhr.status === 401 && !path.endsWith('/auth/me/')) aoReceber401?.()
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgresso?.(1)
+        resolver(corpo as T)
+      } else {
+        rejeitar(new ApiError(xhr.status, corpo))
+      }
+    }
+    // Rede caída e cancelamento são coisas DIFERENTES para quem olha a tela:
+    // uma oferece "tentar de novo", a outra já é a decisão da pessoa.
+    xhr.onerror = () => rejeitar(new ApiError(0, { detail: 'Falha de conexão ao enviar.' }))
+    xhr.onabort = () => rejeitar(new DOMException('Envio cancelado.', 'AbortError'))
+
+    signal?.addEventListener('abort', () => xhr.abort(), { once: true })
+    if (signal?.aborted) {
+      xhr.abort()
+      return
+    }
+    xhr.send(form)
+  })
+}
+
 export const api = {
   get: <T>(path: string, opcoes?: Opcoes) => requisitar<T>(path, { ...opcoes, method: 'GET' }),
   post: <T>(path: string, body?: unknown, opcoes?: Opcoes) =>

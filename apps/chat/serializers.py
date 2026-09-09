@@ -44,15 +44,17 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     files = ChatFileSerializer(many=True, read_only=True)
     is_deleted = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
+    reply_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatMessage
         fields = ["id", "author_name", "author_is_internal", "body",
-                  "is_system", "sent_at", "read_at", "files",
+                  "is_system", "sent_at", "read_at", "delivered_at", "files",
                   # espelha TicketMessageSerializer: a tela precisa saber que
                   # o texto mudou depois de enviado, e só oferece editar/
                   # apagar onde o backend deixaria de verdade
-                  "edited_at", "is_deleted", "can_edit"]
+                  "edited_at", "is_deleted", "can_edit",
+                  "reply_to", "reply_preview"]
 
     def get_author_name(self, obj) -> str:
         return obj.author.full_name if obj.author else "Sistema"
@@ -66,6 +68,40 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 
     def get_is_deleted(self, obj) -> bool:
         return obj.deleted_at is not None
+
+    @extend_schema_field(
+        {
+            "type": "object",
+            "nullable": True,
+            "properties": {
+                "id": {"type": "integer"},
+                "author_name": {"type": "string"},
+                "excerpt": {"type": "string"},
+                "is_deleted": {"type": "boolean"},
+                "has_files": {"type": "boolean"},
+            },
+        }
+    )
+    def get_reply_preview(self, obj):
+        """O trecho citado, montado no SERVIDOR.
+
+        Não é o front que recorta: a mensagem citada pode ter saído da janela
+        que ele carregou (uma resposta a algo de três dias atrás), e mandá-lo
+        buscar cada original de volta seria uma requisição por citação. Vem
+        junto, já censurado e já aparado.
+        """
+        alvo = obj.reply_to
+        if alvo is None:
+            return None
+        apagada = alvo.deleted_at is not None
+        corpo = "" if apagada else chat_service.censor(alvo.body)
+        return {
+            "id": alvo.pk,
+            "author_name": alvo.author.full_name if alvo.author else "Sistema",
+            "excerpt": corpo[:160],
+            "is_deleted": apagada,
+            "has_files": alvo.files.exists(),
+        }
 
     def get_can_edit(self, obj) -> bool:
         """Mesma regra de `chat_service._pode_mexer_na_mensagem` — quem vê o

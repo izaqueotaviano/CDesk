@@ -1,6 +1,19 @@
-import { IconHeadset, IconLock, IconPaperclip } from '@tabler/icons-react'
+import {
+  IconArrowBackUp,
+  IconCheck,
+  IconChecks,
+  IconHeadset,
+  IconLock,
+  IconPaperclip,
+} from '@tabler/icons-react'
 import { urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import type { Chat, MensagemChat, StatusChat } from '@/api/chat'
+import {
+  destacar,
+  ehImagemVisivel,
+  estadoDaMensagem,
+  ROTULO_DO_ESTADO,
+} from '@/chat/conversa'
 import { Avatar } from '@/ui/Avatar'
 import { cn } from '../lib/cn'
 import { hora, relativo, tamanhoArquivo } from '../lib/formato'
@@ -81,7 +94,26 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
   return (
     <ul className="mt-2 flex flex-wrap gap-2" aria-label="Anexos">
       {msg.files.map((f) =>
-        f.is_downloadable ? (
+        // Miniatura só depois que a varredura LIBEROU — antes disso o arquivo
+        // está em quarentena e renderizá-lo seria servi-lo assim mesmo (D19).
+        ehImagemVisivel(f) ? (
+          <li key={f.id}>
+            <a
+              href={urlApi(f.url)}
+              target="_blank"
+              rel="noreferrer"
+              title={`${f.filename} · ${tamanhoArquivo(f.size_bytes)}`}
+              className="block overflow-hidden rounded-md border border-divisoria hover:border-acento"
+            >
+              <img
+                src={urlApi(f.url)}
+                alt={f.filename}
+                loading="lazy"
+                className="max-h-40 max-w-[220px] object-cover"
+              />
+            </a>
+          </li>
+        ) : f.is_downloadable ? (
           <li key={f.id}>
             <a
               href={urlApi(f.url)}
@@ -129,16 +161,43 @@ export function MensagemDoSistema({ msg }: { msg: Pick<MensagemChat, 'body' | 's
 export function Mensagem({
   msg,
   acoes,
+  termo = '',
+  emFoco = false,
+  onResponder,
+  onIrPara,
 }: {
-  msg: Pick<MensagemChat, 'body' | 'sent_at' | 'author_name' | 'author_is_internal' | 'edited_at' | 'is_deleted' | 'files'>
+  msg: Pick<
+    MensagemChat,
+    | 'id'
+    | 'body'
+    | 'sent_at'
+    | 'author_name'
+    | 'author_is_internal'
+    | 'edited_at'
+    | 'is_deleted'
+    | 'files'
+    | 'read_at'
+    | 'delivered_at'
+    | 'reply_preview'
+  >
   acoes?: React.ReactNode
+  /** Termo da busca: os trechos que casam saem em <mark>. */
+  termo?: string
+  /** É o resultado da busca em que a navegação está agora. */
+  emFoco?: boolean
+  onResponder?: () => void
+  onIrPara?: (id: number) => void
 }) {
   const doSuporte = msg.author_is_internal
+  // O indicador de estado é de quem ESCREVEU — no portal, das minhas.
+  const estado = estadoDaMensagem(msg)
   return (
     <article
+      data-msg={msg.id}
       className={cn(
-        'flex gap-2.5 rounded-md border border-divisoria bg-superficie px-3.5 py-3',
+        'group flex gap-2.5 rounded-md border border-divisoria bg-superficie px-3.5 py-3',
         doSuporte && 'border-l-2 border-l-acento',
+        emFoco && 'ring-2 ring-acento',
       )}
       aria-label={`Mensagem de ${msg.author_name}`}
     >
@@ -149,17 +208,74 @@ export function Mensagem({
           {doSuporte && <Badge variant="acento">Suporte</Badge>}
           <time dateTime={msg.sent_at}>{hora(msg.sent_at)}</time>
           {msg.edited_at && <span className="italic">editada</span>}
-          {acoes && <span className="ml-auto flex items-center gap-0.5">{acoes}</span>}
+          <span className="ml-auto flex items-center gap-0.5">
+            {onResponder && !msg.is_deleted && (
+              <button
+                type="button"
+                aria-label={`Responder à mensagem de ${msg.author_name}`}
+                title="Responder"
+                onClick={onResponder}
+                className="rounded p-1 text-tinta-secundaria opacity-0 hover:text-acento focus-visible:opacity-100 group-hover:opacity-100"
+              >
+                <IconArrowBackUp className="size-3.5" aria-hidden="true" />
+              </button>
+            )}
+            {acoes}
+          </span>
         </header>
+        {msg.reply_preview && onIrPara && (
+          <button
+            type="button"
+            onClick={() => onIrPara(msg.reply_preview!.id)}
+            className="mt-1 flex w-full flex-col items-start gap-0.5 rounded-md border-l-2 border-acento bg-navegacao px-2 py-1 text-left hover:bg-acento-suave"
+          >
+            <span className="text-legenda font-medio text-acento">{msg.reply_preview.author_name}</span>
+            <span className="w-full truncate text-legenda text-tinta-secundaria">
+              {msg.reply_preview.is_deleted
+                ? 'Mensagem apagada'
+                : msg.reply_preview.excerpt || (msg.reply_preview.has_files ? 'Anexo' : '')}
+            </span>
+          </button>
+        )}
         <p
           className={cn(
             'mt-1 whitespace-pre-wrap text-[13px] leading-normal text-tinta [overflow-wrap:anywhere]',
             msg.is_deleted && 'italic text-tinta-terciaria',
           )}
         >
-          {msg.is_deleted ? 'Mensagem apagada' : msg.body}
+          {msg.is_deleted ? (
+            'Mensagem apagada'
+          ) : termo.trim() ? (
+            destacar(msg.body, termo).map((p, i) =>
+              p.destacado ? (
+                <mark key={i} className="rounded-[2px] bg-alerta-suave text-tinta">
+                  {p.texto}
+                </mark>
+              ) : (
+                <span key={i}>{p.texto}</span>
+              ),
+            )
+          ) : (
+            msg.body
+          )}
         </p>
         {!msg.is_deleted && <Anexos msg={msg} />}
+        {!doSuporte && !msg.is_deleted && (
+          <span
+            className={cn(
+              'mt-1 flex items-center gap-1 text-legenda text-tinta-terciaria',
+              estado === 'lida' && 'text-acento',
+            )}
+          >
+            {estado === 'lida' || estado === 'entregue' ? (
+              <IconChecks className="size-3" aria-hidden="true" />
+            ) : (
+              <IconCheck className="size-3" aria-hidden="true" />
+            )}
+            {/* rótulo por extenso, não só ícone e cor (item 22) */}
+            {ROTULO_DO_ESTADO[estado]}
+          </span>
+        )}
       </div>
     </article>
   )

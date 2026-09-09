@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -26,6 +27,7 @@ vi.mock('@/realtime/useSalaChat', () => ({
     erro: null,
     enviarMensagem: vi.fn(),
     enviarDigitando: vi.fn(),
+    confirmarEntrega: vi.fn(),
   }),
 }))
 
@@ -35,11 +37,15 @@ vi.mock('@/api/chat', () => ({
   LIMITE_MENSAGENS: 100,
   useChat: () => ({ data: chatAtual, isLoading: false, isError: false }),
   useMensagensChat: () => ({ data: [], dataUpdatedAt: 0 }),
-  useEnviarArquivos: () => ({ mutate: vi.fn(), isPending: false }),
   useMarcarLidas: () => ({ mutate: vi.fn() }),
   useCarregarAnteriores: () => ({ mutate: vi.fn(), isPending: false }),
   usePegarChat: () => ({ mutate: vi.fn(), isPending: false }),
   useReabrirChat: () => ({ mutate: vi.fn(), isPending: false }),
+  useBuscaNaConversa: () => ({ data: [], isLoading: false }),
+  useCarregarAoRedor: () => ({ mutate: vi.fn() }),
+  useMidiaDoChat: () => ({ data: undefined, isLoading: false }),
+  // usado pela fila de anexos compartilhada (src/chat/conversa.ts)
+  anexarMensagemNoCache: vi.fn(),
 }))
 
 const ME: Me = {
@@ -126,10 +132,15 @@ const MACROS: Macro[] = [
 ]
 
 function montar(me: Me = ME) {
+  // A fila de anexos (src/chat/conversa.ts) usa `useQueryClient` de verdade —
+  // ela grava a mensagem no cache assim que o upload volta.
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
-    <MemoryRouter>
-      <ConversaChat chatId={7} me={me} />
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <ConversaChat chatId={7} me={me} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   )
 }
 

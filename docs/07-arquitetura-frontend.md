@@ -272,6 +272,51 @@ juntar duas fontes. `AuditLog` já é genérico, já barra update/delete de linh
 encerramento, reabertura e avaliação deixam rastro; um erro ao auditar nunca
 derruba a operação que já aconteceu.
 
+#### Busca, citação, entrega e mídia (Fase 3 da rodada de chat)
+
+Quatro coisas da conversa, e todas com a mesma raiz: **o navegador só conhece
+o pedaço que já rolou até a tela**.
+
+- **Busca** (`GET messages/?q=`) roda no SERVIDOR. Filtrar no que está
+  carregado responde "não achei" para algo que existe — o pior tipo de
+  resposta errada. A tela mostra em qual ocorrência está (`3 de 12`), destaca
+  os trechos e navega entre eles.
+- **Janela** (`?around=<id>&radius=`) traz o entorno de UMA mensagem. É o que
+  faz pular num achado antigo sem baixar meses de conversa até chegar nele: a
+  janela é costurada no cache da thread e a rolagem vai até o `data-msg`.
+- **Mídia** (`GET chats/<id>/media/`) lista anexos e links DESTE atendimento.
+  Irmão de `chat/timeline-media/`, que faz o mesmo para todas as sessões do
+  cliente — o recorte é a pergunta que se está fazendo. Os links saem do
+  servidor pelo mesmo motivo da busca.
+- **Estado da mensagem** — enviando / enviada / entregue / lida / falha, só
+  para quem escreveu. `delivered_at` é carimbado pelo DESTINATÁRIO (evento
+  `delivered` no socket, `chat_service.marcar_entregues`), nunca pelo INSERT:
+  o servidor sabe que gravou, não que alguém recebeu, e um indicador que
+  dissesse "entregue" no gravar prometeria uma coisa e mediria outra. Sem
+  confirmação fica em "enviada", que é verdade. `read/` avisa a sala
+  (`message_read`) para o tique mudar na hora, sem refetch da thread.
+
+A **resposta citada** (`ChatMessage.reply_to`) é `SET_NULL`, não `CASCADE`:
+apagar o original não pode levar junto as respostas dele. O `reply_preview`
+vem montado do servidor porque o original pode estar fora da janela carregada
+— deixar o front buscá-lo seria uma requisição por citação.
+
+O que console e portal COMPARTILHAM mora em `src/chat/conversa.ts`: colar
+imagem (com o renome por carimbo de hora — cinco prints ficariam todos
+"image.png"), a fila de anexos com progresso/cancelar/repetir, a escada de
+estado, a régua de não lidas e o destaque da busca. As duas telas desenham com
+primitivas próprias, mas a REGRA é uma só — é o "evite duplicar regras entre o
+chat principal e o mini chat" do brief.
+
+Upload com progresso usa `enviarComProgresso` (XMLHttpRequest) e não `fetch`,
+por um motivo só: `fetch` não expõe progresso de upload. Cada arquivo sobe na
+sua própria requisição — uma barra agregada não diz qual travou, e cancelar um
+derrubaria os outros.
+
+Miniatura de imagem só depois que a varredura LIBEROU (`is_downloadable`):
+renderizar a `<img>` de um anexo em quarentena seria servi-lo pela porta da
+frente, que é o que a quarentena existe para impedir (D19).
+
 ### 3.4 Autenticação e sessão
 
 `useQuery(['me'])` sobre `/auth/me/` é a fonte única. Um `<AuthGate>` no topo

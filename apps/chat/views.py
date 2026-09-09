@@ -308,8 +308,45 @@ class ChatViewSet(viewsets.GenericViewSet):
         a pedido de quem lê.
         """
         chat = self._get_chat()
-        base = chat.messages.select_related("author").prefetch_related("files")
+        base = (
+            chat.messages.select_related("author", "reply_to", "reply_to__author")
+            .prefetch_related("files")
+        )
         qs = base.order_by("id")
+
+        # Busca DENTRO da conversa. Roda no servidor porque o navegador só
+        # conhece o pedaço que já rolou — numa conversa de semanas, procurar
+        # no que está na tela responde "não achei" para algo que existe.
+        if termo := (request.query_params.get("q") or "").strip():
+            achados = base.filter(
+                body__icontains=termo, deleted_at__isnull=True
+            ).order_by("id")
+            return Response({
+                "results": ChatMessageSerializer(
+                    achados, many=True, context={"request": request}
+                ).data,
+            })
+
+        # Janela ao redor de UMA mensagem: é como se pula para um resultado
+        # da busca que ficou fora do trecho carregado — sem isto, clicar num
+        # achado antigo obrigaria a baixar a conversa inteira até ele.
+        if alvo := request.query_params.get("around"):
+            if not alvo.isdigit():
+                raise ValidationError({"around": "Informe o id da mensagem."})
+            raio = request.query_params.get("radius", "25")
+            raio = int(raio) if str(raio).isdigit() and 0 < int(raio) <= 100 else 25
+            centro = int(alvo)
+            antes = list(
+                base.filter(id__lte=centro).order_by("-id").values_list("id", flat=True)[: raio + 1]
+            )
+            depois = list(
+                base.filter(id__gt=centro).order_by("id").values_list("id", flat=True)[:raio]
+            )
+            janela = base.filter(id__in=antes + depois).order_by("id")
+            return Response(
+                ChatMessageSerializer(janela, many=True, context={"request": request}).data
+            )
+
         if after := request.query_params.get("after"):
             if not after.isdigit():
                 raise ValidationError({"after": "Informe o id da última mensagem."})
@@ -331,9 +368,28 @@ class ChatViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
         chat = self._get_chat()
-        updated = chat.messages.filter(read_at__isnull=True, is_system=False)\
-            .exclude(author=request.user).update(read_at=timezone.now())
+        pendentes = chat.messages.filter(read_at__isnull=True, is_system=False)\
+            .exclude(author=request.user)
+        ids = list(pendentes.values_list("id", flat=True))
+        updated = chat.messages.filter(id__in=ids).update(read_at=timezone.now()) if ids else 0
+        # O indicador de "lida" é do REMETENTE, e ele pode estar com a
+        # conversa aberta agora — sem este aviso o tique só mudaria no
+        # próximo refetch, que é quando ninguém está mais olhando.
+        if ids:
+            chat_service._sala(chat.pk, {"type": "chat.message_read", "ids": ids})
         return Response({"marked_read": updated})
+
+    @action(detail=True, methods=["get"])
+    def media(self, request, pk=None):
+        """Anexos e links DESTE atendimento — o painel lateral da conversa."""
+        chat = self._get_chat()
+        arquivos, links = chat_service.chat_media(chat)
+        return Response({
+            "files": ChatTimelineFileSerializer(
+                arquivos, many=True, context={"request": request}
+            ).data,
+            "links": ChatLinkSerializer(links, many=True).data,
+        })
 
     @action(detail=True, methods=["post"],
             parser_classes=[JSONParser, MultiPartParser, FormParser])
@@ -348,8 +404,14 @@ class ChatViewSet(viewsets.GenericViewSet):
         if not uploads:
             raise ValidationError({"files": "Envie ao menos um arquivo."})
 
+        citada = None
+        if bruto := request.data.get("reply_to"):
+            # a citação tem de ser deste chat: aceitar um id qualquer deixaria
+            # vazar o trecho de uma conversa de outro cliente no preview
+            citada = chat.messages.filter(pk=bruto, deleted_at__isnull=True).first()
         message = ChatMessage.objects.create(
             chat=chat, author=request.user, body=request.data.get("body", "").strip(),
+            reply_to=citada,
         )
         try:
             attach_to_chat_message(message=message, uploads=uploads, uploaded_by=request.user)

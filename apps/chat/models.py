@@ -171,6 +171,21 @@ class ChatMessage(models.Model):
     sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
     read_at = models.DateTimeField(null=True, blank=True)
 
+    # A escada de status que a tela desenha para QUEM ESCREVEU: enviada
+    # (existe id), entregue (chegou no aparelho do outro) e lida. "Entregue"
+    # é carimbado pelo destinatário, não pelo servidor — dizer "entregue"
+    # porque o INSERT deu certo seria mentir sobre a única coisa que o
+    # indicador promete. Sem confirmação, fica em "enviada", que é verdade.
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    # Resposta citada. SET_NULL e não CASCADE: apagar o original não pode
+    # levar junto as respostas dele — a conversa perderia trechos inteiros
+    # por causa de uma mensagem só. A citação some, a resposta fica.
+    reply_to = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="replies",
+    )
+
     # Mesmo par que TicketMessage já usa — edited_at é o que a tela mostra
     # como "editada"; o texto anterior não fica registrado aqui de propósito
     # (o chat não tem uma trilha de auditoria própria como o ticket tem).

@@ -22,6 +22,16 @@ export interface ArquivoChat {
   is_downloadable: boolean
 }
 
+/** O trecho citado, montado no SERVIDOR: a mensagem original pode estar fora
+ *  da janela que o navegador carregou. */
+export interface CitacaoChat {
+  id: number
+  author_name: string
+  excerpt: string
+  is_deleted: boolean
+  has_files: boolean
+}
+
 export interface MensagemChat {
   id: number
   author_name: string
@@ -31,10 +41,30 @@ export interface MensagemChat {
   is_system: boolean
   sent_at: string
   read_at: string | null
+  /** Carimbado pelo DESTINATÁRIO ao receber, não pelo servidor ao gravar —
+   *  é o que separa "entregue" de "enviada" sem mentir. */
+  delivered_at: string | null
   files: ArquivoChat[]
   edited_at: string | null
   is_deleted: boolean
   can_edit: boolean
+  reply_to: number | null
+  reply_preview: CitacaoChat | null
+}
+
+/** Um anexo no painel lateral: o arquivo mais onde ele foi mandado. */
+export interface AnexoNoPainel extends ArquivoChat {
+  chat_id: number
+  message_id: number
+  sent_at: string
+}
+
+export interface LinkNoPainel {
+  url: string
+  chat_id: number
+  message_id: number
+  sent_at: string
+  author_name: string
 }
 
 export interface AvaliacaoChat {
@@ -138,6 +168,8 @@ export const chaves = {
   chat: (id: number) => ['chat', id] as const,
   mensagens: (id: number) => ['chat', id, 'messages'] as const,
   motivos: ['chat', 'close-reasons'] as const,
+  midia: (id: number) => ['chat', id, 'media'] as const,
+  busca: (id: number, termo: string) => ['chat', id, 'busca', termo] as const,
   /** Finalizados: a chave carrega os filtros — cada recorte é um cache. */
   finalizados: (filtros: FiltrosFinalizados) => ['chat', 'finalizados', filtros] as const,
   historico: (clienteId: number) => ['chat', 'historico', clienteId] as const,
@@ -207,6 +239,61 @@ export function useMensagensChat(id: number | null) {
     // o socket mantém isto vivo; o refetch ao focar é a rede de segurança
     staleTime: 60_000,
     refetchOnWindowFocus: true,
+  })
+}
+
+/**
+ * Busca DENTRO da conversa, no servidor.
+ *
+ * No navegador só se acha o que já rolou até a tela — numa conversa de
+ * semanas isso responde "não achei" para algo que existe, que é o pior tipo
+ * de resposta errada. O termo curto demais não vai: uma letra devolveria a
+ * conversa inteira e não é busca, é rolagem.
+ */
+export function useBuscaNaConversa(chatId: number | null, termo: string) {
+  const limpo = termo.trim()
+  return useQuery({
+    queryKey: chaves.busca(chatId ?? 0, limpo),
+    queryFn: () =>
+      api
+        .get<{ results: MensagemChat[] }>(
+          `/api/v1/chat/chats/${chatId}/messages/?q=${encodeURIComponent(limpo)}`,
+        )
+        .then((r) => r.results),
+    enabled: chatId != null && limpo.length >= 2,
+    staleTime: 30_000,
+  })
+}
+
+/** Anexos e links DESTE atendimento — o painel lateral da conversa. */
+export function useMidiaDoChat(chatId: number | null, habilitado = true) {
+  return useQuery({
+    queryKey: chaves.midia(chatId ?? 0),
+    queryFn: () =>
+      api.get<{ files: AnexoNoPainel[]; links: LinkNoPainel[] }>(
+        `/api/v1/chat/chats/${chatId}/media/`,
+      ),
+    enabled: chatId != null && habilitado,
+    staleTime: 30_000,
+  })
+}
+
+/**
+ * Traz a janela ao redor de uma mensagem e a costura no cache da thread.
+ *
+ * É o que faz "pular para o resultado" funcionar quando o achado é antigo:
+ * sem isto, alcançá-lo exigiria baixar a conversa inteira até ele.
+ */
+export function useCarregarAoRedor(chatId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (messageId: number) =>
+      api.get<MensagemChat[]>(
+        `/api/v1/chat/chats/${chatId}/messages/?around=${messageId}`,
+      ),
+    onSuccess: (msgs) => {
+      for (const m of msgs) anexarMensagemNoCache(qc, chatId, m)
+    },
   })
 }
 

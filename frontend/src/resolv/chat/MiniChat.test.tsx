@@ -7,7 +7,7 @@ import { TAMANHOS_MINICHAT, usePrefs } from '@/stores/prefs'
 import { MiniChat } from './MiniChat'
 
 vi.mock('@/realtime/useSalaChat', () => ({
-  useSalaChat: () => ({ status: 'aberto', digitando: null, erro: null, enviarMensagem: vi.fn(), enviarDigitando: vi.fn() }),
+  useSalaChat: () => ({ status: 'aberto', digitando: null, erro: null, enviarMensagem: vi.fn(), enviarDigitando: vi.fn(), confirmarEntrega: vi.fn() }),
 }))
 
 const AGENTE = { id: 3, full_name: 'Samuel Suporte', email: 's@x.test', is_internal: true, is_admin: false, kind: 'internal', permissions: [], presence: 'available' }

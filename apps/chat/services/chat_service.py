@@ -385,6 +385,65 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     return mensagens, anteriores.exists()
 
 
+def chat_media(chat) -> tuple[list, list]:
+    """Anexos e links DESTE atendimento — o painel lateral da conversa.
+
+    Irmão de `timeline_media`, que faz o mesmo para todas as sessões do
+    cliente. São dois porque o recorte é a pergunta: no painel da conversa
+    interessa "o que passou por AQUI"; na conversa contínua, "o que essa
+    pessoa já mandou algum dia".
+
+    Os links continuam saindo do servidor pelo mesmo motivo de lá — no
+    navegador só se acha o que já foi rolado até a tela.
+    """
+    arquivos = list(
+        ChatFile.objects.filter(message__chat=chat)
+        .select_related("message", "message__chat")
+        .order_by("-message__sent_at")
+    )
+
+    links = []
+    vistos = set()
+    mensagens = (
+        chat.messages.select_related("author")
+        .filter(is_system=False, deleted_at__isnull=True)
+        .exclude(body="")
+        .order_by("-id")
+    )
+    for msg in mensagens:
+        for url in extrair_links(censor(msg.body)):
+            if url in vistos:
+                continue
+            vistos.add(url)
+            links.append({
+                "url": url,
+                "chat_id": msg.chat_id,
+                "message_id": msg.id,
+                "sent_at": msg.sent_at,
+                "author_name": msg.author.full_name if msg.author else "Sistema",
+            })
+    return arquivos, links
+
+
+def marcar_entregues(*, chat, actor, ids: list[int]) -> list[int]:
+    """Carimba a entrega das mensagens que o destinatário acabou de receber.
+
+    Só o OUTRO lado entrega: carimbar a própria mensagem como entregue seria
+    o remetente confirmando a si mesmo. E só a primeira vez conta — o
+    `delivered_at__isnull=True` evita que uma reconexão empurre o horário
+    para frente e faça a entrega parecer mais recente do que foi.
+    """
+    if not ids:
+        return []
+    alvo = chat.messages.filter(
+        id__in=ids[:200], delivered_at__isnull=True, is_system=False
+    ).exclude(author=actor)
+    marcados = list(alvo.values_list("id", flat=True))
+    if marcados:
+        chat.messages.filter(id__in=marcados).update(delivered_at=timezone.now())
+    return marcados
+
+
 def timeline_media(client) -> tuple[list, list]:
     """Anexos e links de TODAS as sessões do cliente — o painel do chat.
 

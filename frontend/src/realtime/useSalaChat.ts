@@ -73,14 +73,30 @@ export function useSalaChat(chatId: number | null) {
     }
   }, [chatId, queryClient])
 
-  const enviarMensagem = useCallback((body: string) => {
+  const enviarMensagem = useCallback((body: string, replyTo?: number | null) => {
     setErro(null)
-    assinaturaRef.current?.enviar({ type: 'message', body } satisfies MensagemClienteChat)
+    assinaturaRef.current?.enviar({
+      type: 'message',
+      body,
+      ...(replyTo != null ? { reply_to: replyTo } : {}),
+    } satisfies MensagemClienteChat)
+  }, [])
+
+  /**
+   * Confirma ao remetente que estas mensagens chegaram AQUI.
+   *
+   * Quem chama é a thread, ao desenhar mensagens do outro lado ainda sem
+   * `delivered_at`. Entregue ≠ lida de propósito: recebido é o aparelho,
+   * lido é a pessoa, e o `read/` continua sendo o que carimba o segundo.
+   */
+  const confirmarEntrega = useCallback((ids: number[]) => {
+    if (ids.length === 0) return
+    assinaturaRef.current?.enviar({ type: 'delivered', ids } satisfies MensagemClienteChat)
   }, [])
 
   const enviarDigitando = useCallback((is_typing: boolean) => {
     assinaturaRef.current?.enviar({ type: 'typing', is_typing } satisfies MensagemClienteChat)
   }, [])
 
-  return { status, digitando, erro, enviarMensagem, enviarDigitando }
+  return { status, digitando, erro, enviarMensagem, enviarDigitando, confirmarEntrega }
 }

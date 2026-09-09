@@ -1,5 +1,11 @@
 import type { QueryClient } from '@tanstack/react-query'
-import { anexarMensagemNoCache, chaves, recuperarMensagensPerdidas, type Chat } from '@/api/chat'
+import {
+  anexarMensagemNoCache,
+  chaves,
+  recuperarMensagensPerdidas,
+  type Chat,
+  type MensagemChat,
+} from '@/api/chat'
 import { criarSocket, type Socket } from './socket'
 import type { EventoServidorChat, EventoServidorPessoal } from './types'
 
@@ -171,6 +177,20 @@ export function aplicarEventoChat(evento: EventoServidorChat, chatId: number, qu
     case 'message_deleted': {
       const { type: _tipo, ...mensagem } = evento
       anexarMensagemNoCache(queryClient, chatId, mensagem)
+      break
+    }
+    case 'message_delivered':
+    case 'message_read': {
+      // O tique é do REMETENTE, e ele pode estar com a conversa aberta agora.
+      // Carimba direto no cache em vez de invalidar: um refetch da thread
+      // inteira para mudar um ícone rolaria a lista de quem está lendo.
+      const campo = evento.type === 'message_read' ? 'read_at' : 'delivered_at'
+      const quando = new Date().toISOString()
+      queryClient.setQueryData<MensagemChat[]>(chaves.mensagens(chatId), (atual) =>
+        atual?.map((m) =>
+          evento.ids.includes(m.id) && m[campo] === null ? { ...m, [campo]: quando } : m,
+        ),
+      )
       break
     }
     case 'accepted':

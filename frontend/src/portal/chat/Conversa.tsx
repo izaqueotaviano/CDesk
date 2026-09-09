@@ -1,12 +1,13 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
-import { IconArrowLeft, IconCheck, IconPaperclip, IconPencil, IconRotateClockwise, IconSend, IconTrash } from '@tabler/icons-react'
+import { useEffect, useId, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
+import { IconArrowLeft, IconCheck, IconPaperclip, IconPencil, IconRotateClockwise, IconSearch, IconSend, IconTrash, IconX } from '@tabler/icons-react'
 import {
   LIMITE_MENSAGENS,
+  useBuscaNaConversa,
   useCarregarAnteriores,
+  useCarregarAoRedor,
   useChat,
   useEditarMensagemChat,
   useConfigChat,
-  useEnviarArquivos,
   useExcluirMensagemChat,
   useMarcarLidas,
   useMensagensChat,
@@ -14,8 +15,14 @@ import {
   type MensagemChat,
 } from '@/api/chat'
 import { ApiError } from '@/api/client'
+import {
+  imagensColadas,
+  primeiraNaoLida,
+  useFilaDeAnexos,
+} from '@/chat/conversa'
 import { rotuloDia } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import { useSalaChat } from '@/realtime/useSalaChat'
+import { cn } from '../lib/cn'
 import { useAgora } from '../lib/formato'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
@@ -66,8 +73,15 @@ export function Conversa({
   const { data: chat } = useChat(chatId)
   const { data: configChat } = useConfigChat()
   const { data: mensagens, isLoading } = useMensagensChat(chatId)
-  const { status, digitando, erro: erroSocket, enviarMensagem, enviarDigitando } = useSalaChat(chatId)
-  const enviarArquivos = useEnviarArquivos(chatId)
+  const {
+    status,
+    digitando,
+    erro: erroSocket,
+    enviarMensagem,
+    enviarDigitando,
+    confirmarEntrega,
+  } = useSalaChat(chatId)
+  const anexos = useFilaDeAnexos(chatId)
   const carregarAnteriores = useCarregarAnteriores(chatId)
   const reabrir = useReabrirChat(chatId)
   const marcarLidas = useMarcarLidas(chatId)
@@ -83,6 +97,13 @@ export function Conversa({
   // anteriores existem no servidor mas não na tela — o botão busca de trás
   // pra frente até voltar vazio (o mesmo mecanismo do console).
   const [fimDoHistorico, setFimDoHistorico] = useState(false)
+  const [buscando, setBuscando] = useState(false)
+  const [rascunhoBusca, setRascunhoBusca] = useState('')
+  const [termo, setTermo] = useState('')
+  const [posicao, setPosicao] = useState(0)
+  const [respondendo, setRespondendo] = useState<MensagemChat | null>(null)
+  const achados = useBuscaNaConversa(termo.length >= 2 ? chatId : null, termo)
+  const irAoRedor = useCarregarAoRedor(chatId)
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const inputAnexo = useRef<HTMLInputElement>(null)
   const fimRef = useRef<HTMLDivElement>(null)
@@ -100,6 +121,26 @@ export function Conversa({
     if (ultimoId == null || document.hidden) return
     marcar()
   }, [ultimoId, marcar])
+
+  // A ENTREGA é confirmada mesmo com a aba escondida: chegou no aparelho é
+  // uma coisa, a pessoa ter lido é outra — e é o `read/` acima que diz a
+  // segunda.
+  useEffect(() => {
+    if (!mensagens) return
+    confirmarEntrega(
+      mensagens.filter((m) => !m.is_system && m.author_is_internal && m.delivered_at === null).map((m) => m.id),
+    )
+  }, [mensagens, confirmarEntrega])
+
+  const temMensagens = (mensagens?.length ?? 0) > 0
+  // Régua "Novas mensagens" congelada na abertura — com `mensagens` nas
+  // dependências ela pularia para a última a cada chegada, enquanto a pessoa
+  // ainda lê as de cima.
+  const regua = useMemo(
+    () => (mensagens?.length ? primeiraNaoLida(mensagens, false) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [temMensagens, chatId],
+  )
 
   if (!chat || isLoading) {
     return (
@@ -126,16 +167,60 @@ export function Conversa({
 
   function enviar() {
     if (!podeEnviarTexto) return
-    enviarMensagem(texto.trim())
+    enviarMensagem(texto.trim(), respondendo?.id ?? null)
+    setRespondendo(null)
     enviarDigitando(false)
     setTexto('')
   }
 
   function aoTeclar(e: KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === 'Escape' && respondendo) {
+      e.preventDefault()
+      setRespondendo(null)
+      return
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       enviar()
     }
+  }
+
+  function anexar(arquivos: File[]) {
+    if (arquivos.length === 0) return
+    setErro(null)
+    // O erro de UM arquivo mora na linha dele, com "tentar de novo" — não
+    // numa faixa que some assim que o próximo termina.
+    anexos.enviar(arquivos, { texto: texto.trim() || undefined, replyTo: respondendo?.id ?? null })
+    setTexto('')
+    setRespondendo(null)
+  }
+
+  /** Ctrl+V com um print na área de transferência vira anexo. */
+  function colar(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const imagens = imagensColadas(e.clipboardData?.items ?? null, new Date())
+    if (imagens.length === 0) return
+    e.preventDefault()
+    anexar(imagens)
+  }
+
+  /** Leva até uma mensagem, buscando a janela ao redor se ela ainda não foi
+   *  carregada — é o que faz o achado antigo ser alcançável. */
+  function irPara(id: number) {
+    const rolar = () =>
+      document.querySelector(`[data-msg="${id}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+    if (mensagens?.some((m) => m.id === id)) {
+      rolar()
+      return
+    }
+    irAoRedor.mutate(id, { onSuccess: () => setTimeout(rolar, 60) })
+  }
+
+  const resultados = achados.data ?? []
+  function navegarBusca(passo: number) {
+    if (resultados.length === 0) return
+    const proximo = (posicao + passo + resultados.length) % resultados.length
+    setPosicao(proximo)
+    irPara(resultados[proximo].id)
   }
 
 
@@ -164,6 +249,23 @@ export function Conversa({
             )}
           </span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
+          aria-label="Buscar nesta conversa"
+          aria-expanded={buscando}
+          title="Buscar nesta conversa"
+          onClick={() => {
+            setBuscando((v) => !v)
+            if (buscando) {
+              setTermo('')
+              setRascunhoBusca('')
+            }
+          }}
+        >
+          <IconSearch />
+        </Button>
         {aberta && (
           <Button variant="outline" size="sm" className="shrink-0" onClick={() => setConfirmandoEncerrar(true)}>
             Encerrar conversa
@@ -185,6 +287,55 @@ export function Conversa({
           </Button>
         )}
       </header>
+
+      {buscando && (
+        <form
+          role="search"
+          className="flex flex-wrap items-center gap-2 border-b border-divisoria px-4 py-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setTermo(rascunhoBusca)
+            setPosicao(0)
+          }}
+        >
+          <label className="sr-only" htmlFor={`${idBase}-busca`}>
+            Termo da busca
+          </label>
+          <input
+            id={`${idBase}-busca`}
+            type="search"
+            autoFocus
+            value={rascunhoBusca}
+            onChange={(e) => setRascunhoBusca(e.target.value)}
+            placeholder="Procurar na conversa inteira"
+            className={`${CAMPO} h-8 flex-1`}
+          />
+          <Button type="submit" size="sm" variant="outline" disabled={rascunhoBusca.trim().length < 2}>
+            Buscar
+          </Button>
+          {termo.length >= 2 && (
+            <>
+              <span role="status" className="text-legenda text-tinta-secundaria">
+                {achados.isLoading
+                  ? 'procurando…'
+                  : resultados.length === 0
+                    ? 'nada encontrado'
+                    : `${posicao + 1} de ${resultados.length}`}
+              </span>
+              <Button size="icon-sm" variant="ghost" aria-label="Resultado anterior" disabled={resultados.length === 0} onClick={() => navegarBusca(-1)}>
+                ↑
+              </Button>
+              <Button size="icon-sm" variant="ghost" aria-label="Próximo resultado" disabled={resultados.length === 0} onClick={() => navegarBusca(1)}>
+                ↓
+              </Button>
+            </>
+          )}
+          {/* Do SERVIDOR: acha no histórico inteiro, não só no que está na tela. */}
+          <p className="w-full text-legenda text-tinta-terciaria">
+            Procura na conversa inteira, não só no que está na tela.
+          </p>
+        </form>
+      )}
 
       <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
         {total >= LIMITE_MENSAGENS && !fimDoHistorico && (
@@ -249,9 +400,21 @@ export function Conversa({
                     </div>
                   </div>
                 ) : (
+                  <div key={m.id}>
+                    {m.id === regua && (
+                      <div
+                        role="separator"
+                        className="mb-2 flex items-center gap-3 text-legenda font-medio uppercase tracking-rotulo text-acento before:h-px before:flex-1 before:bg-acento/40 after:h-px after:flex-1 after:bg-acento/40"
+                      >
+                        Novas mensagens
+                      </div>
+                    )}
                   <Mensagem
-                    key={m.id}
                     msg={m}
+                    termo={termo}
+                    emFoco={resultados[posicao]?.id === m.id}
+                    onResponder={aberta ? () => setRespondendo(m) : undefined}
+                    onIrPara={irPara}
                     acoes={
                       m.can_edit && !m.is_deleted ? (
                         <>
@@ -266,6 +429,7 @@ export function Conversa({
                       ) : undefined
                     }
                   />
+                  </div>
                 ),
               )}
             </section>
@@ -291,8 +455,68 @@ export function Conversa({
         </p>
       )}
 
+      {anexos.fila.length > 0 && (
+        <div className="flex flex-col gap-2 border-t border-divisoria p-3" aria-label="Anexos em envio">
+          {anexos.fila.map((envio) => (
+            <div
+              key={envio.id}
+              className={cn(
+                'flex items-center gap-2 rounded-md border border-divisoria bg-superficie px-2 py-1.5',
+                envio.estado === 'erro' && 'border-perigo',
+              )}
+            >
+              {envio.previa ? (
+                <img src={envio.previa} alt="" className="size-8 rounded object-cover" />
+              ) : (
+                <IconPaperclip className="size-4 text-tinta-secundaria" aria-hidden="true" />
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="truncate text-legenda text-tinta">{envio.arquivo.name}</span>
+                {envio.estado === 'erro' ? (
+                  <span className="text-legenda text-perigo">{envio.erro}</span>
+                ) : (
+                  <progress
+                    className="h-1 w-full"
+                    value={Math.round(envio.progresso * 100)}
+                    max={100}
+                    aria-label={`Enviando ${envio.arquivo.name}`}
+                  />
+                )}
+              </div>
+              {envio.estado === 'erro' ? (
+                <>
+                  <Button size="sm" variant="outline" onClick={() => anexos.repetir(envio.id)}>
+                    Tentar de novo
+                  </Button>
+                  <Button size="icon-sm" variant="ghost" aria-label="Descartar envio" onClick={() => anexos.descartar(envio.id)}>
+                    <IconX />
+                  </Button>
+                </>
+              ) : (
+                <Button size="sm" variant="ghost" onClick={() => anexos.cancelar(envio.id)}>
+                  Cancelar
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {aberta && (
         <div className="flex flex-col gap-2 border-t border-divisoria p-3">
+          {respondendo && (
+            <div className="flex items-center gap-2 rounded-md border-l-2 border-acento bg-navegacao px-2 py-1">
+              <span className="shrink-0 text-legenda font-medio text-acento">
+                Respondendo {respondendo.author_is_internal ? respondendo.author_name : 'você mesmo'}
+              </span>
+              <span className="flex-1 truncate text-legenda text-tinta-secundaria">
+                {respondendo.body || (respondendo.files.length > 0 ? 'Anexo' : '')}
+              </span>
+              <Button size="icon-sm" variant="ghost" aria-label="Cancelar resposta" onClick={() => setRespondendo(null)}>
+                <IconX />
+              </Button>
+            </div>
+          )}
           <textarea
             id={`${idBase}-texto`}
             ref={areaRef}
@@ -307,13 +531,14 @@ export function Conversa({
               }
             }}
             onKeyDown={aoTeclar}
-            placeholder={socketAberto ? 'Escreva sua mensagem…' : 'Sem conexão — o texto espera voltar; anexos continuam funcionando.'}
+            onPaste={colar}
+            placeholder={socketAberto ? 'Escreva sua mensagem… (Ctrl+V cola um print)' : 'Sem conexão — o texto espera voltar; anexos continuam funcionando.'}
             aria-label="Escreva sua mensagem"
             className={`${CAMPO} resize-none`}
           />
           <div className="flex items-center justify-between gap-2">
-            <Button variant="outline" size="sm" disabled={enviarArquivos.isPending} onClick={() => inputAnexo.current?.click()}>
-              <IconPaperclip /> {enviarArquivos.isPending ? 'Enviando…' : 'Anexar'}
+            <Button variant="outline" size="sm" onClick={() => inputAnexo.current?.click()}>
+              <IconPaperclip /> Anexar
             </Button>
             <input
               ref={inputAnexo}
@@ -324,16 +549,7 @@ export function Conversa({
               onChange={(e) => {
                 const arquivos = Array.from(e.target.files ?? [])
                 e.target.value = ''
-                if (arquivos.length === 0) return
-                setErro(null)
-                enviarArquivos.mutate(
-                  { arquivos, texto: texto.trim() || undefined },
-                  {
-                    onSuccess: () => setTexto(''),
-                    onError: (err) =>
-                      setErro(err instanceof ApiError ? (err.detail ?? err.fieldErrors?.files?.[0] ?? 'Não foi possível anexar.') : 'Não foi possível anexar.'),
-                  },
-                )
+                anexar(arquivos)
               }}
             />
             {/* Botão invertido, como o `.cc-composer__enviar` do console: o azul de
