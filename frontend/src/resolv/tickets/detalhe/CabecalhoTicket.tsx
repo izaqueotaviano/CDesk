@@ -19,7 +19,14 @@ import {
 } from './linhaDoTempo'
 import type { RelogioSla, TicketDetalhe } from './tiposDetalhe'
 
-export type PainelLateral = 'propriedades' | 'cliente'
+/**
+ * `propriedades` e `cliente` são COLUNAS que só viram gaveta quando a tela
+ * aperta (media queries em detalhe.scss). `notas` nunca é coluna: é o
+ * rascunho pessoal de quem atende, abre sob demanda em qualquer largura e
+ * some quando fecha — por isso o botão dele fica junto das ações, sempre
+ * visível, e não no grupo `__gavetas`, que só aparece abaixo de 1100px.
+ */
+export type PainelLateral = 'propriedades' | 'cliente' | 'notas'
 
 interface Props {
   ticket: TicketDetalhe
@@ -166,6 +173,19 @@ export function CabecalhoTicket({
                   Fechar ticket…
                 </button>
               )}
+
+          <button
+            type="button"
+            className={
+              'ticket-cab__botao' + (painelAberto === 'notas' ? ' ticket-cab__botao--ativo' : '')
+            }
+            onClick={() => onAlternarPainel('notas')}
+            aria-pressed={painelAberto === 'notas'}
+            title="Suas anotações sobre este chamado — só você vê"
+          >
+            <i className="ti ti-notes" aria-hidden="true" />
+            Notas
+          </button>
 
           <span className="ticket-cab__gavetas" role="group" aria-label="Painéis">
             <button

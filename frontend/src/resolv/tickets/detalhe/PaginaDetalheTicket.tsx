@@ -9,6 +9,7 @@ import { CabecalhoTicket, type PainelLateral } from './CabecalhoTicket'
 import { Conversa } from './Conversa'
 import { ModalFecharTicket } from './ModalFecharTicket'
 import { PainelCliente } from './PainelCliente'
+import { PainelNotas } from './PainelNotas'
 import { PainelPropriedades } from './PainelPropriedades'
 import { useAcoesTicket, useTicketDetalhe } from './dados'
 import { mensagemDeErro } from './linhaDoTempo'
@@ -197,7 +198,19 @@ function DetalheCarregado({
           <PainelPropriedades ticket={ticket} me={me} />
           <Conversa ticket={ticket} me={me} agoraMs={agoraMs} pedidoReabrir={pedidoReabrir} />
           <PainelCliente ticket={ticket} agoraMs={agoraMs} />
-          {painelAberto && (
+          {painelAberto === 'notas' && (
+            <PainelNotas
+              ticketId={ticket.id}
+              agoraMs={agoraMs}
+              onFechar={() => setPainelAberto(null)}
+            />
+          )}
+          {/* Sem véu para as notas: o painel existe para anotar ENQUANTO se lê o
+           *  chamado. Um véu clicável cobrindo a conversa faria o clique de
+           *  rolar/ler fechar o painel — e levar junto o rascunho não salvo.
+           *  Propriedades e cliente mantêm o véu: ali o painel só vira gaveta
+           *  quando a tela é estreita, e aí ele é mesmo modal. */}
+          {painelAberto && painelAberto !== 'notas' && (
             <button
               type="button"
               className="detalhe__veu"

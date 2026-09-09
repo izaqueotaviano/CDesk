@@ -7,7 +7,17 @@ import type { Evento, TicketDetalhe } from './tiposDetalhe'
 // As colunas/cabeçalho têm suas próprias dependências pesadas (SLA, anexos,
 // cvz/components…) e cada uma já tem teste próprio — aqui o que importa é só
 // a faixa "chamado atualizado por baixo" (item 20), que vive nesta página.
-vi.mock('./CabecalhoTicket', () => ({ CabecalhoTicket: () => <div data-testid="cabecalho" /> }))
+// O cabeçalho real traz SLA/anexos junto e tem teste próprio; aqui ele vira
+// só os botões que alternam painel, que é o que esta página coordena.
+vi.mock('./CabecalhoTicket', () => ({
+  CabecalhoTicket: ({ onAlternarPainel }: { onAlternarPainel: (p: string) => void }) => (
+    <div data-testid="cabecalho">
+      <button onClick={() => onAlternarPainel('notas')}>abrir notas</button>
+      <button onClick={() => onAlternarPainel('cliente')}>abrir cliente</button>
+    </div>
+  ),
+}))
+vi.mock('./PainelNotas', () => ({ PainelNotas: () => <div data-testid="notas" /> }))
 vi.mock('./Conversa', () => ({ Conversa: () => <div data-testid="conversa" /> }))
 vi.mock('./PainelCliente', () => ({ PainelCliente: () => <div data-testid="cliente" /> }))
 vi.mock('./PainelPropriedades', () => ({
@@ -201,5 +211,25 @@ describe('PaginaDetalheTicket — faixa "chamado atualizado por baixo" (item 20)
     expect(screen.getByText(/atualizado/)).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Fechar aviso de atualização' }))
     expect(screen.queryByText(/atualizado/)).not.toBeInTheDocument()
+  })
+
+  it('as notas abrem SEM véu — dá para ler a conversa enquanto se anota', () => {
+    // O véu é um botão que cobre as colunas e fecha o painel ao clique. Sobre
+    // as notas ele seria destrutivo: rolar/clicar a conversa (que é o motivo
+    // de a nota existir) fecharia o painel e levaria junto o rascunho.
+    const { container } = montar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'abrir notas' }))
+
+    expect(screen.getByTestId('notas')).toBeInTheDocument()
+    expect(container.querySelector('.detalhe__veu')).toBeNull()
+  })
+
+  it('o painel do cliente continua com véu — ali ele é gaveta mesmo', () => {
+    const { container } = montar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'abrir cliente' }))
+
+    expect(container.querySelector('.detalhe__veu')).not.toBeNull()
   })
 })
