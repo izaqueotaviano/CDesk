@@ -31,9 +31,12 @@ Três decisões que valem ser lidas antes do código:
    texto puro — jogar o HTML cru no corpo mostraria `<p>` na tela do agente.
    Por isso a conversão para texto, sem dependência nova.
 
-O que o Movidesk exporta e o resolv não tem: equipe (o export não traz),
-e a separação entre pessoa e organização — `clients[].businessName` é um nome
-só. Ver `import_tickets` para como cada um é tratado.
+A equipe vem do próprio ticket (`ownerTeam`, o nome da equipe no Movidesk):
+a de mesmo nome aqui recebe o chamado e, se ainda não existe, é criada. A
+equipe passada a `import_tickets` é só o padrão para ticket sem equipe (export
+antigo, feito antes de pedirmos o campo, ou ticket que nunca teve dono). O
+que o Movidesk exporta e o resolv não tem: a separação entre pessoa e
+organização — `clients[].businessName` é um nome só. Ver `import_tickets`.
 """
 
 from __future__ import annotations
@@ -168,6 +171,7 @@ class ImportReport:
     companies: list[str] = field(default_factory=list)
     people: list[str] = field(default_factory=list)
     categories: list[str] = field(default_factory=list)
+    teams: list[str] = field(default_factory=list)
     # nome do responsável no Movidesk → quantos tickets ficaram sem dono por isso
     unmatched_agents: dict[str, int] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
@@ -181,6 +185,7 @@ class ImportReport:
             f"empresas criadas: {len(self.companies)}",
             f"pessoas criadas: {len(self.people)}",
             f"categorias criadas: {len(self.categories)}",
+            f"equipes criadas: {len(self.teams)}",
         ]
 
     def warning_lines(self) -> list[str]:
@@ -270,9 +275,12 @@ class _Directory:
     permite, e está registrado no relatório da importação.
     """
 
-    def __init__(self, plan: Plan, report: ImportReport, agent_names: set[str]):
+    def __init__(
+        self, plan: Plan, report: ImportReport, agent_names: set[str], default_team: Team
+    ):
         self.plan = plan
         self.report = report
+        self.default_team = default_team
         # nomes que aparecem como RESPONSÁVEL em algum ticket do arquivo. É a
         # única evidência de "esta pessoa é do atendimento" que o export dá, e
         # ela vem do próprio dado — ver `is_agent_name`.
@@ -281,6 +289,7 @@ class _Directory:
         self._people: dict[str, User] = {}
         self._agents: dict[str, User] = {}
         self._categories: dict[str, TicketCategory] = {}
+        self._teams: dict[str, Team] = {}
 
     def is_agent_name(self, name: str) -> bool:
         """Este nome é de alguém do atendimento?
@@ -364,6 +373,29 @@ class _Directory:
             ).first()
         return self._agents[key]
 
+    def team(self, name: str | None) -> Team:
+        """A equipe do ticket no Movidesk (`ownerTeam`), pelo nome.
+
+        Quem já usa "Suporte" e "Comercial" lá quer os chamados nas mesmas
+        equipes aqui — não todos numa só. Equipe que ainda não existe é
+        criada com o mesmo nome (equipe não é acesso: é só o recorte da fila;
+        supervisor e visibilidade a pessoa ajusta depois em Configurações).
+        Sem nome, cai na equipe padrão escolhida na tela.
+        """
+        if not name or not str(name).strip():
+            return self.default_team
+        limpo = str(name).strip()[:80]
+        key = limpo.lower()
+        if key not in self._teams:
+            existing = Team.objects.filter(name__iexact=limpo).first()
+            if existing is None:
+                existing = Team.objects.create(
+                    name=limpo, slug=unique_slug(Team, limpo, fallback="equipe")
+                )
+                self.report.teams.append(limpo)
+            self._teams[key] = existing
+        return self._teams[key]
+
     def category(self, name: str | None) -> TicketCategory | None:
         if not name or not name.strip():
             return None
@@ -423,6 +455,7 @@ def import_tickets(
         agent_names={
             (raw.get("owner") or {}).get("businessName") or "" for raw in selecionados
         },
+        default_team=team,
     )
 
     for i, raw in enumerate(selecionados, start=1):
@@ -432,14 +465,14 @@ def import_tickets(
             report.warnings.append("ticket sem id no arquivo — ignorado")
         else:
             with transaction.atomic():
-                _import_one(raw, movidesk_id, directory, team, report)
+                _import_one(raw, movidesk_id, directory, report)
         if on_progress is not None:
             on_progress(i, total)
 
     return report
 
 
-def _import_one(raw, movidesk_id, directory, team, report) -> None:
+def _import_one(raw, movidesk_id, directory, report) -> None:
     reference = f"{REFERENCE_PREFIX}-{movidesk_id}"
     created_at = parse_date(raw.get("createdDate")) or timezone.now()
 
@@ -470,7 +503,7 @@ def _import_one(raw, movidesk_id, directory, team, report) -> None:
     fields = {
         "company": company,
         "requester": requester,
-        "team": team,
+        "team": directory.team(_owner_team(raw)),
         "source": _ticket_source(actions),
         "subject": (raw.get("subject") or "(sem assunto)")[:200],
         "status": status,
@@ -522,6 +555,14 @@ def _import_one(raw, movidesk_id, directory, team, report) -> None:
         TicketStatusEvent.objects.filter(pk=event.pk).update(
             created_at=closed_at or created_at
         )
+
+
+def _owner_team(raw) -> str | None:
+    """`ownerTeam` é uma string na API; aceita também o objeto, por via das dúvidas."""
+    valor = raw.get("ownerTeam")
+    if isinstance(valor, dict):
+        valor = valor.get("businessName") or valor.get("name")
+    return valor
 
 
 def _import_actions(ticket, actions, directory, report) -> None:

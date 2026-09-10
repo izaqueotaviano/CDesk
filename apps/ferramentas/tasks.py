@@ -132,7 +132,8 @@ def importar_movidesk(self, job_id: int) -> None:
 
         total = len(tickets)
         job.registrar(
-            f"Importando {total} tickets para a equipe “{job.team.name}”…",
+            f"Importando {total} tickets (equipe pela ownerTeam do Movidesk; "
+            f"sem equipe cai em “{job.team.name}”)…",
             etapa=f"Importando 0 de {total}",
             progresso=50,
         )

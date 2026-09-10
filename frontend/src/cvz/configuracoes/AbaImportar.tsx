@@ -128,11 +128,11 @@ export function AbaImportar() {
             helper="Movidesk → Configurações → Conta → Parâmetros → aba Ambiente → Gerar nova chave. Vai só nesta requisição; não fica gravado."
           />
           <Select
-            label="Equipe que recebe os chamados"
+            label="Equipe padrão"
             value={equipeEscolhida}
             onChange={(e) => setEquipe(e.target.value)}
             options={listaEquipes.map((e) => ({ value: String(e.id), label: e.name }))}
-            helper="O export do Movidesk não traz equipe — tudo cai nesta."
+            helper="Cada chamado vai pra equipe de mesmo nome que ele tem no Movidesk (criada aqui se ainda não existir). Esta só entra quando o ticket não tem equipe lá."
           />
         </FormRow>
         <FormRow columns={2}>
