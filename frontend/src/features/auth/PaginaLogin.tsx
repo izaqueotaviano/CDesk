@@ -107,124 +107,68 @@ function Marca({ nome, className }: { nome: string; className?: string }) {
 }
 
 /**
- * As linhas que "escorrem" pelo painel da marca — 24 curvas cúbicas
- * deslocadas uma da outra, espelhadas por `posicao` (1 ou -1). A geometria
- * é a da referência (21st.dev, auth-page), que animava em loop com
- * framer-motion. Aqui é CSS (login.css): cada curva se DESENHA uma vez ao
- * abrir (`stroke-dashoffset` com `pathLength="1"`, escalonado por índice) e
- * depois o conjunto inteiro só deriva por `transform`, que não repinta.
- * Nada de `Math.random()`: render determinístico (teste, StrictMode).
+ * O painel da direita (desktop): a grade de 64px sobre a tinta do acento
+ * (login.css) — ou a foto que o admin enviou, aí a grade sai e entra um véu
+ * escuro pro cartão continuar legível por cima. O cartão de destaques mora
+ * embaixo, como a citação da referência, e o rodapé em mono fecha o painel.
+ *
+ * Não é `aria-hidden`: headline e destaques são texto de verdade, e o leitor
+ * de tela lê depois do formulário (ordem do DOM), que é onde interessa.
  */
-function LinhasFlutuantes({ posicao }: { posicao: 1 | -1 }) {
-  const linhas = Array.from({ length: 24 }, (_, k) => {
-    const i = k * 1.5 // mantém o espalhamento das 36 originais
-    return {
-      id: k,
-      d: `M-${380 - i * 5 * posicao} -${189 + i * 6}C-${380 - i * 5 * posicao} -${189 + i * 6} -${312 - i * 5 * posicao} ${216 - i * 6} ${152 - i * 5 * posicao} ${343 - i * 6}C${616 - i * 5 * posicao} ${470 - i * 6} ${684 - i * 5 * posicao} ${875 - i * 6} ${684 - i * 5 * posicao} ${875 - i * 6}`,
-      largura: 0.5 + i * 0.03,
-      opacidade: Math.min(1, 0.1 + i * 0.03),
-      atraso: `${k * 60}ms`,
-    }
-  })
-  return (
-    <div className={cn('login-linhas text-tinta', posicao === -1 && 'login-linhas--espelho')} aria-hidden="true">
-      <svg viewBox="0 0 696 316" fill="none" preserveAspectRatio="xMidYMid slice">
-        {linhas.map((l) => (
-          <path
-            key={l.id}
-            d={l.d}
-            pathLength={1}
-            stroke="currentColor"
-            strokeWidth={l.largura}
-            strokeOpacity={l.opacidade}
-            style={{ '--atraso': l.atraso } as React.CSSProperties}
-          />
-        ))}
-      </svg>
-    </div>
-  )
-}
-
-/**
- * O painel da marca (desktop): superfície sutil com as linhas animadas e um
- * degradê do canvas subindo por baixo dos textos — ou, se o admin enviou uma
- * imagem, a imagem com o degradê escuro (aí as linhas não entram: a foto já
- * é o fundo). Marca em cima, chamada e destaques embaixo, como uma citação.
- */
-function PainelDaMarca({ marca, nome, icones }: { marca: Marca | null; nome: string; icones: LucideIcon[] }) {
+function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: LucideIcon[] }) {
   const imagem = urlDaImagemDeMarca(marca?.image_url ?? null)
   const temTexto = Boolean(marca && (marca.headline || marca.highlights.length > 0))
   return (
-    <aside
-      className={cn(
-        'relative hidden flex-col overflow-hidden border-r border-divisoria p-10 lg:flex',
-        imagem ? 'text-white' : 'bg-superficie-sutil text-tinta',
-      )}
-      style={imagem ? { backgroundImage: `url("${imagem}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
-      aria-hidden="true"
-    >
-      {imagem ? (
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/20" />
-      ) : (
+    <aside className={cn('login-painel relative hidden overflow-hidden lg:block', imagem && 'login-painel--foto')}>
+      {imagem && (
         <>
-          <LinhasFlutuantes posicao={1} />
-          <LinhasFlutuantes posicao={-1} />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-canvas via-canvas/70 to-transparent" />
+          <img src={imagem} alt="" className="absolute inset-0 size-full object-cover" />
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-black/10" />
         </>
       )}
-      <Marca nome={nome} className={cn('relative z-10', imagem && '[&>span:first-child]:bg-white/15 [&>span:first-child]:text-white [&>span:first-child]:backdrop-blur')} />
-      <div className="relative z-10 mt-auto flex flex-col gap-6">
+
+      <div className="relative flex h-full flex-col justify-end gap-5 p-8 xl:p-10">
         {marca && temTexto && (
-          <>
-            {marca.headline && <p className="max-w-md text-display font-forte leading-justa tracking-display">{marca.headline}</p>}
+          <div className="ml-auto w-full max-w-[380px] rounded-md border border-divisoria bg-superficie p-5 shadow-[var(--elevacao-3)]">
+            {marca.headline && <p className="text-corpo-lg font-forte leading-justa tracking-titulo text-tinta">{marca.headline}</p>}
             {marca.highlights.length > 0 && (
-              <ul className={cn('flex max-w-md flex-col gap-3 text-corpo', imagem ? 'text-white/85' : 'text-tinta-secundaria')}>
+              <ul className={cn('flex flex-col gap-2.5 text-pequeno text-tinta-secundaria', marca.headline && 'mt-4')}>
                 {marca.highlights.map((texto, i) => {
                   const Icone = icones[i] ?? icones[icones.length - 1]
                   return (
-                    <li key={texto} className="flex items-start gap-3">
-                      <Icone className="mt-0.5 size-4 shrink-0" />
+                    <li key={texto} className="flex items-start gap-2.5">
+                      <Icone className="mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
                       {texto}
                     </li>
                   )
                 })}
               </ul>
             )}
-          </>
+          </div>
         )}
-        <p className={cn('font-mono text-legenda', imagem ? 'text-white/70' : 'text-tinta-terciaria')}>Resolv · sistema de atendimento</p>
+        <p className={cn('text-center font-mono text-legenda', imagem ? 'text-white/75' : 'text-tinta-terciaria')}>
+          Resolv · sistema de atendimento
+        </p>
       </div>
     </aside>
   )
 }
 
-/** Os brilhos radiais atrás do formulário (login.css) — só textura, sem
- *  função; `aria-hidden` e fora da árvore de leitura. */
-function Brilhos() {
-  return (
-    <div className="login-brilhos" aria-hidden="true">
-      <div className="login-brilho login-brilho--1" />
-      <div className="login-brilho login-brilho--2" />
-      <div className="login-brilho login-brilho--3" />
-    </div>
-  )
-}
-
 /**
- * No celular a imagem do admin (se houver) vira um banner compacto no topo;
- * sem imagem, a marca aparece em linha, logo acima do título — o painel
- * inteiro não cabe, e as linhas animadas não valem o espaço numa tela de 390px.
+ * No celular o painel inteiro não cabe: a foto do admin (se houver) vira uma
+ * faixa curta no topo, e os destaques ficam de fora — numa tela de 390px o
+ * que importa é o formulário acima da dobra. Sem foto, nem faixa: uma tira
+ * de cor lisa só empurraria o campo pra baixo.
  */
-function BannerCelular({ marca, nome }: { marca: Marca | null; nome: string }) {
+function FaixaCelular({ marca }: { marca: Marca | null }) {
   const imagem = urlDaImagemDeMarca(marca?.image_url ?? null)
   if (!imagem) return null
   return (
-    <header
-      className="-mx-4 mb-6 flex min-h-[120px] flex-col justify-end px-4 pb-5 pt-4 text-white sm:-mx-8 sm:px-8 lg:hidden"
-      style={{ backgroundImage: `linear-gradient(to top, rgba(0,0,0,.72), rgba(0,0,0,.25) 55%, rgba(0,0,0,.2)), url("${imagem}")`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-    >
-      <Marca nome={nome} className="[&>span:first-child]:bg-white/15 [&>span:first-child]:text-white [&>span:first-child]:backdrop-blur" />
-    </header>
+    <div
+      className="-mx-4 -mt-4 mb-6 h-[124px] bg-cover bg-center sm:-mx-8 lg:hidden"
+      style={{ backgroundImage: `linear-gradient(to top, rgba(0,0,0,.45), rgba(0,0,0,.1)), url("${imagem}")` }}
+      aria-hidden="true"
+    />
   )
 }
 
@@ -233,6 +177,10 @@ function BannerCelular({ marca, nome }: { marca: Marca | null; nome: string }) {
  * texto de cada público. Dois passos só quando a conta tem a verificação em
  * duas etapas ligada — senão a senha certa já entra. Depois, cada um vai
  * para a própria casa (painel ou portal), ou de volta para onde tentou ir.
+ *
+ * Desenho de planta baixa (referência: a tela de cadastro da Relume):
+ * formulário numa coluna estreita à ESQUERDA, com a moldura de linhas
+ * passando dos cantos, e o painel de marca à direita.
  */
 export function PaginaLogin() {
   const location = useLocation()
@@ -250,6 +198,9 @@ export function PaginaLogin() {
   const marcaQuery = useMarcaLogin()
   const marca: Marca | null = marcaQuery.data ? marcaQuery.data[contexto.publico] : marcaQuery.isError ? MARCA_PADRAO[contexto.publico] : null
   const nomeDaMarca = marca?.brand_name ?? MARCA_PADRAO[contexto.publico].brand_name
+  // O subtítulo do admin é o que fica sob o título, como na referência; o do
+  // contexto cobre o intervalo até a marca chegar.
+  const subtitulo = marca?.subtitle || contexto.subtitulo
 
   const [passo, setPasso] = useState<'credenciais' | 'codigo'>('credenciais')
   const [metodo, setMetodo] = useState<'email' | 'totp'>('email')
@@ -328,29 +279,43 @@ export function PaginaLogin() {
   const erro = passo === 'credenciais' ? login.error : (confirmar2fa.error ?? reenviar2fa.error)
   const idErro = `${idBase}-erro`
 
-  const temImagem = Boolean(marca?.image_url)
-
   return (
-    <div className="min-h-screen bg-canvas text-tinta lg:grid lg:h-screen lg:grid-cols-2 lg:overflow-hidden">
-      {/* ---------------------------------------------------- lado da marca */}
-      <PainelDaMarca marca={marca} nome={nomeDaMarca} icones={contexto.icones} />
-
-      {/* ------------------------------------------------------ formulário */}
-      <main className="relative isolate flex min-h-screen flex-col px-4 pb-6 pt-4 sm:px-8 lg:min-h-0 lg:px-12 lg:py-8">
-      <Brilhos />
-      <BannerCelular marca={marca} nome={nomeDaMarca} />
-      <div className={cn('flex items-center justify-end', temImagem && 'lg:flex')}>
-        <AlternarTema />
+    <div className="relative min-h-screen bg-canvas text-tinta lg:grid lg:h-screen lg:grid-cols-[1fr_minmax(340px,42%)] lg:overflow-hidden">
+      {/* Troca de público + tema, num nó só: no desktop flutua sobre o painel
+          da direita (o lugar do "Sign in" da referência), no celular sobre o
+          próprio formulário. Dois blocos por breakpoint dariam dois links de
+          mesmo nome no DOM. */}
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-2">
+        <span className="hidden text-legenda text-tinta-secundaria sm:inline">{contexto.outroPublico.pergunta}</span>
+        <Link
+          to={contexto.outroPublico.rota}
+          className="inline-flex h-8 items-center rounded-md border border-divisoria bg-superficie px-3 text-pequeno font-medio text-tinta transition-colors hover:bg-navegacao"
+        >
+          {contexto.outroPublico.acao}
+        </Link>
+        <AlternarTema className="size-8 border border-divisoria bg-superficie hover:bg-navegacao" />
       </div>
 
-        <div className="flex flex-1 items-start py-2 lg:items-center lg:py-8">
-          <div className="mx-auto w-full max-w-[400px]">
+      {/* ------------------------------------------------------ formulário */}
+      <main className="flex min-h-screen flex-col px-4 pb-8 pt-4 sm:px-8 lg:min-h-0 lg:px-12 lg:py-6">
+        <FaixaCelular marca={marca} />
+        {/* Abaixo de `lg` a marca divide a linha com o bloco flutuante do
+            canto direito: o teto de largura corta o nome com reticências em
+            vez de deixar os dois se sobreporem (o nome vem do admin, pode
+            ser longo). */}
+        <Marca nome={nomeDaMarca} className="max-w-[52%] lg:max-w-none" />
+
+        <div className="flex flex-1 items-start py-10 lg:items-center lg:py-0">
+          <div className="relative mx-auto w-full max-w-[320px]">
+            {/* a moldura de planta baixa; some no celular, onde não há
+                respiro de 88px em volta pra ela caber */}
+            <span className="login-moldura hidden lg:block" aria-hidden="true" />
+
             {passo === 'credenciais' ? (
-              <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(enviarCredenciais)} noValidate aria-busy={login.isPending}>
-                {!temImagem && <Marca nome={nomeDaMarca} className="lg:hidden" />}
-                <header>
-                  <h1 className="text-titulo-lg font-forte tracking-display">{contexto.titulo}</h1>
-                  <p className="mt-1 text-pequeno text-tinta-secundaria">{contexto.subtitulo}</p>
+              <form className="relative flex flex-col gap-4" onSubmit={form.handleSubmit(enviarCredenciais)} noValidate aria-busy={login.isPending}>
+                <header className="text-center">
+                  <h1 className="text-titulo font-forte tracking-display">{contexto.titulo}</h1>
+                  <p className="mt-2 text-pequeno leading-normal text-tinta-secundaria">{subtitulo}</p>
                 </header>
 
                 {erro != null && (
@@ -364,7 +329,7 @@ export function PaginaLogin() {
                   </Alert>
                 )}
 
-                <div className="flex flex-col gap-1.5">
+                <div className="mt-2 flex flex-col gap-1.5">
                   <Label htmlFor={`${idBase}-email`}>E-mail</Label>
                   <Input
                     id={`${idBase}-email`}
@@ -372,6 +337,7 @@ export function PaginaLogin() {
                     autoComplete="username"
                     inputMode="email"
                     autoFocus
+                    className="h-9"
                     placeholder={contexto.placeholderEmail}
                     aria-invalid={Boolean(form.formState.errors.email) || undefined}
                     aria-describedby={form.formState.errors.email ? `${idBase}-email-erro` : undefined}
@@ -387,7 +353,7 @@ export function PaginaLogin() {
                       id={`${idBase}-senha`}
                       type={mostrarSenha ? 'text' : 'password'}
                       autoComplete="current-password"
-                      className="pr-11"
+                      className="h-9 pr-10"
                       aria-invalid={Boolean(form.formState.errors.password) || undefined}
                       aria-describedby={form.formState.errors.password ? `${idBase}-senha-erro` : undefined}
                       {...form.register('password')}
@@ -395,7 +361,7 @@ export function PaginaLogin() {
                     <button
                       type="button"
                       onClick={() => setMostrarSenha((v) => !v)}
-                      className="absolute right-1 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-tinta-secundaria hover:bg-navegacao hover:text-tinta focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-acento/40"
+                      className="absolute right-0.5 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-md text-tinta-secundaria hover:bg-navegacao hover:text-tinta"
                       aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                       aria-pressed={mostrarSenha}
                     >
@@ -405,18 +371,18 @@ export function PaginaLogin() {
                   <ErroCampo id={`${idBase}-senha-erro`}>{form.formState.errors.password?.message}</ErroCampo>
                 </div>
 
-                <Button type="submit" size="lg" className="mt-1 w-full" disabled={login.isPending}>
+                <Button type="submit" className="mt-1 h-9 w-full" disabled={login.isPending}>
                   {login.isPending ? 'Entrando…' : 'Entrar'}
                 </Button>
 
-                <p className="text-legenda text-tinta-secundaria">
+                <p className="text-center text-legenda leading-normal text-tinta-terciaria">
                   Esqueceu a senha? A redefinição é feita por um administrador: fale com o suporte
                   {contexto.publico === 'cliente' ? ' ou com o responsável pela sua empresa' : ''}.
                 </p>
               </form>
             ) : (
               <form
-                className="flex flex-col gap-5"
+                className="relative flex flex-col gap-4"
                 onSubmit={(e) => {
                   e.preventDefault()
                   void enviarCodigo()
@@ -427,13 +393,13 @@ export function PaginaLogin() {
                 <button type="button" onClick={voltar} className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
                   <ArrowLeft className="size-4" aria-hidden="true" /> Voltar
                 </button>
-                <header className="flex flex-col gap-3">
-                  <span className="grid size-12 place-items-center rounded-xl bg-acento-suave text-acento">
-                    {metodo === 'totp' ? <Smartphone className="size-6" aria-hidden="true" /> : <MailCheck className="size-6" aria-hidden="true" />}
+                <header className="flex flex-col items-center gap-3 text-center">
+                  <span className="grid size-11 place-items-center rounded-md bg-acento-suave text-acento">
+                    {metodo === 'totp' ? <Smartphone className="size-5" aria-hidden="true" /> : <MailCheck className="size-5" aria-hidden="true" />}
                   </span>
                   <div>
-                    <h1 className="text-titulo-lg font-forte tracking-display">Confirme que é você</h1>
-                    <p className="mt-1 text-pequeno text-tinta-secundaria">
+                    <h1 className="text-titulo font-forte tracking-display">Confirme que é você</h1>
+                    <p className="mt-2 text-pequeno leading-normal text-tinta-secundaria">
                       {metodo === 'totp' ? (
                         'Abra o aplicativo autenticador e digite o código de 6 dígitos.'
                       ) : (
@@ -471,13 +437,13 @@ export function PaginaLogin() {
                       confirmar2fa.reset()
                       if (v.length === 6) void enviarCodigo(v)
                     }}
-                    className="h-14 text-center text-titulo font-forte tracking-[0.4em]"
+                    className="h-12 text-center text-titulo font-forte tracking-[0.4em]"
                     aria-invalid={erro != null || undefined}
                     aria-describedby={erro != null ? idErro : undefined}
                   />
                 </div>
 
-                <Button type="submit" size="lg" className="w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
+                <Button type="submit" className="h-9 w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
                   {confirmar2fa.isPending ? 'Confirmando…' : 'Confirmar'}
                 </Button>
 
@@ -498,18 +464,13 @@ export function PaginaLogin() {
           </div>
         </div>
 
-        <footer className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-center text-legenda text-tinta-secundaria sm:justify-between">
-          <span>
-            {contexto.outroPublico.pergunta}{' '}
-            <Link to={contexto.outroPublico.rota} className="font-medio text-acento hover:underline">
-              {contexto.outroPublico.acao}
-            </Link>
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <ShieldCheck className="size-3.5" aria-hidden="true" /> Conexão segura · verificação em duas etapas disponível
-          </span>
+        <footer className="flex items-center justify-center gap-1 text-center text-legenda text-tinta-terciaria">
+          <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" /> Conexão segura · verificação em duas etapas disponível
         </footer>
       </main>
+
+      {/* ---------------------------------------------------- lado da marca */}
+      <PainelDaMarca marca={marca} icones={contexto.icones} />
     </div>
   )
 }

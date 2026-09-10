@@ -1,112 +1,48 @@
 /*
- * Tela de login — o que não cabe em utilitário do Tailwind v3.
+ * Tela de login — o que não cabe em utilitário do Tailwind.
  *
- * 1. As LINHAS do painel da marca: 36 curvas em SVG que "escorrem" pela
- *    tela. A referência (21st.dev, auth-page) animava com framer-motion
- *    (pathLength/pathOffset); aqui é CSS puro sobre `stroke-dashoffset`,
- *    com `pathLength="1"` no <path> pra cada curva contar de 0 a 1 — sem
- *    adicionar uma biblioteca de animação só pra uma tela.
- * 2. Os BRILHOS radiais atrás do formulário: `color-mix` sobre `--tinta`,
- *    então seguem o tema (claro e escuro) sem dois conjuntos de cor.
+ * O desenho é o de uma planta baixa (referência: a tela de cadastro da
+ * Relume): formulário à ESQUERDA sobre o canvas, painel de marca à direita
+ * com grade de 64px, e uma moldura de linhas finas em volta do formulário
+ * cujos braços passam dos cantos. Nada de cor literal aqui — tudo sai de
+ * `--acento`/`--divisoria`/`--canvas` (styles/tokens.css), então o tema
+ * escuro acompanha sem um segundo conjunto de regras.
  */
 
-.login-linhas {
+/* A moldura: quatro linhas de 1px que se cruzam PASSANDO dos cantos, como
+   marca de corte de planta baixa. Um elemento só, quatro camadas de
+   background — sem oito divs vazios no DOM só pra desenhar risco.
+   A geometria em dois passos: o RETÂNGULO respira 44px acima/abaixo e 24px
+   dos lados do formulário; os BRAÇOS passam dele mais 60px na vertical e
+   110px na horizontal. Daí o `inset` somar os dois (44+60, 24+110) e cada
+   linha ficar posicionada à distância do braço dentro da caixa. */
+.login-moldura {
   position: absolute;
-  inset: 0;
+  inset: -104px -134px;
   pointer-events: none;
-  /* Camada própria de composição: a animação repinta só este SVG, não o
-     painel inteiro nem o formulário ao lado (sem isto, cada frame
-     invalidava os tiles da página toda — 72 curvas a 60 fps). */
-  contain: strict;
-  will-change: transform;
-}
-.login-linhas svg {
-  width: 100%;
-  height: 100%;
-}
-.login-linhas path {
-  stroke-dasharray: 1;
-  stroke-dashoffset: 1;
-  /* Desenha UMA vez ao abrir (escalonado por `--atraso`) e fica. Animar
-     `stroke-dashoffset` em loop repintava 48 curvas a cada frame — medido a
-     11 fps em raster por software; um login não pode custar um núcleo. */
-  animation: login-desenhar 2.4s cubic-bezier(0.2, 0, 0.38, 0.9) var(--atraso, 0s) forwards;
-}
-@keyframes login-desenhar {
-  from {
-    stroke-dashoffset: 1;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-/* Depois de desenhadas, as linhas derivam devagar — `transform` no wrapper,
-   que é camada própria: o compositor move a textura pronta, sem repintar. */
-.login-linhas {
-  animation: login-deriva 36s ease-in-out infinite alternate;
-}
-.login-linhas--espelho {
-  animation-direction: alternate-reverse;
-}
-@keyframes login-deriva {
-  from {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    transform: translate3d(-2%, 1.5%, 0) scale(1.04);
-  }
+  background:
+    linear-gradient(var(--divisoria) 0 0) 50% 60px / 100% 1px no-repeat,
+    linear-gradient(var(--divisoria) 0 0) 50% calc(100% - 60px) / 100% 1px no-repeat,
+    linear-gradient(var(--divisoria) 0 0) 110px 50% / 1px 100% no-repeat,
+    linear-gradient(var(--divisoria) 0 0) calc(100% - 110px) 50% / 1px 100% no-repeat;
 }
 
-.login-brilhos {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0.6;
-  contain: strict;
-  isolation: isolate;
-}
-.login-brilho {
-  position: absolute;
-  top: 0;
-  right: 0;
-  height: 1280px;
-  border-radius: 9999px;
-}
-.login-brilho--1 {
-  width: 560px;
-  transform: translateY(-350px);
-  background: radial-gradient(
-    68.54% 68.72% at 55.02% 31.46%,
-    color-mix(in srgb, var(--tinta) 6%, transparent) 0,
-    color-mix(in srgb, var(--tinta) 2%, transparent) 50%,
-    color-mix(in srgb, var(--tinta) 1%, transparent) 80%
-  );
-}
-.login-brilho--2,
-.login-brilho--3 {
-  width: 240px;
-  background: radial-gradient(
-    50% 50% at 50% 50%,
-    color-mix(in srgb, var(--tinta) 4%, transparent) 0,
-    color-mix(in srgb, var(--tinta) 1%, transparent) 80%,
-    transparent 100%
-  );
-}
-.login-brilho--2 {
-  transform: translate(5%, -50%);
-}
-.login-brilho--3 {
-  transform: translateY(-350px);
+/* O painel da marca: tinta do acento + grade de 64px. `color-mix` sobre o
+   próprio `--acento` (e não um azul cravado) é o que faz o painel escurecer
+   junto no tema escuro, onde o acento vira #b4c5ff. */
+.login-painel {
+  --tinta-do-painel: color-mix(in srgb, var(--acento) 17%, var(--canvas));
+  --linha-da-grade: color-mix(in srgb, var(--acento) 22%, transparent);
+  background-color: var(--tinta-do-painel);
+  background-image:
+    linear-gradient(var(--linha-da-grade) 1px, transparent 1px),
+    linear-gradient(90deg, var(--linha-da-grade) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .login-linhas,
-  .login-linhas path {
-    animation: none;
-  }
-  .login-linhas path {
-    stroke-dashoffset: 0;
-  }
+/* Com foto do admin, a grade sai de cena: a imagem já é o fundo, e a grade
+   por cima dela vira sujeira. */
+.login-painel--foto {
+  background-image: none;
 }
