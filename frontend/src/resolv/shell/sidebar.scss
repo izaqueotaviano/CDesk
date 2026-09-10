@@ -134,7 +134,7 @@
     margin: 12px 12px 4px;
     padding: 0 8px;
     flex-shrink: 0;
-    border: 1px solid var(--borda-campo);
+    border: none;
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-secondary);
@@ -147,8 +147,11 @@
       font-size: 15px;
       flex-shrink: 0;
     }
+    // Sem borda, o hover precisa de outro sinal — mesmo fundo que o item de
+    // navegação usa (var(--stroke)) em vez de escurecer uma borda que não
+    // existe mais.
     &:hover {
-      border-color: var(--text-secondary);
+      background: var(--stroke);
     }
     &:focus-visible {
       outline: 2px solid var(--accent);
@@ -366,7 +369,6 @@
       margin: 8px auto 0;
       justify-content: center;
       padding: 0;
-      border-color: transparent;
       background: transparent;
       color: var(--texto-cromo);
 

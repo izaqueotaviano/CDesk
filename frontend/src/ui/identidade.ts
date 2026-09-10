@@ -20,10 +20,20 @@ export const TONS_DE_IDENTIDADE = 6
 
 export type IndiceDeIdentidade = 1 | 2 | 3 | 4 | 5 | 6
 
-export function indiceDeIdentidade(chave: string): IndiceDeIdentidade {
+/**
+ * O hash em si, parametrizado pela contagem de tons — é o que
+ * `indiceDeIdentidade` usa com `TONS_DE_IDENTIDADE` (6, produto inteiro) e
+ * `resolv/chat/tons.ts` usa com sua própria contagem (15, só chat): mesmo
+ * algoritmo, paletas diferentes, sem duplicar a soma de char codes.
+ */
+export function indiceEmModulo(chave: string, tons: number): number {
   const normalizada = chave.trim().toLowerCase()
   const soma = [...normalizada].reduce((acc, c) => acc + c.charCodeAt(0), 0)
-  return ((soma % TONS_DE_IDENTIDADE) + 1) as IndiceDeIdentidade
+  return (soma % tons) + 1
+}
+
+export function indiceDeIdentidade(chave: string): IndiceDeIdentidade {
+  return indiceEmModulo(chave, TONS_DE_IDENTIDADE) as IndiceDeIdentidade
 }
 
 /**

@@ -111,8 +111,8 @@
     }
   }
 
-  // O cabeçalho é pintado pelo atributo `data-identidade` (resolv/styles/
-  // identidade.scss): fundo na cor do atendimento, texto branco. O fallback
+  // O cabeçalho é pintado pelo atributo `data-tom-chat` (chat.scss, paleta
+  // própria do chat): fundo na cor do atendimento, texto branco. O fallback
   // aqui só existe pra quando o widget renderiza fora de .novo-shell.
   &__painel-cabecalho {
     display: flex;

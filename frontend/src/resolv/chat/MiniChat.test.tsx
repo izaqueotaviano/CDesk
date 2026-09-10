@@ -196,13 +196,13 @@ describe('MiniChat', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Bruno Cliente' }))
     const a = await screen.findByRole('region', { name: 'Conversa com Ana Cliente' })
     const b = await screen.findByRole('region', { name: 'Conversa com Bruno Cliente' })
-    const tomA = a.querySelector('header')?.getAttribute('data-identidade')
-    const tomB = b.querySelector('header')?.getAttribute('data-identidade')
-    expect(tomA).toMatch(/^[1-6]$/)
-    expect(tomB).toMatch(/^[1-6]$/)
+    const tomA = a.querySelector('header')?.getAttribute('data-tom-chat')
+    const tomB = b.querySelector('header')?.getAttribute('data-tom-chat')
+    expect(tomA).toMatch(/^(1[0-5]|[1-9])$/)
+    expect(tomB).toMatch(/^(1[0-5]|[1-9])$/)
     expect(tomA).not.toBe(tomB)
     const abaA = screen.getByRole('button', { name: 'Recolher conversa com Ana Cliente' })
-    expect(abaA.querySelector('[data-identidade]')?.getAttribute('data-identidade')).toBe(tomA)
+    expect(abaA.querySelector('[data-tom-chat]')?.getAttribute('data-tom-chat')).toBe(tomA)
   })
 
   it('o botão de tamanho cicla os presets e a preferência fica guardada por agente', async () => {

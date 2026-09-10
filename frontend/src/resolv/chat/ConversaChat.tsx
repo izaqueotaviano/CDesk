@@ -34,8 +34,8 @@ import type { Me } from '@/api/types'
 import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
 import { useChatUi } from '@/stores/chatUi'
-import { identidadeDe, indiceDeIdentidade } from '@/ui/identidade'
 import { useAplicarMacroChat, useMacros, type Macro } from './dados'
+import { indiceDeChat, tomDeChat } from './tons'
 import { horaDe, iniciais, rotuloDoDia } from './format'
 
 /** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme" — mesma função,
@@ -238,7 +238,7 @@ export function Bolha({
       }
       data-msg={msg.id}
     >
-      <span className="cc-msg__avatar" {...identidadeDe(msg.author_name)}>{iniciais(msg.author_name)}</span>
+      <span className="cc-msg__avatar" {...tomDeChat(msg.author_name)}>{iniciais(msg.author_name)}</span>
       <div className="cc-msg__corpo">
         <div className="cc-msg__meta">
           <span className="cc-msg__autor">{msg.author_name}</span>
@@ -678,7 +678,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
       {!compacto && (
       // a cor do atendimento (a mesma do avatar da pessoa) numa linha no topo:
       // com várias conversas abertas no dia, o olho acha pela cor
-      <header className="cc-conversa__header" style={{ borderTop: `3px solid var(--identidade-${indiceDeIdentidade(chat.client_name)})` }}>
+      <header className="cc-conversa__header" style={{ borderTop: `3px solid var(--chat-tom-${indiceDeChat(chat.client_name)})` }}>
         <div>
           <h1 className="cc-conversa__titulo">
             {chat.client_name}

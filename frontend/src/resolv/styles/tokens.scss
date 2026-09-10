@@ -103,6 +103,41 @@
   // `--surface`, e por isso tem nome próprio.
   --texto-sobre-identidade: #ffffff;
 
+  // Paleta de identidade SÓ do chat (resolv/chat/tons.ts) — 15 tons em vez
+  // de 6, pedido para separar atendimentos abertos ao mesmo tempo sem
+  // repetir tão cedo (com só seis, três conversas já colidiam). Família à
+  // parte de `--identidade-N`: aquele token pinta o produto inteiro
+  // (cartão do quadro, painel do cliente, gráfico de categoria — ver
+  // ui/identidade.ts) e trocar a contagem ali mudaria a cor de todo mundo
+  // em toda tela, não só no chat. Mesma lógica do `--texto-sobre-identidade`
+  // acima: branco em cima nos dois temas.
+  --chat-tom-1: #3d7ef7;
+  --chat-tom-2: #5fb8b4;
+  --chat-tom-3: #f6c244;
+  --chat-tom-4: #dc4c40;
+  --chat-tom-5: #c28faa;
+  --chat-tom-6: #7189b0;
+  --chat-tom-7: #5cbb4b;
+  --chat-tom-8: #f0832e;
+  --chat-tom-9: #d08c86;
+  --chat-tom-10: #6d3ef5;
+  --chat-tom-11: #5ec5ea;
+  --chat-tom-12: #75a868;
+  --chat-tom-13: #c9a883;
+  --chat-tom-14: #e85a9c;
+  --chat-tom-15: #a29bc7;
+
+  // ── Presença (status de usuário e agente) ──
+  // Família à parte de `--ok`/`--away`: aqueles dois têm outro significado
+  // (SLA em dia/em risco — pílula do chamado, fila, socket do chat) e viram
+  // âmbar, não vermelho, para "em risco". Usar os mesmos aqui faria
+  // "ausente" (vermelho pedido) e "SLA estourado" (`--danger`, também
+  // vermelho) ficarem indistinguíveis. Valores fixos, iguais nos dois temas —
+  // como a paleta de identidade acima, é sinalização, não texto de leitura.
+  --presenca-disponivel: #00b530;
+  --presenca-ausente: #ff1919;
+  --presenca-offline: #59524d;
+
   // ── Semânticas ──
   // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
   // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.

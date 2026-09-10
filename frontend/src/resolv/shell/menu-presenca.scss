@@ -4,8 +4,9 @@
 // notificacoes.scss faz) — a DIREÇÃO do painel (abre pra direita, não pra
 // baixo) é sobrescrita em sidebar.scss, junto dos outros itens da zona.
 //
-// Cor sempre por token: `--ok`/`--away`/`--text-muted` são as três presenças, e
-// o tema escuro troca os tokens sem tocar neste arquivo. O `--gatilho` vive
+// Cor sempre por token: `--presenca-disponivel`/`--presenca-ausente`/
+// `--presenca-offline` são as três presenças (tokens.scss — família à parte
+// de `--ok`/`--away`, que já servem o SLA em outra cor). O `--gatilho` vive
 // fora do painel, mas nasce do mesmo bloco (o `&__` do SCSS concatena, não
 // aninha) para os dois lados da mesma peça ficarem juntos.
 
@@ -120,13 +121,13 @@
     background: var(--text-muted);
 
     &--available {
-      background: var(--ok);
+      background: var(--presenca-disponivel);
     }
     &--away {
-      background: var(--away);
+      background: var(--presenca-ausente);
     }
     &--offline {
-      background: var(--text-muted);
+      background: var(--presenca-offline);
     }
     // /auth/me/ ainda carregando: cinza de traço, para não afirmar um status
     // que ainda não sabemos (verde fixo era exatamente o bug de antes).

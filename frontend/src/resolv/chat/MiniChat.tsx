@@ -5,12 +5,11 @@ import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import { useChatUi } from '@/stores/chatUi'
 import { LIMITES_MINICHAT, TAMANHOS_MINICHAT, usePrefs, type TamanhoMiniChat } from '@/stores/prefs'
-import { type IndiceDeIdentidade } from '@/ui/identidade'
 import { FormEncerrar, FormReabrir, FormTransferir } from './acoes'
 import { AvatarComPresenca } from './AvatarComPresenca'
 import { ConversaChat } from './ConversaChat'
 import { haQuanto } from './format'
-import { tonsDistintos } from './tons'
+import { tonsDistintos, type IndiceDeChat } from './tons'
 import '../styles/tokens.scss'
 import './chat.scss'
 import './minichat.scss'
@@ -46,7 +45,7 @@ function presetDe(t: TamanhoMiniChat): keyof typeof TAMANHOS_MINICHAT {
   return melhor
 }
 
-function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeIdentidade; aberta: boolean; onAlternar: () => void }) {
+function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeChat; aberta: boolean; onAlternar: () => void }) {
   return (
     <button
       type="button"
@@ -55,7 +54,7 @@ function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeI
       aria-label={`${aberta ? 'Recolher' : 'Abrir'} conversa com ${chat.client_name}`}
       title={`${chat.client_name} · ${chat.company_name}`}
       onClick={onAlternar}
-      style={{ '--tom': `var(--identidade-${tom})` } as React.CSSProperties}
+      style={{ '--tom': `var(--chat-tom-${tom})` } as React.CSSProperties}
     >
       <AvatarComPresenca
         nome={chat.client_name}
@@ -72,8 +71,9 @@ function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeI
 
 /**
  * Um atendimento expandido. O cabeçalho leva a COR do atendimento
- * (`data-identidade`, pintado por resolv/styles/identidade.scss) — com três
- * conversas abertas lado a lado, é a cor que diz qual é qual antes do nome.
+ * (`data-tom-chat`, pintado em chat.scss — paleta própria do chat, 15 tons,
+ * ver resolv/chat/tons.ts) — com três conversas abertas lado a lado, é a
+ * cor que diz qual é qual antes do nome.
  * O canto superior esquerdo redimensiona (arrasto ou setas do teclado); o
  * botão de tamanho cicla os três presets — é a alternativa sem arrasto
  * (WCAG 2.5.7), e o tamanho é UM só para todos os painéis, guardado por
@@ -196,7 +196,7 @@ function PainelConversa({
   onAbrirNoConsole,
 }: {
   chat: Chat
-  tom: IndiceDeIdentidade
+  tom: IndiceDeChat
   me: ReturnType<typeof useMe>['data']
   onMinimizar: () => void
   onAbrirNoConsole: () => void
@@ -263,7 +263,7 @@ function PainelConversa({
         onPointerDown={arrastar}
         onKeyDown={teclar}
       />
-      <header className="minichat__painel-cabecalho" data-identidade={tom}>
+      <header className="minichat__painel-cabecalho" data-tom-chat={tom}>
         <AvatarComPresenca
           nome={chat.client_name}
           presenca={chat.status === 'active' ? chat.client_presence : null}

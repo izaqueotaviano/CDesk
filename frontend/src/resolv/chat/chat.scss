@@ -484,8 +484,8 @@
     font-size: 10px;
     font-weight: 600;
   }
-  // (O avatar da mensagem é pintado pela cor de identidade de quem escreveu —
-  // resolv/styles/identidade.scss; agente e cliente se distinguem por serem
+  // (O avatar da mensagem é pintado pela paleta do chat de quem escreveu —
+  // `[data-tom-chat]` acima; agente e cliente se distinguem por serem
   // pessoas diferentes, não por um tint fixo de "lado".)
   &__corpo {
     min-width: 0;
@@ -1612,23 +1612,41 @@
 
   /* `--alerta` e `--texto-3` não existem no tema do console (são nomes do
      portal): o de ausente vinha do fallback fixo, que não vira nada no
-     escuro, e o de offline não pintava nada. Os tokens certos são estes. */
+     escuro, e o de offline não pintava nada. Os tokens certos são estes —
+     `--presenca-*` (tokens.scss), família à parte de `--ok`/`--away` (SLA). */
   &--available {
-    color: var(--ok);
+    color: var(--presenca-disponivel);
   }
 
   &--away {
-    color: var(--away);
+    color: var(--presenca-ausente);
   }
 
   &--offline {
-    color: var(--text-muted);
+    color: var(--presenca-offline);
   }
 }
 
 /* ------------------------------------------------------------------ *
  * Bolinha de disponibilidade no avatar do console
  * ------------------------------------------------------------------ */
+
+/* Cor de identidade dos avatares do CHAT — paleta própria (15 tons,
+   resolv/chat/tons.ts), não a de `resolv/styles/identidade.scss` (6, o
+   produto inteiro). Mesma mecânica (o atributo pinta, não a classe): quem
+   monta o avatar não precisa saber de cor nenhuma, só espalhar
+   `{...tomDeChat(nome)}`. Especificidade equivalente à de identidade.scss
+   (0,3,0), pelo mesmo motivo: as classes de avatar de cada tela pintam
+   fundo/cor com (0,1,0) ou (0,2,0). */
+.resolv-scope.novo-shell [data-tom-chat] {
+  color: var(--texto-sobre-identidade);
+}
+
+@for $i from 1 through 15 {
+  .resolv-scope.novo-shell [data-tom-chat='#{$i}'] {
+    background: var(--chat-tom-#{$i});
+  }
+}
 
 /* `position` no avatar existente, para o ponto se ancorar nele sem que a
    marcação de nenhuma das telas precise mudar. */
@@ -1646,9 +1664,9 @@
   border-radius: 50%;
   /* O recorte é uma BORDA na cor da superfície de trás — é ela que separa o
      ponto do avatar sem depender de contraste entre as duas cores, que
-     mudam as duas (seis tons de identidade, e o fundo muda com o tema).
-     Via variável para o cartão SELECIONADO, que tem outro fundo, poder
-     corrigir a cor sem uma segunda regra para cada superfície. */
+     mudam as duas (quinze tons da paleta do chat, e o fundo muda com o
+     tema). Via variável para o cartão SELECIONADO, que tem outro fundo,
+     poder corrigir a cor sem uma segunda regra para cada superfície. */
   box-shadow: 0 0 0 2px var(--fundo-do-ponto, var(--surface-card));
 
   &--em-canvas {
@@ -1665,18 +1683,20 @@
     --fundo-do-ponto: var(--text-primary);
   }
 
-  /* Os tokens do tema, não cores novas: `--ok`, `--away` e `--text-muted`
-     são os mesmos do resto do console e viram os tons do escuro sozinhos. */
+  /* `--presenca-*` (tokens.scss): família à parte de `--ok`/`--away`, que já
+     servem o SLA (pílula do chamado, fila, socket) numa outra cor — usar os
+     mesmos aqui faria "ausente" (vermelho) e "SLA estourado" (`--danger`,
+     também vermelho) ficarem indistinguíveis. */
   &--available {
-    background: var(--ok);
+    background: var(--presenca-disponivel);
   }
 
   &--away {
-    background: var(--away);
+    background: var(--presenca-ausente);
   }
 
   &--offline {
-    background: var(--text-muted);
+    background: var(--presenca-offline);
   }
 }
 

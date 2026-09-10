@@ -1,6 +1,6 @@
-import { identidadeDe, type IndiceDeIdentidade } from '@/ui/identidade'
 import type { Presenca } from '@/ui/Avatar'
 import { iniciais } from './format'
+import { tomDeChat, type IndiceDeChat } from './tons'
 
 /** Onde o avatar está pousado — o recorte da bolinha é uma borda NA COR
  *  desse fundo, então ele precisa ser dito. */
@@ -34,14 +34,16 @@ export function AvatarComPresenca({
   /** Superfície de trás, para o recorte da bolinha. */
   fundo?: FundoDoAvatar
   /**
-   * A cor de identidade: por padrão a do NOME (o que a lista já fazia).
-   * Um índice fixa o tom (o mini chat pinta a aba pela cor do atendimento) e
-   * `null` não escreve atributo nenhum — é o caso do cabeçalho do painel,
-   * que herda a cor do bloco em volta.
+   * O tom da paleta do chat (resolv/chat/tons.ts): por padrão o do NOME (o
+   * que a lista já fazia). Um índice fixa o tom (o mini chat pinta a aba
+   * pela cor do atendimento, já resolvida por `tonsDistintos` pra não
+   * colidir com outra conversa aberta) e `null` não escreve atributo
+   * nenhum — é o caso do cabeçalho do painel, que herda a cor do bloco em
+   * volta.
    */
-  tom?: IndiceDeIdentidade | null
+  tom?: IndiceDeChat | null
 }) {
-  const identidade = tom === undefined ? identidadeDe(nome) : tom === null ? {} : { 'data-identidade': tom }
+  const identidade = tom === undefined ? tomDeChat(nome) : tom === null ? {} : { 'data-tom-chat': tom }
   return (
     <span className={`cc-avatar ${classe}`} {...identidade}>
       {iniciais(nome)}

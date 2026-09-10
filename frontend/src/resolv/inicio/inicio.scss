@@ -347,10 +347,10 @@
     border-radius: 50%;
     border: 2px solid var(--surface-card);
     &--available {
-      background: var(--ok);
+      background: var(--presenca-disponivel);
     }
     &--away {
-      background: var(--away);
+      background: var(--presenca-ausente);
     }
   }
   &__nome {
