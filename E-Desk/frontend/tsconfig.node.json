@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    // Só type-checar — o Vite carrega vite.config.ts direto (esbuild), não
+    // precisa do .js que `tsc -b` geraria do lado do fonte por padrão.
+    "emitDeclarationOnly": true,
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "strict": true
+  },
+  "include": ["vite.config.ts"]
+}

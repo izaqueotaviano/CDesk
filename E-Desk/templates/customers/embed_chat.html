@@ -1,0 +1,269 @@
+<!doctype html>
+{% comment %}
+Mini chat embutido — página autocontida, sem build (docs/14-seguranca.md §10).
+Vanilla JS de propósito: é servida pelo Django diretamente (apps/customers/
+embed_views.py), fora do bundle da SPA, então não há Vite/React aqui —
+trazer o framework inteiro pra uma janela de ~360px que só existe dentro
+do console de outra empresa seria peso sem propósito.
+
+Escopo desta versão: conversa em tempo real (ver, escrever, receber) do
+chat já aberto ou de um novo. NÃO inclui anexo nem a avaliação de duas
+notas do fim do atendimento — quem precisa disso usa o portal completo
+(o link "abrir no portal" no rodapé).
+
+{% endcomment %}
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Atendimento</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    display: flex; flex-direction: column;
+    font: 14px/1.45 -apple-system, "Segoe UI", Inter, sans-serif;
+    color: #1b1917; background: #fff;
+  }
+  .cab {
+    flex: none; display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding: 10px 12px; border-bottom: 1px solid #e5e1db;
+  }
+  .cab__nome { font-weight: 600; font-size: 13px; }
+  .cab__status { font-size: 11px; color: #6b6459; display: flex; align-items: center; gap: 5px; }
+  .cab__ponto { width: 7px; height: 7px; border-radius: 50%; background: #9a9284; flex: none; }
+  .cab__ponto--ok { background: #2f8a3e; }
+  .corpo {
+    flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .balao {
+    max-width: 82%; padding: 7px 10px; border-radius: 12px; white-space: pre-wrap;
+    overflow-wrap: anywhere; font-size: 13px;
+  }
+  .balao--eu { align-self: flex-end; background: #1b1917; color: #fff; border-bottom-right-radius: 3px; }
+  .balao--outro { align-self: flex-start; background: #f1efe9; border-bottom-left-radius: 3px; }
+  .balao--sistema {
+    align-self: center; font-size: 11px; color: #6b6459; background: none;
+    padding: 4px 0; max-width: 100%; text-align: center;
+  }
+  .aviso {
+    margin: 8px 12px; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+    background: #fdf1e0; color: #8a5a10; line-height: 1.4;
+  }
+  .aviso--erro { background: #fbe9e7; color: #a33; }
+  .rodape { flex: none; border-top: 1px solid #e5e1db; padding: 8px; }
+  .compositor { display: flex; align-items: flex-end; gap: 6px; }
+  .compositor textarea {
+    flex: 1; resize: none; min-height: 34px; max-height: 90px; padding: 8px 10px;
+    border: 1px solid #d8d3c8; border-radius: 8px; font: inherit; outline: none;
+  }
+  .compositor textarea:focus { border-color: #1b1917; }
+  .compositor button {
+    flex: none; width: 34px; height: 34px; border: 0; border-radius: 8px;
+    background: #1b1917; color: #fff; cursor: pointer; font-size: 15px;
+    display: grid; place-items: center;
+  }
+  .compositor button:disabled { opacity: .4; cursor: default; }
+  .rodape__link { display: block; margin-top: 6px; font-size: 11px; text-align: center; }
+  .rodape__link a { color: #6b6459; }
+  .vazio { margin: auto; text-align: center; color: #6b6459; font-size: 12px; padding: 0 24px; }
+</style>
+</head>
+<body>
+
+{{ token|json_script:"embed-token" }}
+{{ user_name|json_script:"embed-user-name" }}
+{{ company_name|json_script:"embed-company-name" }}
+{{ erro|json_script:"embed-erro" }}
+
+{% if not token %}
+  <div class="vazio">{{ erro }}</div>
+{% else %}
+  <header class="cab">
+    <span class="cab__nome">Atendimento</span>
+    <span class="cab__status"><i class="cab__ponto" id="ponto"></i><span id="status-txt">conectando…</span></span>
+  </header>
+  <div class="corpo" id="corpo"></div>
+  <div class="rodape">
+    <div class="compositor">
+      <textarea id="campo" rows="1" placeholder="Escreva sua mensagem…" disabled></textarea>
+      <button id="enviar" type="button" disabled aria-label="Enviar">➤</button>
+    </div>
+    <span class="rodape__link"><a href="/chat" target="_top">Abrir a conversa completa no portal ↗</a></span>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    var TOKEN = JSON.parse(document.getElementById('embed-token').textContent);
+    var API = '/api/v1';
+    var corpo = document.getElementById('corpo');
+    var campo = document.getElementById('campo');
+    var botao = document.getElementById('enviar');
+    var ponto = document.getElementById('ponto');
+    var statusTxt = document.getElementById('status-txt');
+
+    function cabecalhos(extra) {
+      var h = Object.assign({ 'Authorization': 'Bearer ' + TOKEN }, extra || {});
+      return h;
+    }
+
+    function api(caminho, opcoes) {
+      opcoes = opcoes || {};
+      return fetch(API + caminho, Object.assign({}, opcoes, { headers: cabecalhos(opcoes.headers) }))
+        .then(function (r) {
+          if (!r.ok) return r.json().catch(function () { return {}; }).then(function (corpo) {
+            throw Object.assign(new Error('api'), { status: r.status, body: corpo });
+          });
+          if (r.status === 204) return null;
+          return r.json();
+        });
+    }
+
+    function horaCurta(iso) {
+      var d = new Date(iso);
+      return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function rolarProBaixo() { corpo.scrollTop = corpo.scrollHeight; }
+
+    function desenharMensagem(m) {
+      var el = document.createElement('div');
+      if (m.is_system) {
+        el.className = 'balao balao--sistema';
+        el.textContent = m.body;
+      } else {
+        el.className = 'balao ' + (m.author_is_internal ? 'balao--outro' : 'balao--eu');
+        el.textContent = m.is_deleted ? 'Mensagem apagada.' : m.body;
+      }
+      corpo.appendChild(el);
+    }
+
+    function mostrarAviso(texto, ehErro) {
+      var el = document.createElement('div');
+      el.className = 'aviso' + (ehErro ? ' aviso--erro' : '');
+      el.textContent = texto;
+      corpo.appendChild(el);
+      rolarProBaixo();
+    }
+
+    function habilitarComposer(ligado) {
+      campo.disabled = !ligado;
+      botao.disabled = !ligado;
+    }
+
+    function marcarConectado(ligado, texto) {
+      ponto.className = 'cab__ponto' + (ligado ? ' cab__ponto--ok' : '');
+      statusTxt.textContent = texto;
+    }
+
+    // ---------------------------------------------------------- WebSocket
+    var socket = null;
+    var tentativasReconexao = 0;
+
+    function conectar(chatId) {
+      var protocolo = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      socket = new WebSocket(protocolo + '//' + location.host + '/ws/chat/' + chatId + '/?ticket=' + encodeURIComponent(TOKEN));
+
+      socket.onopen = function () {
+        tentativasReconexao = 0;
+        marcarConectado(true, 'conectado');
+        habilitarComposer(true);
+      };
+      socket.onclose = function () {
+        habilitarComposer(false);
+        marcarConectado(false, 'reconectando…');
+        // backoff simples: 2s, 4s, 8s, até 30s — uma aba de iframe esquecida
+        // aberta não pode martelar o servidor pra sempre
+        var espera = Math.min(30000, 2000 * Math.pow(2, tentativasReconexao++));
+        setTimeout(function () { conectar(chatId); }, espera);
+      };
+      socket.onmessage = function (ev) {
+        var msg = JSON.parse(ev.data);
+        if (msg.type === 'message') {
+          desenharMensagem(msg);
+          rolarProBaixo();
+        } else if (msg.type === 'closed') {
+          mostrarAviso('Este atendimento foi encerrado.');
+          habilitarComposer(false);
+          marcarConectado(false, 'encerrado');
+        } else if (msg.type === 'accepted') {
+          marcarConectado(true, 'em atendimento');
+        }
+      };
+
+      botao.onclick = function () { enviarTexto(chatId); };
+      campo.onkeydown = function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarTexto(chatId); }
+      };
+    }
+
+    function enviarTexto(chatId) {
+      var texto = campo.value.trim();
+      if (!texto || !socket || socket.readyState !== WebSocket.OPEN) return;
+      socket.send(JSON.stringify({ type: 'message', body: texto }));
+      campo.value = '';
+    }
+
+    // ---------------------------------------------------------- carga inicial
+    function abrirConversa(chat) {
+      marcarConectado(false, chat.status === 'queued' ? 'na fila' : 'conectando…');
+      api('/chat/chats/' + chat.id + '/messages/?limit=60').then(function (mensagens) {
+        mensagens.forEach(desenharMensagem);
+        rolarProBaixo();
+        conectar(chat.id);
+      });
+    }
+
+    function iniciarNovaConversa() {
+      habilitarComposer(true);
+      botao.onclick = function () {
+        var texto = campo.value.trim();
+        if (!texto) return;
+        botao.disabled = true;
+        api('/chat/chats/', { method: 'POST' }).then(function (chat) {
+          campo.value = '';
+          marcarConectado(false, 'conectando…');
+          conectar(chat.id);
+          // a mensagem digitada só pode ir DEPOIS que o socket conectar —
+          // mesma restrição do portal: mensagem de texto trafega pelo WS,
+          // e o WS só existe depois de o chat existir
+          var aguardar = setInterval(function () {
+            if (socket && socket.readyState === WebSocket.OPEN) {
+              clearInterval(aguardar);
+              socket.send(JSON.stringify({ type: 'message', body: texto }));
+            }
+          }, 150);
+        }).catch(function (err) {
+          botao.disabled = false;
+          var motivo = (err.body && err.body.detail) || 'Não foi possível iniciar o atendimento.';
+          mostrarAviso(motivo, true);
+        });
+      };
+    }
+
+    Promise.all([
+      api('/chat/chats/?status=queued'),
+      api('/chat/chats/?status=active'),
+    ]).then(function (r) {
+      var vivo = (r[1].results && r[1].results[0]) || (r[0].results && r[0].results[0]);
+      if (vivo) { abrirConversa(vivo); return; }
+      return api('/chat/config/').then(function (config) {
+        if (!config.queue_open) {
+          mostrarAviso('Atendimento indisponível no momento. Tente novamente mais tarde ou abra um ticket pelo portal.');
+          return;
+        }
+        mostrarAviso('Escreva sua dúvida abaixo para começar.');
+        iniciarNovaConversa();
+      });
+    }).catch(function () {
+      mostrarAviso('Não foi possível carregar o atendimento agora.', true);
+    });
+  })();
+  </script>
+{% endif %}
+</body>
+</html>

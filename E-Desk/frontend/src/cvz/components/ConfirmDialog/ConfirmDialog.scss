@@ -1,0 +1,8 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.confirm-dialog__text {
+  margin: 0;
+  @include type($fs-ui, $w-light);
+  color: $text-secondary;
+}

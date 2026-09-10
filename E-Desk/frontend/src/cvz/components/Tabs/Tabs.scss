@@ -1,0 +1,80 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.tabs {
+  &__list {
+    display: flex;
+    border-bottom: $border;
+  }
+
+  &__tab {
+    @include button-reset;
+    @include focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: $sp-3 $sp-4;
+    margin-bottom: -$stroke-w;
+    border-bottom: $marker-w solid transparent;
+    font-size: $fs-ui;
+    font-weight: $w-medium;
+    color: $text-secondary;
+    transition: color $dur $ease, background-color $dur $ease;
+
+    &:hover { background-color: $chrome; color: $text; }
+
+    &--active {
+      color: $blue-active;
+      border-bottom-color: $blue;
+    }
+  }
+
+  &__count {
+    font-family: $f-mono;
+    font-size: $fs-label;
+    color: $text-muted;
+  }
+
+  &__panel { padding-top: $sp-4; }
+}
+
+.accordion {
+  &__item {
+    border-bottom: $border;
+
+    &:first-child { border-top: $border; }
+  }
+
+  &__trigger {
+    @include button-reset;
+    @include focus-ring;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    width: 100%;
+    padding: $sp-3 $sp-1;
+    text-align: left;
+    font-size: $fs-ui;
+    font-weight: $w-medium;
+    color: $text;
+
+    &:hover { background-color: $chrome; }
+  }
+
+  &__caret {
+    @include stroke-icon(14px);
+    color: $text-secondary;
+    transition: transform $dur $ease;
+  }
+
+  &__item--open &__caret { transform: rotate(180deg); }
+
+  &__body {
+    padding: 0 $sp-1 $sp-4;
+    font-size: $fs-ui;
+    font-weight: $w-light;
+    color: $text-secondary;
+    max-width: 70ch;
+  }
+}

@@ -1,0 +1,88 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.tooltip {
+  position: relative;
+  display: inline-flex;
+
+  &__bubble {
+    position: absolute;
+    z-index: $z-tooltip;
+    padding: 6px 10px;
+    border-radius: $radius;
+    background-color: $text;
+    color: $text-on-dark;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    @include type($fs-meta, $w-medium, $lh-tight);
+    transition: opacity $dur $ease, transform $dur $ease;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 0;
+      height: 0;
+    }
+  }
+
+  // --- lado direito (padrão da sidebar) ---
+  &--right &__bubble {
+    top: 50%;
+    left: calc(100% + 10px);
+    transform: translate(-$tooltip-arrow, -50%);
+
+    &::before {
+      top: 50%;
+      right: 100%;
+      border-top: $tooltip-arrow solid transparent;
+      border-bottom: $tooltip-arrow solid transparent;
+      border-right: $tooltip-arrow solid $text;
+      transform: translateY(-50%);
+    }
+  }
+
+  &--top &__bubble {
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, $tooltip-arrow);
+
+    &::before {
+      top: 100%;
+      left: 50%;
+      border-left: $tooltip-arrow solid transparent;
+      border-right: $tooltip-arrow solid transparent;
+      border-top: $tooltip-arrow solid $text;
+      transform: translateX(-50%);
+    }
+  }
+
+  &--bottom &__bubble {
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translate(-50%, -$tooltip-arrow);
+
+    &::before {
+      bottom: 100%;
+      left: 50%;
+      border-left: $tooltip-arrow solid transparent;
+      border-right: $tooltip-arrow solid transparent;
+      border-bottom: $tooltip-arrow solid $text;
+      transform: translateX(-50%);
+    }
+  }
+
+  &:hover &__bubble,
+  &:focus-within &__bubble {
+    opacity: 1;
+  }
+
+  &--right:hover &__bubble,
+  &--right:focus-within &__bubble { transform: translate(0, -50%); }
+
+  &--top:hover &__bubble,
+  &--top:focus-within &__bubble { transform: translate(-50%, 0); }
+
+  &--bottom:hover &__bubble,
+  &--bottom:focus-within &__bubble { transform: translate(-50%, 0); }
+}

@@ -1,0 +1,88 @@
+[project]
+name = "resolv"
+version = "0.1.0"
+description = "Sistema interno de suporte e ticketing"
+requires-python = ">=3.11"
+
+dependencies = [
+    "Django>=5.0,<5.3",
+    "djangorestframework>=3.15",
+    "django-environ>=0.11",
+    "psycopg[binary]>=3.1",
+    "redis>=5.0",
+    "channels>=4.1",
+    "channels-redis>=4.2",
+    "celery>=5.4",
+    "django-celery-beat>=2.6",
+    "django-cors-headers>=4.4",
+    "drf-spectacular>=0.27",
+    "whitenoise>=6.7",
+    "django-allauth[socialaccount]>=65.0",
+    "Pillow>=10.4",
+    "python-magic>=0.4.27",
+    "requests>=2.31",  # cliente HTTP da sincronização com a Central de Ajuda (WordPress)
+    "uvicorn[standard]>=0.30",
+    "gunicorn>=22.0",
+    # segurança
+    "django-axes>=8.0",     # bloqueio por força bruta no login
+    "django-csp>=4.0",      # Content-Security-Policy nas páginas do Django
+    "argon2-cffi>=23.1",    # hash de senha Argon2 (PASSWORD_HASHERS)
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-django>=4.9",
+    "pytest-asyncio>=0.24",
+    "daphne>=4.1",  # channels.testing importa daphne
+    "pytest-cov>=5.0",
+    "pypdf>=4.0",          # lê o PDF gerado para checar o conteúdo (test_transcript)
+    "model-bakery>=1.19",
+    "ruff>=0.6",
+    "django-stubs>=5.0",
+]
+security = [
+    "pip-audit>=2.7",   # CVEs nas dependências instaladas
+    "bandit>=1.7",      # análise estática do código Python
+]
+antivirus = [
+    "clamd>=1.0.2",     # cliente do daemon ClamAV (D19)
+]
+reports = [
+    "openpyxl>=3.1",       # exportação XLSX
+    "weasyprint>=62.0",    # exportação PDF
+]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+addopts = "--reuse-db --strict-markers"
+asyncio_mode = "auto"
+testpaths = ["apps"]
+
+[tool.coverage.run]
+source = ["apps"]
+omit = ["*/migrations/*", "*/tests/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["migrations"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "DJ", "S"]
+ignore = [
+    "S101",   # assert é o idioma do pytest
+    "DJ001",  # null=True em CharField é deliberado: papéis "não se aplica" e unique nullable (google_sub)
+    "N818",   # exceções de domínio nomeadas pela condição (QuotaExceeded), padrão do projeto
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*" = ["F403", "F405"]
+# F811: importar fixture de outro módulo de teste para reusar o cenário é o
+# idioma do pytest — o parâmetro do teste "redefine" o nome importado de
+# propósito, e é assim que a injeção funciona.
+# N802: nome de teste é frase, não identificador de API. A CAIXA ALTA no meio
+# (`..._na_MESMA_resposta`) marca o que o teste está segurando, e é o que se lê
+# no relatório de falha — vale mais que a convenção de minúsculas.
+"*/tests/*" = ["S105", "S106", "F811", "N802"]

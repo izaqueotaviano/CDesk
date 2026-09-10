@@ -1,0 +1,17 @@
+{
+  "name": "resolv — Equipe",
+  "short_name": "resolv",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8f4f1",
+  "theme_color": "#f8f4f1",
+  "icons": [
+    { "src": "/icones/equipe-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icones/equipe-512.png", "sizes": "512x512", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "Minha fila", "url": "/app/tickets" },
+    { "name": "Kanban", "url": "/app/kanban" }
+  ]
+}

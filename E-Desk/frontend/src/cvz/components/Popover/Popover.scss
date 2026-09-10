@@ -1,0 +1,16 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.popover {
+  position: relative;
+  display: inline-flex;
+
+  &__panel {
+    @include popover;
+    top: calc(100% + 4px);
+    padding: $sp-3;
+
+    &--start { left: 0; }
+    &--end { right: 0; }
+  }
+}

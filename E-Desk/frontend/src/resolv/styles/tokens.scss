@@ -1,0 +1,39 @@
+// ============================================================================
+// Resolv Design System — tokens (custom properties).
+//
+// Só define as variáveis do design system entregue em resolvdesignsystem.md.
+// NÃO faz reset global de propósito: esta tela vive num app que já carrega o
+// Preflight do Tailwind (src/styles/index.css); um segundo reset brigaria com
+// ele. Os componentes .resolv-* abaixo estilizam tudo explicitamente.
+//
+// Escopado em .resolv-scope para os tokens valerem só sob o shell novo — o
+// resto do app (login etc., ainda no visual Tailwind quente) fica intocado.
+// ============================================================================
+
+.resolv-scope {
+  // ── Fontes ──
+  --f-ui: 'Inter', -apple-system, system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', monospace;
+
+  // ── Superfícies ──
+  --surface: #f9f8f7;
+  --surface-alt: #f5f3f2;
+  --surface-card: #ffffff;
+  --stroke: #e3e1df;
+  --stroke-hover: #c9c0ba;
+  --stroke-subtle: #d6d3d0;
+
+  // ── Texto ──
+  --text-primary: #3b3532;
+  --text-secondary: #79706a;
+  --text-muted: #a79e97;
+
+  // ── Semânticas ──
+  --accent: #0275de;
+  --danger: #b3261e;
+  --ok: #1d7a4c;
+  --away: #8a5d0f;
+
+  font-family: var(--f-ui);
+  color: var(--text-primary);
+}

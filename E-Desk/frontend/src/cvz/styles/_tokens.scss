@@ -1,0 +1,173 @@
+// =============================================================================
+// cvzdesk · design tokens
+// Fonte única de verdade. Nenhum componente declara hex ou px de raio direto.
+//
+// Copiado VERBATIM do MCP cvzdesk (get_tokens) em 2026-09-04. Não editar à
+// mão — se um valor precisar mudar, muda na fonte (cvzdesk) e recopia aqui.
+// =============================================================================
+
+// --- cor: marca --------------------------------------------------------------
+$blue:            var(--cvz-blue);
+$blue-hover:      var(--cvz-blue-hover);
+$blue-active:     var(--cvz-blue-active);
+
+// --- cor: superfícies --------------------------------------------------------
+$surface:         var(--cvz-surface);      // fundo do conteúdo
+$chrome:          var(--cvz-chrome);       // sidebar e topbar
+$raised:          var(--cvz-raised);       // cards, campos, popovers
+$stroke:          var(--cvz-stroke);
+$hover:           var(--cvz-hover);        // item em hover/ativo no chrome
+$hover-soft:      var(--cvz-hover-soft);
+
+// --- cor: texto --------------------------------------------------------------
+$text:            var(--cvz-text);
+$text-hover:      var(--cvz-text-hover);   // hover do botão secundário
+$text-secondary:  var(--cvz-text-secondary);
+$text-muted:      var(--cvz-text-muted);
+$text-on-dark:    var(--cvz-text-on-color);
+$text-on-accent:  var(--cvz-text-on-accent);  // sobre $blue — muda no escuro
+
+// --- cor: semântica ----------------------------------------------------------
+$danger:          var(--cvz-danger);
+$danger-hover:    var(--cvz-danger-hover);
+$success:         var(--cvz-success);
+$away:            var(--cvz-away);
+$offline:         $text-muted;
+$overlay:         var(--cvz-overlay);
+$chrome-glass:    var(--cvz-chrome-glass);
+$on-accent-soft:  var(--cvz-on-accent-soft);
+
+// --- cor: avatar -------------------------------------------------------------
+$avatar-bg:       var(--cvz-avatar-bg);
+
+// --- stroke ------------------------------------------------------------------
+$stroke-w:        0.7px;
+$border:          $stroke-w solid $stroke;
+
+// Marcador de estado — aba ativa, linha selecionada, item de menu ativo, borda
+// esquerda de notificação. Não é borda: a 0.7px o indicador desaparece.
+$marker-w:        2px;
+$focus-w:         2px;   // espessura do anel de foco
+$tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
+
+// --- raio --------------------------------------------------------------------
+$radius:          2px;   // padrão em tudo
+$radius-pill:     7px;   // badges
+$radius-circle:   50%;
+
+// --- métricas do shell ------------------------------------------------------
+$sidebar-w:       56px;
+$topbar-h:        56px;
+$search-w:        420px;
+$nav-item:        40px;
+$icon:            16px;
+$avatar:          30px;
+$logo-size:       32px;   // bloco de logo da sidebar
+// --- altura de controle: escala fechada -------------------------------------
+$control-h-sm:    28px;   // barras densas, dentro de tabela, paginação
+$control-h:       34px;   // padrão
+$control-h-lg:    40px;   // destaque, alvo de toque
+$field-h:         $control-h;   // alias histórico — prefira $control-h
+
+// --- alturas que NÃO são controle -------------------------------------------
+$badge-h:         22px;   // tag, status
+$chip-h:          24px;   // chip removível
+$inline-input-h:  24px;   // input dentro de combobox, sem chrome próprio
+$search-h-topbar: 46px;   // busca da topbar, deliberadamente maior
+
+// --- colunas do detalhe de ticket (surface flush) ---------------------------
+$col-list:        300px;  // fila lateral
+$col-props:       288px;  // painel de propriedades
+$col-thread-min:  420px;  // largura mínima da conversa antes de colapsar
+
+// --- densidade de tabela ----------------------------------------------------
+$row-h-compact:   32px;   // filas longas, muitas linhas na tela
+$row-h:           40px;   // padrão
+$row-h-relaxed:   48px;   // linhas com duas informações empilhadas
+$cell-px:         12px;   // = $sp-3, fixado (evitar referência circular)
+
+// --- espaçamento -------------------------------------------------------------
+$sp-1: 4px;  $sp-2: 8px;  $sp-3: 12px;
+$sp-4: 16px; $sp-5: 24px; $sp-6: 32px;
+$sp-7: 48px; $sp-8: 64px;
+
+// --- tipografia --------------------------------------------------------------
+$f-ui:   var(--f-ui, 'Inter', -apple-system, system-ui, sans-serif);
+$f-mono: var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
+
+$w-light:    300; // texto corrido
+$w-regular:  400;
+$w-medium:   500;
+$w-semibold: 600;
+
+// --- motion ------------------------------------------------------------------
+$dur-fast: 0.1s;
+$dur:      0.15s;
+$ease:     cubic-bezier(0.2, 0, 0.38, 0.9);
+
+// --- elevação ----------------------------------------------------------------
+$shadow-sm: var(--cvz-shadow-sm);
+$shadow-md: var(--cvz-shadow-md);
+$shadow-lg: var(--cvz-shadow-lg);
+
+// --- z-index -----------------------------------------------------------------
+$z-topbar:   90;
+$z-popover:  95;   // dropdown, menu de filtro, autocomplete — sobre a topbar
+$z-sidebar:  100;
+$z-tooltip:  110;
+$z-overlay:  200;
+
+// --- tints semânticos (fundo de estado) -------------------------------------
+$blue-tint:       var(--cvz-blue-tint);
+$blue-tint-hover: var(--cvz-blue-tint-hover);  // hover de linha selecionada
+$success-tint:    var(--cvz-success-tint);
+$away-tint:       var(--cvz-away-tint);
+$danger-tint:     var(--cvz-danger-tint);
+
+// --- breakpoints ---------------------------------------------------------
+// O produto nasce desktop e degrada — os mixins (_mixins.scss) são max-width.
+$bp-sm: 480px;
+$bp-md: 768px;   // mobile abaixo
+$bp-lg: 1024px;  // tablet entre md e lg
+$bp-xl: 1280px;  // desktop
+
+// =============================================================================
+// TIPOGRAFIA — escala fechada
+// Nenhum componente declara font-size ou line-height literal. Se um tamanho não
+// está aqui, ele não existe no produto.
+// =============================================================================
+$fs-micro:    9px;   // contador dentro de badge (sempre mono)
+$fs-caption: 10px;   // overline, timestamp, legenda de coluna
+$fs-label:   11px;   // rótulo de campo, header de tabela, tag, atalho
+$fs-meta:    12px;   // texto de apoio, metadado, célula secundária
+$fs-ui:      13px;   // padrão da interface: botão, célula, item de lista
+$fs-body:    14px;   // texto corrido, item de resultado de busca
+$fs-title:   15px;   // título de painel, assunto de ticket em lista
+$fs-subhead: 17px;   // título de seção, assunto no detalhe do ticket
+$fs-heading: 20px;   // título de página
+$fs-display: 26px;   // número de KPI, título de tela vazia
+
+$lh-none:   1;       // só para texto de uma linha com altura controlada
+$lh-tight:  1.2;     // títulos
+$lh-snug:   1.35;    // rótulos e metadados
+$lh-normal: 1.5;     // texto corrido e bolha de conversa
+
+// =============================================================================
+// ESTADO DESABILITADO
+// =============================================================================
+$disabled-bg:      $chrome;
+$disabled-text:    $text-muted;
+$disabled-border:  $stroke;
+$disabled-opacity: 0.55;   // só para blocos compostos (card, linha, grupo)
+
+// =============================================================================
+// SEMÂNTICA DE NEGÓCIO
+// =============================================================================
+$priority-low:     $text-secondary;  // baixa    — fundo $chrome
+$priority-normal:  $blue;            // normal   — fundo $blue-tint
+$priority-high:    $away;            // alta     — fundo $away-tint
+$priority-urgent:  $danger;          // urgente  — fundo $danger-tint
+
+$sla-ok:           $success;         // no prazo
+$sla-risk:         $away;            // em risco (< 25% da janela restante)
+$sla-breached:     $danger;          // estourado

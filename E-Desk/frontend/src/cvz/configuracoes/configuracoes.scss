@@ -1,0 +1,181 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+// Conteúdo de cada aba de Configurações — linha de "adicionar" no topo,
+// tabela editável inline embaixo. Compartilhado pelas abas de cadastro
+// simples (Status, Serviços, Categorias, Tags); as mais complexas (SLA,
+// Equipes, Planos, Calendário, Papéis, Sistema) usam Form/FormSection.
+.cfg-aba {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+  padding-top: $sp-4;
+
+  &__add-linha {
+    display: flex;
+    align-items: flex-end;
+    gap: $sp-3;
+
+    > *:first-child {
+      flex: 1;
+    }
+  }
+
+  &__acao-add {
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+
+// Célula editável direto na tabela — mesma altura/tipografia de um campo,
+// sem a moldura do Field (a linha da tabela já dá o contexto visual).
+.cfg-inline-input,
+.cfg-inline-select {
+  width: 100%;
+  height: $control-h-sm;
+  padding: 0 $sp-2;
+  border: $stroke-w solid transparent;
+  border-radius: $radius;
+  background: none;
+  @include type($fs-ui, $w-regular);
+  color: $text;
+
+  &:hover {
+    border-color: $stroke;
+  }
+  &:focus-visible {
+    @include focus-ring;
+    border-color: $blue;
+    background-color: $raised;
+  }
+}
+
+// Color-well nativo — não existe componente de seletor de cor no catálogo
+// cvzdesk hoje, e o widget do sistema operacional já resolve isso melhor do
+// que qualquer coisa que eu desenharia à mão.
+.cfg-cor-input {
+  width: 32px;
+  height: 32px;
+  padding: 2px;
+  border: $border;
+  border-radius: $radius;
+  background: none;
+  cursor: pointer;
+
+  &::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  &::-webkit-color-swatch {
+    border: 0;
+    border-radius: 1px;
+  }
+}
+
+// Contagens/leitura de apoio dentro de um modal de edição — não é erro nem
+// metadado de tabela, é só contexto ("3 agentes, 12 tickets") pra quem está
+// prestes a desativar ou reclassificar algo em uso.
+.cfg-meta-form {
+  @include type($fs-meta, $w-regular);
+  color: $text-muted;
+}
+
+.cfg-erro-form {
+  @include type($fs-ui, $w-regular);
+  color: $danger;
+}
+
+.cfg-chip-cor {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: $border;
+}
+
+// Grade de permissões do formulário de papel (AbaPapeis) — agrupada pelo
+// prefixo do catálogo (rbac.Perm), na mesma ordem que o backend declara.
+.cfg-permissoes {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.cfg-permissoes__grupo {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.cfg-permissoes__titulo {
+  @include type($fs-meta, $w-medium);
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.cfg-permissoes__grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: $sp-2 $sp-4;
+}
+
+// Janelas de expediente + feriados do formulário de calendário (AbaCalendarios).
+.cfg-calendario__secao {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  padding-top: $sp-2;
+  border-top: $border;
+}
+
+.cfg-calendario__secao-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// Dia + início + fim + remover, numa linha só — largura fixa nos dois
+// campos de hora porque `<input type="time">` não precisa do espaço extra
+// que o Select do dia usa pro rótulo.
+.cfg-calendario__janela {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto;
+  gap: $sp-2;
+  align-items: end;
+}
+
+.cfg-calendario__feriados {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.cfg-calendario__feriado-linha {
+  display: grid;
+  grid-template-columns: 100px 1fr 140px auto;
+  align-items: center;
+  gap: $sp-2;
+  @include type($fs-ui, $w-regular);
+
+  span:nth-child(2) {
+    color: $text;
+  }
+  span:nth-child(1),
+  span:nth-child(3) {
+    color: $text-muted;
+  }
+}
+
+.cfg-calendario__feriado-novo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: $sp-3;
+  padding-top: $sp-2;
+  border-top: $border;
+
+  > .field {
+    flex: 1;
+    min-width: 140px;
+  }
+}

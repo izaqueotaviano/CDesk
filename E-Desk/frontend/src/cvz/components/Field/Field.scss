@@ -1,0 +1,86 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  &__label {
+    font-size: $fs-label;
+    font-weight: $w-medium;
+    color: $text-secondary;
+  }
+
+  &__helper {
+    font-size: $fs-label;
+    color: $text-muted;
+  }
+
+  &__error {
+    font-size: $fs-label;
+    font-weight: $w-regular;
+    color: $danger;
+  }
+}
+
+// Controle base — input, textarea e select compartilham a mesma caixa.
+.control {
+  @include field;
+  width: 100%;
+
+  &--area {
+    height: auto;
+    min-height: 80px;
+    line-height: $lh-normal;
+    resize: vertical;
+  }
+
+  &--select {
+    appearance: none;
+    padding-right: $sp-6;
+    cursor: pointer;
+  }
+
+  &--invalid {
+    border-color: $danger;
+
+    &:focus { border-color: $danger; }
+  }
+
+  &:disabled { @include disabled-control; }
+}
+
+.select-wrap {
+  position: relative;
+
+  &__caret {
+    @include stroke-icon(14px);
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    color: $text-secondary;
+    pointer-events: none;
+  }
+}
+
+.search-input {
+  position: relative;
+
+  &__icon {
+    @include stroke-icon($icon);
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: $text-muted;
+    pointer-events: none;
+  }
+
+  &__control {
+    padding-left: 32px;
+
+    &[readonly] { cursor: pointer; }
+  }
+}

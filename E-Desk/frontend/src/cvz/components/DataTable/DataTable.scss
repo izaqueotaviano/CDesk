@@ -1,0 +1,254 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.data-table {
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+  overflow: hidden;
+
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    padding: $sp-2 $sp-3;
+    border-bottom: $border;
+  }
+
+  // Barra de lote substitui a toolbar — mesma altura, sem salto de layout.
+  &__batch {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    padding: $sp-2 $sp-3;
+    background-color: $blue;
+    color: $text-on-accent;
+  }
+
+  &__batch-count {
+    font-size: $fs-ui;
+    font-weight: $w-light;
+
+    b { font-weight: $w-semibold; }
+  }
+
+  &__batch-actions {
+    display: flex;
+    align-items: center;
+    gap: $sp-1;
+  }
+
+  &__batch-clear {
+    @include button-reset;
+    padding: 7px $sp-3;
+    border-radius: $radius;
+    font-size: $fs-meta;
+    font-weight: $w-medium;
+    color: $text-on-accent;
+
+    &:hover { background-color: $on-accent-soft; }
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: $fs-ui;
+    font-weight: $w-regular;
+  }
+
+  thead th {
+    height: $row-h-compact;
+    padding: 0 $cell-px;
+    background-color: $chrome;
+    border-bottom: $stroke-w solid $stroke;
+    text-align: left;
+    font-size: $fs-label;
+    font-weight: $w-semibold;
+    color: $text-secondary;
+    white-space: nowrap;
+  }
+
+  // Densidade: a altura vem do token, não de um padding improvisado.
+  tbody td {
+    height: $row-h;
+    padding: 0 $cell-px;
+    border-bottom: $stroke-w solid $stroke;
+  }
+
+  &--compact tbody td { height: $row-h-compact; }
+  &--relaxed tbody td { height: $row-h-relaxed; padding: $sp-2 $cell-px; }
+
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background-color: $chrome; }
+
+  // Seleção: tint + marcador de 2px. O contraste não depende só do fundo.
+  &__row--selected {
+    background-color: $blue-tint;
+    box-shadow: inset $marker-w 0 0 $blue;
+
+    &:hover { background-color: $blue-tint-hover; }
+
+    td { border-bottom-color: $stroke; }
+  }
+
+  &__check {
+    width: 40px;
+    padding-right: 0 !important;
+  }
+
+  &__num {
+    text-align: right;
+    font-family: $f-mono;
+    font-size: $fs-meta;
+  }
+
+  &__empty {
+    padding: $sp-6 $sp-3 !important;
+    text-align: center;
+    color: $text-muted;
+  }
+}
+
+// =============================================================================
+// Ordenação
+// =============================================================================
+.data-table {
+  &__sort {
+    @include button-reset;
+    @include focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 4px;
+    margin: 0 -4px;
+    border-radius: $radius;
+    font: inherit;
+    color: inherit;
+    transition: color $dur $ease;
+
+    &:hover { color: $text; }
+    &--active { color: $text; }
+  }
+
+  &__sort-icon {
+    @include stroke-icon(13px);
+
+    // A seta neutra só aparece no hover: três setas cinzas por cabeçalho
+    // poluem mais do que ajudam.
+    &--idle { opacity: 0; }
+  }
+
+  &__sort:hover &__sort-icon--idle { opacity: 0.5; }
+
+  &__num &__sort { flex-direction: row-reverse; }
+
+  &--loading tbody tr { pointer-events: none; }
+}
+
+// =============================================================================
+// Mobile — a tabela vira lista de cartões
+// =============================================================================
+@include mobile {
+  .data-table {
+    border: 0;
+    background: none;
+
+    &__toolbar,
+    &__batch {
+      flex-wrap: wrap;
+      border: $border;
+      border-radius: $radius;
+      margin-bottom: $sp-3;
+    }
+
+    &__table,
+    &__table tbody,
+    &__table tr,
+    &__table td {
+      display: block;
+      width: 100%;
+    }
+
+    &__table thead { display: none; }
+
+    &__table tr {
+      position: relative;
+      margin-bottom: $sp-2;
+      padding: $sp-3;
+      border: $border;
+      border-radius: $radius;
+      background-color: $raised;
+    }
+
+    &__table td {
+      height: auto;
+      padding: 0;
+      border: 0;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: $sp-3;
+
+      &::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        @include type($fs-label, $w-medium);
+        color: $text-muted;
+      }
+    }
+
+    &__table td[data-mobile='title'],
+    &__table td[data-mobile='subtitle'] {
+      display: block;
+
+      &::before { content: none; }
+    }
+
+    &__table td[data-mobile='title'] {
+      @include type($fs-title, $w-semibold);
+      margin-bottom: 2px;
+      padding-right: $sp-6;   // espaço para o checkbox no canto
+    }
+
+    &__table td[data-mobile='subtitle'] {
+      @include type($fs-meta, $w-light);
+      color: $text-secondary;
+      margin-bottom: $sp-2;
+    }
+
+    &__table td[data-mobile='hidden'] { display: none; }
+
+    &__table td[data-mobile='meta'] + td[data-mobile='meta'] {
+      margin-top: 6px;
+    }
+
+    // O checkbox sai do fluxo e ancora no canto do cartão.
+    &__check {
+      position: absolute;
+      top: $sp-3;
+      right: $sp-3;
+      width: auto !important;
+
+      &::before { content: none !important; }
+    }
+
+    &__num { text-align: left; }
+
+    &__row--selected {
+      box-shadow: inset 0 0 0 $marker-w $blue;
+      background-color: $blue-tint;
+    }
+
+    &__empty { padding: $sp-6 $sp-3 !important; }
+  }
+}
+
+// Tablet: a tabela continua tabela, mas com respiro menor.
+@include tablet {
+  .data-table {
+    thead th,
+    tbody td { padding: 0 $sp-2; }
+  }
+}

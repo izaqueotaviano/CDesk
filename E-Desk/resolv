@@ -1,0 +1,714 @@
+#!/usr/bin/env bash
+#
+# resolv — sobe o sistema inteiro (backend + frontend) com um comando.
+#
+#   ./resolv              atualiza, sobe API e frontend, migra e semeia
+#   ./resolv compartilhar como acima, e diz como outra máquina alcança a API
+#   ./resolv parar        derruba tudo (containers e frontend)
+#   ./resolv logs         acompanha o log da API
+#   ./resolv logs front   acompanha o log do frontend (Vite)
+#   ./resolv logs worker  acompanha o log das tarefas de fundo (Celery)
+#   ./resolv estado       mostra o que está no ar
+#   ./resolv antivirus    sobe também o ClamAV (opcional, pesado)
+#   ./resolv ajuda
+#
+# Dois modos, escolhidos sozinho:
+#   docker  — quando o Docker está rodando (o normal na sua máquina)
+#   nativo  — Postgres, Redis, venv e Node do próprio sistema, sem Docker
+# Forçar um deles: MODO=nativo ./resolv
+#
+# O backend (API REST + WebSocket) responde na porta 8000; o frontend
+# (React/Vite, na pasta frontend/) roda em Node na porta 5174 — a única que
+# já está liberada em CORS/CSRF. Depois de subir, entre pela aplicação em
+# http://localhost:5174 (o contrato da API fica em /api/docs/).
+
+set -euo pipefail
+
+# roda de qualquer pasta: tudo é relativo ao diretório do script
+cd "$(dirname "${BASH_SOURCE[0]}")"
+# caminho absoluto deste projeto — é com ele que se decide se o que responde
+# na porta do Vite saiu DAQUI ou de outro clone
+RAIZ="$(pwd -P)"
+
+URL="http://localhost:8000"
+DOCS="$URL/api/docs/"
+FRONT_URL="http://localhost:5174"
+FRONT_DIR="frontend"
+VITE_LOG="$FRONT_DIR/.vite.log"
+
+# O frontend ainda não existe nesta cópia — vamos construí-lo aqui. Até lá o
+# script sobe só o backend em vez de morrer no `cd frontend`: "não dá para
+# rodar nada" seria falso, a API e o admin funcionam sozinhos.
+tem_frontend() { [ -d "$FRONT_DIR" ]; }
+API_LOG=".api.log"
+WORKER_LOG=".worker.log"
+BEAT_LOG=".beat.log"
+VENV=".venv"
+# Precisa bater com o DATABASE_URL do .env — o modo nativo cria o papel e o
+# banco na primeira vez, e para isso precisa saber o nome dos dois.
+PG_USER="resolv"
+PG_DB="resolv"
+
+# cor só quando a saída é um terminal (num pipe, atrapalharia)
+if [ -t 1 ]; then
+  V=$'\033[32m'; A=$'\033[33m'; E=$'\033[31m'; N=$'\033[0m'; B=$'\033[1m'
+else
+  V=""; A=""; E=""; N=""; B=""
+fi
+
+passo() { echo "${B}▸ $*${N}"; }
+ok()    { echo "  ${V}✓${N} $*"; }
+aviso() { echo "  ${A}!${N} $*"; }
+erro()  { echo "${E}✗ $*${N}" >&2; }
+
+morrer() { erro "$*"; exit 1; }
+
+# ── modo de execução ──────────────────────────────────────────────────────────
+#
+# O sistema sobe de dois jeitos, e o script escolhe sozinho:
+#
+#   docker — banco, Redis, API e worker em containers. É o normal na máquina
+#            de quem desenvolve, e o que mais se parece com produção.
+#   nativo — Postgres, Redis, virtualenv e Node do PRÓPRIO sistema. Existe
+#            porque nem todo lugar tem Docker: container de CI, servidor
+#            enxuto, máquina sem permissão para rodar o daemon. Sem este
+#            modo, "não tenho Docker" virava "não dá para rodar o sistema".
+#
+# `MODO=nativo ./resolv` força, para testar o caminho que não seria o
+# escolhido — sem isso um dos dois só quebraria na máquina de outra pessoa.
+
+docker_pronto() {
+  command -v docker >/dev/null 2>&1 \
+    && docker info >/dev/null 2>&1 \
+    && docker compose version >/dev/null 2>&1
+}
+
+detectar_modo() {
+  if [ -n "${MODO:-}" ]; then
+    case "$MODO" in
+      docker|nativo) return 0 ;;
+      *) morrer "MODO deve ser 'docker' ou 'nativo' (recebi: $MODO)" ;;
+    esac
+  fi
+  if docker_pronto; then MODO="docker"; else MODO="nativo"; fi
+}
+
+# ── verificações ──────────────────────────────────────────────────────────────
+
+conferir_node() {
+  tem_frontend && { command -v npm >/dev/null || morrer \
+    "Node.js não encontrado — o frontend precisa dele. Instale a versão LTS: https://nodejs.org (ou 'brew install node')."; }
+  # o script inteiro descobre "está no ar?" batendo na porta com curl; sem ele
+  # nada subiria de fato, mas a espera terminaria em "não subiu" — erro que
+  # manda a pessoa procurar defeito no lugar errado
+  command -v curl >/dev/null || morrer "curl não encontrado — instale-o (é ele que confere se os serviços responderam)."
+}
+
+conferir_ferramentas() {
+  if [ "$MODO" = "docker" ]; then
+    command -v docker >/dev/null || morrer \
+      "Docker não encontrado. Instale pelo site: https://www.docker.com/products/docker-desktop/"
+    # antes das demais: "o Docker está fechado" é de longe o motivo mais comum,
+    # e adianta pouco reclamar de outra coisa quando é isto
+    docker info >/dev/null 2>&1 || morrer \
+      "O Docker não está rodando. Abra o Docker Desktop e espere a baleia ficar verde na barra de menu."
+    docker compose version >/dev/null 2>&1 || morrer \
+      "Seu Docker é antigo (falta 'docker compose'). Atualize o Docker Desktop."
+  else
+    command -v pg_ctlcluster >/dev/null 2>&1 || command -v pg_ctl >/dev/null 2>&1 || morrer \
+      "Sem Docker E sem PostgreSQL local — preciso de um dos dois. Instale o Docker Desktop ou o PostgreSQL 16."
+    command -v redis-server >/dev/null 2>&1 || morrer \
+      "Sem Docker e sem redis-server local. Instale o Redis ou use o Docker."
+    command -v python3 >/dev/null 2>&1 || morrer "Python 3.11+ não encontrado."
+  fi
+  conferir_node
+}
+
+# ── passos ────────────────────────────────────────────────────────────────────
+
+atualizar_codigo() {
+  passo "Buscando atualizações"
+  if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    aviso "Você tem alterações locais — não vou puxar por cima delas."
+    aviso "Se não foram intencionais: 'git stash' para guardá-las."
+    return 0
+  fi
+  if git pull --ff-only 2>/dev/null; then
+    ok "Código atualizado."
+  else
+    aviso "Não consegui atualizar agora (sem rede ou branch divergente). Seguindo com o que já está aqui."
+  fi
+}
+
+preparar_env() {
+  [ -f .env ] && return 0
+  passo "Criando .env a partir do exemplo"
+  cp .env.example .env
+  ok ".env criado."
+}
+
+# Roda um comando do manage.py onde ele mora em cada modo: dentro do container
+# `web`, ou no virtualenv local. Existe para que os passos de banco (migrar,
+# semear) sejam escritos UMA vez — duas cópias divergiriam na primeira vez que
+# alguém mexesse só numa delas.
+manage() {
+  if [ "$MODO" = "docker" ]; then
+    docker compose exec -T web python manage.py "$@"
+  else
+    DJANGO_SETTINGS_MODULE=config.settings.dev "$VENV/bin/python" manage.py "$@"
+  fi
+}
+
+# ── backend: modo nativo ──────────────────────────────────────────────────────
+
+pg_no_ar() {
+  pg_isready -q -h 127.0.0.1 -p 5432 2>/dev/null
+}
+
+subir_postgres() {
+  pg_no_ar && { ok "PostgreSQL já no ar."; return 0; }
+  # `service` cobre Debian/Ubuntu; `pg_ctlcluster` é o plano B quando não há
+  # init script (container enxuto), que é justamente onde este modo mais roda.
+  service postgresql start >/dev/null 2>&1 \
+    || pg_ctlcluster 16 main start >/dev/null 2>&1 \
+    || true
+  for _ in $(seq 1 20); do
+    pg_no_ar && { ok "PostgreSQL no ar."; return 0; }
+    sleep 1
+  done
+  morrer "Não consegui subir o PostgreSQL. Veja /var/log/postgresql/."
+}
+
+# Papel e banco nascem aqui na primeira vez. Sem isto, a primeira execução num
+# Postgres recém-instalado morreria num "role does not exist" que não diz a
+# ninguém o que fazer a respeito.
+preparar_banco() {
+  local psql_su="psql -v ON_ERROR_STOP=1 -q"
+  if ! su postgres -c "$psql_su -tAc \"SELECT 1 FROM pg_roles WHERE rolname='$PG_USER'\"" 2>/dev/null | grep -q 1; then
+    passo "Criando o usuário e o banco do PostgreSQL"
+    su postgres -c "$psql_su -c \"CREATE ROLE $PG_USER LOGIN PASSWORD '$PG_USER' CREATEDB\"" >/dev/null 2>&1 || true
+    ok "Usuário $PG_USER criado."
+  fi
+  if ! su postgres -c "$psql_su -tAc \"SELECT 1 FROM pg_database WHERE datname='$PG_DB'\"" 2>/dev/null | grep -q 1; then
+    su postgres -c "$psql_su -c \"CREATE DATABASE $PG_DB OWNER $PG_USER\"" >/dev/null 2>&1 || true
+    ok "Banco $PG_DB criado."
+  fi
+}
+
+subir_redis() {
+  redis-cli ping >/dev/null 2>&1 && { ok "Redis já no ar."; return 0; }
+  redis-server --daemonize yes --port 6379 >/dev/null 2>&1 || true
+  for _ in $(seq 1 10); do
+    redis-cli ping >/dev/null 2>&1 && { ok "Redis no ar."; return 0; }
+    sleep 1
+  done
+  morrer "Não consegui subir o Redis."
+}
+
+preparar_venv() {
+  if [ ! -x "$VENV/bin/python" ]; then
+    passo "Criando o ambiente virtual do Python (só na primeira vez)"
+    python3 -m venv "$VENV" || morrer "Falhou criar o virtualenv."
+  fi
+  # Confere uma dependência de verdade em vez de um marcador: um venv criado
+  # pela metade (instalação interrompida) passaria por qualquer teste de
+  # "a pasta existe" e só quebraria no primeiro import.
+  if ! "$VENV/bin/python" -c "import django" >/dev/null 2>&1; then
+    passo "Instalando as dependências do backend (demora um pouco)"
+    "$VENV/bin/pip" install -q --upgrade pip >/dev/null 2>&1 || true
+    "$VENV/bin/pip" install -q -e ".[dev]" || morrer "pip install falhou — veja a mensagem acima."
+    ok "Dependências instaladas."
+  fi
+}
+
+api_no_ar() {
+  # 403 é resposta BOA aqui: significa que o Django respondeu e recusou por
+  # falta de sessão. Só a ausência de resposta (000) conta como "fora".
+  #
+  # O `|| code=000` fica FORA do $(...) de propósito: quando a conexão é
+  # recusada, o próprio curl já imprime "000" por causa do -w e ainda sai com
+  # erro — um `|| echo 000` lá dentro concatenaria os dois e o resultado
+  # ("000000") passaria no teste abaixo. Era assim que o script anunciava
+  # "API já no ar" com a porta 8000 vazia, pulava a subida da API e só
+  # quebrava na tela, longe da causa.
+  local code
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 2 --noproxy '*' \
+          "$URL/api/v1/auth/me/" 2>/dev/null)" || code="000"
+  [ -n "$code" ] && [ "$code" != "000" ]
+}
+
+subir_api_nativa() {
+  if api_no_ar; then
+    ok "API já no ar."
+    return 0
+  fi
+  passo "Subindo a API (uvicorn, porta 8000)"
+  # nohup + log em arquivo, igual ao Vite: segue viva depois que o script
+  # termina, e quem derruba é './resolv parar'
+  #
+  # --reload para igualar o modo docker: mexeu no Python, a API recarrega
+  # sozinha. Limitado a apps/ e config/ porque aqui o processo enxerga a
+  # pasta inteira do projeto — sem o recorte ele vigiaria .venv e
+  # node_modules, dezenas de milhares de arquivos que nunca mudam.
+  ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+    nohup "$VENV/bin/uvicorn" config.asgi:application --host 0.0.0.0 --port 8000 \
+      --reload --reload-dir apps --reload-dir config \
+      >"$API_LOG" 2>&1 & )
+}
+
+celery_no_ar() {
+  pgrep -f "celery -A config $1" >/dev/null 2>&1
+}
+
+# Worker e agendador sobem DEPOIS das migrações: o beat usa o DatabaseScheduler,
+# que lê a tabela de agendamentos — num banco recém-criado ele morreria no
+# arranque, e o sistema ficaria sem SLA, sem e-mail e sem relatório sem que
+# nada na tela dissesse por quê. No modo docker o compose já cuida dos dois.
+subir_jobs_nativos() {
+  [ "$MODO" = "nativo" ] || return 0
+  passo "Subindo o worker de tarefas e o agendador (Celery)"
+  if celery_no_ar worker; then
+    ok "Worker já no ar."
+  else
+    ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+      nohup "$VENV/bin/celery" -A config worker -Q default,reports -l info \
+        >"$WORKER_LOG" 2>&1 & )
+    ok "Worker no ar."
+  fi
+  if celery_no_ar beat; then
+    ok "Agendador já no ar."
+  else
+    ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+      nohup "$VENV/bin/celery" -A config beat -l info \
+        --scheduler django_celery_beat.schedulers:DatabaseScheduler \
+        >"$BEAT_LOG" 2>&1 & )
+    ok "Agendador no ar."
+  fi
+}
+
+parar_backend_nativo() {
+  # Só o que ESTE script subiu. PostgreSQL e Redis ficam de pé de propósito:
+  # no modo nativo eles são do sistema, podem estar servindo outra coisa, e
+  # derrubá-los para parar o resolv seria decidir pela máquina inteira.
+  pkill -f "uvicorn config.asgi:application" 2>/dev/null || true
+  pkill -f "celery -A config" 2>/dev/null || true
+  sleep 1
+  if api_no_ar; then
+    aviso "A porta 8000 ainda responde — veja quem está nela com 'lsof -i :8000'."
+  else
+    ok "API e worker parados."
+  fi
+  aviso "PostgreSQL e Redis continuam no ar (são do sistema, não deste projeto)."
+}
+
+subir_backend_nativo() {
+  passo "Subindo backend nativo (PostgreSQL, Redis, API)"
+  subir_postgres
+  preparar_banco
+  subir_redis
+  preparar_venv
+  subir_api_nativa
+}
+
+esperar_backend_nativo() {
+  passo "Esperando o backend responder"
+  for _ in $(seq 1 30); do
+    if api_no_ar; then
+      ok "Backend pronto."
+      return 0
+    fi
+    sleep 1
+  done
+  morrer "A API não subiu. Veja o que houve com: ./resolv logs"
+}
+
+# ── backend: modo docker ──────────────────────────────────────────────────────
+
+subir_backend_docker() {
+  passo "Subindo backend (banco, Redis, API, worker)"
+  docker compose up -d
+  ok "Containers no ar."
+}
+
+# o `up -d` volta assim que os containers iniciam, mas o Django ainda pode estar
+# carregando — sem esperar, o primeiro `exec` falha por um motivo que não é erro
+esperar_backend_docker() {
+  passo "Esperando o backend responder"
+  for _ in $(seq 1 30); do
+    if docker compose exec -T web python -c "print(1)" >/dev/null 2>&1; then
+      ok "Backend pronto."
+      return 0
+    fi
+    sleep 2
+  done
+  morrer "O backend não subiu. Veja o que houve com: ./resolv logs"
+}
+
+# ── backend: o que o resto do script chama ────────────────────────────────────
+
+subir_backend() {
+  if [ "$MODO" = "docker" ]; then subir_backend_docker; else subir_backend_nativo; fi
+}
+
+esperar_backend() {
+  if [ "$MODO" = "docker" ]; then esperar_backend_docker; else esperar_backend_nativo; fi
+}
+
+migrar() {
+  passo "Aplicando migrações do banco"
+  manage migrate --no-input >/dev/null
+  ok "Banco em dia."
+}
+
+# semeia só quando o banco está vazio: rodar de novo por cima não estraga nada,
+# mas gastaria um minuto à toa em toda subida
+semear_se_vazio() {
+  if manage shell -c \
+      "import sys; from apps.accounts.models import User; sys.exit(0 if User.objects.exists() else 1)" \
+      >/dev/null 2>&1; then
+    # Banco que já existia: o seed não roda, então as contas de demonstração
+    # continuariam com o endereço e a senha antigos enquanto a mensagem final
+    # anuncia os novos. Isto acerta as contas sem tocar em mais nada.
+    manage migrar_contas_demo >/dev/null 2>&1 || true
+    # Banco antigo, de antes de o seed criar conversas de chat: sem isto a
+    # tela de chat abre vazia num sistema que "já estava populado", e não há
+    # o que testar ali. O seed é idempotente — só o que falta é criado.
+    if ! manage shell -c \
+        "import sys; from apps.chat.models import Chat; sys.exit(0 if Chat.objects.exists() else 1)" \
+        >/dev/null 2>&1; then
+      passo "Sem conversas de chat — criando as de demonstração"
+      manage seed_demo >/dev/null 2>&1 || true
+    fi
+    return 0
+  fi
+  passo "Banco vazio — populando com dados de demonstração"
+  manage seed_defaults >/dev/null
+  manage seed_demo >/dev/null
+  ok "Planos, departamentos, SLA, empresas, usuários e tickets criados."
+}
+
+# ── frontend ──────────────────────────────────────────────────────────────────
+
+front_no_ar() {
+  curl -s -o /dev/null --max-time 2 "$FRONT_URL" 2>/dev/null
+}
+
+# PIDs escutando na porta do Vite — mesma escada de ferramentas do
+# parar_frontend, pelo mesmo motivo (nem toda máquina tem lsof).
+pids_na_porta_front() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -ti tcp:5174 2>/dev/null || true
+  elif command -v ss >/dev/null 2>&1; then
+    ss -ltnp 2>/dev/null | grep ':5174 ' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true
+  fi
+}
+
+# De qual pasta um processo subiu. É isto que distingue "o meu Vite" de "um
+# Vite de outro clone" — a porta responder não diz de quem ela é.
+cwd_do_pid() {
+  if command -v lsof >/dev/null 2>&1; then
+    lsof -a -p "$1" -d cwd -Fn 2>/dev/null | sed -n 's/^n//p' | head -1
+  elif [ -r "/proc/$1/cwd" ]; then
+    readlink -f "/proc/$1/cwd" 2>/dev/null
+  fi
+}
+
+# O que responde na 5174 saiu DESTE projeto?
+frontend_e_daqui() {
+  local p dir
+  for p in $(pids_na_porta_front); do
+    dir="$(cwd_do_pid "$p")"
+    [ -z "$dir" ] && continue
+    case "$dir" in
+      "$RAIZ"|"$RAIZ"/*) return 0 ;;
+    esac
+  done
+  return 1
+}
+
+# Onde mora o dono da porta, para a mensagem poder dizer o caminho.
+pasta_do_frontend_alheio() {
+  local p dir
+  for p in $(pids_na_porta_front); do
+    dir="$(cwd_do_pid "$p")"
+    [ -n "$dir" ] && { printf '%s' "$dir"; return 0; }
+  done
+  return 1
+}
+
+subir_frontend() {
+  if ! tem_frontend; then
+    aviso "Sem a pasta $FRONT_DIR/ — subindo só o backend."
+    return 0
+  fi
+  passo "Subindo frontend (Vite, porta 5174)"
+  if front_no_ar; then
+    # "a porta responde" NÃO é "o meu frontend está no ar". Um Vite de outro
+    # clone (ou de uma versão antiga deste) segura a mesma porta, e aceitar
+    # isso calado servia a versão errada com um "já estava no ar" verde na
+    # tela — o pior tipo de erro, o que parece sucesso.
+    if frontend_e_daqui; then
+      ok "Já estava no ar."
+      return 0
+    fi
+    local outra
+    outra="$(pasta_do_frontend_alheio || true)"
+    aviso "A porta 5174 já respondia, mas de OUTRA pasta:"
+    [ -n "$outra" ] && aviso "  $outra"
+    aviso "Derrubando esse para subir o desta aqui ($RAIZ)."
+    parar_frontend >/dev/null 2>&1 || true
+    sleep 1
+    if front_no_ar; then
+      morrer "A porta 5174 continua ocupada por outro processo. Feche-o e rode de novo."
+    fi
+  fi
+  if [ ! -d "$FRONT_DIR/node_modules" ]; then
+    passo "Instalando dependências do frontend (só na primeira vez — demora um pouco)"
+    ( cd "$FRONT_DIR" && npm install --no-audit --no-fund ) \
+      || morrer "npm install falhou — veja a mensagem acima."
+    ok "Dependências instaladas."
+  fi
+  # nohup + log em arquivo: o Vite segue vivo depois que o script termina,
+  # igual aos containers — quem derruba é './resolv parar'
+  ( cd "$FRONT_DIR" && nohup npm run dev >.vite.log 2>&1 & )
+}
+
+esperar_frontend() {
+  tem_frontend || return 0
+  for _ in $(seq 1 30); do
+    if front_no_ar; then
+      ok "Frontend pronto."
+      return 0
+    fi
+    sleep 1
+  done
+  morrer "O frontend não subiu. Veja o que houve com: ./resolv logs front"
+}
+
+parar_frontend() {
+  # sem frontend nosso, quem estiver na 5174 é de outra pasta — matá-lo seria
+  # derrubar o trabalho de outra pessoa por um processo que nem é deste projeto
+  tem_frontend || return 0
+  # mata quem estiver escutando na porta do Vite — cobre o npm E o filho vite,
+  # sem depender de arquivo de PID (que o npm tornaria mentiroso: matar só o
+  # pai deixaria o vite órfão segurando a porta).
+  #
+  # Três ferramentas, na ordem de quem tem mais chance de existir: nem toda
+  # máquina tem 'lsof' (falta em algumas instalações mínimas de Linux/WSL) —
+  # sem fallback, isto falhava CALADO: `pids` ficava vazio, nada era morto, e
+  # a função dizia "parado" mesmo com o Vite antigo ainda no ar. O próximo
+  # `subir_frontend` então via a porta respondendo e concluía "já está no ar"
+  # — quem chamou `./resolv parar && ./resolv` continuava vendo a versão
+  # de antes, sem aviso nenhum de que nada tinha mudado.
+  local pids=""
+  if command -v lsof >/dev/null 2>&1; then
+    pids="$(lsof -ti tcp:5174 2>/dev/null || true)"
+  fi
+  if [ -z "$pids" ] && command -v fuser >/dev/null 2>&1; then
+    fuser -k 5174/tcp >/dev/null 2>&1 || true
+  elif [ -z "$pids" ] && command -v ss >/dev/null 2>&1; then
+    pids="$(ss -ltnp 2>/dev/null | grep ':5174 ' | grep -oE 'pid=[0-9]+' | cut -d= -f2 | sort -u || true)"
+  fi
+  if [ -n "$pids" ]; then
+    # shellcheck disable=SC2086 — a lista de PIDs deve expandir por espaço
+    kill $pids 2>/dev/null || true
+  fi
+
+  # Confere de verdade — sem isto "parado" seria só esperança, não fato.
+  sleep 1
+  if front_no_ar; then
+    aviso "Não consegui confirmar que o frontend parou — a porta 5174 ainda responde."
+    aviso "Fecha manualmente o terminal/processo do 'npm run dev' antes de subir de novo,"
+    aviso "senão o próximo './resolv' vai achar que já está tudo no ar e pular o reinício."
+  else
+    ok "Frontend parado."
+  fi
+}
+
+abrir_navegador() {
+  # abre a aplicação — é por ela que se entra no sistema. Sem frontend ainda,
+  # a porta de entrada é o contrato navegável da API.
+  local destino="$FRONT_URL"
+  tem_frontend || destino="$DOCS"
+  ( sleep 2
+    if command -v open >/dev/null; then open "$destino"
+    elif command -v xdg-open >/dev/null; then xdg-open "$destino"
+    fi ) >/dev/null 2>&1 &
+}
+
+# melhor esforço: falha em silêncio (rede sem Wi-Fi ativa, VPN estranha) — quem
+# chama trata IP vazio avisando a pessoa a olhar sozinha, não travando o resto
+ip_local() {
+  if [ "$(uname)" = "Darwin" ]; then
+    ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null
+  else
+    hostname -I 2>/dev/null | awk '{print $1}'
+  fi
+}
+
+pronto() {
+  local compartilhar="${1:-}"
+
+  echo
+  if [ "$MODO" = "docker" ]; then
+    echo "${B}${V}Sistema no ar.${N}  (modo docker)"
+  else
+    echo "${B}${V}Sistema no ar.${N}  (modo nativo — PostgreSQL, Redis e Python da própria máquina)"
+  fi
+  if tem_frontend; then
+    echo "  Aplicação:     ${B}$FRONT_URL${N}  ← entre por aqui"
+  fi
+  echo "  API:           $URL/api/v1/"
+  echo "  Contrato:      $DOCS  (OpenAPI navegável)"
+  echo "  Admin Django:  $URL/admin/"
+
+  if [ "$compartilhar" = "1" ]; then
+    local ip; ip="$(ip_local)"
+    echo
+    if [ -n "$ip" ]; then
+      echo "  Da sua rede:   ${B}http://$ip:8000/api/v1/${N}"
+    else
+      aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
+    fi
+    echo "  Para o front alcançar a API de outra origem, preencha no .env:"
+    echo "    DJANGO_ALLOWED_HOSTS_EXTRA, CORS_ALLOWED_ORIGINS e CSRF_TRUSTED_ORIGINS"
+    echo "  e rode este comando de novo."
+  fi
+
+  echo
+  echo "  Usuários de demonstração (senha ${B}resolv123${N}):"
+  echo "    admin@demo.resolv.test         administradora"
+  echo "    agente.suporte@demo.resolv.test  agente"
+  echo "    ana@acme.test                    cliente"
+  echo "  O código de verificação em duas etapas, em desenvolvimento, é ${B}123456${N}."
+  echo
+  if ! tem_frontend; then
+    echo
+    aviso "O frontend (React/Vite, pasta $FRONT_DIR/) ainda não existe nesta cópia."
+    aviso "Por enquanto entre pelo ${B}$DOCS${N} ou pelo admin."
+  fi
+  echo
+  echo "  Tudo segue no ar em segundo plano. Para derrubar: ${B}./resolv parar${N}"
+  echo
+
+  abrir_navegador
+}
+
+# ── comandos ──────────────────────────────────────────────────────────────────
+
+subir() {
+  detectar_modo
+  conferir_ferramentas
+  atualizar_codigo
+  preparar_env
+  subir_backend
+  subir_frontend
+  esperar_backend
+  migrar
+  semear_se_vazio
+  subir_jobs_nativos
+  esperar_frontend
+  pronto
+}
+
+compartilhar() {
+  detectar_modo
+  conferir_ferramentas
+  atualizar_codigo
+  preparar_env
+  subir_backend
+  subir_frontend
+  esperar_backend
+  migrar
+  semear_se_vazio
+  subir_jobs_nativos
+  esperar_frontend
+  pronto 1
+}
+
+parar() {
+  detectar_modo
+  passo "Derrubando tudo"
+  parar_frontend
+  if [ "$MODO" = "docker" ]; then
+    docker compose --profile antivirus down
+  else
+    parar_backend_nativo
+  fi
+  ok "Parado. Seus dados continuam salvos — './resolv' sobe tudo de volta."
+}
+
+seguir_log() {
+  [ -f "$1" ] || morrer "Sem log de $2 ainda — já subiu alguma vez?"
+  tail -f "$1"
+}
+
+logs() {
+  detectar_modo
+  case "${1:-}" in
+    front|frontend)
+      seguir_log "$VITE_LOG" "frontend" ;;
+    worker)
+      if [ "$MODO" = "docker" ]; then docker compose logs -f worker
+      else seguir_log "$WORKER_LOG" "worker"; fi ;;
+    beat|agendador)
+      if [ "$MODO" = "docker" ]; then docker compose logs -f beat
+      else seguir_log "$BEAT_LOG" "agendador"; fi ;;
+    *)
+      if [ "$MODO" = "docker" ]; then docker compose logs -f web
+      else seguir_log "$API_LOG" "API"; fi ;;
+  esac
+}
+
+# uma linha "nome   no ar/parado   onde", a partir do sucesso de um comando
+linha_estado() {
+  local nome="$1" onde="$2"; shift 2
+  if "$@" >/dev/null 2>&1; then
+    printf '%-11s %sno ar%s   %s\n' "$nome" "$V" "$N" "$onde"
+  else
+    printf '%-11s %sparado%s\n' "$nome" "$E" "$N"
+  fi
+}
+
+estado() {
+  detectar_modo
+  if [ "$MODO" = "docker" ]; then
+    docker compose ps
+  else
+    echo "modo nativo"
+    echo
+    linha_estado "postgres" "localhost:5432" pg_no_ar
+    linha_estado "redis"    "localhost:6379" redis-cli ping
+    linha_estado "api"      "$URL"           api_no_ar
+    linha_estado "worker"   ""               celery_no_ar worker
+    linha_estado "beat"     ""               celery_no_ar beat
+  fi
+  echo
+  linha_estado "frontend" "$FRONT_URL" front_no_ar
+}
+
+antivirus() {
+  detectar_modo
+  [ "$MODO" = "docker" ] || morrer \
+    "O antivírus só sobe no modo docker (é um container). No modo nativo o anexo fica em quarentena — que é o comportamento seguro, não uma falha."
+  conferir_ferramentas
+  passo "Subindo o ClamAV (baixa a base de vírus na primeira vez — demora)"
+  aviso "Sem ele o sistema funciona: anexo fica em quarentena, que é o esperado."
+  docker compose --profile antivirus up -d
+  ok "Antivírus no ar."
+}
+
+ajuda() {
+  sed -n '3,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+case "${1:-subir}" in
+  subir|"")                    subir ;;
+  compartilhar|share)          compartilhar ;;
+  parar|stop)                  parar ;;
+  logs)                        logs "${2:-}" ;;
+  estado|status|ps)            estado ;;
+  antivirus|antivírus)         antivirus ;;
+  ajuda|help|-h|--help)        ajuda ;;
+  *) erro "Comando desconhecido: $1"; echo; ajuda; exit 1 ;;
+esac

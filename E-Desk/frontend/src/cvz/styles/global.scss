@@ -1,0 +1,78 @@
+// =============================================================================
+// cvzdesk · global
+//
+// Reset mínimo + tema + o que todo overlay do sistema depende (`.is-locked`,
+// `prefers-reduced-motion`). Importe uma vez, na raiz do app — nunca dentro de
+// um componente.
+// =============================================================================
+@use 'tokens' as *;
+@use 'theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+// Nada de `background-color`/`color` aqui em `html`/`body`: esta base
+// convive com o sistema de design antigo (src/styles/index.css, carregado
+// sempre, para /inicio e /chamados) na MESMA aba — os dois definem `body {}`
+// sem escopo, e como especificidade é igual, quem carrega por último no grafo
+// de módulos vence, apagando o outro tema. `.app-shell` (AppShell.scss) já
+// pinta seu próprio fundo/texto a partir daqui pra baixo; isso torna a árvore
+// do cvz correta sozinha, sem depender de ordem de import.
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  font-family: $f-ui;
+  font-size: $fs-body;
+  font-weight: $w-light; // texto corrido em 300; interface sobe pra 400/500/600
+  line-height: $lh-normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// Overlay aberto (Modal, Drawer, CommandPalette, gaveta de navegação mobile)
+// trava o scroll do body — cada um adiciona/remove esta classe.
+body.is-locked {
+  overflow: hidden;
+}
+
+a {
+  color: $blue-active;
+}
+
+button {
+  font-family: inherit;
+}
+
+// "prefers-reduced-motion já está tratado no global" (DESIGN.md §5, regra 7).
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// Usado por Avatar e Topbar para texto só de leitor de tela.
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}

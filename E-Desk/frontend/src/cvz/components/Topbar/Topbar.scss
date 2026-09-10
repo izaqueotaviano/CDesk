@@ -1,0 +1,217 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: $z-topbar;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  height: $topbar-h;
+  padding: 0 $sp-4;
+  background-color: $chrome;
+  border-bottom: $border;
+  transition: background-color $dur $ease;
+
+  // Vidro fosco quando o conteúdo abaixo rola.
+  &--scrolled {
+    background-color: $chrome-glass;
+    backdrop-filter: blur(16px) saturate(1.4);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  }
+
+  &__left,
+  &__right {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex: 1 1 0;
+  }
+
+  &__right {
+    justify-content: flex-end;
+  }
+
+  &__center {
+    display: flex;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+
+  &__icon {
+    @include stroke-icon($icon);
+  }
+
+  // --- busca ---------------------------------------------------------------
+  &__search {
+    @include button-reset;
+    @include focus-ring;
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    width: $search-w;
+    max-width: 100%;
+    height: $search-h-topbar;
+    padding: 0 $sp-3;
+    border-radius: $radius;
+    background-color: $raised;
+    transition: box-shadow $dur $ease;
+
+    &:hover {
+      box-shadow: $shadow-sm;
+    }
+
+    &-icon {
+      @include stroke-icon($icon);
+      color: $text-muted;
+    }
+
+    &-label {
+      flex: 1;
+      text-align: left;
+      font-size: $fs-ui;
+      font-weight: $w-regular;
+      color: $text-muted;
+    }
+  }
+
+  &__kbd {
+    padding: 3px 6px;
+    border-radius: $radius;
+    background-color: $chrome;
+    font-family: $f-mono;
+    font-size: $fs-caption;
+    font-weight: $w-medium;
+    line-height: $lh-none;
+    color: $text-secondary;
+  }
+
+  // --- bloco de conversas --------------------------------------------------
+  &__conversations {
+    @include button-reset;
+    @include focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: $control-h;
+    padding: 0 $sp-2;
+    border-radius: $radius;
+    background-color: $hover-soft;
+    color: $text-secondary;
+    font-size: $fs-ui;
+    font-weight: $w-medium;
+    transition: background-color $dur $ease, color $dur $ease;
+
+    &:hover {
+      background-color: $hover;
+      color: $text;
+    }
+
+    &-count {
+      font-family: $f-mono;
+      font-size: $fs-meta;
+      font-weight: $w-medium;
+      color: $text;
+    }
+  }
+
+  &__separator {
+    width: $stroke-w;
+    height: 20px;
+    background-color: $stroke;
+    flex: 0 0 auto;
+  }
+
+  // --- ações ---------------------------------------------------------------
+  &__action {
+    @include icon-target($control-h);
+    @include focus-ring;
+    @include touch-target;
+    position: relative;
+  }
+
+  // Só existe abaixo de 768px; o AppShell nem passa a prop no desktop.
+  &__nav-toggle {
+    @include icon-target($control-h);
+    @include focus-ring;
+    @include touch-target;
+  }
+
+  &__badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 4px;
+    border-radius: $radius-pill;
+    background-color: $danger;
+    color: $text-on-accent;
+    font-family: $f-mono;
+    font-size: $fs-micro;
+    font-weight: $w-medium;
+    line-height: 15px;
+    text-align: center;
+  }
+
+  // --- usuário -------------------------------------------------------------
+  &__user {
+    @include button-reset;
+    @include focus-ring;
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-2;
+    height: $control-h-lg;
+    padding: 0 $sp-2 0 4px;
+    border-radius: $radius;
+    transition: background-color $dur $ease;
+
+    &:hover {
+      background-color: $hover;
+    }
+  }
+
+  &__name {
+    @include truncate(120px);
+    font-size: $fs-ui;
+    font-weight: $w-medium;
+    color: $text;
+  }
+}
+
+// --- tablet: a busca encolhe, o nome do usuário sai --------------------------
+@include below-desktop {
+  .topbar {
+    padding: 0 $sp-3;
+
+    &__search { width: 280px; }
+    &__conversations-label { display: none; }
+    &__name { max-width: 92px; }
+  }
+}
+
+// --- mobile: busca vira só o ícone, conversas somem -------------------------
+@include mobile {
+  .topbar {
+    padding: 0 $sp-2;
+
+    &__center { flex: 0 0 auto; }
+    &__left { flex: 0 0 auto; }
+
+    &__search {
+      width: $control-h-lg;
+      height: $control-h-lg;
+      justify-content: center;
+      padding: 0;
+    }
+
+    &__search-label,
+    &__kbd,
+    &__conversations,
+    &__name { display: none; }
+
+    // Um separador basta quando sobram poucos controles.
+    &__separator:first-of-type { display: none; }
+  }
+}

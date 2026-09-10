@@ -1,0 +1,47 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.notification {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-3;
+  padding: $sp-3 $sp-4;
+  border: $border;
+  border-left: $marker-w solid $blue;
+  border-radius: $radius;
+  background-color: $blue-tint;
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__title {
+    display: block;
+    font-size: $fs-ui;
+    font-weight: $w-medium;
+    color: $text;
+  }
+
+  &__text {
+    margin: 2px 0 0;
+    font-size: $fs-meta;
+    font-weight: $w-light;
+    color: $text-secondary;
+  }
+
+  &__close {
+    @include button-reset;
+    display: grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: $radius;
+    color: $text-secondary;
+
+    &-icon { @include stroke-icon(14px); }
+
+    &:hover { background-color: $hover-soft; color: $text; }
+  }
+
+  &--success { background-color: $success-tint; border-left-color: $success; }
+  &--warning { background-color: $away-tint;    border-left-color: $away; }
+  &--danger  { background-color: $danger-tint;  border-left-color: $danger; }
+}

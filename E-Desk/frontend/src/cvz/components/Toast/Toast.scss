@@ -1,0 +1,95 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.toast-viewport {
+  position: fixed;
+  right: $sp-4;
+  bottom: $sp-4;
+  z-index: $z-overlay;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: $sp-2;
+  width: 336px;
+  max-width: calc(100vw - #{$sp-4 * 2});
+  pointer-events: none;
+
+  @include mobile {
+    right: $sp-3;
+    left: $sp-3;
+    bottom: $sp-3;
+    width: auto;
+  }
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: $sp-3;
+  padding: $sp-3;
+  border: $border;
+  border-left: $marker-w solid $blue;
+  border-radius: $radius;
+  background-color: $raised;
+  box-shadow: $shadow-lg;
+  pointer-events: auto;
+  animation: toast-in $dur $ease;
+
+  &--success { border-left-color: $success; }
+  &--warning { border-left-color: $away; }
+  &--danger  { border-left-color: $danger; }
+
+  &__icon {
+    @include stroke-icon($icon);
+    flex: 0 0 auto;
+    margin-top: 1px;
+    color: $blue;
+  }
+
+  &--success &__icon { color: $success; }
+  &--warning &__icon { color: $away; }
+  &--danger &__icon  { color: $danger; }
+
+  &__body { flex: 1; min-width: 0; }
+
+  &__title { display: block; @include type($fs-ui, $w-medium); color: $text; }
+
+  &__text {
+    margin: 2px 0 0;
+    @include type($fs-meta, $w-light);
+    color: $text-secondary;
+  }
+
+  &__action {
+    @include button-reset;
+    @include focus-ring;
+    margin-top: $sp-2;
+    @include type($fs-meta, $w-semibold);
+    color: $blue-active;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  &__close {
+    @include button-reset;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 auto;
+    border-radius: $radius;
+    color: $text-muted;
+
+    &:hover { background-color: $chrome; color: $text; }
+
+    &-icon { @include stroke-icon(13px); }
+  }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast { animation: none; }
+}

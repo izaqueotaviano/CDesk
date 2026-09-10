@@ -1,0 +1,107 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-resolv}
+      POSTGRES_USER: ${POSTGRES_USER:-resolv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resolv}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resolv}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # D19: daemon de varredura. A base de assinaturas (~200 MB) fica em volume
+  # para não ser rebaixada a cada `up`; o freshclam da própria imagem atualiza.
+  # StreamMaxLength precisa ser >= ATTACHMENT_MAX_BYTES, senão o daemon recusa
+  # o arquivo e o anexo cai em `error` (fail-closed) em vez de ser varrido.
+  clamav:
+    image: clamav/clamav:1.4
+    # A tag 1.4 não publica variante arm64: em Mac com Apple Silicon o pull
+    # falha com "no matching manifest for linux/arm64/v8" e derruba o `up`
+    # inteiro — mesmo o `web` não dependendo daqui. Fixar a plataforma faz o
+    # Docker Desktop rodar a imagem amd64 por emulação (Rosetta).
+    platform: linux/amd64
+    # `antivirus` é um profile: o antivírus NÃO sobe no `up` padrão. Ele é
+    # pesado (baixa a base de vírus inteira na primeira vez) e o app funciona
+    # sem ele — anexo fica em quarentena, que é o fail-closed do D19, não uma
+    # falha. Em produção ele entra: `docker compose --profile antivirus up -d`.
+    profiles: ["antivirus"]
+    environment:
+      CLAMAV_NO_MILTERD: "true"
+      CLAMD_CONF_StreamMaxLength: "${ATTACHMENT_MAX_BYTES:-26214400}"
+    volumes:
+      - clamavdb:/var/lib/clamav
+    healthcheck:
+      # a primeira subida baixa a base inteira: start_period generoso de propósito
+      test: ["CMD", "clamdcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 300s
+
+  # HTTP + WebSocket no mesmo processo ASGI
+  web:
+    build: .
+    command: >
+      uvicorn config.asgi:application
+      --host 0.0.0.0 --port 8000 --reload
+    env_file: .env
+    volumes:
+      - .:/app
+      - media:/var/lib/resolv/media
+    ports:
+      - "${WEB_PORT:-8000}:8000"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    build: .
+    command: celery -A config worker -Q default,reports -l info
+    env_file: .env
+    volumes:
+      - .:/app
+      - media:/var/lib/resolv/media
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      # O clamav NÃO entra aqui de propósito: ele está atrás do profile
+      # `antivirus`, e um depends_on para serviço de profile inativo invalida o
+      # projeto inteiro. Não faz falta — `antivirus.scan` já trata conexão
+      # recusada (ConnectionError/OSError) deixando o anexo em quarentena, que
+      # é o fail-closed do D19. Com ou sem o serviço no ar, o comportamento é o
+      # mesmo: nada passa sem verificação.
+
+  beat:
+    build: .
+    command: celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    env_file: .env
+    volumes:
+      - .:/app
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  redisdata:
+  media:
+  clamavdb:
