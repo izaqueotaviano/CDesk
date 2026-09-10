@@ -1,7 +1,7 @@
 """Chamado novo avisa quem vai atender — não só a caixa de e-mail do suporte.
 
 Antes, abrir um chamado produzia UM efeito: um e-mail para o endereço do
-suporte. Quem estava com o resolv aberto não ficava sabendo de nada, e quem
+suporte. Quem estava com o E-Desk aberto não ficava sabendo de nada, e quem
 estava noutra aba do navegador menos ainda — justamente as duas pessoas que
 iam atender. O aviso in-app é o que a tela usa para acordar o título da aba e
 a notificação do sistema operacional.

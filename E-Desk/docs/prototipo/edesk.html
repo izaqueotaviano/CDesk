@@ -3,24 +3,24 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>resolv — Painel de atendimento</title>
+<title>E-Desk — Painel de atendimento</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet">
 <style>
 /* ============ TOKENS ============ */
 html[data-theme='light'] {
-  --resolv-canvas:#f5f5f5; --resolv-canvas-soft:#fafafa; --resolv-surface-strong:#f0efed;
-  --resolv-hairline:#e7e5e4; --resolv-hairline-strong:#d6d3d1; --resolv-ink:#0c0a09; --resolv-ink-primary:#292524;
-  --cds-background:var(--resolv-canvas); --cds-layer:#fff; --cds-layer-02:var(--resolv-surface-strong);
-  --cds-layer-hover:var(--resolv-surface-strong); --cds-layer-selected:var(--resolv-surface-strong);
-  --cds-field:#fff; --cds-border-subtle:var(--resolv-hairline); --cds-border-strong:var(--resolv-hairline-strong);
-  --cds-text-primary:var(--resolv-ink); --cds-text-secondary:#4e4e4e; --cds-text-helper:#777169;
-  --cds-text-disabled:#a8a29e; --cds-text-on-color:#fff; --cds-icon-primary:var(--resolv-ink); --cds-icon-disabled:#a8a29e;
-  --cds-interactive:var(--resolv-ink-primary); --cds-link-primary:var(--resolv-ink-primary);
-  --cds-button-primary:var(--resolv-ink-primary); --cds-button-primary-hover:#1c1917; --cds-button-primary-active:var(--resolv-ink);
+  --edesk-canvas:#f5f5f5; --edesk-canvas-soft:#fafafa; --edesk-surface-strong:#f0efed;
+  --edesk-hairline:#e7e5e4; --edesk-hairline-strong:#d6d3d1; --edesk-ink:#0c0a09; --edesk-ink-primary:#292524;
+  --cds-background:var(--edesk-canvas); --cds-layer:#fff; --cds-layer-02:var(--edesk-surface-strong);
+  --cds-layer-hover:var(--edesk-surface-strong); --cds-layer-selected:var(--edesk-surface-strong);
+  --cds-field:#fff; --cds-border-subtle:var(--edesk-hairline); --cds-border-strong:var(--edesk-hairline-strong);
+  --cds-text-primary:var(--edesk-ink); --cds-text-secondary:#4e4e4e; --cds-text-helper:#777169;
+  --cds-text-disabled:#a8a29e; --cds-text-on-color:#fff; --cds-icon-primary:var(--edesk-ink); --cds-icon-disabled:#a8a29e;
+  --cds-interactive:var(--edesk-ink-primary); --cds-link-primary:var(--edesk-ink-primary);
+  --cds-button-primary:var(--edesk-ink-primary); --cds-button-primary-hover:#1c1917; --cds-button-primary-active:var(--edesk-ink);
   --cds-support-success:#16a34a; --cds-support-error:#dc2626; --cds-support-warning:#f1c21b;
-  --cds-focus:var(--resolv-ink); --cds-skeleton:#e8e6e4; --cds-overlay-shadow:0 2px 12px rgba(0,0,0,.14);
+  --cds-focus:var(--edesk-ink); --cds-skeleton:#e8e6e4; --cds-overlay-shadow:0 2px 12px rgba(0,0,0,.14);
   --cds-note:#fffbeb;
 }
 html[data-theme='dark'] {
@@ -458,7 +458,7 @@ function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a
 const rnd = mulberry32(20260825);
 const pick = arr => arr[Math.floor(rnd()*arr.length)];
 
-const ME = { id:1, email:'alice@resolv.com', full_name:'Alice Admin', kind:'internal', internal_role:'admin',
+const ME = { id:1, email:'alice@edesk.com', full_name:'Alice Admin', kind:'internal', internal_role:'admin',
   is_admin:true, job_title:'Agente', presence:'available', ui_density:'' };
 
 const TEAMS = [
@@ -892,7 +892,7 @@ function viewLogin(){
   if(state.loginStep==='2fa') return `
   <div class="login">
     <div class="login__card">
-      <div class="login__brand"><span class="sb-brand__mark">td</span><span class="sb-brand__name">resolv</span></div>
+      <div class="login__brand"><span class="sb-brand__mark">td</span><span class="sb-brand__name">E-Desk</span></div>
       <h1>Verificação em duas etapas</h1>
       <p class="login__sub">Digite o código de 6 dígitos do seu aplicativo autenticador.</p>
       ${err}
@@ -908,13 +908,13 @@ function viewLogin(){
   return `
   <div class="login">
     <div class="login__card">
-      <div class="login__brand"><span class="sb-brand__mark">td</span><span class="sb-brand__name">resolv</span></div>
+      <div class="login__brand"><span class="sb-brand__mark">td</span><span class="sb-brand__name">E-Desk</span></div>
       <h1>Entrar</h1>
       <p class="login__sub">Painel de atendimento — acesso da equipe interna.</p>
       ${err}
       <div class="login__row">
         <label class="field-label" for="lEmail">E-mail</label>
-        <input class="text-input" id="lEmail" type="email" autocomplete="username" placeholder="voce@empresa.com.br" value="alice@resolv.com">
+        <input class="text-input" id="lEmail" type="email" autocomplete="username" placeholder="voce@empresa.com.br" value="alice@edesk.com">
       </div>
       <div class="login__row">
         <label class="field-label" for="lPass">Senha</label>
@@ -968,7 +968,7 @@ function shellHtml(){
   return `
   <div class="topbar">
     <button class="sb-iconbtn" id="menuBtn" aria-label="Abrir menu">${I.menu}</button>
-    <span class="sb-brand__mark" aria-hidden="true">td</span><span class="topbar__name">resolv</span>
+    <span class="sb-brand__mark" aria-hidden="true">td</span><span class="topbar__name">E-Desk</span>
     <button class="sb-iconbtn sb-bell" id="notifBtnTop" aria-label="Notificações">${I.bell}${NOTIFICATIONS.some(n=>!n.read_at)?'<span class="sb-bell__dot"></span>':''}</button>
   </div>
   <div class="shell">
@@ -1008,7 +1008,7 @@ function sidebarHtml(){
   return `
     <div class="sb-brand">
       <span class="sb-brand__mark" aria-hidden="true">td</span>
-      <span class="sb-brand__name">resolv</span>
+      <span class="sb-brand__name">E-Desk</span>
       ${ME.is_admin?`<button class="sb-iconbtn${admin?' sb-iconbtn--active':''}" id="areaBtn" title="${admin?'Voltar ao Atendimento':'Ir para a Administração'}" aria-label="${admin?'Voltar ao Atendimento':'Ir para a Administração'}">${I.gear}</button>`:''}
       <button class="sb-iconbtn" id="themeBtn" title="Alternar tema ${dark?'claro':'escuro'}" aria-label="Alternar tema ${dark?'claro':'escuro'}">${dark?I.sun:I.moon}</button>
     </div>
@@ -1787,7 +1787,7 @@ function viewAdmin(sec){
       `<button class="btn btn--ghost" data-proto="Exportação de auditoria gerada (protótipo)">${I.download} Exportar trilha</button>`)+
       adminTable(['Quando','Quem','Ação'],ADMIN.auditoria.map(a=>`<tr>
         <td class="num muted">${esc(a.quando)}</td><td>${esc(a.quem)}</td><td style="white-space:normal">${esc(a.acao)}</td></tr>`));
-    default: return H('Configuração do sistema','Comportamentos globais do resolv.','')+
+    default: return H('Configuração do sistema','Comportamentos globais do edesk.','')+
       adminTable(['Configuração','Valor',''],ADMIN.sistema.map(s=>`<tr>
         <td style="font-weight:600">${esc(s.chave)}</td><td style="white-space:normal">${esc(s.valor)}</td>
         <td style="text-align:right">${editBtn}</td></tr>`));

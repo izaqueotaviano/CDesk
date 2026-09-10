@@ -7,7 +7,7 @@ import './ticket-tabs.scss'
  * estou trabalhando, pra facilitar a navegação"). Reusa o store `useTabs`, que
  * já implementa o contrato de docs/06-abas-frontend.md: estado local
  * instantâneo + espelho no servidor (/tickets/tabs/) + reconciliação por
- * visibilidade. Aqui é só a UI dele no visual Resolv.
+ * visibilidade. Aqui é só a UI dele no visual E-Desk.
  *
  * `idAtivo` vem da rota (não do store) — assim a aba certa acende mesmo quando
  * a pessoa chega por link direto, antes de o store terminar a reconciliação.

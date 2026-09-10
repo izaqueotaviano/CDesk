@@ -1,5 +1,5 @@
 /**
- * Sidebar Rail (56px) — design system Resolv. Portada da referência
+ * Sidebar Rail (56px) — design system E-Desk. Portada da referência
  * (resolvdesignsystem.zip), com uma diferença honesta: só os itens que têm
  * rota real neste app navegam; os demais ficam visíveis mas inertes
  * (`enabled: false`) com tooltip "em breve", em vez de levar a um 404. Esta

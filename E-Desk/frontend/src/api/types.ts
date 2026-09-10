@@ -2,7 +2,7 @@
  * Tipos escritos à mão para o que a base já consome (auth, abas).
  *
  * Isto é ponte, não destino: assim que alguém rodar `npm run generate:api`
- * (openapi-typescript sobre resolv-openapi.yaml — docs/10-frontend-novo.md),
+ * (openapi-typescript sobre edesk-openapi.yaml — docs/10-frontend-novo.md),
  * troque os usos abaixo pelos tipos gerados em `schema.d.ts` e apague este
  * arquivo. Os nomes de campo e enums aqui foram conferidos contra o schema
  * (`components.schemas.Me`), não escritos de memória.

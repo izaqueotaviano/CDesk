@@ -1,24 +1,24 @@
-# Prompt — Integrar o front resolv ao back-end existente
+# Prompt — Integrar o front E-Desk ao back-end existente
 
 > Cole no Claude Code, na raiz do projeto que contém o back-end.
-> Copie as 7 telas + `resolv-shell.js`/`resolv-shell.css` para dentro do repositório antes de começar (em `reference/resolv-front/` ou pasta equivalente — não precisam ficar no caminho final, é só material de referência).
+> Copie as 7 telas + `edesk-shell.js`/`edesk-shell.css` para dentro do repositório antes de começar (em `reference/edesk-front/` ou pasta equivalente — não precisam ficar no caminho final, é só material de referência).
 
 ---
 
 ## O que é isto
 
-`reference/resolv-front/` contém um protótipo estático (HTML/CSS/JS, sem framework, sem build) do resolv — um sistema de tickets/helpdesk B2B em português do Brasil, na linguagem visual do IBM Carbon Design System. São 7 telas mais uma casca compartilhada:
+`reference/edesk-front/` contém um protótipo estático (HTML/CSS/JS, sem framework, sem build) do E-Desk — um sistema de tickets/helpdesk B2B em português do Brasil, na linguagem visual do IBM Carbon Design System. São 7 telas mais uma casca compartilhada:
 
 | Arquivo | Tela |
 |---|---|
-| `resolv-visao-geral-carbon.html` | Painel do agente: KPIs, tabela de chamados que precisam de atenção, atividade recente |
-| `resolv-chamados-carbon.html` | Lista completa de chamados, com facetas, ordenação, paginação, ações em lote |
-| `resolv-chamado-carbon.html` | Chamado individual: propriedades, conversa, painel do cliente |
-| `resolv-chat-carbon.html` | Fila de chat, atendimento em tempo real, painel do cliente |
-| `resolv-empresas-carbon.html` | Empresas clientes e seus usuários |
-| `resolv-relatorios-carbon.html` | Métricas de chamados e de chat (áreas separadas) |
-| `resolv-base-conhecimento-carbon.html` | Artigos internos de apoio ao atendimento |
-| `resolv-shell.js` / `.css` | Cabeçalho, tema, navegação e painel de status do agente compartilhados pelas 7 telas |
+| `edesk-visao-geral-carbon.html` | Painel do agente: KPIs, tabela de chamados que precisam de atenção, atividade recente |
+| `edesk-chamados-carbon.html` | Lista completa de chamados, com facetas, ordenação, paginação, ações em lote |
+| `edesk-chamado-carbon.html` | Chamado individual: propriedades, conversa, painel do cliente |
+| `edesk-chat-carbon.html` | Fila de chat, atendimento em tempo real, painel do cliente |
+| `edesk-empresas-carbon.html` | Empresas clientes e seus usuários |
+| `edesk-relatorios-carbon.html` | Métricas de chamados e de chat (áreas separadas) |
+| `edesk-base-conhecimento-carbon.html` | Artigos internos de apoio ao atendimento |
+| `edesk-shell.js` / `.css` | Cabeçalho, tema, navegação e painel de status do agente compartilhados pelas 7 telas |
 
 Todo dado hoje é mockado dentro de cada arquivo — não existe chamada de rede nenhuma. O objetivo desta tarefa é **conectar essas telas ao back-end real que já existe neste repositório**, preservando a linguagem visual e o comportamento já validado, e não os arquivos estáticos em si. Se o projeto já tem um front-end em React/Vue/outro framework, as telas de referência viram a **especificação visual e de comportamento** a ser implementada nesse front — não precisam continuar sendo HTML solto.
 
@@ -37,7 +37,7 @@ Este prompt existe para essas duas lacunas não virarem decisões silenciosas de
 3. Produza **`GAPS.md`** na raiz, com exatamente esta estrutura, e **pare aqui até o usuário revisar esse arquivo** — não prossiga para as fases seguintes sem confirmação:
 
 ```markdown
-# GAPS.md — resolv front ↔ back-end
+# GAPS.md — E-Desk front ↔ back-end
 
 ## O que o back-end tem e o front de referência não usa
 (liste campo a campo / endpoint a endpoint. Para cada um, proponha:

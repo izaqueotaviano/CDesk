@@ -1,6 +1,6 @@
 import { useMe } from '@/api/queries/useMe'
 
-/** Placeholder — os 6 KPIs e as 4 abas de Início (docs/prototipo-resolv/LEIA-ME.md,
+/** Placeholder — os 6 KPIs e as 4 abas de Início (docs/prototipo-edesk/LEIA-ME.md,
  *  arquivo "02-inicio-tickets.html") ficam para quando a tela for construída
  *  de verdade. Isto só prova que a sessão, o shell e os tokens funcionam. */
 export function PaginaInicio() {

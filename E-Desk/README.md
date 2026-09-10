@@ -1,4 +1,4 @@
-# resolv — backend
+# E-Desk — backend
 
 Sistema de suporte/ticketing interno, inspirado no Zendesk Support, para uso de uma empresa e
 seus clientes B2B.
@@ -84,7 +84,7 @@ Implementado e validado contra PostgreSQL 16 e Redis reais:
 - **Exportação em PDF** funcionando: o extra `[reports]` (WeasyPrint) agora entra na
   imagem Docker — extra opcional que a produção precisa mas ninguém instala é como
   o PDF ficou quebrado sem nenhum teste falhar;
-- **Contrato publicado**: `resolv-openapi.yaml` (OpenAPI 3.1) gerado do
+- **Contrato publicado**: `edesk-openapi.yaml` (OpenAPI 3.1) gerado do
   próprio código, sem erro nem aviso do gerador, com os nomes de enum fixados
   para o código gerado do front não quebrar a cada valor novo.
 
@@ -95,12 +95,12 @@ Implementado e validado contra PostgreSQL 16 e Redis reais:
 ### O jeito curto
 
 ```bash
-./resolv
+./edesk
 ```
 
 Atualiza o código, sobe a API **e o frontend**, aplica migrações, popula o
 banco se estiver vazio e abre a aplicação no navegador
-(http://localhost:5174). Outros comandos: `./resolv parar` (derruba os
+(http://localhost:5174). Outros comandos: `./edesk parar` (derruba os
 dois), `logs`, `logs front`, `logs worker`, `estado`, `antivirus`, `ajuda`.
 
 Ele sobe de dois jeitos e escolhe sozinho:
@@ -113,10 +113,10 @@ Ele sobe de dois jeitos e escolhe sozinho:
 O modo nativo existe porque nem todo lugar tem Docker — container de CI,
 servidor enxuto, máquina sem permissão para rodar o daemon. Ele sobe os mesmos
 processos que o `docker compose`: API ASGI na 8000, worker e agendador do
-Celery, frontend na 5174. Para forçar um dos dois: `MODO=nativo ./resolv`.
+Celery, frontend na 5174. Para forçar um dos dois: `MODO=nativo ./edesk`.
 Node.js (LTS) é necessário nos dois modos — é ele que roda o frontend.
 
-`./resolv parar` no modo nativo derruba o que o script subiu (API, worker,
+`./edesk parar` no modo nativo derruba o que o script subiu (API, worker,
 agendador, frontend) e **deixa PostgreSQL e Redis no ar**: eles são do
 sistema, podem estar servindo outra coisa, e pará-los seria decidir pela
 máquina inteira.
@@ -142,7 +142,7 @@ Equivale a `make setup && make migrate && make seed && make seed-demo`.
 | `http://localhost:8000/api/docs/` | o contrato navegável (Swagger) |
 | `http://localhost:8000/admin/` | o admin do Django |
 
-O frontend mora em `frontend/` e o `./resolv` já o sobe junto (porta 5174,
+O frontend mora em `frontend/` e o `./edesk` já o sobe junto (porta 5174,
 que vem liberada em CORS/CSRF de fábrica). Para rodá-lo à mão — outra porta,
 outra máquina — aponte-o para `http://localhost:8000` e acrescente a origem
 em `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` (no `.env`): a
@@ -152,13 +152,13 @@ passo está em `docs/10-frontend-novo.md`.
 ### Entrar
 
 Tela de login em `/login/cliente`. Todos os usuários de demonstração usam a senha
-`resolv123`:
+`edesk123`:
 
 | Perfil | E-mail |
 |---|---|
-| Administradora | `admin@demo.resolv.test` |
-| Supervisora | `supervisor@demo.resolv.test` |
-| Agente de Suporte | `agente.suporte@demo.resolv.test` |
+| Administradora | `admin@demo.edesk.test` |
+| Supervisora | `supervisor@demo.edesk.test` |
+| Agente de Suporte | `agente.suporte@demo.edesk.test` |
 | Cliente (Acme) | `ana@acme.test` |
 
 Em desenvolvimento a própria tela lista esses perfis com um botão "usar".
@@ -318,7 +318,7 @@ O export do Movidesk também não traz equipe (tudo cai em uma só —
 ```
 config/            settings (base/dev/prod/test), urls, asgi, wsgi, celery, routing WS
 apps/              os 10 apps do domínio
-resolv-openapi.yaml  o contrato: schema OpenAPI gerado do código
+edesk-openapi.yaml   o contrato: schema OpenAPI gerado do código
 docs/              arquitetura, modelagem e decisões
 docker-compose.yml postgres 16 · redis 7 · web (ASGI) · worker · beat
 ```

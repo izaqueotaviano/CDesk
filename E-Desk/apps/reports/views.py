@@ -121,7 +121,7 @@ class TicketReportExportView(_BaseReportView):
         response = HttpResponse(content_type="text/csv; charset=utf-8")
         stamp = dt.date.today().isoformat()
         response["Content-Disposition"] = (
-            f'attachment; filename="resolv-tickets-{stamp}.csv"'
+            f'attachment; filename="edesk-tickets-{stamp}.csv"'
         )
         response.write("﻿")  # BOM: Excel pt-BR abre UTF-8 corretamente
 
@@ -238,7 +238,7 @@ class ReportExportViewSet(viewsets.ModelViewSet):
         response = FileResponse(export.file.open("rb"))
         suffix = export.format
         response["Content-Disposition"] = (
-            f'attachment; filename="resolv-relatorio-'
+            f'attachment; filename="edesk-relatorio-'
             f'{export.created_at:%Y-%m-%d}.{suffix}"'
         )
         return response

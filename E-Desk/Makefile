@@ -56,5 +56,5 @@ seed-demo:  ## Dados de demonstração (empresas, usuários, tickets) — só DE
 superuser:  ## Cria um superusuário
 	docker compose exec web python manage.py createsuperuser
 
-schema:  ## Regenera resolv-openapi.yaml — o contrato que o frontend consome
-	docker compose exec web python manage.py spectacular --file /app/resolv-openapi.yaml
+schema:  ## Regenera edesk-openapi.yaml — o contrato que o frontend consome
+	docker compose exec web python manage.py spectacular --file /app/edesk-openapi.yaml

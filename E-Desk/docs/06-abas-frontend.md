@@ -1,4 +1,4 @@
-# resolv — Abas de ticket: contrato frontend ↔ backend
+# E-Desk — Abas de ticket: contrato frontend ↔ backend
 
 Requisito (docs/01 §6): tickets abrem em abas **dentro do sistema**; o agente mantém
 vários abertos sem perder a lista; o estado persiste.

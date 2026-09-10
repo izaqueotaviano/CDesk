@@ -1,5 +1,5 @@
 // ============================================================================
-// Lista de tickets — design system Resolv (densidade alta, ruído baixo).
+// Lista de tickets — design system E-Desk (densidade alta, ruído baixo).
 // Borda 0.7px, radius 2px, mono nos números, accent único #0275DE.
 // ============================================================================
 
@@ -71,7 +71,7 @@
       font-size: 16px;
     }
     &.is-loading i {
-      animation: resolv-spin 0.8s linear infinite;
+      animation: edesk-spin 0.8s linear infinite;
     }
   }
 
@@ -219,7 +219,7 @@
     }
   }
   &__spin {
-    animation: resolv-spin 0.8s linear infinite;
+    animation: edesk-spin 0.8s linear infinite;
   }
 
   // ---------------------------------------------------------------- paginação
@@ -569,7 +569,7 @@
   }
 }
 
-@keyframes resolv-spin {
+@keyframes edesk-spin {
   to {
     transform: rotate(360deg);
   }

@@ -7,7 +7,7 @@ import { api } from '@/api/client'
  * troque por `TicketList` de schema.d.ts assim que `npm run generate:api`
  * rodar.
  *
- * Nota: o resolv-openapi.yaml atual anuncia esse endpoint devolvendo
+ * Nota: o edesk-openapi.yaml atual anuncia esse endpoint devolvendo
  * `TicketList` puro (não `{tabs, active_ticket_id}`) e ainda com um parâmetro
  * de path `id` que não faz sentido numa rota de coleção — parece artefato de
  * geração do schema, não o contrato real (a prosa de docs/06 e docs/07, com
@@ -22,7 +22,7 @@ export interface TicketResumo {
   status: string
   stage_color?: string | null
   requester_display: string
-  /** Título da aba no design system Resolv (o print mostra a empresa). O GET
+  /** Título da aba no design system E-Desk (o print mostra a empresa). O GET
    *  /tickets/tabs/ hidrata com o TicketList inteiro, então este campo já vem. */
   company_name?: string
 }

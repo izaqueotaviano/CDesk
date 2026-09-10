@@ -1,4 +1,4 @@
-# resolv — Operacionalização de LGPD
+# E-Desk — Operacionalização de LGPD
 
 Exclusão, retenção e portabilidade. O desenho foi **implementado** (D20) —
 este documento registra o porquê de cada decisão e o que ainda depende de você.

@@ -1,4 +1,4 @@
-# resolv — frontend
+# E-Desk — frontend
 
 Base do frontend novo. Backend é [`../README.md`](../README.md) — comece por
 [`../docs/10-frontend-novo.md`](../docs/10-frontend-novo.md) para o contrato
@@ -98,11 +98,11 @@ fazer.
 ```bash
 cp .env.example .env      # aponta pro backend em localhost:8000 por padrão
 npm install
-npm run generate:api      # opcional: gera src/api/schema.d.ts do ../resolv-openapi.yaml
+npm run generate:api      # opcional: gera src/api/schema.d.ts do ../edesk-openapi.yaml
 npm run dev                # http://localhost:5174
 ```
 
-`./resolv` (na raiz do projeto) já sobe isto junto com o backend quando esta
+`./edesk` (na raiz do projeto) já sobe isto junto com o backend quando esta
 pasta existir — antes disso, ele detecta a ausência e sobe só o backend.
 
 ```bash
@@ -117,7 +117,7 @@ npm run lint
 npm run generate:api
 ```
 
-Roda `openapi-typescript` sobre `../resolv-openapi.yaml` e escreve
+Roda `openapi-typescript` sobre `../edesk-openapi.yaml` e escreve
 `src/api/schema.d.ts` (gerado — está no `.gitignore`, não versionar). Até
 alguém trocar os tipos manuais de `src/api/types.ts` pelos gerados, os dois
 convivem; os manuais foram conferidos contra o schema campo a campo, não

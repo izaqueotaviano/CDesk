@@ -61,7 +61,7 @@ def verify_totp(secret_b32: str, code: str, at: float | None = None,
         return False  # segredo corrompido não pode virar 500 no login
 
 
-def otpauth_uri(*, secret_b32: str, email: str, issuer: str = "Resolv") -> str:
+def otpauth_uri(*, secret_b32: str, email: str, issuer: str = "E-Desk") -> str:
     """URI `otpauth://` que os aplicativos autenticadores importam."""
     label = quote(f"{issuer}:{email}")
     return (

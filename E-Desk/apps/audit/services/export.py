@@ -215,13 +215,13 @@ def _html(payload: dict) -> str:
     titular = payload["titular"]
     parts = [
         "<!doctype html><meta charset='utf-8'>",
-        "<title>Seus dados — Resolv</title>",
+        "<title>Seus dados — E-Desk</title>",
         "<style>body{font:15px/1.6 system-ui,sans-serif;max-width:52rem;"
         "margin:2rem auto;padding:0 1rem;color:#141413}"
         "h1,h2{line-height:1.25}h2{margin-top:2.5rem;border-bottom:1px solid #ddd;"
         "padding-bottom:.3rem}.msg{border-left:3px solid #ddd;padding:.2rem 0 .2rem .8rem;"
         "margin:.8rem 0}.meta{color:#666;font-size:13px}</style>",
-        "<h1>Seus dados no Resolv</h1>",
+        "<h1>Seus dados no E-Desk</h1>",
         f"<p class='meta'>Gerado em {escape(payload['gerado_em'] or '')}.</p>",
         "<h2>Cadastro</h2><ul>",
     ]

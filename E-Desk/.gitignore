@@ -24,7 +24,7 @@ tsconfig.tsbuildinfo
 .vscode/
 dump.rdb
 
-# logs dos processos que o ./resolv sobe em segundo plano no modo nativo
+# logs dos processos que o ./edesk sobe em segundo plano no modo nativo
 .api.log
 .worker.log
 .beat.log

@@ -223,7 +223,7 @@ def pending_ratings(client):
 # Só faz sentido para cliente: "todas as minhas sessões" não quer dizer nada
 # para um interno, que atende várias pessoas. Quem barra isso é a view.
 
-#: http/https explícitos e o `www.` sem esquema. Domínio nu ("resolv.com")
+#: http/https explícitos e o `www.` sem esquema. Domínio nu ("edesk.com")
 #: fica de fora de propósito: pegaria "versão 2.0" e "R$ 1.500,00" como link.
 _URL_RE = re.compile(r"(?i)\b(?:https?://|www\.)[^\s<>\"']+")
 

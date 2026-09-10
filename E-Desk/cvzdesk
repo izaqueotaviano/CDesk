@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# O comando virou `./resolv` junto com o nome do produto. Este atalho fica
+# O comando virou `./edesk` junto com o nome do produto. Este atalho fica
 # aqui só para quem já tinha o `./cvzdesk` na memória (ou num script) não
 # levar "command not found" — ele avisa e encaminha.
-printf '\033[33m→ o comando agora é ./resolv (encaminhando)\033[0m\n' >&2
-exec "$(dirname "$0")/resolv" "$@"
+printf '\033[33m→ o comando agora é ./edesk (encaminhando)\033[0m\n' >&2
+exec "$(dirname "$0")/edesk" "$@"

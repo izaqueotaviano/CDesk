@@ -34,13 +34,13 @@ RETENTION_DRY_RUN = True
 # anexos de teste vão para um diretório descartável
 import tempfile  # noqa: E402
 
-MEDIA_ROOT = tempfile.mkdtemp(prefix="resolv-test-media-")
+MEDIA_ROOT = tempfile.mkdtemp(prefix="edesk-test-media-")
 
 # O WhiteNoise avisa "No directory at: staticfiles/" a cada requisição da
 # suíte, porque `collectstatic` não roda em teste — eram ~400 linhas de aviso
 # por execução, o bastante para enterrar um aviso de verdade. A suíte não
 # serve estático: o armazenamento simples não procura manifesto nem diretório.
-STATIC_ROOT = tempfile.mkdtemp(prefix="resolv-test-static-")
+STATIC_ROOT = tempfile.mkdtemp(prefix="edesk-test-static-")
 STORAGES = {
     **STORAGES,  # noqa: F405 — vem do base
     "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},

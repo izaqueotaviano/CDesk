@@ -2,15 +2,15 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-resolv}
-      POSTGRES_USER: ${POSTGRES_USER:-resolv}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resolv}
+      POSTGRES_DB: ${POSTGRES_DB:-edesk}
+      POSTGRES_USER: ${POSTGRES_USER:-edesk}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-edesk}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resolv}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-edesk}"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -66,7 +66,7 @@ services:
     env_file: .env
     volumes:
       - .:/app
-      - media:/var/lib/resolv/media
+      - media:/var/lib/edesk/media
     ports:
       - "${WEB_PORT:-8000}:8000"
     depends_on:
@@ -79,7 +79,7 @@ services:
     env_file: .env
     volumes:
       - .:/app
-      - media:/var/lib/resolv/media
+      - media:/var/lib/edesk/media
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}

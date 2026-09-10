@@ -19,7 +19,7 @@ python manage.py seed_defaults
 # Dados de demonstração: empresas, usuários e tickets de exemplo, com senha
 # pública. Desligue com SEED_DEMO=0 se um dia isto virar algo mais que vitrine.
 if [ "${SEED_DEMO:-1}" = "1" ]; then
-  echo "→ dados de demonstração (login: senha resolv123)"
+  echo "→ dados de demonstração (login: senha edesk123)"
   python manage.py seed_demo || echo "  (seed_demo falhou — seguindo sem os exemplos)"
   # Deploy que já existia não é semeado de novo (o seed só popula banco vazio),
   # então as contas ficariam com o endereço e a senha de antes da troca de nome

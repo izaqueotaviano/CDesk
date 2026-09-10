@@ -1,5 +1,5 @@
 /**
- * Topbar Glass (56px) — design system Resolv. A busca central e o efeito glass
+ * Topbar Glass (56px) — design system E-Desk. A busca central e o efeito glass
  * ao rolar vêm da referência. Diferença: o nome/avatar são do usuário REAL
  * (useMe), não mock; a busca abre foco no campo de busca da própria lista
  * (a command palette Ctrl+K é uma melhoria futura, não escopo desta tela).
@@ -18,7 +18,7 @@ export function Topbar() {
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
-    const corpo = document.getElementById('resolv-corpo')
+    const corpo = document.getElementById('edesk-corpo')
     if (!corpo) return
     const onScroll = () => setScrolled(corpo.scrollTop > 4)
     corpo.addEventListener('scroll', onScroll)

@@ -25,7 +25,7 @@ RUN pip install --upgrade pip && pip install ".[dev,reports,antivirus]"
 
 COPY . .
 
-RUN mkdir -p /var/lib/resolv/media
+RUN mkdir -p /var/lib/edesk/media
 
 EXPOSE 8000
 

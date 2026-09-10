@@ -101,9 +101,9 @@ class TestTOTP:
 
     def test_uri_do_autenticador(self):
         uri = twofactor.otpauth_uri(secret_b32=RFC_SECRET, email="ana@acme.test")
-        assert uri.startswith("otpauth://totp/Resolv%3Aana%40acme.test?")
+        assert uri.startswith("otpauth://totp/E-Desk%3Aana%40acme.test?")
         assert f"secret={RFC_SECRET}" in uri
-        assert "issuer=Resolv" in uri
+        assert "issuer=E-Desk" in uri
 
 
 class TestLoginComDoisFatores:

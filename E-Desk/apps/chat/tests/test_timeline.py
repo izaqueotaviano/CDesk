@@ -156,7 +156,7 @@ class TestIsolamento:
 class TestLinks:
     def test_extrai_as_formas_comuns(self):
         extrair = chat_service.extrair_links
-        assert extrair("veja em https://resolv.com/docs.") == ["https://resolv.com/docs"]
+        assert extrair("veja em https://edesk.com/docs.") == ["https://edesk.com/docs"]
         assert extrair("link (https://x.com/a) no meio") == ["https://x.com/a"]
         assert extrair("entre em www.exemplo.com.br hoje") == ["www.exemplo.com.br"]
         assert extrair("http://a.com/p?q=1 e https://b.com") == [

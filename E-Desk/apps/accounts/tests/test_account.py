@@ -36,7 +36,7 @@ class TestProfile:
     def test_updates_own_editable_fields(self, agente, client_for):
         resp = client_for(agente).patch("/api/v1/auth/me/", {
             "full_name": "Samuel S.",
-            "signature": "— Samuel, Suporte resolv",
+            "signature": "— Samuel, Suporte E-Desk",
             "ui_language": "pt-br",
             "personal_hours": {
                 "enabled": True, "start": "10:00", "end": "16:00", "days": [1, 2, 3],

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Baixa tickets do Movidesk para o formato que o resolv importa.
+"""Baixa tickets do Movidesk para o formato que o E-Desk importa.
 
     python3 scripts/baixar_movidesk.py                # os 100 mais recentes
     python3 scripts/baixar_movidesk.py --limite 500
@@ -221,7 +221,7 @@ def main():
     print(f"\nPronto! {len(tickets)} tickets em tickets_completo.json")
     if args.csv:
         print("E tickets_completo.csv para abrir no Excel.")
-    print("\nAgora importe para o resolv:")
+    print("\nAgora importe para o edesk:")
     print(f"  docker compose exec web python manage.py import_movidesk "
           f"/app/tickets_completo.json --limit {args.limite}")
 

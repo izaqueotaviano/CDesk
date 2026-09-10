@@ -573,7 +573,7 @@ class LiveSessionSerializer(serializers.Serializer):
 
     Existe para o schema, e o schema existe para a SPA: sem um serializer
     declarado o gerador desistia da view inteira ("unable to guess
-    serializer"), o endpoint saía do `resolv-openapi.yaml` e a tela de
+    serializer"), o endpoint saía do `edesk-openapi.yaml` e a tela de
     Acessos ficava com um tipo escrito à mão que ninguém garantia bater com a
     resposta. Ver `sessions.live_sessions` para a forma.
     """

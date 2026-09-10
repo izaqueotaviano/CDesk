@@ -1,4 +1,4 @@
-# resolv — design system
+# E-Desk — design system
 
 Extraído dos cinco protótipos HTML (`01`–`05`) por renderização em Chromium
 headless: computed styles de 2.143 elementos visíveis, nos dois temas, em
@@ -382,4 +382,4 @@ descrevem comportamento observado, porque não há nenhum.
 | `tailwind.config.js` | `theme.extend` apontando para as variáveis |
 | `DESIGN_SYSTEM.md` | Este documento |
 | `MIGRATION.md` | Mapa `valor → token`, auditoria WCAG e plano de adoção |
-| `tema-resolv.md` | Tema no formato `/theme-factory`, reaplicável a slides e docs |
+| `tema-edesk.md` | Tema no formato `/theme-factory`, reaplicável a slides e docs |

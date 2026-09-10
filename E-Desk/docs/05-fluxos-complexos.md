@@ -1,4 +1,4 @@
-# resolv — Fluxos complexos
+# E-Desk — Fluxos complexos
 
 Pseudo-código e fluxo passo a passo dos três mecanismos mais delicados do sistema.
 Não é implementação final: é a especificação que a implementação deve seguir.

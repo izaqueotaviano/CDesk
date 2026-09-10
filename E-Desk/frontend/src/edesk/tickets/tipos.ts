@@ -1,6 +1,6 @@
 /**
  * Tipos da listagem de tickets, recortados do schema `TicketList` do
- * resolv-openapi.yaml (conferidos campo a campo, não de memória). Troque pelos
+ * edesk-openapi.yaml (conferidos campo a campo, não de memória). Troque pelos
  * tipos gerados (`npm run generate:api`) quando o schema.d.ts existir.
  */
 

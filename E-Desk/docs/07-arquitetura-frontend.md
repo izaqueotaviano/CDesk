@@ -1,4 +1,4 @@
-# resolv — Arquitetura do frontend
+# E-Desk — Arquitetura do frontend
 
 Plano da SPA definitiva. Não é o protótipo em `frontend/` — aquele é andaime
 descartável; este documento é o que deve ser construído para valer.

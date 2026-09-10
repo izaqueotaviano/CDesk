@@ -5,7 +5,7 @@ há frontend aqui, e o Django não serve nenhum — qualquer URL que não seja
 `/api/v1/`, `/admin/` ou a documentação responde 404, de propósito.
 
 Tudo abaixo foi verificado contra a API rodando, não escrito de memória. Os
-`curl` são reproduzíveis: suba com `./resolv` e cole no terminal.
+`curl` são reproduzíveis: suba com `./edesk` e cole no terminal.
 
 ---
 
@@ -13,7 +13,7 @@ Tudo abaixo foi verificado contra a API rodando, não escrito de memória. Os
 
 | Onde | O quê |
 |---|---|
-| `resolv-openapi.yaml` | O schema OpenAPI 3.1 completo, versionado na raiz |
+| `edesk-openapi.yaml` | O schema OpenAPI 3.1 completo, versionado na raiz |
 | `http://localhost:8000/api/docs/` | O mesmo schema, navegável (Swagger UI) |
 | `make schema` | Regenera o `.yaml` depois de mexer no backend |
 
@@ -21,11 +21,11 @@ O schema é a fonte para gerar tipos/cliente. Alguns caminhos comuns:
 
 ```bash
 # TypeScript (tipos apenas)
-npx openapi-typescript resolv-openapi.yaml -o src/api/schema.d.ts
+npx openapi-typescript edesk-openapi.yaml -o src/api/schema.d.ts
 # TypeScript (cliente completo)
-npx @hey-api/openapi-ts -i resolv-openapi.yaml -o src/api
+npx @hey-api/openapi-ts -i edesk-openapi.yaml -o src/api
 # Dart, Kotlin, Swift, etc.
-npx @openapitools/openapi-generator-cli generate -i resolv-openapi.yaml -g dart
+npx @openapitools/openapi-generator-cli generate -i edesk-openapi.yaml -g dart
 ```
 
 ⚑ Os nomes dos enums são **fixados à mão** em `SPECTACULAR_SETTINGS`
@@ -52,7 +52,7 @@ certa não cria sessão sozinha). Duas consequências para o front:
 # 1) senha — sai anônimo, então NÃO precisa de CSRF.
 #    Devolve o método de 2FA e já cria a sessão PENDENTE (cookie sessionid).
 curl -c j.txt -H 'Content-Type: application/json' \
-     -d '{"email":"admin@demo.resolv.test","password":"resolv123"}' \
+     -d '{"email":"admin@demo.edesk.test","password":"edesk123"}' \
      http://localhost:8000/api/v1/auth/login/
 # → 200 {"two_factor":"email"}
 
@@ -177,19 +177,19 @@ Com WSGI o REST funciona e o WebSocket dá 404 — sintoma comum e confuso.
 ## 6. Rodar e testar
 
 ```bash
-./resolv          # sobe tudo (Docker ou nativo), migra e semeia se vazio
+./edesk             # sobe tudo (Docker ou nativo), migra e semeia se vazio
 make bootstrap      # o mesmo, passo a passo
 make test           # 826 testes
-make schema         # regenera resolv-openapi.yaml
+make schema         # regenera edesk-openapi.yaml
 ```
 
-Usuários de demonstração (senha `resolv123`):
+Usuários de demonstração (senha `edesk123`):
 
 | Perfil | E-mail |
 |---|---|
-| Administradora | `admin@demo.resolv.test` |
-| Supervisora | `supervisor@demo.resolv.test` |
-| Agente | `agente.suporte@demo.resolv.test` |
+| Administradora | `admin@demo.edesk.test` |
+| Supervisora | `supervisor@demo.edesk.test` |
+| Agente | `agente.suporte@demo.edesk.test` |
 | Cliente | `ana@acme.test`, `beto@acme.test` |
 
 O código de 2FA em desenvolvimento é **`123456`** — fixo, e só funciona com

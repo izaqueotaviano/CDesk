@@ -55,7 +55,7 @@ export function PaginaLogin() {
   return (
     <div className="flex h-full items-center justify-center bg-canvas">
       <div className="w-full max-w-sm rounded-lg border border-divisoria bg-superficie p-8 shadow-elevacao-1">
-        <h1 className="mb-6 text-titulo font-forte text-tinta">resolv</h1>
+        <h1 className="mb-6 text-titulo font-forte text-tinta">E-Desk</h1>
 
         {passo === 'credenciais' ? (
           <form

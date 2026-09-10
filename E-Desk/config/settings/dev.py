@@ -5,7 +5,7 @@ from .base import INSTALLED_APPS, env  # noqa: F401
 
 DEBUG = True
 # a lista fixa cobre o uso normal (localhost); quem compartilha a instância
-# (`./resolv compartilhar`) acrescenta o próprio IP de rede ou o domínio do
+# (`./edesk compartilhar`) acrescenta o próprio IP de rede ou o domínio do
 # túnel por uma variável de ambiente, sem editar código — ver .env.example
 ALLOWED_HOSTS = [
     "localhost", "127.0.0.1", "0.0.0.0", "web",  # noqa: S104 — dev/container

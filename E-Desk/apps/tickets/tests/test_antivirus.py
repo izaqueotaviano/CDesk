@@ -298,7 +298,7 @@ class TestDeployCheck:
 
         with override_settings(CLAMAV_ENABLED=False):
             ids = [problem.id for problem in antivirus_configured(None)]
-        assert "resolv.E001" in ids
+        assert "edesk.E001" in ids
 
     def test_fail_open_is_a_warning_not_silence(self):
         from apps.core.checks import antivirus_configured
@@ -307,7 +307,7 @@ class TestDeployCheck:
             CLAMAV_ENABLED=True, ATTACHMENT_BLOCK_ON_SCAN_ERROR=False
         ):
             ids = [problem.id for problem in antivirus_configured(None)]
-        assert ids == ["resolv.W001"]
+        assert ids == ["edesk.W001"]
 
     def test_properly_configured_is_silent(self):
         from apps.core.checks import antivirus_configured

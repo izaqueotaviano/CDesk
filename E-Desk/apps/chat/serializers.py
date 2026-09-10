@@ -298,7 +298,7 @@ class ChatReportRowSerializer(serializers.Serializer):
 
     Existe para o SCHEMA, e o schema existe para a SPA: sem serializer
     declarado o gerador desistia da view ("unable to guess serializer") e o
-    endpoint sumia do `resolv-openapi.yaml` — a tela de relatórios ficava
+    endpoint sumia do `edesk-openapi.yaml` — a tela de relatórios ficava
     com um tipo escrito à mão que nada garantia bater com a resposta.
 
     Os campos variam por eixo (`?by=`): o eixo `score` conta ocorrências por

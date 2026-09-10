@@ -1,5 +1,5 @@
 [project]
-name = "resolv"
+name = "edesk"
 version = "0.1.0"
 description = "Sistema interno de suporte e ticketing"
 requires-python = ">=3.11"

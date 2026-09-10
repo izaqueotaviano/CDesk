@@ -1,4 +1,4 @@
-# resolv — Arquitetura
+# E-Desk — Arquitetura
 
 Sistema de suporte/ticketing interno, inspirado no Zendesk Support, usado por **uma** empresa
 (a agência/plataforma) e por seus **clientes B2B**.

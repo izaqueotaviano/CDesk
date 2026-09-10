@@ -28,7 +28,7 @@ RUN pip install --upgrade pip && pip install ".[reports,antivirus]"
 
 COPY . .
 
-RUN mkdir -p /var/lib/resolv/media && chmod +x deploy/entrypoint.sh
+RUN mkdir -p /var/lib/edesk/media && chmod +x deploy/entrypoint.sh
 
 # Railway injeta PORT; o entrypoint o respeita.
 CMD ["./deploy/entrypoint.sh"]

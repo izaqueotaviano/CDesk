@@ -31,7 +31,7 @@ Três decisões que valem ser lidas antes do código:
    texto puro — jogar o HTML cru no corpo mostraria `<p>` na tela do agente.
    Por isso a conversão para texto, sem dependência nova.
 
-O que o Movidesk exporta e o resolv não tem: equipe (o export não traz),
+O que o Movidesk exporta e o E-Desk não tem: equipe (o export não traz),
 e a separação entre pessoa e organização — `clients[].businessName` é um nome
 só. Ver `import_tickets` para como cada um é tratado.
 """
@@ -68,7 +68,7 @@ REFERENCE_PREFIX = "MD"
 BALDE_SLUG = "sem-empresa"
 BALDE_NOME = "Sem empresa"
 
-# Movidesk → resolv. Só quatro status do lado de cá, e é proposital: o
+# Movidesk → edesk. Só quatro status do lado de cá, e é proposital: o
 # sistema não tem "cancelado" nem separa "resolvido" de "fechado". Cancelado
 # entra como fechado — foi encerrado sem virar trabalho pendente, que é o que
 # o indicador precisa saber.
@@ -93,7 +93,7 @@ URGENCY = {
     "critica": TicketPriority.URGENT,
 }
 
-# canal da AÇÃO (a tabela do exportador) → origem da mensagem no resolv
+# canal da AÇÃO (a tabela do exportador) → origem da mensagem no E-Desk
 CHAT_ORIGINS = {5, 6, 18, 20, 22, 23, 25}       # chats e WhatsApp
 AUTOMATIC_ORIGINS = {4, 7, 10, 19}              # gatilho e e-mail do sistema
 

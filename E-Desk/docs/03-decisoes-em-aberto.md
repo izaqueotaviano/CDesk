@@ -1,4 +1,4 @@
-# resolv — Decisões em aberto
+# E-Desk — Decisões em aberto
 
 > **⚠️ Documento histórico.** Todas as 18 decisões foram fechadas adotando a recomendação —
 > ver [`04-decisoes-tomadas.md`](04-decisoes-tomadas.md), que é a referência normativa.

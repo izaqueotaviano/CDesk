@@ -1,4 +1,4 @@
-# resolv — Decisões tomadas
+# E-Desk — Decisões tomadas
 
 Todas as 18 decisões de [`03-decisoes-em-aberto.md`](03-decisoes-em-aberto.md) foram fechadas
 adotando a recomendação. Este documento é a referência normativa: onde ele e o `03` divergirem,
@@ -136,7 +136,7 @@ Três regras que sustentam o resto:
 Infectado **não é apagado**: o arquivo é a evidência de que aquele upload aconteceu. Sai
 junto com o ticket no expurgo de retenção (D18).
 
-Desligar em produção é erro de `manage.py check --deploy` (`resolv.E001`), não um silêncio.
+Desligar em produção é erro de `manage.py check --deploy` (`edesk.E001`), não um silêncio.
 
 ### D21 — Autorização do expurgo e backups ✅ confirmado
 

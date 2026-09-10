@@ -1,4 +1,4 @@
-# resolv — Arquitetura de anexos
+# E-Desk — Arquitetura de anexos
 
 Decisão sobre upload, armazenamento e download autenticado de anexos de ticket.
 
@@ -121,7 +121,7 @@ O admin tem ação de re-varrer — necessária porque `error` é fail-closed e 
 anexo legítimo que pegou o daemon fora do ar precisa de uma saída que não seja
 mexer no banco à mão.
 
-Desligar em produção falha `manage.py check --deploy` (`resolv.E001`).
+Desligar em produção falha `manage.py check --deploy` (`edesk.E001`).
 
 **Verificação:** 35 testes. A política é testada com o daemon mockado; o
 protocolo INSTREAM é exercitado contra um servidor TCP que fala o protocolo de

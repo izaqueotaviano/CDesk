@@ -1,4 +1,4 @@
-# Prompt de implementação — resolv
+# Prompt de implementação — E-Desk
 
 > **Como usar:** cole tudo daqui para baixo na outra conversa, junto com os
 > arquivos `tokens.css`, `tokens.json`, `tailwind.config.js`,
@@ -21,7 +21,7 @@ Onde já existe código: (caminho do repo, ou "projeto novo")
 
 ## Contexto
 
-Você vai implementar o **resolv**, um painel de atendimento (tickets, chat,
+Você vai implementar o **E-Desk**, um painel de atendimento (tickets, chat,
 kanban, empresas, relatórios, administração), a partir de um design system já
 extraído e validado. O design não está em aberto: existem cinco protótipos
 HTML de referência e um conjunto de tokens medidos por renderização real.

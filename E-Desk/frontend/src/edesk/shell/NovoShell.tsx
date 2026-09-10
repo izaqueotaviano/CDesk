@@ -6,8 +6,8 @@ import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 
 /**
- * Shell do design system Resolv: sidebar rail 56px + corpo com topbar sticky.
- * A classe `resolv-scope` liga os tokens SCSS (tokens.scss) só aqui dentro —
+ * Shell do design system E-Desk: sidebar rail 56px + corpo com topbar sticky.
+ * A classe `edesk-scope` liga os tokens SCSS (tokens.scss) só aqui dentro —
  * o login e o resto do app (visual Tailwind) ficam de fora.
  */
 export function NovoShell({ children }: { children: ReactNode }) {
@@ -16,9 +16,9 @@ export function NovoShell({ children }: { children: ReactNode }) {
   useCanalPessoal()
 
   return (
-    <div className="resolv-scope novo-shell">
+    <div className="edesk-scope novo-shell">
       <Sidebar />
-      <div className="novo-shell__corpo" id="resolv-corpo">
+      <div className="novo-shell__corpo" id="edesk-corpo">
         <Topbar />
         <main className="novo-shell__conteudo">{children}</main>
       </div>

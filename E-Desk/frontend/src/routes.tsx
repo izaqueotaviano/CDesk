@@ -14,10 +14,10 @@ import { PaginaPortalNovoTicket } from '@/features/tickets/PaginaPortalNovoTicke
 import { PaginaPortalTickets } from '@/features/tickets/PaginaPortalTickets'
 import { AppShell } from '@/layouts/AppShell'
 import { PortalShell } from '@/layouts/PortalShell'
-import { NovoShell } from '@/resolv/shell/NovoShell'
-import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
-import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
-import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
+import { NovoShell } from '@/edesk/shell/NovoShell'
+import { PaginaInicio as PaginaInicioEdesk } from '@/edesk/inicio/PaginaInicio'
+import { PaginaListaTickets as PaginaListaTicketsEdesk } from '@/edesk/tickets/PaginaListaTickets'
+import { PaginaDetalheTicket as PaginaDetalheTicketEdesk } from '@/edesk/tickets/detalhe/PaginaDetalheTicket'
 import { CvzAppLayout } from '@/cvz/AppLayout'
 import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
 import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
@@ -34,7 +34,7 @@ export const router = createBrowserRouter([
   {
     element: <App />, // raiz de tudo — só o manifesto PWA por rota (docs/10-pwa.md)
     children: [
-      // A experiência primária agora é o Resolv (design system novo): raiz cai
+      // A experiência primária agora é o E-Desk (design system novo): raiz cai
       // no /inicio. As rotas /app (base Tailwind antiga) seguem existindo.
       { path: '/', element: <Navigate to="/inicio" replace /> },
 
@@ -43,7 +43,7 @@ export const router = createBrowserRouter([
         element: (
           <RotaProtegida>
             <NovoShell>
-              <PaginaInicioResolv />
+              <PaginaInicioEdesk />
             </NovoShell>
           </RotaProtegida>
         ),
@@ -54,13 +54,13 @@ export const router = createBrowserRouter([
       { path: '/login/google', element: <PaginaLoginGoogle /> },
       { path: '/sessao-expirada', element: <PaginaSessaoExpirada /> },
 
-      // ---- Tela de tickets no NOVO design system Resolv (a que estamos testando) ----
+      // ---- Tela de tickets no NOVO design system E-Desk (a que estamos testando) ----
       {
         path: '/chamados',
         element: (
           <RotaProtegida>
             <NovoShell>
-              <PaginaListaTicketsResolv />
+              <PaginaListaTicketsEdesk />
             </NovoShell>
           </RotaProtegida>
         ),
@@ -84,7 +84,7 @@ export const router = createBrowserRouter([
         element: (
           <RotaProtegida>
             <NovoShell>
-              <PaginaDetalheTicketResolv />
+              <PaginaDetalheTicketEdesk />
             </NovoShell>
           </RotaProtegida>
         ),

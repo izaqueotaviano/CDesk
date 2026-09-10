@@ -18,7 +18,7 @@ export function PortalShell() {
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-divisoria bg-navegacao px-6 py-3">
         <Link to="/portal" className="text-titulo-sm font-forte text-tinta">
-          resolv — Suporte
+          E-Desk — Suporte
         </Link>
         <nav className="flex items-center gap-4 text-corpo text-tinta-secundaria">
           <Link to="/portal/tickets/novo">Abrir chamado</Link>

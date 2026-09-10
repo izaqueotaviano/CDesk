@@ -1,6 +1,6 @@
 # 12 — Preparar a máquina (Docker e Node)
 
-Só duas ferramentas são necessárias para rodar o resolv: **Docker** (backend,
+Só duas ferramentas são necessárias para rodar o edesk: **Docker** (backend,
 banco, Redis e worker) e **Node** (frontend). Python fica dentro do container —
 não precisa instalar na máquina.
 

@@ -1,10 +1,10 @@
 """Atualiza as contas de demonstração criadas antes da troca de nome.
 
 O `seed_demo` só semeia banco vazio — quem já tinha o sistema rodando
-continua com `admin@demo.titodesk.test` (ou `@demo.cvzdesk.test`) e a senha
-antiga, enquanto a tela de boas-vindas passou a anunciar o endereço novo. O
-resultado seria alguém tentando entrar com uma conta que não existe e
-concluindo que o sistema quebrou.
+continua com `admin@demo.resolv.test` (ou `@demo.titodesk.test`, ou
+`@demo.cvzdesk.test`) e a senha antiga, enquanto a tela de boas-vindas
+passou a anunciar o endereço novo. O resultado seria alguém tentando
+entrar com uma conta que não existe e concluindo que o sistema quebrou.
 
 Só mexe em endereço terminado em `.test`, que a RFC 6761 reserva para teste e
 nenhuma pessoa de verdade usa. Rodar de novo não faz nada.
@@ -13,11 +13,11 @@ nenhuma pessoa de verdade usa. Rodar de novo não faz nada.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-# O produto já trocou de nome duas vezes; quem parou num banco de qualquer
+# O produto já trocou de nome três vezes; quem parou num banco de qualquer
 # uma das eras precisa chegar no endereço de hoje.
-DOMINIOS_ANTIGOS = ("@demo.titodesk.test", "@demo.cvzdesk.test")
-DOMINIO_NOVO = "@demo.resolv.test"
-SENHA_NOVA = "resolv123"
+DOMINIOS_ANTIGOS = ("@demo.resolv.test", "@demo.titodesk.test", "@demo.cvzdesk.test")
+DOMINIO_NOVO = "@demo.edesk.test"
+SENHA_NOVA = "edesk123"
 
 
 class Command(BaseCommand):

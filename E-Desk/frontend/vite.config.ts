@@ -8,7 +8,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 // credenciais, não um proxy same-origin do Vite. Por isso não há `server.proxy`
 // aqui — cada chamada em src/api/client.ts usa `credentials: 'include'` e a
 // origem vem de VITE_API_BASE_URL (padrão http://localhost:8000, a porta fixa
-// do backend em ./resolv).
+// do backend em ./edesk).
 export default defineConfig({
   plugins: [
     react(),

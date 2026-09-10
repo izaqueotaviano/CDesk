@@ -38,7 +38,7 @@ export function AppShell() {
           border-divisoria bg-navegacao p-4"
       >
         <nav className="flex flex-col gap-1">
-          <span className="mb-4 px-2 text-titulo-sm font-forte text-tinta">resolv</span>
+          <span className="mb-4 px-2 text-titulo-sm font-forte text-tinta">E-Desk</span>
           {ITENS_NAV.map((item) => (
             <Link
               key={item.para}

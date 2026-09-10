@@ -346,7 +346,7 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": "Resolv API",
+    "TITLE": "E-Desk API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     # Nomes ESTÁVEIS para os enums do schema.
@@ -390,7 +390,7 @@ CORS_ALLOW_CREDENTIALS = True
 # --- Content-Security-Policy (django-csp) ----------------------------------
 # Vale para o que ESTE processo serve em HTML: o admin do Django e o
 # navegador da API. A SPA é servida pelo nginx e recebe a própria CSP lá
-# (deploy/nginx/resolv.conf). `unsafe-inline` só em estilo: o admin ainda
+# (deploy/nginx/edesk.conf). `unsafe-inline` só em estilo: o admin ainda
 # escreve `style=""` em alguns widgets; script inline ele não usa.
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
@@ -493,7 +493,7 @@ CELERY_BEAT_SCHEDULE = {
 # E-mail
 # --------------------------------------------------------------------------- #
 
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Resolv <no-reply@example.com>")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="E-Desk <no-reply@example.com>")
 
 # Endereço PÚBLICO da aplicação — base de todo link que sai por e-mail
 # (pesquisa de satisfação, convite de senha). Link relativo em e-mail não é

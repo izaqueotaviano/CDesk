@@ -161,7 +161,7 @@ export const useTabs = create<TabsState>()(
       },
     }),
     {
-      name: 'resolv:tabs',
+      name: 'edesk:tabs',
       // reconciliando nunca persiste — cada carga da página começa
       // reconciliando de novo, mesmo com abas já hidratadas do localStorage.
       partialize: (s) => ({ tabs: s.tabs, active: s.active }),

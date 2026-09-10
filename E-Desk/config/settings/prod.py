@@ -22,7 +22,7 @@ ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS")
 # HTTPS
 # --------------------------------------------------------------------------- #
 # O TLS termina no nginx; o Django confia no X-Forwarded-Proto SÓ porque o
-# nginx sobrescreve o header (deploy/nginx/resolv.conf) — um cliente não
+# nginx sobrescreve o header (deploy/nginx/edesk.conf) — um cliente não
 # consegue forjá-lo. O redirect fica ligado como cinto: se alguém expuser a
 # porta 8000 direto, a resposta é 301 para https, não a página.
 SECURE_SSL_REDIRECT = True
@@ -41,7 +41,7 @@ SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
 # Prefixo `__Host-`: o navegador só aceita o cookie se vier de HTTPS, sem
 # `Domain` e com `Path=/` — um subdomínio comprometido não consegue
 # sobrescrever a sessão de app.empresa.com.br.
-SESSION_COOKIE_NAME = "__Host-resolv_sessao"
+SESSION_COOKIE_NAME = "__Host-edesk_sessao"
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Lax"  # Strict quebraria o link do e-mail que abre o ticket
@@ -51,7 +51,7 @@ SESSION_COOKIE_AGE = 60 * 60 * 12  # 12h — um turno; o 2FA cobra de novo no di
 # continua valendo na hora, e a leitura por requisição não bate no Postgres
 SESSION_ENGINE = "django.contrib.sessions.backends.cached_db"
 
-CSRF_COOKIE_NAME = "__Host-resolv_csrf"
+CSRF_COOKIE_NAME = "__Host-edesk_csrf"
 CSRF_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = False  # a SPA lê o token para mandar no header X-CSRFToken
 CSRF_COOKIE_SAMESITE = "Lax"
@@ -79,7 +79,7 @@ DATABASES["default"]["OPTIONS"] = {
     **({"sslrootcert": env("DB_SSLROOTCERT")} if env("DB_SSLROOTCERT", default="") else {}),
     # um statement preso não segura um worker para sempre
     "options": "-c statement_timeout=30000 -c idle_in_transaction_session_timeout=60000",
-    "application_name": "resolv",
+    "application_name": "edesk",
 }
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 
@@ -112,5 +112,5 @@ EMAIL_TIMEOUT = 15
 ADMINS = [tuple(pair.split(":", 1)) for pair in env.list("DJANGO_ADMINS", default=[])]
 SERVER_EMAIL = env(
     "SERVER_EMAIL",
-    default=env("DEFAULT_FROM_EMAIL", default="Resolv <no-reply@example.com>"),
+    default=env("DEFAULT_FROM_EMAIL", default="E-Desk <no-reply@example.com>"),
 )

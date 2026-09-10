@@ -8,7 +8,7 @@ import { AppShell, ToastProvider, initialsFrom, useToast, type NavId } from './c
 import './styles/global.scss'
 
 /**
- * Ponte entre o AppShell real (cvzdesk) e os dados/rotas do Resolv. Hoje só
+ * Ponte entre o AppShell real (cvzdesk) e os dados/rotas do E-Desk. Hoje só
  * `inicio`, `tickets`, `clientes` e `configuracoes` têm tela — os demais itens
  * da sidebar disparam um toast "em construção" em vez de navegar para lugar
  * nenhum (nunca um link morto silencioso).

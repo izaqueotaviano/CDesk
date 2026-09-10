@@ -3,7 +3,7 @@
 Decisão desta rodada (revisão do usuário): a Base de Conhecimento já existe
 no WordPress ("Convertize", `/suporte/*` — confirmado na auditoria via MCP,
 pelo menos 14 artigos publicados sob um post type próprio "suporte", com uma
-página "Central de Ajuda" em `/central-de-ajuda/`). O resolv **busca e
+página "Central de Ajuda" em `/central-de-ajuda/`). O E-Desk **busca e
 cacheia**: o WordPress continua sendo onde o time escreve; este serviço só
 lê, nunca grava lá.
 

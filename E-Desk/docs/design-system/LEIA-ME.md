@@ -1,4 +1,4 @@
-# Design system do resolv — material recebido
+# Design system do E-Desk — material recebido
 
 Arquivos entregues pelo Izaque em 26/08/2026, guardados aqui como **fonte da
 verdade visual**. Nada aqui foi aplicado ainda ao código.
@@ -13,7 +13,7 @@ verdade visual**. Nada aqui foi aplicado ainda ao código.
 | `PROMPT-IMPLEMENTACAO.md` | O prompt de implementação, com as regras de produto não-negociáveis |
 
 Falta um que o `DESIGN_SYSTEM.md` §9 cita e que ainda não chegou:
-`tema-resolv.md` (o tema no formato `/theme-factory`, reaplicável a slides e
+`tema-edesk.md` (o tema no formato `/theme-factory`, reaplicável a slides e
 docs).
 
 ## Antes de aplicar qualquer coisa

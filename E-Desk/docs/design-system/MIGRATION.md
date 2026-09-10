@@ -1,4 +1,4 @@
-# resolv — mapa de migração
+# E-Desk — mapa de migração
 
 Como sair dos cinco protótipos e chegar em `tokens.css`, o que muda de pixel
 no caminho, e o que precisa de decisão humana.

@@ -19,7 +19,7 @@ e-mail vai para o console, antivírus desligado). Para produção de verdade, us
 
 1. **Conta e projeto.** Crie conta em [railway.app](https://railway.app) e
    **New Project → Deploy from GitHub repo**, escolhendo este repositório e a
-   branch `claude/resolv-new-folder-nuoj3u`. O Railway acha o `railway.json`
+   branch `claude/edesk-new-folder-nuoj3u`. O Railway acha o `railway.json`
    sozinho e usa o `Dockerfile.railway`.
 
 2. **Banco.** No projeto, **+ New → Database → PostgreSQL**. O Railway cria a
@@ -44,7 +44,7 @@ e-mail vai para o console, antivírus desligado). Para produção de verdade, us
    ```
 
 5. **Domínio.** Em *Settings → Networking → Generate Domain*. Sai algo como
-   `resolv-production.up.railway.app`.
+   `edesk-production.up.railway.app`.
 
 6. **Deploy.** O primeiro build leva alguns minutos (compila a SPA + instala o
    Python). Quando terminar, abra o domínio.
@@ -52,10 +52,10 @@ e-mail vai para o console, antivírus desligado). Para produção de verdade, us
 ## Como testar
 
 Abra a URL e entre com qualquer usuário de demonstração — **todos usam a senha
-`resolv123`**:
+`edesk123`**:
 
-- `admin@demo.resolv.test` — admin (vê tudo, configurações)
-- `agente.suporte@demo.resolv.test` — agente de suporte
+- `admin@demo.edesk.test` — admin (vê tudo, configurações)
+- `agente.suporte@demo.edesk.test` — agente de suporte
 - `ana@acme.test` — cliente (portal do cliente)
 
 O seed cria empresas, tickets, um quadro de Kanban e avisos de exemplo.

@@ -1,6 +1,6 @@
 /**
  * Tipos do detalhe do ticket, recortados do schema `TicketDetail` do
- * resolv-openapi.yaml (conferidos contra o serializer real). Um único
+ * edesk-openapi.yaml (conferidos contra o serializer real). Um único
  * GET /api/v1/tickets/{id}/ já traz mensagens, eventos e seguidores embutidos.
  */
 import type { EstadoSla, Prioridade, StatusTicket } from '../tipos'

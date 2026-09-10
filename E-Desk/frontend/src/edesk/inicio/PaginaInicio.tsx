@@ -3,7 +3,7 @@ import { useMe } from '@/api/queries/useMe'
 import { useKpis } from './useKpis'
 import './inicio.scss'
 
-/** Home do Resolv: saudação + faixa de KPIs reais (contagens do backend).
+/** Home do E-Desk: saudação + faixa de KPIs reais (contagens do backend).
  *  Clicar num card leva para a lista já na visualização correspondente. */
 export function PaginaInicio() {
   const { data: me } = useMe()

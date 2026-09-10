@@ -1,6 +1,6 @@
-# GAPS.md — resolv front ↔ back-end
+# GAPS.md — E-Desk front ↔ back-end
 
-> Produzido na Fase 0 (auditoria) do `prompt-integracao-backend.md`. Metodologia: 6 leituras independentes e completas — infraestrutura/arquitetura do backend, apps Chamados+Chat, apps Empresas/Contas/Auditoria/Relatórios/Kanban/Avisos, o contrato `resolv-openapi.yaml` inteiro (123 paths), e as 7 telas de referência (HTML+JS lidos por completo, não por amostragem). Toda afirmação abaixo tem evidência de código (arquivo:linha) por trás — nada foi inferido de memória ou só da documentação.
+> Produzido na Fase 0 (auditoria) do `prompt-integracao-backend.md`. Metodologia: 6 leituras independentes e completas — infraestrutura/arquitetura do backend, apps Chamados+Chat, apps Empresas/Contas/Auditoria/Relatórios/Kanban/Avisos, o contrato `edesk-openapi.yaml` inteiro (123 paths), e as 7 telas de referência (HTML+JS lidos por completo, não por amostragem). Toda afirmação abaixo tem evidência de código (arquivo:linha) por trás — nada foi inferido de memória ou só da documentação.
 >
 > **Conforme a Fase 0 pede: este arquivo é o ponto de parada. Nenhuma integração foi implementada ainda — só auditoria.**
 
@@ -16,17 +16,17 @@
 
 ## O que o back-end tem e o front de referência não usa
 
-Duas categorias: (A) itens que fazem sentido aparecer nas 7 telas atuais — proponho onde; (B) itens que são claramente território da superfície "Administração" que o próprio `resolv-shell.js` já anuncia como existente-mas-não-implementada (`btnSurface`, toast "isso vive na outra superfície") — proponho **omitir de propósito** destas 7 telas, por instrução explícita do prompt ("não implemente Administração agora"), e deixar registrado aqui como backlog.
+Duas categorias: (A) itens que fazem sentido aparecer nas 7 telas atuais — proponho onde; (B) itens que são claramente território da superfície "Administração" que o próprio `edesk-shell.js` já anuncia como existente-mas-não-implementada (`btnSurface`, toast "isso vive na outra superfície") — proponho **omitir de propósito** destas 7 telas, por instrução explícita do prompt ("não implemente Administração agora"), e deixar registrado aqui como backlog.
 
 ### (A) Proponho expor nas 7 telas atuais
 
 | Backend tem | Evidência | Onde expor | Por quê |
 |---|---|---|---|
-| Notificações reais: `GET /api/v1/notifications/` (paginado, com `unread_count` segundo leitura de código — ver [Divergência #10](#10-contagem-de-notificações-não-lidas-código-e-schema-openapi-discordam) sobre uma contradição a verificar), `POST .../read/`, `.../read-all/`, mais push ao vivo via WebSocket `ws/me/` (`notify`) | `apps/notifications/views.py:26-50`; `apps/notifications/services/__init__.py:42-57,95-101` | Badge do sino no `resolv-shell.js` (hoje é um `3` fixo sem nenhum handler, `resolv-shell.js:121-123`) | Já é o item "Badge de notificação" que a própria Fase 1 pede; o backend já está pronto e à frente do mockup |
-| `GET /api/v1/tickets/{id}/mention-targets/` inclui **equipes**, não só agentes individuais (`GroupEnum`: ticket/equipe/outros/equipes) | Agente 4 (OpenAPI); `apps/tickets/services/mentions.py` | Popup de `@menção` em `resolv-chamado-carbon.html` | Front hoje só busca entre os 7 agentes fixos; o backend já devolve equipes também |
-| Ticket tem `owner` **além de** `assignee` — "quem conversa com o cliente" vs. "quem responde pela solução" (comentário explícito no código) | `apps/tickets/models.py:225-239` | Painel Propriedades de `resolv-chamado-carbon.html`, ao lado do campo Responsável | Front só tem um único campo "Responsável"; decisão humana necessária sobre se os dois papéis devem mesmo virar dois campos na tela (ver Divergência #5) |
+| Notificações reais: `GET /api/v1/notifications/` (paginado, com `unread_count` segundo leitura de código — ver [Divergência #10](#10-contagem-de-notificações-não-lidas-código-e-schema-openapi-discordam) sobre uma contradição a verificar), `POST .../read/`, `.../read-all/`, mais push ao vivo via WebSocket `ws/me/` (`notify`) | `apps/notifications/views.py:26-50`; `apps/notifications/services/__init__.py:42-57,95-101` | Badge do sino no `edesk-shell.js` (hoje é um `3` fixo sem nenhum handler, `edesk-shell.js:121-123`) | Já é o item "Badge de notificação" que a própria Fase 1 pede; o backend já está pronto e à frente do mockup |
+| `GET /api/v1/tickets/{id}/mention-targets/` inclui **equipes**, não só agentes individuais (`GroupEnum`: ticket/equipe/outros/equipes) | Agente 4 (OpenAPI); `apps/tickets/services/mentions.py` | Popup de `@menção` em `edesk-chamado-carbon.html` | Front hoje só busca entre os 7 agentes fixos; o backend já devolve equipes também |
+| Ticket tem `owner` **além de** `assignee` — "quem conversa com o cliente" vs. "quem responde pela solução" (comentário explícito no código) | `apps/tickets/models.py:225-239` | Painel Propriedades de `edesk-chamado-carbon.html`, ao lado do campo Responsável | Front só tem um único campo "Responsável"; decisão humana necessária sobre se os dois papéis devem mesmo virar dois campos na tela (ver Divergência #5) |
 | `BannedWord` é lista **configurável via API** (`GET/POST /api/v1/chat/banned-words/` + CRUD), não fixa | Agente 4 (OpenAPI); `apps/chat/models.py` | A *aplicação* do filtro (não o CRUD da lista) já é esperada nas telas de Chamado e Chat | Front hoje ignora completamente essa lista e usa 5 palavras hardcoded no próprio JS (`PALAVRAO`) — nem seria a fonte certa mesmo se o regex funcionasse |
-| Avaliação de chat já 100% implementada no servidor: `POST /chat/chats/{id}/rate/` (duas notas + justificativa condicional) + `GET /chat/chats/pending-ratings/` (bloqueia chat novo) | `apps/chat/services/chat_service.py:325-352`; `apps/chat/views.py:116-135` | `resolv-chat-carbon.html` — falta **construir o formulário** de avaliação no front; hoje só existe um texto de intenção no modal de encerrar, sem campos nem chamada nenhuma | O backend não é o gargalo aqui — é puramente trabalho de front que a Fase 1 já cobra |
+| Avaliação de chat já 100% implementada no servidor: `POST /chat/chats/{id}/rate/` (duas notas + justificativa condicional) + `GET /chat/chats/pending-ratings/` (bloqueia chat novo) | `apps/chat/services/chat_service.py:325-352`; `apps/chat/views.py:116-135` | `edesk-chat-carbon.html` — falta **construir o formulário** de avaliação no front; hoje só existe um texto de intenção no modal de encerrar, sem campos nem chamada nenhuma | O backend não é o gargalo aqui — é puramente trabalho de front que a Fase 1 já cobra |
 
 ### (B) Proponho omitir de propósito — backlog da superfície Administração
 
@@ -78,9 +78,9 @@ Organizado pelo checklist que a Fase 3 do próprio prompt já trazia, com o vere
 
 ### Base de Conhecimento
 
-O item mais grave fora do checklist original: **não existe absolutamente nenhum backend para isso.** Não é só "falta o armazenamento de feedback" — não existe model de artigo, categoria, tag de artigo, busca, nada. Busca por `artigo|article|knowledge|kb_|faq|wiki` em `apps/**/*.py` e em `config/api_urls.py` (148 linhas, lido por completo) — zero ocorrências. As 7 telas de referência incluem `resolv-base-conhecimento-carbon.html` com 12 artigos completos, categorias, busca e botão "Isso ajudou?" — tudo isso precisa nascer do zero: model de artigo, endpoint de CRUD (mesmo que só leitura no lado agente + CRUD em Administração), endpoint de busca, e model+endpoint de feedback agregado.
+O item mais grave fora do checklist original: **não existe absolutamente nenhum backend para isso.** Não é só "falta o armazenamento de feedback" — não existe model de artigo, categoria, tag de artigo, busca, nada. Busca por `artigo|article|knowledge|kb_|faq|wiki` em `apps/**/*.py` e em `config/api_urls.py` (148 linhas, lido por completo) — zero ocorrências. As 7 telas de referência incluem `edesk-base-conhecimento-carbon.html` com 12 artigos completos, categorias, busca e botão "Isso ajudou?" — tudo isso precisa nascer do zero: model de artigo, endpoint de CRUD (mesmo que só leitura no lado agente + CRUD em Administração), endpoint de busca, e model+endpoint de feedback agregado.
 
-Também sem solução hoje: **"Inserir na resposta"** — o mecanismo real (a Fase 1 pede para decidir entre parâmetro de URL, estado compartilhado ou clipboard). Como as 7 telas são páginas HTML separadas sem SPA (confirmado no comentário do `resolv-shell.js`), a opção mais compatível com a arquitetura atual é **clipboard real** (`navigator.clipboard.writeText`); deep-link (`?inserirArtigo=slug`) é a segunda opção mais plausível se a KB for aberta a partir do chamado/chat. Decisão de produto, não só técnica — listando para a revisão humana.
+Também sem solução hoje: **"Inserir na resposta"** — o mecanismo real (a Fase 1 pede para decidir entre parâmetro de URL, estado compartilhado ou clipboard). Como as 7 telas são páginas HTML separadas sem SPA (confirmado no comentário do `edesk-shell.js`), a opção mais compatível com a arquitetura atual é **clipboard real** (`navigator.clipboard.writeText`); deep-link (`?inserirArtigo=slug`) é a segunda opção mais plausível se a KB for aberta a partir do chamado/chat. Decisão de produto, não só técnica — listando para a revisão humana.
 
 ### Outros itens específicos do backend, além do checklist original
 
@@ -95,7 +95,7 @@ Cada item abaixo é um caso onde o backend **já implementa algo diferente** do 
 
 #### 1. SLA: relógio corrido no front, calendário comercial no backend
 
-- **Front** (`resolv-visao-geral-carbon.html`, `resolv-chamados-carbon.html`, `resolv-chamado-carbon.html`, todas com a mesma função duplicada): `consumo = criadoHaMin / janela`, minutos corridos desde a criação, sem qualquer noção de horário comercial.
+- **Front** (`edesk-visao-geral-carbon.html`, `edesk-chamados-carbon.html`, `edesk-chamado-carbon.html`, todas com a mesma função duplicada): `consumo = criadoHaMin / janela`, minutos corridos desde a criação, sem qualquer noção de horário comercial.
 - **Backend**: `apply_sla()` calcula `due_at = add_business_minutes(ticket.created_at, policy.X_minutes, calendar)` (`apps/tickets/services/sla.py:33-48`) — usa explicitamente um **calendário de negócio** (`docs/04-decisoes-tomadas.md` fala em seg-sex 09h-18h). Ou seja: um chamado criado sexta às 17h com SLA de 4h (plano Black) vence bem depois do que "17h + 4h corridas" sugeriria, porque o relógio não corre fora do expediente.
 - **Impacto**: qualquer barra de SLA renderizada com a fórmula do front estaria sistematicamente errada fora do horário comercial — não é o atalho "minutos desde agora" que a Fase 1 já esperava trocar por timestamp absoluto; é uma dimensão de cálculo inteira ausente do front. **Decisão necessária**: o front novo precisa implementar (ou receber pronto do backend, via `SLAClock.state`) o cálculo com calendário — não dá para só trocar por timestamp absoluto ingênuo.
 
@@ -123,7 +123,7 @@ Cada item abaixo é um caso onde o backend **já implementa algo diferente** do 
 
 - **Backend**: `assignee` (quem responde tecnicamente) e `owner` (quem conversa com o cliente) são campos **separados**, ambos anuláveis (`apps/tickets/models.py:225-239`, comentário explícito no código explicando a distinção).
 - **Front**: só tem "Responsável", um campo único.
-- **Decisão necessária**: a tela de Chamado precisa de dois campos (Responsável técnico / Responsável pelo relacionamento)? Ou um dos dois papéis do backend deveria ser aposentado/fundido? Afeta o `select` de Responsável em `resolv-chamado-carbon.html` e possivelmente os filtros de lista.
+- **Decisão necessária**: a tela de Chamado precisa de dois campos (Responsável técnico / Responsável pelo relacionamento)? Ou um dos dois papéis do backend deveria ser aposentado/fundido? Afeta o `select` de Responsável em `edesk-chamado-carbon.html` e possivelmente os filtros de lista.
 
 #### 6. "Macro" significa coisas diferentes nos dois lados — ✅ RESOLVIDA na Fase 3
 
@@ -147,21 +147,21 @@ Cada item abaixo é um caso onde o backend **já implementa algo diferente** do 
 
 #### 9. Exportação de relatório: front promete e-mail, backend faz download direto — ✅ RESOLVIDA na Fase 2, etapa 4
 
-- **Front de referência** (`resolv-relatorios-carbon.html`): "O relatório em CSV chega por e-mail em alguns minutos."
+- **Front de referência** (`edesk-relatorios-carbon.html`): "O relatório em CSV chega por e-mail em alguns minutos."
 - **Backend**: `TicketReportExportView` devolve CSV como download HTTP síncrono; o caminho assíncrono (`ReportExportViewSet`) gera XLSX/PDF e expõe uma URL `/download/` sob demanda — nenhum dos dois manda e-mail. `OutboundEmail` (`apps/notifications/models.py:78-110`) nem tem campo de anexo.
 - **Decisão tomada e implementada**: mudar o UX do front pra refletir o que o backend faz de verdade, em vez de portar a promessa quebrada. CSV baixa na hora (download real); XLSX/PDF entram na fila assíncrona e aparecem em "Exportações" com status até ficarem prontos, sem e-mail nenhum — ver Fase 2, etapa 4, abaixo.
 
 #### 10. Contagem de notificações não-lidas: código e schema OpenAPI discordam
 
 - O agente que leu o **código** (`apps/notifications/views.py:26-36`) afirma que `NotificationViewSet.list()` injeta `unread_count` na mesma resposta da listagem.
-- O agente que leu o **`resolv-openapi.yaml`** afirma que não existe parâmetro de filtro por lida/não-lida nem campo de contagem documentado no schema de resposta.
+- O agente que leu o **`edesk-openapi.yaml`** afirma que não existe parâmetro de filtro por lida/não-lida nem campo de contagem documentado no schema de resposta.
 - Isso é uma contradição real entre duas fontes que deveriam concordar — ou o campo existe no código mas o schema (gerado via drf-spectacular) está desatualizado/mal anotado, ou um dos dois lados foi lido errado. **Antes de integrar o badge de notificação, vale confirmar direto contra a API rodando** (`curl` num ambiente de dev) qual das duas descrições é real, em vez de assumir uma.
 
 #### 11. Vínculo por domínio: empresa sem campo de domínio nenhum
 
 - **Fase 1**: "Domínio → vínculo automático: quem se cadastra ou escreve de um e-mail com esses domínios entra automaticamente nessa empresa. Reforçar no servidor."
 - **Backend**: `Company` não tem campo de domínio — nem único, nem lista (`apps/customers/models.py:66-134`, lido por completo). Cadastro de cliente é sempre por convite explícito, empresa vem da URL (`apps/customers/admin_api.py:113-149`, comentário: "a empresa vem da URL, nunca do corpo"). Auto-cadastro está fechado (`is_open_for_signup` retorna `False`).
-- **Front**: já modela `dominios: [...]` como lista, inclusive com empresa de dois domínios (`resolv-empresas-carbon.html:327`).
+- **Front**: já modela `dominios: [...]` como lista, inclusive com empresa de dois domínios (`edesk-empresas-carbon.html:327`).
 - **Decisão necessária**: esta é a regra de negócio mais "sem chão" de toda a auditoria — não dá para "reforçar no servidor" uma regra cujo dado nem existe. Precisa: campo novo em `Company` (lista de domínios), e desenhar **onde** a checagem entraria (hoje não existe nenhum fluxo de auto-cadastro por chat/ticket que pudesse checá-la — seria preciso decidir se esse fluxo passa a existir, ou se o vínculo por domínio serve só para um caso de uso ainda não implementado).
 
 #### Notas rápidas (não chegam a ser divergência de regra, mas evitam armadilha)
@@ -176,14 +176,14 @@ Cada item abaixo é um caso onde o backend **já implementa algo diferente** do 
 
 A Fase 1 pede para preservar "o comportamento já validado" do front. Estes pontos parecem nunca ter sido de fato validados — são bugs do protótipo estático, não comportamento intencional a replicar:
 
-- **Filtro de palavrões do front está quebrado** (regex com escaping duplicado, `\\\\b` em vez de `\\b`) em `resolv-chamado-carbon.html` **e** `resolv-chat-carbon.html` — nunca censura nada, mesmo quando "deveria" pegar uma palavra da lista. Testado isoladamente e confirmado.
-- **Mensagens somem em 21 dos 24 chamados mockados** de `resolv-chamado-carbon.html`: `threadPara()` só retorna array estável para 3 chamados com conversa escrita à mão; para os outros, reconstrói a thread do zero a cada render, então uma mensagem enviada desaparece no próprio re-render seguinte (o toast de confirmação aparece, a bolha não fica).
-- **`UNIVERSO.meus = 12`** em `resolv-visao-geral-carbon.html` não bate com a contagem real do array mockado por `responsavelId` (dá 5) — o KPI e o resultado do clique divergem.
+- **Filtro de palavrões do front está quebrado** (regex com escaping duplicado, `\\\\b` em vez de `\\b`) em `edesk-chamado-carbon.html` **e** `edesk-chat-carbon.html` — nunca censura nada, mesmo quando "deveria" pegar uma palavra da lista. Testado isoladamente e confirmado.
+- **Mensagens somem em 21 dos 24 chamados mockados** de `edesk-chamado-carbon.html`: `threadPara()` só retorna array estável para 3 chamados com conversa escrita à mão; para os outros, reconstrói a thread do zero a cada render, então uma mensagem enviada desaparece no próprio re-render seguinte (o toast de confirmação aparece, a bolha não fica).
+- **`UNIVERSO.meus = 12`** em `edesk-visao-geral-carbon.html` não bate com a contagem real do array mockado por `responsavelId` (dá 5) — o KPI e o resultado do clique divergem.
 - **`#btnSearch` da Visão Geral sobrescreve o handler do shell** e referencia `#globalSearch`, um id que não existe no DOM — lança erro no console ao clicar na lupa em telas estreitas.
-- **Modal de reatribuição** (`#scrim`/`#modal*` em `resolv-chamado-carbon.html`) tem HTML/CSS prontos mas nenhum gatilho no JS — reatribuição real acontece pelo `<select>` simples. Marcação morta.
-- **`resolv-shell.css` é redundante** dentro de `resolv-visao-geral-carbon.html` (que duplica o mesmo bloco `.agent-panel` no próprio `<style>`), mas **é necessário** em `resolv-chamados-carbon.html` e `resolv-chamado-carbon.html` (sem ele, o painel de status fica sem estilo nessas duas).
+- **Modal de reatribuição** (`#scrim`/`#modal*` em `edesk-chamado-carbon.html`) tem HTML/CSS prontos mas nenhum gatilho no JS — reatribuição real acontece pelo `<select>` simples. Marcação morta.
+- **`edesk-shell.css` é redundante** dentro de `edesk-visao-geral-carbon.html` (que duplica o mesmo bloco `.agent-panel` no próprio `<style>`), mas **é necessário** em `edesk-chamados-carbon.html` e `edesk-chamado-carbon.html` (sem ele, o painel de status fica sem estilo nessas duas).
 - **Relatórios**: o array `porNotaChat` é reaproveitado como "Satisfação (CSAT)" na área de Chamados **e** como agrupamento "Por nota" na área de Chat — o próprio texto da tela de Chat diz que as métricas são "separadas", mas o número é literalmente o mesmo array nos dois lugares.
-- **KB descreve uma conversão automática que o protótipo de Chat não implementa**: o artigo sobre SLA/conversão narra "se o chat não for atendido a tempo, vira chamado 'chat não atendido' sozinho" — mas `resolv-chat-carbon.html` só incrementa o tempo de espera indefinidamente, nunca converte nada automaticamente (o backend real, por outro lado, faz exatamente isso — ver Fase 3 checklist acima).
+- **KB descreve uma conversão automática que o protótipo de Chat não implementa**: o artigo sobre SLA/conversão narra "se o chat não for atendido a tempo, vira chamado 'chat não atendido' sozinho" — mas `edesk-chat-carbon.html` só incrementa o tempo de espera indefinidamente, nunca converte nada automaticamente (o backend real, por outro lado, faz exatamente isso — ver Fase 3 checklist acima).
 
 ---
 
@@ -215,7 +215,7 @@ Cinco pontos do resumo executivo já foram decididos e implementados nesta rodad
 
 ### 5. Base de Conhecimento — integração com o WordPress (Convertize)
 **Decisão**: a Base de Conhecimento já existe no WordPress (`convertizecombr.wpcomstaging.com`, post type `suporte`, pelo menos 14 artigos publicados sob uma página "Central de Ajuda"). O backend **sincroniza e cacheia** — o WordPress continua sendo onde o time escreve.
-**Implementação**: novo app `apps/knowledge/` — `Article` (cache local por `wp_post_id`) e `ArticleFeedback` ("isso ajudou?", um voto por agente, agregado — o que o mock de referência não tinha). `services/wordpress_sync.py` faz o `GET` paginado em `/wp-json/wp/v2/{post_type}` e upsert; artigo que some do WordPress é desativado, nunca apagado. Task Celery `sync_knowledge_base` agendada de hora em hora. API em `knowledge/articles/` (lista com filtro de categoria e busca `?q=`, detalhe com relacionados, `POST .../feedback/`) — **interno, não cliente** (nenhuma das 7 telas de referência tem variante de KB no painel do cliente). `resolv-openapi.yaml` regenerado com os novos endpoints.
+**Implementação**: novo app `apps/knowledge/` — `Article` (cache local por `wp_post_id`) e `ArticleFeedback` ("isso ajudou?", um voto por agente, agregado — o que o mock de referência não tinha). `services/wordpress_sync.py` faz o `GET` paginado em `/wp-json/wp/v2/{post_type}` e upsert; artigo que some do WordPress é desativado, nunca apagado. Task Celery `sync_knowledge_base` agendada de hora em hora. API em `knowledge/articles/` (lista com filtro de categoria e busca `?q=`, detalhe com relacionados, `POST .../feedback/`) — **interno, não cliente** (nenhuma das 7 telas de referência tem variante de KB no painel do cliente). `edesk-openapi.yaml` regenerado com os novos endpoints.
 
 ⚑ **Ponto que fica pendente de verificação, não de decisão**: o slug REST do post type (`WORDPRESS_KB_POST_TYPE=suporte`) foi assumido a partir do nome encontrado via MCP — não foi possível confirmar contra `{site}/wp-json/wp/v2/types` nesta sessão (egress bloqueado para o domínio a partir daqui). A sincronização está **desligada por padrão** (`WORDPRESS_KB_ENABLED=0`) até alguém confirmar isso rodando `curl` contra o site real — ver docstring de `apps/knowledge/services/wordpress_sync.py`. A taxonomia (categoria/tags dos artigos) também é lida de forma defensiva pelo mesmo motivo: estrutura não confirmada, formato inesperado vira "sem categoria" em vez de derrubar a sincronização inteira.
 
@@ -270,7 +270,7 @@ Mesmo padrão da etapa 1: rodado de verdade contra o backend (não só compilado
 
 ### Achado construindo a tela, não antecipado na Fase 0: sem filtro de chamados por empresa
 
-O painel "Chamados desta empresa" precisava disso e `GET /tickets/` não tinha — só os filtros já documentados (status/team/priority/tag/assignee/q/source/view/sla). Acrescentei `?company=<id>` (mesma forma do `?team=`, um `if` a mais no `list()`), testado em `apps/tickets/tests/test_filtro_empresa.py`. `resolv-openapi.yaml` regenerado.
+O painel "Chamados desta empresa" precisava disso e `GET /tickets/` não tinha — só os filtros já documentados (status/team/priority/tag/assignee/q/source/view/sla). Acrescentei `?company=<id>` (mesma forma do `?team=`, um `if` a mais no `list()`), testado em `apps/tickets/tests/test_filtro_empresa.py`. `edesk-openapi.yaml` regenerado.
 
 ### Confirmado funcionando sem mudança nenhuma (a auditoria da Fase 0 já tinha certo)
 
@@ -442,7 +442,7 @@ autocomplete). Teclado completo (setas/Enter/Tab/Esc).
 `TicketMacro` criado espelhando `ChatMacro` (nome, categoria, prioridade,
 responsável, etiquetas), mais um campo `body` que `ChatMacro` não tem — o
 "texto pronto" que o protótipo de referência já assumia
-(`resolv-chamado-carbon.html`) sem contrapartida nenhuma no backend até
+(`edesk-chamado-carbon.html`) sem contrapartida nenhuma no backend até
 agora. CRUD em `settings/ticket-macros/` (interno lê, admin escreve, mesmo
 padrão de `TicketTagViewSet`). Aplicar (`POST tickets/{id}/apply-macro/`,
 `ticket_service.apply_macro`) espelha `chat_service.apply_macro`: soma,
@@ -1558,7 +1558,7 @@ sai com status `sent`.
 Pergunta direta do usuário: "já tem a página do cliente? onde ele vai
 abrir ticket, chat, ver o histórico de chat e os tickets?". Resposta,
 depois de investigar: **não** — nenhuma das 7 telas de referência do
-projeto (`resolv-*-carbon.html`) tem variante de cliente. Onde o
+projeto (`edesk-*-carbon.html`) tem variante de cliente. Onde o
 material menciona "painel do cliente" (Chamado, Chat), é um painel
 LATERAL que o AGENTE vê durante o atendimento, não uma tela em que o
 cliente entra. Contas `kind=client` sempre existiram e sempre logaram
@@ -1888,7 +1888,7 @@ paginada — e já existia teste cobrindo isso, passando:
 (mais `test_mark_read_and_read_all`, confirmando que volta a 0 depois de
 marcar como lida). O código estava certo; o schema gerado por
 drf-spectacular é quem ficava desatualizado até esta rodada regenerar
-`resolv-openapi.yaml`. Nenhuma mudança de código — só confirmação.
+`edesk-openapi.yaml`. Nenhuma mudança de código — só confirmação.
 
 ### 2 achados testando ao vivo (nenhum apareceria em revisão estática)
 
@@ -1930,7 +1930,7 @@ novos: 7 de reset de senha, 6 de avatar administrado, 4 de self-service
 de histórico, mais os já existentes de `test_saved_views.py`/
 `test_notifications.py` confirmando #3/#10 sem precisar de teste novo).
 `ruff check` limpo, `manage.py check` limpo, `makemigrations --check`
-limpo. `resolv-openapi.yaml` regenerado (os 3 endpoints novos:
+limpo. `edesk-openapi.yaml` regenerado (os 3 endpoints novos:
 `me/access-history/`, `settings/users/{id}/avatar/`, `settings/users/
 {id}/reset-password/`).
 
@@ -1949,7 +1949,7 @@ depois do reset; a aba "Histórico" do Samuel mostra os logins reais que
 acabaram de acontecer, com rótulo legível. Os 2 bugs da seção acima
 foram achados e corrigidos NESTA rodada de teste, antes de fechar.
 Cuidado de limpeza: as senhas do Samuel e da Ana foram restauradas pra
-`resolv123` (a senha padrão de demo) ao final, pra não quebrar outros
+`edesk123` (a senha padrão de demo) ao final, pra não quebrar outros
 smoke tests que dependem dela.
 
 ### Próximo passo
@@ -2068,7 +2068,7 @@ valores, cliente e anônimo recusados, aparece no diretório e no
 `/auth/me/`; 5 de tempo médio, `test_relatorios.py`: cálculo em minutos,
 chat na fila fora da média de espera, chat aberto fora da média de
 atendimento, resposta é JSON válido). `ruff check` limpo, `manage.py
-check` limpo, `makemigrations --check` limpo. `resolv-openapi.yaml`
+check` limpo, `makemigrations --check` limpo. `edesk-openapi.yaml`
 regenerado (`POST me/presence/` novo, `PresenceEnum`, campo `presence`
 em `Me`/`UserSerializer`, os 2 campos novos em `ChatReportRow`).
 
@@ -2106,7 +2106,7 @@ aberto — nunca chegou a ser confirmado, o que é diferente de recusado.
 
 Depois da fase anterior, o usuário pediu explicitamente para **apagar
 todo o front existente** e reconstruir a partir de um novo protótipo
-navegável (`docs/prototipo/resolv.html`, HTML/CSS/JS puro, sem
+navegável (`docs/prototipo/edesk.html`, HTML/CSS/JS puro, sem
 framework) que ele desenhou como fonte da verdade visual e de
 interação — cobrindo as 11 telas do painel interno inteiro (Login,
 Início, Tickets lista+detalhe, Chat, Empresas, Kanban, Relatórios,

@@ -9,7 +9,7 @@ dist-ssr
 *.tsbuildinfo
 vite.config.d.ts
 
-# gerado a partir de resolv-openapi.yaml (npm run generate:api) — versionar
+# gerado a partir de edesk-openapi.yaml (npm run generate:api) — versionar
 # o gerado é o mesmo erro que versionar build; a fonte é o .yaml na raiz.
 src/api/schema.d.ts
 

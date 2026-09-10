@@ -95,9 +95,9 @@ vêm do payload do cliente — quem transita é `ticket_service`.
 
 ## 4. PostgreSQL
 
-- `deploy/postgres/01_papeis.sql`: três papéis. **`resolv_app`** (DML, sem
+- `deploy/postgres/01_papeis.sql`: três papéis. **`edesk_app`** (DML, sem
   DDL, `CONNECTION LIMIT`, `statement_timeout`) é o que vai em `DATABASE_URL`;
-  **`resolv_owner`** só roda `migrate`; **`resolv_leitura`** para BI. `ALTER
+  **`edesk_owner`** só roda `migrate`; **`edesk_leitura`** para BI. `ALTER
   DEFAULT PRIVILEGES` faz tabela nova já nascer concedida.
 - `deploy/postgres/postgresql.hardening.conf`: `listen_addresses` na rede
   privada, TLS ≥ 1.2 obrigatório, `scram-sha-256`, timeouts, log de DDL.
@@ -114,7 +114,7 @@ python manage.py collectstatic --noinput
 
 ## 5. nginx — `deploy/nginx/`
 
-`resolv.conf` + dois snippets. TLS 1.2/1.3 com OCSP stapling, HSTS, headers
+`edesk.conf` + dois snippets. TLS 1.2/1.3 com OCSP stapling, HSTS, headers
 de segurança em **todas** as respostas (`always`), CSP da SPA, `limit_req`
 (zona `login` 5 r/min sem burst; zona `api` 20 r/s com burst 40), WebSocket com
 `Upgrade`, `client_max_body_size 210m` alinhado ao Django, `/media/` devolvendo
@@ -134,7 +134,7 @@ download só por view que reavalia `is_content_visible_to` e grava
 
 ## 7. Variáveis de ambiente
 
-`.env.production.example` lista tudo. No servidor: `/etc/resolv/.env`,
+`.env.production.example` lista tudo. No servidor: `/etc/edesk/.env`,
 `0600`, dono do usuário da aplicação, **fora** do repositório e do webroot.
 Segredos nunca vão em `docker-compose.yml` versionado nem em argumento de
 linha de comando (aparecem em `ps`).
@@ -162,7 +162,7 @@ docker compose --profile antivirus up -d        # sobe o ClamAV
 - [ ] `DJANGO_ALLOWED_HOSTS`, `CORS_ALLOWED_ORIGINS`, `CSRF_TRUSTED_ORIGINS`, `SITE_URL` com o domínio real e **só** ele
 - [ ] `DJANGO_ADMIN_URL` fora de `admin/`; o mesmo caminho no `location` do nginx (e restrito à VPN, se houver)
 - [ ] `API_DOCS_ENABLED=0`
-- [ ] Papéis do Postgres criados (`01_papeis.sql`); `DATABASE_URL` aponta para `resolv_app`; `migrate` roda com `resolv_owner`
+- [ ] Papéis do Postgres criados (`01_papeis.sql`); `DATABASE_URL` aponta para `edesk_app`; `migrate` roda com `edesk_owner`
 - [ ] `DB_SSLMODE=verify-full` + `DB_SSLROOTCERT`; `pg_hba.conf` só com `hostssl`/`scram`
 - [ ] Redis com `requirepass` (URL com senha), `bind` na rede privada, `protected-mode yes`
 - [ ] `AXES_ENABLED=1`; testou que o 5º erro devolve 429
@@ -176,7 +176,7 @@ docker compose --profile antivirus up -d        # sobe o ClamAV
 - [ ] `DJANGO_ADMINS` recebe e-mail de 500; logs vão para um agregador com retenção definida
 - [ ] Backup cifrado, restore testado, `BACKUP_ROTATION_DAYS` batendo com a política real
 - [ ] `RETENTION_DRY_RUN=1` até revisar o primeiro relatório de expurgo (D18)
-- [ ] `seed_demo` **nunca** rodou neste banco (senha pública `resolv123`)
+- [ ] `seed_demo` **nunca** rodou neste banco (senha pública `edesk123`)
 - [ ] Contas internas com 2FA por aplicativo (TOTP), não só e-mail
 - [ ] Mini chat embutido (§10, se alguma empresa for usar): `location /embed/`
       no nginx presente e proxiando para o Django (senão a SPA responde no
@@ -223,7 +223,7 @@ requisição dentro da janela ainda pode reproduzi-la; a defesa contra isso é
 TLS ponta a ponta (a mesma exigência de todo o resto do sistema, §1), não
 esta janela.
 
-**`access_log off` em `/embed/` e `/ws/` (`deploy/nginx/resolv.conf`) não é
+**`access_log off` em `/embed/` e `/ws/` (`deploy/nginx/edesk.conf`) não é
 cosmético — é onde os dois segredos que viajam em query string deixariam
 de ser secretos.** `?email=&ts=&sig=` (a identidade declarada) e
 `?ticket=` (o token de acesso, válido por 8h) vão na URL porque são a
@@ -231,7 +231,7 @@ de ser secretos.** `?email=&ts=&sig=` (a identidade declarada) e
 `access_log` padrão do nginx grava a linha de requisição inteira,
 query string incluída, em texto puro. Sem desligar o log nestas duas
 rotas, todo `sig` e todo `ticket` emitido ficaria arquivado em
-`/var/log/nginx/resolv.access.log` — um alvo mais fácil que a rede em
+`/var/log/nginx/edesk.access.log` — um alvo mais fácil que a rede em
 trânsito, e um que sobrevive muito além da janela de 5 minutos/8 horas de
 cada um. `error_log` continua ligado (erros não incluem a query string
 completa por padrão).

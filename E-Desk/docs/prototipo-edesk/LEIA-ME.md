@@ -1,8 +1,8 @@
-# Protótipo resolv — README recebido
+# Protótipo E-Desk — README recebido
 
 Guardado aqui em 26/08/2026, como registro. É o `LEIA-ME.md` que veio junto
-com os cinco `.html` do protótipo (`resolv-prototipo`) e os doze telas de
-app (`resolv-app`) que já foram usados para construir o sistema — Fases 1
+com os cinco `.html` do protótipo (`edesk-prototipo`) e os doze telas de
+app (`edesk-app`) que já foram usados para construir o sistema — Fases 1
 a 6 (fundação, início/tickets, ticket, chat/kanban/empresas, relatórios/
 conta/administração/base, renomeação e responsivo) estão todas feitas.
 
@@ -14,7 +14,7 @@ implementação. Só o texto deste README está guardado abaixo.
 
 ## Conteúdo original
 
-# resolv — protótipo do painel de atendimento
+# E-Desk — protótipo do painel de atendimento
 
 Cinco arquivos `.html` independentes. Cada um abre direto no navegador: o CSS e os
 ícones estão embutidos, não há build, framework nem dependência entre arquivos.
@@ -31,7 +31,7 @@ o navegador cai no fallback do sistema e o layout continua inteiro.
 
 ## Convenções que valem em todo o arquivo
 
-- **Nome do sistema:** `resolv`. A spec usava "resolv" — se o nome voltar atrás, é
+- **Nome do sistema:** `E-Desk`. A spec usava "E-Desk" — se o nome voltar atrás, é
   trocar o wordmark em `.sidebar__palavra` e o `<title>`.
 - **Vocabulário:** "Ticket" em todo lugar (nunca "chamado"); "Responsável" (quem fala com
   o cliente) e "Dono técnico" (quem entrega) são campos diferentes e coexistem.

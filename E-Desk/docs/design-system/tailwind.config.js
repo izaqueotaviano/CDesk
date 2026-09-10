@@ -1,5 +1,5 @@
 /**
- * resolv — tailwind.config.js
+ * E-Desk — tailwind.config.js
  *
  * theme.extend, não theme: a escala padrão do Tailwind continua disponível.
  * Os valores apontam para as variáveis de tokens.css, então trocar o tema

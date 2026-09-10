@@ -1,6 +1,6 @@
 # 10 — PWA: instalação e cache
 
-O que foi entregue: o resolv instala como aplicativo, abre em janela própria
+O que foi entregue: o E-Desk instala como aplicativo, abre em janela própria
 sem barra do navegador, e carrega a interface rápido em conexão ruim. **Sem push
 notification** — ficou fora desta etapa por decisão explícita.
 
@@ -80,7 +80,7 @@ de carregamento exatamente para quem entra e sai várias vezes por dia.
 | | equipe | cliente |
 |---|---|---|
 | arquivo | `public/manifest-equipe.webmanifest` | `public/manifest-cliente.webmanifest` |
-| nome | resolv — Equipe | resolv — Suporte |
+| nome | E-Desk — Equipe | E-Desk — Suporte |
 | `start_url` | `/app` | `/portal` |
 | ícone | fundo terracota, marca creme | fundo creme, marca terracota |
 | atalhos | Minha fila, Kanban | Abrir chamado, Meus chamados |

@@ -1,8 +1,8 @@
 """Base de conhecimento — espelho local dos artigos do WordPress (GAPS.md, item 5).
 
 Decisão desta rodada (revisão do usuário em GAPS.md): a Base de Conhecimento
-NÃO nasce no resolv. Ela já existe — o time escreve os artigos no
-WordPress ("Convertize", central de ajuda em `/suporte/*`) — e o resolv
+NÃO nasce no edesk. Ela já existe — o time escreve os artigos no
+WordPress ("Convertize", central de ajuda em `/suporte/*`) — e o E-Desk
 sincroniza e cacheia uma cópia local (`services/wordpress_sync.py`), pelos
 dois motivos que o front de referência exige e o WordPress sozinho não
 resolve: busca rápida dentro do sistema e agregação de "isso ajudou?" por
@@ -36,7 +36,7 @@ class Article(TimeStampedModel):
     slug = models.SlugField(max_length=300)
     excerpt = models.TextField(blank=True)
     # HTML já renderizado pelo WordPress (campo `content.rendered` da REST
-    # API) — o resolv não reprocessa Markdown nem blocos Gutenberg.
+    # API) — o E-Desk não reprocessa Markdown nem blocos Gutenberg.
     body_html = models.TextField(blank=True)
 
     # Taxonomia do WordPress não foi confirmada na auditoria (a Central de
@@ -67,7 +67,7 @@ class Article(TimeStampedModel):
 class ArticleFeedback(TimeStampedModel):
     """"Isso ajudou?" — um voto por (artigo, agente), atualizável.
 
-    O mock do front (`resolv-base-conhecimento-carbon.html`) só guarda a
+    O mock do front (`edesk-base-conhecimento-carbon.html`) só guarda a
     última resposta em memória, sem agregação nenhuma — este model é
     justamente o que falta para virar "12 de 15 acharam útil" de verdade.
     """

@@ -4,7 +4,7 @@ Cria empresas (uma por plano), usuários internos e clientes, tickets em todos o
 status (inclusive um restrito do Financeiro e um reaberto), consumo de cota, um
 aviso, um quadro kanban e CONVERSAS DE CHAT (uma em andamento, com histórico de
 vários dias, links e anexo; outra já encerrada e avaliada, para o histórico do
-cliente ter mais de uma). Senha de todos os usuários de demo: `resolv123`.
+cliente ter mais de uma). Senha de todos os usuários de demo: `edesk123`.
 
 Recusa-se a rodar com DEBUG=False. Idempotente: pode rodar mais de uma vez.
 """
@@ -45,7 +45,7 @@ from apps.tickets.models import (
 from apps.tickets.services import ticket_service
 from apps.tickets.services.references import next_reference
 
-PASSWORD = "resolv123"  # noqa: S105 — senha pública de demo, DEBUG-only
+PASSWORD = "edesk123"  # noqa: S105 — senha pública de demo, DEBUG-only
 
 
 class Command(BaseCommand):
@@ -106,13 +106,13 @@ class Command(BaseCommand):
                 user.save(update_fields=["password"])
             return user
 
-        admin = internal("admin@demo.resolv.test", "Alice Admin", InternalRole.ADMIN,
+        admin = internal("admin@demo.edesk.test", "Alice Admin", InternalRole.ADMIN,
                          is_superuser=True)
-        supervisor = internal("supervisor@demo.resolv.test", "Sofia Supervisora",
+        supervisor = internal("supervisor@demo.edesk.test", "Sofia Supervisora",
                               InternalRole.SUPERVISOR)
-        agente_sup = internal("agente.suporte@demo.resolv.test", "Samuel Suporte",
+        agente_sup = internal("agente.suporte@demo.edesk.test", "Samuel Suporte",
                               InternalRole.AGENT)
-        agente_fin = internal("agente.financeiro@demo.resolv.test", "Fátima Financeiro",
+        agente_fin = internal("agente.financeiro@demo.edesk.test", "Fátima Financeiro",
                               InternalRole.AGENT)
         for equipe in (suporte, financeiro):
             equipe.supervisor = supervisor
@@ -380,7 +380,7 @@ class Command(BaseCommand):
                 (beto, "O erro aparece quando clico em Emitir."),
                 (agente_fin, "Consegue mandar um print da tela?"),
                 (agente_fin, "O passo a passo está aqui: "
-                             "https://docs.resolv.test/nota-fiscal"),
+                             "https://docs.edesk.test/nota-fiscal"),
                 (beto, "Perfeito, vou seguir."),
                 (beto, "Também deixei o comprovante em "
                        "www.banco.test/comprovante-8891"),
@@ -458,7 +458,7 @@ class Command(BaseCommand):
             for i, (titulo, categoria, resumo, corpo) in enumerate(artigos, start=1):
                 Article.objects.create(
                     wp_post_id=9000 + i,
-                    wp_url=f"https://blog.resolv.test/?p={9000 + i}",
+                    wp_url=f"https://blog.edesk.test/?p={9000 + i}",
                     title=titulo,
                     slug=slugify(titulo),
                     excerpt=resumo,
@@ -520,6 +520,6 @@ class Command(BaseCommand):
             self.stdout.write(f"Macros criadas: {TicketMacro.objects.count()}")
 
         self.stdout.write(self.style.SUCCESS(
-            "Demo ok. Login no admin: admin@demo.resolv.test / "
+            "Demo ok. Login no admin: admin@demo.edesk.test / "
             f"{PASSWORD} (todos os usuários de demo usam a mesma senha)."
         ))

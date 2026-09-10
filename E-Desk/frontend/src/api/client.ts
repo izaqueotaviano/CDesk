@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP para a API do Resolv.
+ * Cliente HTTP para a API do E-Desk.
  *
  * Contrato inteiro documentado em docs/10-frontend-novo.md (verificado contra
  * a API rodando, não escrito de memória — vale reler antes de mexer aqui):

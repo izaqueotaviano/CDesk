@@ -1,5 +1,5 @@
 {
-  "name": "resolv-frontend",
+  "name": "edesk-frontend",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -11,7 +11,7 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc -b",
-    "generate:api": "openapi-typescript ../resolv-openapi.yaml -o src/api/schema.d.ts"
+    "generate:api": "openapi-typescript ../edesk-openapi.yaml -o src/api/schema.d.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

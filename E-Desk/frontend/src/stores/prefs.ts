@@ -38,7 +38,7 @@ export const usePrefs = create<PrefsState>()(
       setDensidade: (densidade) => set({ densidade }),
     }),
     {
-      name: 'resolv:prefs',
+      name: 'edesk:prefs',
       onRehydrateStorage: () => (estado) => {
         if (estado) aplicarTema(estado.tema)
       },

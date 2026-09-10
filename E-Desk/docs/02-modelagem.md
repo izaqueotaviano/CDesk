@@ -1,4 +1,4 @@
-# resolv — Modelagem de dados
+# E-Desk — Modelagem de dados
 
 Pseudo-código de models Django. Não roda como está (faltam imports, `Meta` completos e
 migrations), mas os campos, tipos e relacionamentos são os definitivos propostos.
