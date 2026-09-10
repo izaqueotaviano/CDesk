@@ -530,8 +530,15 @@ subir_frontend() {
       morrer "A porta 5174 continua ocupada por outro processo. Feche-o e rode de novo."
     fi
   fi
-  if [ ! -d "$FRONT_DIR/node_modules" ]; then
-    passo "Instalando dependências do frontend (só na primeira vez — demora um pouco)"
+  # A pasta existir não basta: "atualizar_codigo" já rodou o `git pull` antes
+  # daqui, e um `package.json` com dependência nova (ex.: a rodada que trouxe
+  # o CKEditor) deixa `node_modules` presente mas incompleto — o Vite só
+  # avisa disso na cara de quem abre a tela, com "Failed to resolve import".
+  # `-nt` (newer than) é a mesma ideia do `preparar_venv` (que confere um
+  # import de verdade em vez de só a pasta existir): se o lockfile mudou
+  # depois da última instalação, node_modules está desatualizado.
+  if [ ! -d "$FRONT_DIR/node_modules" ] || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]; then
+    passo "Instalando dependências do frontend (pode demorar um pouco)"
     ( cd "$FRONT_DIR" && npm install --no-audit --no-fund ) \
       || morrer "npm install falhou — veja a mensagem acima."
     ok "Dependências instaladas."
