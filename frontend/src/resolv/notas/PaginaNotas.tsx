@@ -7,16 +7,21 @@ import {
   type NotaResumo,
 } from '@/api/notas'
 import { tempoRelativo } from '../tickets/detalhe/linhaDoTempo'
-import { EditorNota } from './EditorNota'
+import { ModalNota } from './ModalNota'
 import './notas.scss'
 
 /**
  * Notas pessoais — a tela cheia.
  *
- * Duas colunas: a lista à esquerda (recorte, busca, etiqueta) e o editor à
- * direita, com autosave. Só o dono lê as próprias notas; o backend recorta
- * por `owner` e nota de outra pessoa responde 404, então não há nada a
- * esconder aqui.
+ * GRADE de cartões, não lista vertical: a nota é um objeto com título, um
+ * pedaço de texto e uma data — cabe num cartão, e vinte cartões cabem numa
+ * tela que a lista de uma coluna gastava em três rolagens. Abrir uma nota é
+ * um MODAL sobre a grade (`ModalNota`), não uma segunda coluna fixa: o
+ * desenho antigo cobrava metade da largura o tempo todo pra, na maior parte
+ * do tempo, dizer "escolha uma nota à esquerda".
+ *
+ * Só o dono lê as próprias notas; o backend recorta por `owner` e nota de
+ * outra pessoa responde 404, então não há nada a esconder aqui.
  *
  * "Nova nota" CRIA a nota no servidor antes de o editor abrir, com o título
  * "Sem título". É o que torna o autosave seguro: tudo o que ele faz é
@@ -40,47 +45,49 @@ const TITULO_PADRAO = 'Sem título'
 // "página" do jeito que o servidor já pagina por padrão.
 const PASSO = 25
 
-function LinhaNota({
+/** O cartão de uma nota na grade.
+ *
+ *  A ordem de leitura é a mesma de qualquer fichário: de ONDE ela é (o
+ *  chamado, ou "Nota pessoal"), o QUE é (título), um pedaço do texto, e
+ *  QUANDO foi mexida — a data no rodapé do cartão, longe do título, porque
+ *  é o dado que menos decide qual nota abrir e o que mais rouba atenção
+ *  quando fica colado nele. */
+function CartaoNota({
   nota,
-  ativa,
   agoraMs,
   onAbrir,
 }: {
   nota: NotaResumo
-  ativa: boolean
   agoraMs: number
   onAbrir: () => void
 }) {
   return (
     <li>
-      <button
-        type="button"
-        className={'notas-pg__linha' + (ativa ? ' notas-pg__linha--ativa' : '')}
-        onClick={onAbrir}
-        aria-current={ativa ? 'true' : undefined}
-      >
-        <span className="notas-pg__linha-topo">
-          <span className="notas-pg__linha-titulo">
-            {nota.is_pinned && <i className="ti ti-pin" aria-label="Fixada" />}
-            {nota.title}
-          </span>
-          <span className="notas-pg__linha-quando">{tempoRelativo(nota.updated_at, agoraMs)}</span>
+      <button type="button" className="cartao-nota" onClick={onAbrir}>
+        <span className="cartao-nota__origem">
+          {nota.is_pinned && <i className="ti ti-pin" aria-label="Fixada" />}
+          {nota.ticket_reference ?? 'Nota pessoal'}
         </span>
-        {nota.excerpt && <span className="notas-pg__linha-corpo">{nota.excerpt}</span>}
-        {(nota.tags.length > 0 || nota.ticket_reference) && (
-          <span className="notas-pg__linha-marcas">
-            {nota.ticket_reference && (
-              <span className="notas-pg__marca notas-pg__marca--chamado">
-                {nota.ticket_reference}
-              </span>
-            )}
-            {nota.tags.map((e) => (
-              <span key={e.id} className="notas-pg__marca">
-                {e.name}
-              </span>
-            ))}
-          </span>
-        )}
+
+        <span className="cartao-nota__titulo">{nota.title}</span>
+
+        {nota.excerpt && <span className="cartao-nota__corpo">{nota.excerpt}</span>}
+
+        <span className="cartao-nota__rodape">
+          {nota.tags.length > 0 && (
+            <span className="cartao-nota__marcas">
+              {nota.tags.slice(0, 2).map((e) => (
+                <span key={e.id} className="cartao-nota__marca">
+                  {e.name}
+                </span>
+              ))}
+              {nota.tags.length > 2 && (
+                <span className="cartao-nota__marca">+{nota.tags.length - 2}</span>
+              )}
+            </span>
+          )}
+          <span className="cartao-nota__quando">{tempoRelativo(nota.updated_at, agoraMs)}</span>
+        </span>
       </button>
     </li>
   )
@@ -125,7 +132,7 @@ export function PaginaNotas() {
     tag: etiqueta || undefined,
     limit: limite,
   }
-  // `dataUpdatedAt` e não `Date.now()`: o "há 3 min" da lista é relativo ao
+  // `dataUpdatedAt` e não `Date.now()`: o "há 3 min" do cartão é relativo ao
   // último fetch, determinístico e sem chamada impura em render — mesmo
   // padrão do detalhe do chamado.
   const { data, isLoading, isFetching, isError, refetch, dataUpdatedAt } = useNotas(filtro)
@@ -138,8 +145,8 @@ export function PaginaNotas() {
   const restantes = Math.max(0, (data?.count ?? 0) - notas.length)
   const notaAberta = notas.find((n) => n.id === aberta) ?? null
 
-  // Nota fora do recorte corrente (arquivei, apaguei, ou mudei o filtro) some
-  // do editor SOZINHA, porque `notaAberta` sai da lista — sem efeito
+  // Nota fora do recorte corrente (arquivei, apaguei, ou mudei o filtro) FECHA
+  // o modal sozinha, porque `notaAberta` sai da lista — sem efeito
   // sincronizando estado. E `aberta` guarda o id: voltando o recorte, a nota
   // reabre onde estava.
 
@@ -154,19 +161,17 @@ export function PaginaNotas() {
     }
   }
 
+  const rotuloDoRecorte = RECORTES.find((r) => r.id === recorte)?.rotulo ?? 'Notas'
+  const vazia = !isLoading && !isError && notas.length === 0
+
   return (
     <div className="notas-pg">
-      <section className="notas-pg__lista" aria-label="Minhas notas">
-        <header className="notas-pg__cabecalho">
-          <h1 className="notas-pg__titulo">Notas</h1>
-          <button type="button" className="notas-pg__botao notas-pg__botao--primario" onClick={novaNota} disabled={criar.isPending}>
-            <i className="ti ti-plus" aria-hidden="true" />
-            Nova nota
-          </button>
-        </header>
-
+      <header className="notas-pg__topo">
+        <h1 className="notas-pg__titulo">Notas</h1>
         <p className="notas-pg__aviso">Só você vê estas notas.</p>
+      </header>
 
+      <div className="notas-pg__filtros">
         <input
           type="search"
           className="notas-pg__busca"
@@ -194,7 +199,11 @@ export function PaginaNotas() {
         {(etiquetas ?? []).length > 0 && (
           <label className="notas-pg__filtro-etiqueta">
             <span className="notas-pg__rotulo">Etiqueta</span>
-            <select value={etiqueta} onChange={(e) => mudarEtiqueta(e.target.value)} aria-label="Filtrar por etiqueta">
+            <select
+              value={etiqueta}
+              onChange={(e) => mudarEtiqueta(e.target.value)}
+              aria-label="Filtrar por etiqueta"
+            >
               <option value="">Todas</option>
               {(etiquetas ?? []).map((e) => (
                 <option key={e.id} value={e.slug}>
@@ -204,12 +213,16 @@ export function PaginaNotas() {
             </select>
           </label>
         )}
+      </div>
 
-        {erro && (
-          <p className="notas-pg__erro" role="alert">
-            {erro}
-          </p>
-        )}
+      {erro && (
+        <p className="notas-pg__erro" role="alert">
+          {erro}
+        </p>
+      )}
+
+      <section className="notas-pg__secao" aria-label={`Notas — ${rotuloDoRecorte}`}>
+        <h2 className="notas-pg__secao-titulo">{rotuloDoRecorte}</h2>
 
         {isLoading && (
           <p className="notas-pg__estado" role="status">
@@ -226,7 +239,7 @@ export function PaginaNotas() {
           </div>
         )}
 
-        {!isLoading && !isError && notas.length === 0 && (
+        {vazia && (
           <p className="notas-pg__estado">
             {buscado || etiqueta
               ? 'Nada encontrado com esse filtro.'
@@ -236,17 +249,37 @@ export function PaginaNotas() {
           </p>
         )}
 
-        <ul className="notas-pg__linhas">
-          {notas.map((n) => (
-            <LinhaNota
-              key={n.id}
-              nota={n}
-              ativa={n.id === aberta}
-              agoraMs={dataUpdatedAt}
-              onAbrir={() => setAberta(n.id)}
-            />
-          ))}
-        </ul>
+        {!isError && (
+          <ul className="notas-pg__grade">
+            {notas.map((n) => (
+              <CartaoNota
+                key={n.id}
+                nota={n}
+                agoraMs={dataUpdatedAt}
+                onAbrir={() => setAberta(n.id)}
+              />
+            ))}
+
+            {/* O cartão de criar fica NA grade, junto das notas — é a mesma
+             *  ação de sempre no mesmo lugar onde a pessoa já está olhando.
+             *  Fora da lixeira: ali o contexto é recuperar, não escrever. */}
+            {recorte !== 'trash' && (
+              <li>
+                <button
+                  type="button"
+                  className="cartao-nota cartao-nota--nova"
+                  onClick={novaNota}
+                  disabled={criar.isPending}
+                >
+                  <span className="cartao-nota__marca-nova" aria-hidden="true">
+                    <i className="ti ti-file-plus" />
+                  </span>
+                  Nova nota
+                </button>
+              </li>
+            )}
+          </ul>
+        )}
 
         {restantes > 0 && (
           <button
@@ -260,67 +293,55 @@ export function PaginaNotas() {
         )}
       </section>
 
-      <section className="notas-pg__editor" aria-label="Nota aberta">
-        {notaAberta ? (
-          <>
-            <div className="notas-pg__cabecalho-editor">
-              <p className="notas-pg__migalha">
-                Notas
-                <i className="ti ti-chevron-right" aria-hidden="true" />
-                <span>{notaAberta.title || 'Sem título'}</span>
-              </p>
-              <div className="notas-pg__acoes">
-                {notaAberta.is_deleted ? (
-                  <button
-                    type="button"
-                    className="notas-pg__botao"
-                    onClick={() => restaurar.mutate(notaAberta.id)}
-                  >
-                    <i className="ti ti-arrow-back-up" aria-hidden="true" /> Restaurar
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      className="notas-pg__botao"
-                      aria-pressed={notaAberta.is_pinned}
-                      onClick={() =>
-                        salvar.mutate({ id: notaAberta.id, is_pinned: !notaAberta.is_pinned })
-                      }
-                    >
-                      <i className="ti ti-pin" aria-hidden="true" />
-                      {notaAberta.is_pinned ? 'Desafixar' : 'Fixar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="notas-pg__botao"
-                      aria-pressed={notaAberta.is_archived}
-                      onClick={() =>
-                        salvar.mutate({ id: notaAberta.id, is_archived: !notaAberta.is_archived })
-                      }
-                    >
-                      <i className="ti ti-archive" aria-hidden="true" />
-                      {notaAberta.is_archived ? 'Desarquivar' : 'Arquivar'}
-                    </button>
-                    <button
-                      type="button"
-                      className="notas-pg__botao"
-                      onClick={() => excluir.mutate(notaAberta.id)}
-                    >
-                      <i className="ti ti-trash" aria-hidden="true" /> Excluir
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-            <EditorNota notaId={notaAberta.id} />
-          </>
-        ) : (
-          <p className="notas-pg__vazio">
-            Escolha uma nota à esquerda, ou crie uma nova.
-          </p>
-        )}
-      </section>
+      {notaAberta && (
+        <ModalNota
+          nota={notaAberta}
+          onFechar={() => setAberta(null)}
+          acoes={
+            notaAberta.is_deleted ? (
+              <button
+                type="button"
+                className="notas-pg__botao"
+                onClick={() => restaurar.mutate(notaAberta.id)}
+              >
+                <i className="ti ti-arrow-back-up" aria-hidden="true" /> Restaurar
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="notas-pg__botao"
+                  aria-pressed={notaAberta.is_pinned}
+                  onClick={() =>
+                    salvar.mutate({ id: notaAberta.id, is_pinned: !notaAberta.is_pinned })
+                  }
+                >
+                  <i className="ti ti-pin" aria-hidden="true" />
+                  {notaAberta.is_pinned ? 'Desafixar' : 'Fixar'}
+                </button>
+                <button
+                  type="button"
+                  className="notas-pg__botao"
+                  aria-pressed={notaAberta.is_archived}
+                  onClick={() =>
+                    salvar.mutate({ id: notaAberta.id, is_archived: !notaAberta.is_archived })
+                  }
+                >
+                  <i className="ti ti-archive" aria-hidden="true" />
+                  {notaAberta.is_archived ? 'Desarquivar' : 'Arquivar'}
+                </button>
+                <button
+                  type="button"
+                  className="notas-pg__botao"
+                  onClick={() => excluir.mutate(notaAberta.id)}
+                >
+                  <i className="ti ti-trash" aria-hidden="true" /> Excluir
+                </button>
+              </>
+            )
+          }
+        />
+      )}
     </div>
   )
 }

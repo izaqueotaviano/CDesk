@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Etiqueta, FiltroNotas, NotaResumo } from '@/api/notas'
@@ -73,20 +73,73 @@ describe('PaginaNotas', () => {
     expect(screen.getByText(/só você vê/i)).toBeInTheDocument()
   })
 
-  it('começa pelas ativas, sem editor aberto', () => {
+  it('começa pelas ativas, sem nota aberta', () => {
     render(<PaginaNotas />)
 
     expect(filtroVisto.state).toBe('active')
     expect(screen.queryByTestId('editor')).not.toBeInTheDocument()
-    expect(screen.getByText(/escolha uma nota/i)).toBeInTheDocument()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('abre a nota escolhida', async () => {
+  it('abre a nota escolhida num modal', async () => {
     render(<PaginaNotas />)
 
     await userEvent.click(screen.getByRole('button', { name: /roteiro da reunião/i }))
 
-    expect(screen.getByTestId('editor')).toHaveTextContent('nota 1')
+    const modal = screen.getByRole('dialog')
+    expect(modal).toHaveAttribute('aria-modal', 'true')
+    expect(within(modal).getByTestId('editor')).toHaveTextContent('nota 1')
+  })
+
+  it('fechar o modal volta para a grade sem perder o filtro', async () => {
+    render(<PaginaNotas />)
+    await userEvent.click(screen.getByRole('button', { name: /roteiro da reunião/i }))
+
+    await userEvent.click(screen.getByRole('button', { name: /fechar nota/i }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    // a grade continua ali, com o mesmo recorte de antes
+    expect(screen.getByRole('button', { name: /roteiro da reunião/i })).toBeInTheDocument()
+    expect(filtroVisto.state).toBe('active')
+  })
+
+  it('Esc fecha a nota aberta', async () => {
+    render(<PaginaNotas />)
+    await userEvent.click(screen.getByRole('button', { name: /roteiro da reunião/i }))
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    await userEvent.keyboard('{Escape}')
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('o cartão mostra de onde a nota é, e o texto vira prévia', () => {
+    lista.data = {
+      results: [resumo({ ticket_reference: 'TD-00042', excerpt: 'Combinar o SLA' })],
+      count: 1,
+    }
+    render(<PaginaNotas />)
+
+    const cartao = screen.getByRole('button', { name: /roteiro da reunião/i })
+    expect(cartao).toHaveTextContent('TD-00042')
+    expect(cartao).toHaveTextContent('Combinar o SLA')
+  })
+
+  it('nota sem chamado se anuncia como pessoal', () => {
+    render(<PaginaNotas />)
+
+    expect(screen.getByRole('button', { name: /roteiro da reunião/i })).toHaveTextContent(
+      'Nota pessoal',
+    )
+  })
+
+  it('a lixeira não oferece o cartão de criar', async () => {
+    render(<PaginaNotas />)
+    expect(screen.getByRole('button', { name: /nova nota/i })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Lixeira' }))
+
+    expect(screen.queryByRole('button', { name: /nova nota/i })).not.toBeInTheDocument()
   })
 
   it('troca de recorte', async () => {
