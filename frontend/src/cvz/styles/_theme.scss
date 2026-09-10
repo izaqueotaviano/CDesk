@@ -39,13 +39,15 @@
   // (nav e canvas — só referência de VALOR, não código); o card de lá
   // (#fafafa) não entrou, cartão/tabela seguem em branco puro.
   --cvz-surface:         #ffffff;
-  --cvz-canvas:          #ffffff;
+  --cvz-canvas:          #f8f8f7;
   --cvz-chrome:          #f0f0f0;
   --cvz-raised:          #ffffff;
-  // Preta translúcida (referência: app da Manus) em vez de cinza sólido —
-  // assim a MESMA linha funciona sobre os três fundos claros (cromo, canvas,
-  // cartão) sem precisar de um tom por superfície.
-  --cvz-stroke:          rgba(0, 0, 0, 0.075);  // 25% mais escura que os 0.06 originais
+  // Hex fixo, não mais preto translúcido: sobre o novo `--cvz-canvas`
+  // (#f8f8f7, não mais branco puro) uma borda derivada de preto ficava
+  // clara demais — mesma troca e mesmo motivo do lado resolv
+  // (resolv/styles/tokens.scss). `--cvz-field-border`, abaixo, é outra
+  // família e não muda.
+  --cvz-stroke:          #e5e7eb;
   --cvz-field-border:    #7d7d7d;
   --cvz-hover:           #e6e6e6;
   --cvz-hover-soft:      rgba(26, 26, 26, 0.04);
