@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
 
 /**
@@ -50,6 +50,9 @@ export interface FiltroNotas {
   q?: string
   tag?: string
   ticket?: number
+  /** Quantas trazer. Sem isto o backend pagina em 25 (PAGE_SIZE) — quem
+   *  quer mais usa "Carregar mais" na tela, que sobe este número. */
+  limit?: number
 }
 
 /** O que a escrita aceita. `owner` não entra: o dono é a sessão. */
@@ -81,6 +84,7 @@ function querystring(filtro: FiltroNotas): string {
   if (filtro.q) p.set('q', filtro.q)
   if (filtro.tag) p.set('tag', filtro.tag)
   if (filtro.ticket != null) p.set('ticket', String(filtro.ticket))
+  if (filtro.limit != null) p.set('limit', String(filtro.limit))
   const s = p.toString()
   return s ? `?${s}` : ''
 }
@@ -91,6 +95,11 @@ export function useNotas(filtro: FiltroNotas = {}, opcoes: { enabled?: boolean }
     queryFn: () => api.get<Paginado<NotaResumo>>(`${BASE}${querystring(filtro)}`),
     staleTime: 10_000,
     enabled: opcoes.enabled ?? true,
+    // `limit` crescente ("Carregar mais") muda a queryKey a cada clique —
+    // sem isto a lista sumiria e um "Carregando…" piscaria por baixo dela a
+    // cada carregamento. Mesmo padrão de `useChatsEncerrados`
+    // (portal/api/historico.ts).
+    placeholderData: keepPreviousData,
   })
 }
 

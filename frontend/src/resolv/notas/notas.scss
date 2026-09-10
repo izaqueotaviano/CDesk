@@ -94,6 +94,11 @@
     padding: 0;
     list-style: none;
   }
+  &__carregar-mais {
+    align-self: stretch;
+    justify-content: center;
+    margin-top: 4px;
+  }
   &__linha {
     width: 100%;
     display: flex;

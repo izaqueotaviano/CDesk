@@ -34,6 +34,12 @@ const RECORTES: { id: EstadoNota; rotulo: string }[] = [
 
 const TITULO_PADRAO = 'Sem título'
 
+//: Página inicial da lista e o quanto "Carregar mais" soma por clique —
+// mesmo tamanho do PAGE_SIZE do backend (config/settings/base.py), para o
+// primeiro carregamento e cada clique seguinte pedirem exatamente uma
+// "página" do jeito que o servidor já pagina por padrão.
+const PASSO = 25
+
 function LinhaNota({
   nota,
   ativa,
@@ -85,29 +91,51 @@ export function PaginaNotas() {
   const [busca, setBusca] = useState('')
   const [buscado, setBuscado] = useState('')
   const [etiqueta, setEtiqueta] = useState('')
+  const [limite, setLimite] = useState(PASSO)
   const [aberta, setAberta] = useState<number | null>(null)
   const [erro, setErro] = useState<string | null>(null)
 
   // Mesmo debounce da busca global (BuscaComando): digitar não vira uma
-  // requisição por tecla.
+  // requisição por tecla. `setLimite` aqui dentro (não num efeito à parte
+  // reagindo a `buscado`) porque os dois têm de mudar JUNTOS: se o limite
+  // resetasse um render depois do termo, o resultado antigo (com o limite
+  // novo) apareceria por um instante antes do resultado da busca chegar.
   useEffect(() => {
-    const t = setTimeout(() => setBuscado(busca), 250)
+    const t = setTimeout(() => {
+      setBuscado(busca)
+      setLimite(PASSO)
+    }, 250)
     return () => clearTimeout(t)
   }, [busca])
+
+  /** Troca de recorte ou de etiqueta é troca de LISTA — carregar mais numa
+   *  aba não pode vazar para a próxima; cada filtro recomeça do zero. */
+  function mudarRecorte(novo: EstadoNota) {
+    setRecorte(novo)
+    setLimite(PASSO)
+  }
+  function mudarEtiqueta(novo: string) {
+    setEtiqueta(novo)
+    setLimite(PASSO)
+  }
 
   const filtro = {
     state: recorte,
     q: buscado || undefined,
     tag: etiqueta || undefined,
+    limit: limite,
   }
   // `dataUpdatedAt` e não `Date.now()`: o "há 3 min" da lista é relativo ao
   // último fetch, determinístico e sem chamada impura em render — mesmo
   // padrão do detalhe do chamado.
-  const { data, isLoading, isError, refetch, dataUpdatedAt } = useNotas(filtro)
+  const { data, isLoading, isFetching, isError, refetch, dataUpdatedAt } = useNotas(filtro)
   const { data: etiquetas } = useEtiquetas()
   const { criar, salvar, excluir, restaurar } = useAcoesNota()
 
   const notas = data?.results ?? []
+  // `count` é o total no recorte inteiro, não só o que já chegou — a
+  // diferença é quanto ainda falta pedir.
+  const restantes = Math.max(0, (data?.count ?? 0) - notas.length)
   const notaAberta = notas.find((n) => n.id === aberta) ?? null
 
   // Nota fora do recorte corrente (arquivei, apaguei, ou mudei o filtro) some
@@ -119,7 +147,7 @@ export function PaginaNotas() {
     setErro(null)
     try {
       const nota = await criar.mutateAsync({ title: TITULO_PADRAO, content: '' })
-      setRecorte('active')
+      mudarRecorte('active')
       setAberta(nota.id)
     } catch {
       setErro('Não foi possível criar a nota.')
@@ -156,7 +184,7 @@ export function PaginaNotas() {
               role="tab"
               aria-selected={recorte === r.id}
               className={'notas-pg__recorte' + (recorte === r.id ? ' notas-pg__recorte--ativo' : '')}
-              onClick={() => setRecorte(r.id)}
+              onClick={() => mudarRecorte(r.id)}
             >
               {r.rotulo}
             </button>
@@ -166,7 +194,7 @@ export function PaginaNotas() {
         {(etiquetas ?? []).length > 0 && (
           <label className="notas-pg__filtro-etiqueta">
             <span className="notas-pg__rotulo">Etiqueta</span>
-            <select value={etiqueta} onChange={(e) => setEtiqueta(e.target.value)} aria-label="Filtrar por etiqueta">
+            <select value={etiqueta} onChange={(e) => mudarEtiqueta(e.target.value)} aria-label="Filtrar por etiqueta">
               <option value="">Todas</option>
               {(etiquetas ?? []).map((e) => (
                 <option key={e.id} value={e.slug}>
@@ -219,6 +247,17 @@ export function PaginaNotas() {
             />
           ))}
         </ul>
+
+        {restantes > 0 && (
+          <button
+            type="button"
+            className="notas-pg__botao notas-pg__carregar-mais"
+            onClick={() => setLimite((l) => l + PASSO)}
+            disabled={isFetching}
+          >
+            {isFetching ? 'Carregando…' : `Carregar mais (${restantes} restantes)`}
+          </button>
+        )}
       </section>
 
       <section className="notas-pg__editor" aria-label="Nota aberta">

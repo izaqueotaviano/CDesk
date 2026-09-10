@@ -22,7 +22,12 @@ function resumo(extra: Partial<NotaResumo> = {}): NotaResumo {
   }
 }
 
-let lista: { data?: { results: NotaResumo[] }; isLoading: boolean; isError: boolean }
+let lista: {
+  data?: { results: NotaResumo[]; count: number }
+  isLoading: boolean
+  isFetching?: boolean
+  isError: boolean
+}
 let etiquetas: Etiqueta[]
 let filtroVisto: FiltroNotas
 const criar = vi.fn()
@@ -33,7 +38,12 @@ const restaurar = vi.fn()
 vi.mock('@/api/notas', () => ({
   useNotas: (f: FiltroNotas) => {
     filtroVisto = f
-    return { ...lista, refetch: vi.fn(), dataUpdatedAt: Date.parse('2026-09-09T12:00:00Z') }
+    return {
+      ...lista,
+      isFetching: lista.isFetching ?? false,
+      refetch: vi.fn(),
+      dataUpdatedAt: Date.parse('2026-09-09T12:00:00Z'),
+    }
   },
   useEtiquetas: () => ({ data: etiquetas }),
   useAcoesNota: () => ({
@@ -50,7 +60,7 @@ vi.mock('./EditorNota', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  lista = { data: { results: [resumo()] }, isLoading: false, isError: false }
+  lista = { data: { results: [resumo()], count: 1 }, isLoading: false, isError: false }
   etiquetas = []
   criar.mockResolvedValue(resumo({ id: 99, title: 'Sem título' }))
 })
@@ -143,7 +153,7 @@ describe('PaginaNotas', () => {
   })
 
   it('na lixeira, a nota só oferece restaurar', async () => {
-    lista.data = { results: [resumo({ is_deleted: true })] }
+    lista.data = { results: [resumo({ is_deleted: true })], count: 1 }
     render(<PaginaNotas />)
     await userEvent.click(screen.getByRole('button', { name: /roteiro da reunião/i }))
 
@@ -157,14 +167,14 @@ describe('PaginaNotas', () => {
     await userEvent.click(screen.getByRole('button', { name: /roteiro da reunião/i }))
     expect(screen.getByTestId('editor')).toBeInTheDocument()
 
-    lista.data = { results: [] }
+    lista.data = { results: [], count: 0 }
     rerender(<PaginaNotas />)
 
     expect(screen.queryByTestId('editor')).not.toBeInTheDocument()
   })
 
   it('o vazio distingue "sem nota" de "nada com esse filtro"', async () => {
-    lista.data = { results: [] }
+    lista.data = { results: [], count: 0 }
     render(<PaginaNotas />)
     expect(screen.getByText(/nenhuma nota por aqui/i)).toBeInTheDocument()
 
@@ -180,10 +190,82 @@ describe('PaginaNotas', () => {
   })
 
   it('o texto da lista é TEXTO, nunca HTML', () => {
-    lista.data = { results: [resumo({ excerpt: '<img src=x onerror=alert(1)>' })] }
+    lista.data = { results: [resumo({ excerpt: '<img src=x onerror=alert(1)>' })], count: 1 }
     const { container } = render(<PaginaNotas />)
 
     expect(screen.getByText('<img src=x onerror=alert(1)>')).toBeInTheDocument()
     expect(container.querySelector('img')).toBeNull()
+  })
+})
+
+describe('PaginaNotas — carregar mais', () => {
+  it('pede 25 (o padrão do backend) no primeiro carregamento', () => {
+    render(<PaginaNotas />)
+
+    expect(filtroVisto.limit).toBe(25)
+  })
+
+  it('some quando já trouxe tudo', () => {
+    lista.data = { results: [resumo()], count: 1 }
+    render(<PaginaNotas />)
+
+    expect(screen.queryByRole('button', { name: /carregar mais/i })).not.toBeInTheDocument()
+  })
+
+  it('aparece com quantas faltam, e o clique soma 25 ao limite', async () => {
+    lista.data = { results: [resumo()], count: 40 }
+    render(<PaginaNotas />)
+
+    const botao = screen.getByRole('button', { name: /carregar mais \(39 restantes\)/i })
+    await userEvent.click(botao)
+
+    expect(filtroVisto.limit).toBe(50)
+  })
+
+  it('durante a busca, mostra "Carregando…" e não deixa clicar de novo', () => {
+    lista.data = { results: [resumo()], count: 40 }
+    lista.isFetching = true
+    render(<PaginaNotas />)
+
+    const botao = screen.getByRole('button', { name: /carregando/i })
+    expect(botao).toBeDisabled()
+  })
+
+  it('trocar de recorte reseta o limite — carregar mais numa aba não vaza pra outra', async () => {
+    lista.data = { results: [resumo()], count: 40 }
+    render(<PaginaNotas />)
+    await userEvent.click(screen.getByRole('button', { name: /carregar mais/i }))
+    expect(filtroVisto.limit).toBe(50)
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Arquivadas' }))
+
+    expect(filtroVisto.limit).toBe(25)
+  })
+
+  it('trocar de etiqueta reseta o limite', async () => {
+    etiquetas = [{ id: 4, name: 'Urgente', slug: 'urgente' }]
+    lista.data = { results: [resumo()], count: 40 }
+    render(<PaginaNotas />)
+    await userEvent.click(screen.getByRole('button', { name: /carregar mais/i }))
+    expect(filtroVisto.limit).toBe(50)
+
+    await userEvent.selectOptions(screen.getByLabelText(/filtrar por etiqueta/i), 'urgente')
+
+    expect(filtroVisto.limit).toBe(25)
+  })
+
+  it('uma busca nova reseta o limite', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    lista.data = { results: [resumo()], count: 40 }
+    render(<PaginaNotas />)
+    await userEvent.click(screen.getByRole('button', { name: /carregar mais/i }))
+    expect(filtroVisto.limit).toBe(50)
+
+    await userEvent.type(screen.getByLabelText(/buscar/i), 'reuniao')
+    vi.advanceTimersByTime(300)
+    await waitFor(() => expect(filtroVisto.q).toBe('reuniao'))
+
+    expect(filtroVisto.limit).toBe(25)
+    vi.useRealTimers()
   })
 })
