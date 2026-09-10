@@ -24,6 +24,7 @@ from apps.ferramentas import agendamento, tasks
 from apps.ferramentas import backup as backup_engine
 from apps.ferramentas.models import (
     ImportacaoMovidesk,
+    ImportacaoPessoas,
     OrigemBackup,
     StatusTrabalho,
     TipoBackup,
@@ -95,12 +96,11 @@ class ImportacaoMovideskSerializer(_TrabalhoSerializer):
         return f"/api/v1/ferramentas/importacao-movidesk/{obj.pk}/arquivo/" if obj.arquivo else None
 
 
-class NovaImportacaoSerializer(serializers.Serializer):
+class _NovaImportacaoBase(serializers.Serializer):
     # write_only e nunca devolvido; a view guarda no cache, não no registro
     token = serializers.CharField(
         required=False, allow_blank=True, write_only=True, trim_whitespace=True
     )
-    team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.filter(is_active=True))
     plan = serializers.PrimaryKeyRelatedField(
         queryset=Plan.objects.filter(is_active=True), required=False
     )
@@ -126,6 +126,44 @@ class NovaImportacaoSerializer(serializers.Serializer):
                 raise ValidationError({"plan": ["Nenhum plano ativo cadastrado."]})
             dados["plan"] = plano
         return dados
+
+
+class NovaImportacaoSerializer(_NovaImportacaoBase):
+    team = serializers.PrimaryKeyRelatedField(queryset=Team.objects.filter(is_active=True))
+
+
+class ImportacaoPessoasSerializer(_TrabalhoSerializer):
+    plan_name = serializers.CharField(source="plan.name", read_only=True)
+    arquivo_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ImportacaoPessoas
+        fields = (
+            *_TrabalhoSerializer.CAMPOS_BASE,
+            "plan",
+            "plan_name",
+            "criar_agentes",
+            "limite",
+            "apenas_baixar",
+            "arquivo_url",
+            "pessoas_baixadas",
+            "empresas_criadas",
+            "empresas_atualizadas",
+            "contatos_criados",
+            "contatos_atualizados",
+            "agentes_criados",
+            "agentes_atualizados",
+            "ignorados",
+            "avisos",
+        )
+        read_only_fields = fields
+
+    def get_arquivo_url(self, obj) -> str | None:
+        return f"/api/v1/ferramentas/importacao-pessoas/{obj.pk}/arquivo/" if obj.arquivo else None
+
+
+class NovaImportacaoPessoasSerializer(_NovaImportacaoBase):
+    criar_agentes = serializers.BooleanField(required=False, default=True)
 
 
 class TrabalhoBackupSerializer(_TrabalhoSerializer):
@@ -157,48 +195,123 @@ class AgendamentoSerializer(serializers.Serializer):
     )
 
 
-# ---- Importação do Movidesk ----------------------------------------------
+# ---- Importação do Movidesk (tickets e pessoas) ---------------------------
 
 
-def _importacao_em_andamento():
+def _alguma_importacao_rodando():
+    """Tickets e pessoas dividem o mesmo limite de 10 req/min da conta —
+    duas rodadas juntas só derrubariam uma à outra. Uma por vez, de qualquer tipo."""
+    ativos = (StatusTrabalho.PENDENTE, StatusTrabalho.RODANDO)
     return (
-        ImportacaoMovidesk.objects.filter(
-            status__in=(StatusTrabalho.PENDENTE, StatusTrabalho.RODANDO),
-        )
-        .select_related("team", "plan", "requested_by")
-        .first()
+        ImportacaoMovidesk.objects.filter(status__in=ativos).first()
+        or ImportacaoPessoas.objects.filter(status__in=ativos).first()
     )
 
 
-class ImportacaoMovideskView(APIView):
-    permission_classes = [IsAdmin]
+class _ImportacaoBase:
+    """O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+    baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+    montar o registro a partir do pedido."""
 
-    @extend_schema(responses=ImportacaoMovideskSerializer(many=True))
+    permission_classes = [IsAdmin]
+    modelo: type[ImportacaoMovidesk] | type[ImportacaoPessoas]
+    serializer: type[serializers.ModelSerializer]
+    novo_serializer: type[serializers.Serializer]
+    relacionados: tuple[str, ...] = ("plan", "requested_by")
+    rotulo = "Importação"
+    prefixo_token = ""
+
+    def _qs(self):
+        return self.modelo.objects.select_related(*self.relacionados)
+
+    def _obter(self, pk: int):
+        job = self._qs().filter(pk=pk).first()
+        if job is None:
+            raise NotFound()
+        return job
+
+    def _criar(self, request, d: dict):  # -> (job, resumo pra auditoria)
+        raise NotImplementedError
+
+    def _disparar(self, job):
+        raise NotImplementedError
+
+
+class _ImportacaoListaView(_ImportacaoBase, APIView):
     def get(self, request):
-        recentes = ImportacaoMovidesk.objects.select_related("team", "plan", "requested_by")[
-            :RECENTES
-        ]
-        em_andamento = _importacao_em_andamento()
+        recentes = self._qs()[:RECENTES]
+        em_andamento = (
+            self._qs().filter(status__in=(StatusTrabalho.PENDENTE, StatusTrabalho.RODANDO)).first()
+        )
         return Response(
             {
-                "em_andamento": ImportacaoMovideskSerializer(em_andamento).data
-                if em_andamento
-                else None,
-                "recentes": ImportacaoMovideskSerializer(recentes, many=True).data,
+                "em_andamento": self.serializer(em_andamento).data if em_andamento else None,
+                "recentes": self.serializer(recentes, many=True).data,
                 "token_no_servidor": bool(__import__("django.conf").conf.settings.MOVIDESK_TOKEN),
             }
         )
 
-    @extend_schema(request=NovaImportacaoSerializer, responses=ImportacaoMovideskSerializer)
     def post(self, request):
-        if _importacao_em_andamento():
+        if _alguma_importacao_rodando():
             return Response(
                 {"detail": "Já existe uma importação em andamento — espere terminar ou cancele."},
                 status=status.HTTP_409_CONFLICT,
             )
-        s = NovaImportacaoSerializer(data=request.data)
+        s = self.novo_serializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
+        job, resumo = self._criar(request, d)
+        if d.get("token"):
+            tasks.guardar_token(f"{self.prefixo_token}{job.pk}", d["token"])
+        resultado = self._disparar(job)
+        # `update` e não `save`: em modo eager a task já rodou e mexeu no registro
+        self.modelo.objects.filter(pk=job.pk).update(celery_task_id=resultado.id or "")
+        _auditar(request, self.modelo, job.pk, resumo)
+        job.refresh_from_db()
+        return Response(self.serializer(job).data, status=status.HTTP_201_CREATED)
+
+
+class _ImportacaoDetalheView(_ImportacaoBase, APIView):
+    def get(self, request, pk: int):
+        return Response(self.serializer(self._obter(pk)).data)
+
+
+class _ImportacaoCancelarView(_ImportacaoBase, APIView):
+    def post(self, request, pk: int):
+        job = self._obter(pk)
+        if job.ativo:
+            job.cancelar()
+            job.registrar("Cancelamento pedido pela tela.", nivel="aviso", etapa="Cancelando")
+            if job.celery_task_id:
+                celery_app.control.revoke(job.celery_task_id)
+            _auditar(request, self.modelo, job.pk, f"{self.rotulo} #{job.pk} cancelada")
+        job.refresh_from_db()
+        return Response(self.serializer(job).data)
+
+
+class _ImportacaoArquivoView(_ImportacaoBase, APIView):
+    nome_arquivo = "movidesk-{pk}.json"
+
+    def get(self, request, pk: int):
+        job = self._obter(pk)
+        if not job.arquivo:
+            raise NotFound()
+        return FileResponse(
+            job.arquivo.open("rb"),
+            as_attachment=True,
+            filename=self.nome_arquivo.format(pk=job.pk),
+            content_type="application/json",
+        )
+
+
+class _Tickets(_ImportacaoBase):
+    modelo = ImportacaoMovidesk
+    serializer = ImportacaoMovideskSerializer
+    novo_serializer = NovaImportacaoSerializer
+    relacionados = ("team", "plan", "requested_by")
+    rotulo = "Importação do Movidesk"
+
+    def _criar(self, request, d):
         job = ImportacaoMovidesk.objects.create(
             requested_by=request.user,
             team=d["team"],
@@ -206,68 +319,84 @@ class ImportacaoMovideskView(APIView):
             limite=d.get("limite"),
             apenas_baixar=d["apenas_baixar"],
         )
-        if d.get("token"):
-            tasks.guardar_token(job.pk, d["token"])
-        resultado = tasks.importar_movidesk.delay(job.pk)
-        # `update` e não `save`: em modo eager a task já rodou e mexeu no registro
-        ImportacaoMovidesk.objects.filter(pk=job.pk).update(celery_task_id=resultado.id or "")
-        _auditar(
-            request,
-            ImportacaoMovidesk,
-            job.pk,
-            f"Importação do Movidesk #{job.pk} iniciada (equipe {d['team'].name}, "
-            f"{'limite ' + str(d['limite']) if d.get('limite') else 'base inteira'})",
+        resumo = (
+            f"Importação do Movidesk #{job.pk} iniciada (equipe padrão {d['team'].name}, "
+            f"{'limite ' + str(d['limite']) if d.get('limite') else 'base inteira'})"
         )
-        job.refresh_from_db()
-        return Response(ImportacaoMovideskSerializer(job).data, status=status.HTTP_201_CREATED)
+        return job, resumo
+
+    def _disparar(self, job):
+        return tasks.importar_movidesk.delay(job.pk)
 
 
-class ImportacaoMovideskDetalheView(APIView):
-    permission_classes = [IsAdmin]
+class ImportacaoMovideskView(_Tickets, _ImportacaoListaView):
+    @extend_schema(responses=ImportacaoMovideskSerializer(many=True))
+    def get(self, request):
+        return super().get(request)
 
-    def get(self, request, pk: int):
-        job = (
-            ImportacaoMovidesk.objects.select_related("team", "plan", "requested_by")
-            .filter(pk=pk)
-            .first()
+    @extend_schema(request=NovaImportacaoSerializer, responses=ImportacaoMovideskSerializer)
+    def post(self, request):
+        return super().post(request)
+
+
+class ImportacaoMovideskDetalheView(_Tickets, _ImportacaoDetalheView):
+    pass
+
+
+class ImportacaoMovideskCancelarView(_Tickets, _ImportacaoCancelarView):
+    pass
+
+
+class ImportacaoMovideskArquivoView(_Tickets, _ImportacaoArquivoView):
+    pass
+
+
+class _Pessoas(_ImportacaoBase):
+    modelo = ImportacaoPessoas
+    serializer = ImportacaoPessoasSerializer
+    novo_serializer = NovaImportacaoPessoasSerializer
+    rotulo = "Importação de pessoas do Movidesk"
+    prefixo_token = "pessoas-"  # noqa: S105 — prefixo da chave do cache, não o token
+
+    def _criar(self, request, d):
+        job = ImportacaoPessoas.objects.create(
+            requested_by=request.user,
+            plan=d["plan"],
+            criar_agentes=d["criar_agentes"],
+            limite=d.get("limite"),
+            apenas_baixar=d["apenas_baixar"],
         )
-        if job is None:
-            raise NotFound()
-        return Response(ImportacaoMovideskSerializer(job).data)
-
-
-class ImportacaoMovideskCancelarView(APIView):
-    permission_classes = [IsAdmin]
-
-    def post(self, request, pk: int):
-        job = ImportacaoMovidesk.objects.filter(pk=pk).first()
-        if job is None:
-            raise NotFound()
-        if job.ativo:
-            job.cancelar()
-            job.registrar("Cancelamento pedido pela tela.", nivel="aviso", etapa="Cancelando")
-            if job.celery_task_id:
-                celery_app.control.revoke(job.celery_task_id)
-            _auditar(
-                request, ImportacaoMovidesk, job.pk, f"Importação do Movidesk #{job.pk} cancelada"
-            )
-        job.refresh_from_db()
-        return Response(ImportacaoMovideskSerializer(job).data)
-
-
-class ImportacaoMovideskArquivoView(APIView):
-    permission_classes = [IsAdmin]
-
-    def get(self, request, pk: int):
-        job = ImportacaoMovidesk.objects.filter(pk=pk).first()
-        if job is None or not job.arquivo:
-            raise NotFound()
-        return FileResponse(
-            job.arquivo.open("rb"),
-            as_attachment=True,
-            filename=f"movidesk-{job.pk}.json",
-            content_type="application/json",
+        resumo = (
+            f"Importação de pessoas do Movidesk #{job.pk} iniciada "
+            f"({'com' if d['criar_agentes'] else 'sem'} agentes, "
+            f"{'limite ' + str(d['limite']) if d.get('limite') else 'cadastro inteiro'})"
         )
+        return job, resumo
+
+    def _disparar(self, job):
+        return tasks.importar_pessoas.delay(job.pk)
+
+
+class ImportacaoPessoasView(_Pessoas, _ImportacaoListaView):
+    @extend_schema(responses=ImportacaoPessoasSerializer(many=True))
+    def get(self, request):
+        return super().get(request)
+
+    @extend_schema(request=NovaImportacaoPessoasSerializer, responses=ImportacaoPessoasSerializer)
+    def post(self, request):
+        return super().post(request)
+
+
+class ImportacaoPessoasDetalheView(_Pessoas, _ImportacaoDetalheView):
+    pass
+
+
+class ImportacaoPessoasCancelarView(_Pessoas, _ImportacaoCancelarView):
+    pass
+
+
+class ImportacaoPessoasArquivoView(_Pessoas, _ImportacaoArquivoView):
+    nome_arquivo = "movidesk-pessoas-{pk}.json"
 
 
 # ---- Backup ----------------------------------------------------------------

@@ -500,6 +500,13 @@
 }
 
 .cfg-importar {
+  // as duas caixas de opção ao lado do campo "quantas", alinhadas ao rótulo
+  &__opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    padding-top: $sp-4;
+  }
   &__resumo {
     display: flex;
     flex-direction: column;

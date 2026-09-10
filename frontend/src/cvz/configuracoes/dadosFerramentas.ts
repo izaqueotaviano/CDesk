@@ -91,7 +91,8 @@ export function useIniciarImportacao() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (d: NovaImportacao) => api.post<ImportacaoMovidesk>(URL_IMPORTACAO, d),
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaveImportacoes }),
+    // as duas listas: uma importação de qualquer tipo trava o botão da outra
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ferramentas'] }),
   })
 }
 
@@ -99,7 +100,68 @@ export function useCancelarImportacao() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => api.post<ImportacaoMovidesk>(`${URL_IMPORTACAO}${id}/cancelar/`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: chaveImportacoes }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ferramentas'] }),
+  })
+}
+
+// ---- Importação de pessoas (empresas, contatos, agentes) -------------------
+
+export interface ImportacaoPessoas extends TrabalhoBase {
+  plan: number
+  plan_name: string
+  criar_agentes: boolean
+  limite: number | null
+  apenas_baixar: boolean
+  arquivo_url: string | null
+  pessoas_baixadas: number
+  empresas_criadas: number
+  empresas_atualizadas: number
+  contatos_criados: number
+  contatos_atualizados: number
+  agentes_criados: number
+  agentes_atualizados: number
+  ignorados: number
+  avisos: string[]
+}
+
+export interface ListaImportacoesPessoas {
+  em_andamento: ImportacaoPessoas | null
+  recentes: ImportacaoPessoas[]
+  token_no_servidor: boolean
+}
+
+export interface NovaImportacaoPessoas {
+  token?: string
+  plan?: number
+  criar_agentes?: boolean
+  limite?: number | null
+  apenas_baixar?: boolean
+}
+
+const URL_PESSOAS = '/api/v1/ferramentas/importacao-pessoas/'
+const chavePessoas = ['ferramentas', 'importacoes-pessoas'] as const
+
+export function useImportacoesPessoas() {
+  return useQuery({
+    queryKey: chavePessoas,
+    queryFn: () => api.get<ListaImportacoesPessoas>(URL_PESSOAS),
+    refetchInterval: enquantoHouverAndamento,
+  })
+}
+
+export function useIniciarImportacaoPessoas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (d: NovaImportacaoPessoas) => api.post<ImportacaoPessoas>(URL_PESSOAS, d),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ferramentas'] }),
+  })
+}
+
+export function useCancelarImportacaoPessoas() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.post<ImportacaoPessoas>(`${URL_PESSOAS}${id}/cancelar/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['ferramentas'] }),
   })
 }
 

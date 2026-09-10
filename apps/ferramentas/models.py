@@ -150,6 +150,39 @@ class ImportacaoMovidesk(TrabalhoBase):
         return f"Importação Movidesk #{self.pk} ({self.status})"
 
 
+class ImportacaoPessoas(TrabalhoBase):
+    """Uma rodada da rota `/persons`: empresas, contatos e agentes.
+
+    Mesmo desenho da importação de tickets (token pelo cache, JSON guardado,
+    contadores do relatório). Sem equipe: agente entra nas equipes que tem
+    lá; contato entra na empresa que tem lá.
+    """
+
+    plan = models.ForeignKey("customers.Plan", on_delete=models.PROTECT, related_name="+")
+    # agente vira usuário interno DESATIVADO; desligado = só empresas e contatos
+    criar_agentes = models.BooleanField(default=True)
+    limite = models.PositiveIntegerField(null=True, blank=True)
+    apenas_baixar = models.BooleanField(default=False)
+    arquivo = models.FileField(upload_to="movidesk/%Y/%m/", null=True, blank=True)
+
+    pessoas_baixadas = models.PositiveIntegerField(default=0)
+    empresas_criadas = models.PositiveIntegerField(default=0)
+    empresas_atualizadas = models.PositiveIntegerField(default=0)
+    contatos_criados = models.PositiveIntegerField(default=0)
+    contatos_atualizados = models.PositiveIntegerField(default=0)
+    agentes_criados = models.PositiveIntegerField(default=0)
+    agentes_atualizados = models.PositiveIntegerField(default=0)
+    ignorados = models.PositiveIntegerField(default=0)
+    avisos = models.JSONField(default=list, blank=True)
+
+    class Meta(TrabalhoBase.Meta):
+        verbose_name = "importação de pessoas do Movidesk"
+        verbose_name_plural = "importações de pessoas do Movidesk"
+
+    def __str__(self):
+        return f"Importação de pessoas #{self.pk} ({self.status})"
+
+
 class TipoBackup(models.TextChoices):
     BACKUP = "backup", "Backup"
     RESTAURACAO = "restauracao", "Restauração"

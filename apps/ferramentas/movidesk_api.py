@@ -100,6 +100,50 @@ EXPAND = (
     "childrenTickets,ownerHistories,statusHistories,customFieldValues,assets"
 )
 
+# Pessoas (artigo "Movidesk Person API"): empresas, contatos e agentes vêm
+# da mesma rota `/persons` — `personType` separa (1 pessoa, 2 empresa,
+# 3 departamento) e `profileType` diz o papel (1 agente, 2 cliente, 3 os dois).
+SELECT_PESSOAS = ",".join(
+    [
+        "id",
+        "codeReferenceAdditional",
+        "isActive",
+        "personType",
+        "profileType",
+        "accessProfile",
+        "businessName",
+        "corporateName",
+        "cpfCnpj",
+        "userName",
+        "role",
+        "bossId",
+        "bossName",
+        "classification",
+        "cultureId",
+        "timeZoneId",
+        "createdDate",
+        "changedDate",
+        "observations",
+        "addresses",
+        "contacts",
+        "emails",
+        "teams",
+        "relationships",
+        "customFieldValues",
+    ]
+)
+EXPAND_PESSOAS = "addresses,contacts,emails,relationships,customFieldValues"
+
+# Se a rota de pessoas recusar um parâmetro OData (HTTP 400 logo na primeira
+# página), tenta de novo mais simples — sem ordenação, depois sem projeção —
+# e o log diz qual forma funcionou. É o que dá pra fazer sem a documentação
+# ao alcance: "só baixar" na tela mostra o que veio antes de gravar.
+VARIANTES_PESSOAS = (
+    {"ordem": "id asc", "select": SELECT_PESSOAS, "expand": EXPAND_PESSOAS},
+    {"ordem": "", "select": SELECT_PESSOAS, "expand": EXPAND_PESSOAS},
+    {"ordem": "", "select": "", "expand": ""},
+)
+
 Http = Callable[[str], tuple[int, dict, bytes]]
 Progresso = Callable[[dict], None]
 
@@ -110,6 +154,14 @@ class ErroMovidesk(Exception):
 
 class TokenInvalido(ErroMovidesk):
     pass
+
+
+class RequisicaoRecusada(ErroMovidesk):
+    """HTTP 4xx que não adianta repetir (400, 404…) — leva o status junto."""
+
+    def __init__(self, status: int, mensagem: str):
+        super().__init__(mensagem)
+        self.status = status
 
 
 _TOKEN_RE = re.compile(r"token=[^&\s]+")
@@ -129,15 +181,25 @@ def _http_urllib(url: str) -> tuple[int, dict, bytes]:
         return exc.code, {k.lower(): v for k, v in exc.headers.items()}, exc.read()
 
 
-def montar_url(token: str, rota: str, *, top: int, skip: int, ordem: str) -> str:
-    params = {
-        "token": token,
-        "$select": SELECT,
-        "$expand": EXPAND,
-        "$top": top,
-        "$skip": skip,
-        "$orderby": ordem,
-    }
+def montar_url(
+    token: str,
+    rota: str,
+    *,
+    top: int,
+    skip: int,
+    ordem: str,
+    select: str = SELECT,
+    expand: str = EXPAND,
+) -> str:
+    params: dict[str, object] = {"token": token}
+    if select:
+        params["$select"] = select
+    if expand:
+        params["$expand"] = expand
+    params["$top"] = top
+    params["$skip"] = skip
+    if ordem:
+        params["$orderby"] = ordem
     return f"{BASE}/{rota}?{urllib.parse.urlencode(params)}"
 
 
@@ -167,7 +229,7 @@ def _pagina(
             except json.JSONDecodeError as exc:
                 raise ErroMovidesk("A API respondeu algo que não é JSON.") from exc
             if not isinstance(dados, list):
-                raise ErroMovidesk("A API respondeu um objeto onde se esperava a lista de tickets.")
+                raise ErroMovidesk("A API respondeu um objeto onde se esperava uma lista.")
             return dados
         if status in (401, 403):
             raise TokenInvalido("Token recusado pelo Movidesk (401/403) — confira a chave.")
@@ -183,7 +245,7 @@ def _pagina(
                 f"aguardando {espera:.0f}s. {trecho}".rstrip()
             )
         else:
-            raise ErroMovidesk(f"HTTP {status} do Movidesk: {trecho or 'sem corpo'}")
+            raise RequisicaoRecusada(status, f"HTTP {status} do Movidesk: {trecho or 'sem corpo'}")
         if tentativa == TENTATIVAS_POR_PAGINA:
             break
         sleep(espera)
@@ -262,3 +324,82 @@ def baixar_tudo(
     if limite:
         tickets = tickets[-limite:]
     return tickets
+
+
+def baixar_pessoas(
+    token: str,
+    *,
+    limite: int | None = None,
+    http: Http | None = None,
+    sleep: Callable[[float], None] = time.sleep,
+    on_progresso: Progresso | None = None,
+    cancelado: Callable[[], bool] = lambda: False,
+) -> list[dict]:
+    """Varre `/persons` inteira (ou até `limite`), dedupe por `id`.
+
+    Mesmo ritmo e mesmas esperas de `baixar_tudo` — é o mesmo limite de
+    10/min da conta, por isso a tela não deixa as duas rodarem juntas.
+    """
+    if not token:
+        raise TokenInvalido("Sem token da API do Movidesk.")
+    http = http or _http_urllib
+    avisar = on_progresso or (lambda evento: None)
+
+    def log(msg: str) -> None:
+        avisar({"tipo": "log", "msg": msg})
+
+    por_id: dict[str, dict] = {}
+    variante = 0
+    skip = 0
+    pagina = 1
+    primeira_chamada = True
+
+    while True:
+        if cancelado():
+            raise ErroMovidesk("Cancelado.")
+        if limite and len(por_id) >= limite:
+            break
+        if not primeira_chamada:
+            sleep(INTERVALO_ENTRE_CHAMADAS)
+        primeira_chamada = False
+
+        url = montar_url(token, "persons", top=TOP, skip=skip, **VARIANTES_PESSOAS[variante])
+        try:
+            dados = _pagina(url, http=http, sleep=sleep, log=log)
+        except RequisicaoRecusada as exc:
+            if exc.status == 400 and skip == 0 and variante + 1 < len(VARIANTES_PESSOAS):
+                variante += 1
+                log(
+                    f"{exc} — tentando a rota de pessoas "
+                    + ("sem $orderby." if variante == 1 else "sem $select/$expand.")
+                )
+                continue
+            raise
+
+        novos = 0
+        for p in dados:
+            pid = str(p.get("id") or "").strip()
+            if not pid:
+                continue
+            if pid not in por_id:
+                novos += 1
+            por_id[pid] = p
+        avisar(
+            {
+                "tipo": "pagina",
+                "rota": "persons",
+                "pagina": pagina,
+                "recebidos": len(dados),
+                "novos": novos,
+                "total": len(por_id),
+                "msg": f"/persons: página {pagina} — {len(dados)} recebidos, "
+                f"{novos} novos ({len(por_id)} no total)",
+            }
+        )
+        if len(dados) < TOP:
+            break
+        skip += TOP
+        pagina += 1
+
+    pessoas = sorted(por_id.values(), key=lambda p: str(p.get("id")))
+    return pessoas[:limite] if limite else pessoas

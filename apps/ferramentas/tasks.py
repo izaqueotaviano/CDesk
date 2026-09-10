@@ -28,9 +28,10 @@ from django.db import connection
 
 from apps.audit.models import AuditAction, AuditLog
 from apps.ferramentas import backup as backup_engine
-from apps.ferramentas import movidesk_api
+from apps.ferramentas import movidesk_api, pessoas
 from apps.ferramentas.models import (
     ImportacaoMovidesk,
+    ImportacaoPessoas,
     OrigemBackup,
     StatusTrabalho,
     TipoBackup,
@@ -44,11 +45,13 @@ CHAVE_TOKEN = "ferramentas:movidesk-token:{}"  # noqa: S105 — é a chave do ca
 TTL_TOKEN = 60 * 60  # se a fila demorar mais que isso, a pessoa dispara de novo
 
 
-def guardar_token(job_id: int, token: str) -> None:
+def guardar_token(job_id: int | str, token: str) -> None:
+    """`job_id` pode levar prefixo ("pessoas-12") — dois tipos de importação
+    não podem dividir a mesma chave."""
     cache.set(CHAVE_TOKEN.format(job_id), token, timeout=TTL_TOKEN)
 
 
-def _pegar_token(job_id: int) -> str:
+def _pegar_token(job_id: int | str) -> str:
     chave = CHAVE_TOKEN.format(job_id)
     token = cache.get(chave) or ""
     cache.delete(chave)
@@ -190,6 +193,121 @@ def importar_movidesk(self, job_id: int) -> None:
         job.falhar(str(exc))
     except Exception as exc:  # noqa: BLE001 — o motivo tem de chegar à tela, não morrer no worker
         logger.exception("importação do Movidesk #%s falhou", job_id)
+        job.falhar(f"Erro inesperado: {exc}")
+
+
+@shared_task(bind=True, ignore_result=True)
+def importar_pessoas(self, job_id: int) -> None:
+    job = ImportacaoPessoas.objects.select_related("plan").filter(pk=job_id).first()
+    if job is None or job.status != StatusTrabalho.PENDENTE:
+        return
+    token = _pegar_token(f"pessoas-{job_id}")
+    job.iniciar()
+    job.registrar(
+        "Baixando pessoas do Movidesk ("
+        + (f"as {job.limite} primeiras" if job.limite else "o cadastro inteiro")
+        + ")…",
+        etapa="Conectando à API do Movidesk",
+    )
+
+    def progresso(evento: dict) -> None:
+        if evento["tipo"] == "pagina":
+            job.registrar(evento["msg"], etapa=f"Baixando /persons — página {evento['pagina']}")
+        else:
+            job.registrar(evento["msg"], nivel="aviso")
+
+    try:
+        lista = movidesk_api.baixar_pessoas(
+            token,
+            limite=job.limite,
+            on_progresso=progresso,
+            cancelado=job.foi_cancelado,
+        )
+        job.pessoas_baixadas = len(lista)
+        job.arquivo.save(
+            f"movidesk-pessoas-{job.pk}.json",
+            ContentFile(json.dumps(lista, ensure_ascii=False).encode("utf-8")),
+            save=False,
+        )
+        job.save(update_fields=["pessoas_baixadas", "arquivo", "updated_at"])
+        job.registrar(
+            f"{len(lista)} pessoas baixadas e guardadas em JSON.",
+            progresso=100 if job.apenas_baixar else 50,
+        )
+
+        if job.apenas_baixar:
+            job.registrar("Só baixar: nada foi gravado.", etapa="Concluído")
+            job.concluir()
+            _auditar(
+                job.requested_by,
+                ImportacaoPessoas,
+                job.pk,
+                f"Exportação de pessoas do Movidesk #{job.pk}: {len(lista)} baixadas "
+                f"(sem importar)",
+            )
+            return
+
+        total = len(lista)
+        job.registrar(
+            f"Importando {total} registros (empresas primeiro, depois contatos e agentes)…",
+            etapa=f"Importando 0 de {total}",
+            progresso=50,
+        )
+
+        def andamento(feitos: int, _total: int) -> None:
+            if feitos % 25 == 0 or feitos == _total:
+                if job.foi_cancelado():
+                    raise movidesk_api.ErroMovidesk("Cancelado.")
+                job.registrar(
+                    f"{feitos} de {_total} importados.",
+                    etapa=f"Importando {feitos} de {_total}",
+                    progresso=50 + int(feitos * 50 / max(_total, 1)),
+                )
+
+        relatorio = pessoas.importar_pessoas(
+            lista, plan=job.plan, criar_agentes=job.criar_agentes, on_progress=andamento
+        )
+        job.empresas_criadas = relatorio.empresas_criadas
+        job.empresas_atualizadas = relatorio.empresas_atualizadas
+        job.contatos_criados = relatorio.contatos_criados
+        job.contatos_atualizados = relatorio.contatos_atualizados
+        job.agentes_criados = relatorio.agentes_criados
+        job.agentes_atualizados = relatorio.agentes_atualizados
+        job.ignorados = relatorio.ignorados
+        job.avisos = relatorio.warning_lines()
+        job.save(
+            update_fields=[
+                "empresas_criadas",
+                "empresas_atualizadas",
+                "contatos_criados",
+                "contatos_atualizados",
+                "agentes_criados",
+                "agentes_atualizados",
+                "ignorados",
+                "avisos",
+                "updated_at",
+            ]
+        )
+        for linha in relatorio.as_lines():
+            job.registrar(linha)
+        for aviso in job.avisos:
+            job.registrar(aviso, nivel="aviso")
+        job.registrar("Importação de pessoas concluída.", etapa="Concluído")
+        job.concluir()
+        _auditar(
+            job.requested_by,
+            ImportacaoPessoas,
+            job.pk,
+            f"Importação de pessoas do Movidesk #{job.pk}: {relatorio.empresas_criadas} empresas, "
+            f"{relatorio.contatos_criados} contatos e {relatorio.agentes_criados} agentes criados",
+        )
+    except movidesk_api.ErroMovidesk as exc:
+        if job.foi_cancelado():
+            job.registrar("Cancelado pela pessoa.", nivel="aviso", etapa="Cancelado")
+            return
+        job.falhar(str(exc))
+    except Exception as exc:  # noqa: BLE001 — o motivo tem de chegar à tela, não morrer no worker
+        logger.exception("importação de pessoas do Movidesk #%s falhou", job_id)
         job.falhar(f"Erro inesperado: {exc}")
 
 

@@ -14,9 +14,10 @@ import json
 import pytest
 from django.core.cache import cache
 
+from apps.accounts.models import User
 from apps.audit.models import AuditLog
 from apps.ferramentas import tasks
-from apps.ferramentas.models import ImportacaoMovidesk, StatusTrabalho
+from apps.ferramentas.models import ImportacaoMovidesk, ImportacaoPessoas, StatusTrabalho
 from apps.tickets.models import Ticket
 
 pytestmark = pytest.mark.django_db
@@ -177,3 +178,96 @@ class TestAcompanhamento:
         resp = api(admin).post(f"{URL}{job.pk}/cancelar/")
         assert resp.json()["status"] == "cancelado"
         assert job.foi_cancelado()
+
+
+# ---- pessoas ---------------------------------------------------------------
+
+URL_PESSOAS = "/api/v1/ferramentas/importacao-pessoas/"
+
+
+@pytest.fixture
+def pessoas_falsas(monkeypatch):
+    chamadas = {}
+
+    def baixar(token, *, limite=None, on_progresso=None, cancelado=None, **_):
+        chamadas["token"] = token
+        chamadas["limite"] = limite
+        return [
+            {"id": "1", "personType": 2, "businessName": "Acme", "cpfCnpj": "12345678000190"},
+            {
+                "id": "2",
+                "personType": 1,
+                "profileType": 2,
+                "businessName": "Ana Almeida",
+                "emails": [{"email": "ana@acme.test", "isDefault": True}],
+                "relationships": [{"id": "1"}],
+            },
+            {
+                "id": "3",
+                "personType": 1,
+                "profileType": 1,
+                "businessName": "Samuel",
+                "emails": [{"email": "sam@x.test", "isDefault": True}],
+                "teams": ["Suporte"],
+            },
+        ]
+
+    monkeypatch.setattr(tasks.movidesk_api, "baixar_pessoas", baixar)
+    return chamadas
+
+
+class TestPessoas:
+    def test_so_admin(self, api, agente, cliente):
+        assert api(agente).get(URL_PESSOAS).status_code == 403
+        assert api(cliente).post(URL_PESSOAS, {}, format="json").status_code == 403
+
+    def test_importa_de_ponta_a_ponta(self, api, admin, plano, pessoas_falsas):
+        resp = api(admin).post(URL_PESSOAS, {"token": TOKEN, "limite": 50}, format="json")
+        assert resp.status_code == 201, resp.json()
+        dados = resp.json()
+        assert pessoas_falsas["token"] == TOKEN and pessoas_falsas["limite"] == 50
+        assert TOKEN not in json.dumps(dados)
+        assert cache.get(tasks.CHAVE_TOKEN.format(f"pessoas-{dados['id']}")) is None
+
+        job = ImportacaoPessoas.objects.get(pk=dados["id"])
+        assert job.status == StatusTrabalho.CONCLUIDO and job.plan == plano
+        assert job.pessoas_baixadas == 3
+        assert (job.empresas_criadas, job.contatos_criados, job.agentes_criados) == (1, 1, 1)
+        assert job.arquivo and dados["arquivo_url"].endswith(
+            f"/importacao-pessoas/{job.pk}/arquivo/"
+        )
+        assert any("DESATIVADOS" in a for a in job.avisos)
+        sam = User.objects.get(email="sam@x.test")
+        assert not sam.is_active and list(sam.teams.values_list("name", flat=True)) == ["Suporte"]
+        assert User.objects.get(email="ana@acme.test").company.name == "Acme"
+        assert AuditLog.objects.filter(summary__contains="pessoas do Movidesk").count() >= 2
+
+        arquivo = api(admin).get(f"{URL_PESSOAS}{job.pk}/arquivo/")
+        assert arquivo.status_code == 200
+        assert api(admin).get(f"{URL_PESSOAS}{job.pk}/").json()["status"] == "concluido"
+
+    def test_sem_agentes_e_so_baixar(self, api, admin, plano, pessoas_falsas):
+        resp = api(admin).post(
+            URL_PESSOAS,
+            {"token": TOKEN, "criar_agentes": False, "apenas_baixar": True},
+            format="json",
+        )
+        job = ImportacaoPessoas.objects.get(pk=resp.json()["id"])
+        assert job.status == StatusTrabalho.CONCLUIDO and job.pessoas_baixadas == 3
+        assert User.objects.count() == 1  # só o admin
+
+    def test_uma_importacao_de_qualquer_tipo_por_vez(self, api, admin, equipe, plano):
+        ImportacaoMovidesk.objects.create(team=equipe, plan=plano, status=StatusTrabalho.RODANDO)
+        resp = api(admin).post(URL_PESSOAS, {"token": TOKEN}, format="json")
+        assert resp.status_code == 409
+        ImportacaoMovidesk.objects.update(status=StatusTrabalho.CONCLUIDO)
+        ImportacaoPessoas.objects.create(plan=plano, status=StatusTrabalho.RODANDO)
+        assert (
+            api(admin).post(URL, {"token": TOKEN, "team": equipe.id}, format="json").status_code
+            == 409
+        )
+
+    def test_cancelar(self, api, admin, plano):
+        job = ImportacaoPessoas.objects.create(plan=plano, status=StatusTrabalho.RODANDO)
+        resp = api(admin).post(f"{URL_PESSOAS}{job.pk}/cancelar/")
+        assert resp.status_code == 200 and resp.json()["status"] == "cancelado"

@@ -136,3 +136,62 @@ def test_progresso_conta_paginas_e_novos():
         ("tickets", 2, 2),
         ("tickets/past", 1, 3),
     ]
+
+
+# ---- pessoas ---------------------------------------------------------------
+
+
+def _p(i):
+    return {"id": str(i), "personType": 1, "businessName": f"Pessoa {i}"}
+
+
+def test_pessoas_pagina_deduplica_e_para_na_pagina_curta():
+    api = Api(
+        {
+            ("persons", 0): [_p(i) for i in range(1, 201)],
+            ("persons", 200): [_p(200), _p(201), _p(202)],  # a 200 repete
+        }
+    )
+    esperas, sleep = _sleeper()
+    lista = m.baixar_pessoas(TOKEN, http=api, sleep=sleep)
+    assert len(lista) == 202
+    assert [urlparse(u).path for u in api.urls] == ["/public/v1/persons"] * 2
+    q = parse_qs(urlparse(api.urls[0]).query)
+    assert q["$orderby"] == ["id asc"] and q["$top"] == ["200"]
+    assert "addresses" in q["$expand"][0] and "cpfCnpj" in q["$select"][0]
+    assert esperas == [m.INTERVALO_ENTRE_CHAMADAS]  # uma pausa entre as duas páginas
+
+
+def test_pessoas_recuam_para_uma_url_mais_simples_se_a_api_recusar_o_odata():
+    api = Api(
+        {("persons", 0): [_p(1)]},
+        erros=[(400, {}, b"The query parameter '$orderby' is not supported")],
+    )
+    eventos = []
+    lista = m.baixar_pessoas(TOKEN, http=api, sleep=lambda s: None, on_progresso=eventos.append)
+    assert [p["id"] for p in lista] == ["1"]
+    primeira, segunda = (parse_qs(urlparse(u).query) for u in api.urls)
+    assert "$orderby" in primeira and "$orderby" not in segunda
+    assert any("sem $orderby" in e["msg"] for e in eventos if e["tipo"] == "log")
+
+
+def test_pessoas_400_no_meio_da_varredura_e_erro_de_verdade():
+    api = Api(
+        {("persons", 0): [_p(i) for i in range(1, 201)]},
+        erros=[],
+    )
+    original = api.__call__
+
+    def com_erro_na_segunda(url):
+        if "skip=200" in url:
+            api.urls.append(url)
+            return 400, {}, b"nope"
+        return original(url)
+
+    with pytest.raises(m.RequisicaoRecusada):
+        m.baixar_pessoas(TOKEN, http=com_erro_na_segunda, sleep=lambda s: None)
+
+
+def test_pessoas_limite_corta():
+    api = Api({("persons", 0): [_p(i) for i in range(1, 201)]})
+    assert len(m.baixar_pessoas(TOKEN, limite=5, http=api, sleep=lambda s: None)) == 5

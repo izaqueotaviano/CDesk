@@ -19,6 +19,22 @@ urlpatterns = [
         views.ImportacaoMovideskArquivoView.as_view(),
         name="fer-importacao-arquivo",
     ),
+    path("importacao-pessoas/", views.ImportacaoPessoasView.as_view(), name="fer-pessoas"),
+    path(
+        "importacao-pessoas/<int:pk>/",
+        views.ImportacaoPessoasDetalheView.as_view(),
+        name="fer-pessoas-detalhe",
+    ),
+    path(
+        "importacao-pessoas/<int:pk>/cancelar/",
+        views.ImportacaoPessoasCancelarView.as_view(),
+        name="fer-pessoas-cancelar",
+    ),
+    path(
+        "importacao-pessoas/<int:pk>/arquivo/",
+        views.ImportacaoPessoasArquivoView.as_view(),
+        name="fer-pessoas-arquivo",
+    ),
     path("backups/", views.BackupsView.as_view(), name="fer-backups"),
     path(
         "backups/agendamento/",
