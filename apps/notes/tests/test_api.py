@@ -51,6 +51,23 @@ class TestCriar:
         assert r.status_code == 400
         assert "title" in r.json()
 
+    def test_titulo_so_espaco_devolve_mensagem_amigavel(self, agente_suporte, api):
+        """O CharField padrão do DRF apara espaço sozinho (trim_whitespace=True
+        é o default) e recusaria "   " com o genérico "Este campo pode não
+        estar em branco." ANTES de validate_title rodar — achado pela
+        cobertura de teste, que mostrou a linha do raise nunca exercitada.
+        "title" é declarado com trim_whitespace=False de propósito, para a
+        mensagem certa chegar até quem preencheu só espaço."""
+        r = api(agente_suporte).post(URL, {"title": "   "}, format="json")
+
+        assert r.json() == {"title": ["Dê um título para a nota."]}
+
+    def test_titulo_vazio_tambem_devolve_a_mensagem_amigavel(self, agente_suporte, api):
+        r = api(agente_suporte).post(URL, {"title": ""}, format="json")
+
+        assert r.status_code == 400
+        assert r.json() == {"title": ["Dê um título para a nota."]}
+
     def test_corpo_gigante_e_recusado_com_mensagem(self, agente_suporte, api):
         from apps.notes.models import CONTENT_MAX_LENGTH
 

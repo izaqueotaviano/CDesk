@@ -113,6 +113,16 @@ class NoteListSerializer(serializers.ModelSerializer):
 class NoteSerializer(NoteListSerializer):
     """Leitura e escrita de uma nota."""
 
+    # `allow_blank=True` + `trim_whitespace=False`: sem isso, o CharField
+    # padrão do DRF apara e recusa "   " SOZINHO (`trim_whitespace=True` é o
+    # default), o que faria esse caso nunca chegar a `validate_title` — a
+    # mensagem "Dê um título..." abaixo ficaria morta (achado pela cobertura:
+    # a linha do `raise` nunca era exercitada), e quem manda só espaços veria
+    # o genérico "Este campo pode não estar em branco." em vez da explicação.
+    # Declarar o campo aqui é o que devolve todo o julgamento — vazio, só
+    # espaço, ou preenchido — para `validate_title`.
+    title = serializers.CharField(max_length=200, allow_blank=True, trim_whitespace=False)
+
     # TEXTO PURO, guardado e devolvido tal qual — sem `nh3`, sem escape.
     # Não é descuido: o projeto não tem editor de texto rico, e sanear texto
     # puro corrompe ("a < b" viraria "a &lt; b" na nota de quem escreveu

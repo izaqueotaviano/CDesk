@@ -53,6 +53,7 @@ function montar() {
           <Route path="/inicio" element={<Sidebar onAbrirBusca={vi.fn()} />} />
           <Route path="/clientes" element={<p>tela de clientes</p>} />
           <Route path="/configuracoes" element={<p>tela de configurações</p>} />
+          <Route path="/notas" element={<p>tela de notas</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -76,6 +77,18 @@ describe('Sidebar — links que antes eram mortos', () => {
     montar()
     expect(screen.getByRole('button', { name: 'Clientes' })).not.toHaveAttribute('aria-disabled')
     expect(screen.getByRole('button', { name: 'Configurações' })).not.toHaveAttribute('aria-disabled')
+  })
+
+  it('"Notas" saiu de "em breve" e leva pra /notas', () => {
+    montar()
+    expect(screen.getByRole('button', { name: 'Notas' })).not.toHaveAttribute('aria-disabled')
+    fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
+    expect(screen.getByText('tela de notas')).toBeInTheDocument()
+  })
+
+  it('"Calendário" continua inerte — sem rota real ainda', () => {
+    montar()
+    expect(screen.getByRole('button', { name: /Calendário/ })).toHaveAttribute('aria-disabled', 'true')
   })
 })
 
