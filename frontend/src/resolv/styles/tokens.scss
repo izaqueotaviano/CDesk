@@ -39,12 +39,13 @@
   --surface: #ffffff;
   --surface-alt: #f0f0f0;
   --surface-card: #ffffff;
-  --surface-canvas: #ffffff;
-  // Linha estrutural (tabela, card, divisória, cromo) — preta translúcida, do
-  // jeito que o app da Manus faz: a MESMA variável então funciona sobre os
-  // três fundos claros (cromo/canvas/cartão) sem precisar recalibrar por
-  // superfície. `--borda-campo`, abaixo, é outra família — não mexe aqui.
-  --stroke: rgba(0, 0, 0, 0.075);  // 25% mais escura que os 0.06 originais
+  --surface-canvas: #f8f8f7;
+  // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
+  // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
+  // branco puro) uma borda derivada de preto ficava clara demais. Mesma
+  // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
+  // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
+  --stroke: #e5e7eb;
   --stroke-hover: rgba(0, 0, 0, 0.14);
   --stroke-subtle: rgba(0, 0, 0, 0.04);
 
@@ -65,6 +66,13 @@
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
   --texto-cromo: #333333;
+  // Fundo do item ATIVO da sidebar — cinza neutro sólido, não o tom do
+  // accent. Token à parte de `--tom-acento` (que seria o óbvio a reusar)
+  // porque esse já pinta uma dúzia de lugares fora da sidebar (tickets,
+  // notas) que continuam no tom de accent; só o item ativo do rail troca de
+  // leitura. No escuro ele volta a ser `--tom-acento` — a troca pedida foi só
+  // para o claro.
+  --sidebar-ativo: #e5e5e5;
 
   // ── Identidade ──
   // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
@@ -204,6 +212,9 @@
   // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
   // o mesmo texto principal (um cinza #333 ali seria ilegível).
   --texto-cromo: var(--text-primary);
+  // Sem pedido de troca no escuro: mantém o valor de sempre (--tom-acento
+  // recalcula sozinho com o --accent redefinido logo abaixo).
+  --sidebar-ativo: var(--tom-acento);
 
   // O role `primary` do M3 (TonalSpot, tom 80) para a source color #0f62fe —
   // não é mais uma aproximação manual "clareada": é o HCT real. Mais claro/

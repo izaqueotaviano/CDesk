@@ -1,4 +1,4 @@
-// Sidebar do shell — expandida (240px), recolhida (64px) e gaveta (tela
+// Sidebar do shell — expandida (240px), recolhida (54px) e gaveta (tela
 // pequena).
 //
 // A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
@@ -219,7 +219,7 @@
     // e editor). A barrinha fica FORA do padding da lista, encostada na
     // borda do rail, por isso o `left` negativo.
     &--ativo {
-      background: var(--tom-acento);
+      background: var(--sidebar-ativo);
       color: var(--text-primary);
       font-weight: 600;
 

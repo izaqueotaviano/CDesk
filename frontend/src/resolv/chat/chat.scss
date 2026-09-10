@@ -346,8 +346,9 @@
     // A rolagem tem FUNDO: sobre um cinza leve, o balão branco de quem
     // escreve do outro lado e o balão tingido do agente viram figura, não
     // linhas numa folha em branco — o contrato visual de qualquer mensageiro.
-    // `--surface-canvas` é branco no claro, por isso o tom sai de
-    // `--surface-alt` diluído; no escuro os dois tokens já se separam.
+    // Mistura de `--surface-alt`/`--surface-card` em vez de ler
+    // `--surface-canvas` direto: o tom aqui precisa ficar mais próximo do
+    // cromo que o canvas da página, e os dois já são bem próximos no claro.
     background: color-mix(in srgb, var(--surface-alt) 55%, var(--surface-card));
     display: flex;
     flex-direction: column;
