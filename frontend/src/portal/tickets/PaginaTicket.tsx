@@ -28,6 +28,7 @@ import { Label, Textarea } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { PilulaPrioridade, PilulaStatus } from './componentes'
+import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
 
 // ---------------------------------------------------------------------------
 // Linha do tempo — o que o CLIENTE pode ver. O backend não entrega os eventos
@@ -262,6 +263,7 @@ function MensagemDoTicket({
         <p className={cn('mt-1 whitespace-pre-wrap text-[13px] leading-normal text-tinta [overflow-wrap:anywhere]', msg.is_deleted && 'italic text-tinta-terciaria')}>
           {msg.is_deleted ? 'Mensagem apagada' : msg.body}
         </p>
+        {!msg.is_deleted && <AssinaturaDaMensagem html={msg.signature_html} />}
         {!msg.is_deleted && <Anexos msg={msg} />}
       </div>
     </article>

@@ -499,7 +499,102 @@
   }
 }
 
+// Modal "Assinatura de <agente>": as três formas, o campo da vez e a prévia
+// do que o cliente vê.
+.cfg-assinatura {
+  display: grid;
+  gap: $sp-4;
+
+  &__formas {
+    border: 0;
+    margin: 0;
+    padding: 0;
+
+    legend {
+      padding: 0;
+      font-size: $fs-meta;
+      font-weight: $w-medium;
+      color: $text;
+    }
+
+    > div {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $sp-2;
+      margin-top: $sp-2;
+    }
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: $border;
+      border-radius: $radius;
+      font-size: $fs-meta;
+      color: $text;
+      cursor: pointer;
+
+      &:has(:checked) {
+        border-color: $blue;
+        background-color: $blue-tint;
+      }
+    }
+  }
+
+  &__imagem {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $sp-2;
+  }
+
+  &__rotulo {
+    display: block;
+    font-size: $fs-meta;
+    font-weight: $w-medium;
+    color: $text;
+    margin-bottom: $sp-2;
+  }
+
+  &__ajuda {
+    font-size: $fs-label;
+    color: $text-muted;
+  }
+
+  &__previa {
+    padding: $sp-3;
+    border: $border;
+    border-radius: $radius;
+    background-color: $chrome;
+    font-size: $fs-meta;
+    color: $text-secondary;
+  }
+
+  &__vazio {
+    margin: 0;
+    padding: $sp-4;
+    border: 1px dashed $stroke;
+    border-radius: $radius;
+    text-align: center;
+    font-size: $fs-meta;
+    color: $text-muted;
+  }
+}
+
 .cfg-importar {
+  // a lista do aviso "o que não vem": marcador discreto e linhas soltas, para
+  // ser varrida com o olho antes de importar
+  &__limites {
+    margin: $sp-2 0 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 4px;
+
+    li { line-height: 1.45; }
+    b { font-weight: $w-medium; color: $text; }
+  }
+
   // as duas caixas de opção ao lado do campo "quantas", alinhadas ao rótulo
   &__opcoes {
     display: flex;

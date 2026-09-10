@@ -533,6 +533,13 @@ class TicketMessage(TimeStampedModel):
     )
     body = models.TextField()
     is_public = models.BooleanField(default=True, help_text="Desmarcado = nota interna.")
+    # A assinatura do autor entra no rodapé desta mensagem? Decidido no envio
+    # (o compositor oferece "incluir minha assinatura") e guardado aqui; o
+    # conteúdo NÃO é copiado — é renderizado do perfil na hora de mostrar,
+    # ver `apps/accounts/assinatura.py`. Default False para que as mensagens
+    # anteriores a este campo, que já têm a assinatura antiga colada no
+    # corpo, não mostrem duas.
+    with_signature = models.BooleanField(default=False)
     source = models.CharField(
         max_length=10, choices=MessageSource.choices, default=MessageSource.WEB
     )

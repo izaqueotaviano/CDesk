@@ -7,11 +7,12 @@ import { SecaoSeguranca } from '@/portal/configuracoes/SecaoSeguranca'
 import { Button } from '@/portal/ui/button'
 import { Toaster } from '@/portal/ui/toaster'
 import { Avatar } from '@/ui/Avatar'
+import { SecaoAssinatura } from './SecaoAssinatura'
 
 /**
- * "Minha conta" da equipe de suporte: por enquanto, a verificação em duas
- * etapas — a mesma seção do portal do cliente, porque a regra é a mesma
- * (opcional por conta, e-mail ou aplicativo). Quem chega aqui é pelo nome
+ * "Minha conta" da equipe de suporte: a assinatura das respostas e a
+ * verificação em duas etapas — as duas últimas com as mesmas seções do
+ * portal do cliente, porque a regra é a mesma. Quem chega aqui é pelo nome
  * no topo do app.
  */
 export function PaginaConta() {
@@ -31,6 +32,7 @@ export function PaginaConta() {
           {logout.isPending ? 'Saindo…' : 'Sair'}
         </Button>
       </header>
+      <SecaoAssinatura />
       <SecaoSeguranca />
       <SecaoAcessos />
       <SecaoMeusDados />

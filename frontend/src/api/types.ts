@@ -36,9 +36,15 @@ export interface Me {
   job_title: string
   phone: string
   ui_density: UiDensity
-  /** Texto livre (o backend guarda cru, sem formato). Nunca é anexado
-   *  automaticamente pelo servidor — quem concatena na resposta é o front. */
+  /** Assinatura do rodapé das respostas, em uma de três formas. O conteúdo
+   *  NÃO é copiado para o corpo da mensagem: `signature_render` é o bloco
+   *  pronto (já higienizado pelo servidor) que a prévia e a conversa
+   *  desenham. Ver apps/accounts/assinatura.py. */
   signature: string
+  signature_kind: '' | 'texto' | 'html' | 'imagem'
+  signature_html: string
+  signature_image_url: string
+  signature_render: string
   /** Só para cliente: uso da cota de chamados no período corrente. */
   quota?: { used: number; limit: number | null; period_start: string; period_end: string }
 }

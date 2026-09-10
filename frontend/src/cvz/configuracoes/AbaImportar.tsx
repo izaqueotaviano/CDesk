@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Checkbox, ErrorState, FormActions, FormRow, FormSection, Select, Skeleton, TextInput, useToast } from '@/cvz/components'
+import { Button, Checkbox, ErrorState, FormActions, FormRow, FormSection, Notification, Select, Skeleton, TextInput, useToast } from '@/cvz/components'
 import { API_BASE_URL, ApiError } from '@/api/client'
 import { ConsoleDeTrabalho } from './ConsoleDeTrabalho'
 import { useEquipesCfg, usePlanosCfg } from './dados'
@@ -31,6 +31,40 @@ function estimativa(limite: number | null, oQue: string): string {
   const paginas = Math.ceil(limite / POR_PAGINA)
   const segundos = Math.max(0, paginas - 1) * SEGUNDOS_POR_PAGINA
   return segundos < 60 ? `~${paginas} página(s), menos de um minuto.` : `~${paginas} páginas, uns ${Math.ceil(segundos / 60)} min só de espera da API.`
+}
+
+/** O que a API do Movidesk não entrega — dito ANTES de a pessoa importar.
+ *  Descobrir isso depois, procurando um anexo que nunca veio, custa muito
+ *  mais caro do que ler cinco linhas agora. */
+function AvisoDoQueNaoVem() {
+  return (
+    <Notification tone="warning" title="O que não vem do Movidesk">
+      <ul className="cfg-importar__limites">
+        <li>
+          <b>Arquivos anexados</b> — a API devolve só o nome e um código do anexo, nunca o
+          arquivo. Os anexos antigos continuam no Movidesk.
+        </li>
+        <li>
+          <b>Pesquisas de satisfação</b> — ficaram numa API separada, que esta importação não usa.
+        </li>
+        <li>
+          <b>Formatação das mensagens</b> (negrito, cor, links) — a listagem em massa traz o texto
+          puro. Pegar o HTML custaria uma requisição por mensagem, e a API libera 10 por minuto.
+        </li>
+        <li>
+          <b>Apontamentos de hora e despesas</b> — vêm no JSON baixado, mas não viram campo de
+          chamado aqui.
+        </li>
+        <li>
+          <b>Tempo de solução</b> — o export não traz o tempo trabalhado, e calcular pela data de
+          abertura inflaria a franquia de manutenção. Fica em branco, que é honesto.
+        </li>
+        <li>
+          <b>Departamentos de cliente</b> — aqui o contato entra direto na empresa.
+        </li>
+      </ul>
+    </Notification>
+  )
 }
 
 /** Um campo "quantos": vazio = todos; inteiro positivo; qualquer outra coisa é erro. */
@@ -233,6 +267,7 @@ export function AbaImportar() {
             helper="Empresas que ainda não existem aqui são criadas com este plano, nas duas etapas."
           />
         </FormRow>
+        <AvisoDoQueNaoVem />
       </FormSection>
 
       <FormSection

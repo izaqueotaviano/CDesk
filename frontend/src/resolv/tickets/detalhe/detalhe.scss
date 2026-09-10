@@ -1662,6 +1662,36 @@
     color: var(--danger);
   }
 
+  // Assinatura: a caixa e a prévia do rodapé que vai junto com a resposta.
+  // A prévia fica ANTES do botão enviar de propósito — ninguém deve descobrir
+  // o próprio rodapé depois de mandar.
+  &__assinatura {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0 2px;
+  }
+  &__assinatura-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    input {
+      accent-color: var(--accent);
+    }
+  }
+  &__assinatura-previa {
+    padding: 8px 10px;
+    border-left: 2px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-height: 140px;
+    overflow: auto;
+  }
+
   &__rodape {
     display: flex;
     align-items: center;

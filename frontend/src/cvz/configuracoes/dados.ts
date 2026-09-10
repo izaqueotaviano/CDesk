@@ -263,6 +263,14 @@ export interface AgenteCfg {
   custom_role: number | null
   custom_role_name: string | null
   ticket_scope: string
+  /** Assinatura do rodapé das respostas — mesmas regras do self-service em
+   *  Minha conta (`apps/accounts/assinatura.py`). `signature_render` é o
+   *  bloco pronto, já higienizado, que a prévia desenha. */
+  signature: string
+  signature_kind: '' | 'texto' | 'html' | 'imagem'
+  signature_html: string
+  signature_image_url: string
+  signature_render: string
 }
 
 /** Uma equipe do roster, já com quem a atende — é `EquipeCfg` mais o que só
@@ -363,6 +371,41 @@ export function useEnviarAvatarAgente(userId: number) {
       fd.append('file', arquivo)
       return api.post<AgenteCfg>(`/api/v1/settings/users/${userId}/avatar/`, fd)
     },
+    onSuccess: invalidar,
+  })
+}
+
+/** Assinatura de OUTRO agente: o mesmo PATCH do cadastro, e o mesmo upload
+ *  multipart do self-service. Quem monta assinatura para o time costuma ser
+ *  o admin — é o pedido "coloca a minha aí" que chega por chat. */
+export function useSalvarAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (dados: {
+      signature_kind: AgenteCfg['signature_kind']
+      signature: string
+      signature_html: string
+    }) => api.patch<AgenteCfg>(`/api/v1/settings/users/${userId}/`, dados),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEnviarImagemAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<AgenteCfg>(`/api/v1/settings/users/${userId}/assinatura-imagem/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useRemoverImagemAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<AgenteCfg>(`/api/v1/settings/users/${userId}/assinatura-imagem/`),
     onSuccess: invalidar,
   })
 }

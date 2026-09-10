@@ -27,6 +27,10 @@ const ME_BASE = {
   phone: '',
   ui_density: '',
   signature: '',
+  signature_kind: '' as const,
+  signature_html: '',
+  signature_image_url: '',
+  signature_render: '',
 }
 
 const EMPRESA = {

@@ -114,6 +114,9 @@ export interface NovoTicket {
   assignee_id?: number | null
   /** Aplicado depois via `PATCH /tickets/{id}/` (a lista SUBSTITUI o conjunto). */
   tag_ids?: number[]
+  /** A assinatura de quem abre entra no rodapé da primeira mensagem? Ela não
+   *  vai no `body` — o servidor a desenha do perfil (apps/accounts/assinatura.py). */
+  with_signature?: boolean
 }
 
 /** O POST devolve o TicketDetail inteiro; aqui só o que a navegação precisa. */
@@ -272,6 +275,7 @@ export function useAbrirTicket() {
         form.append('requester_id', String(dados.requester_id))
         if (dados.category_id != null) form.append('category_id', String(dados.category_id))
         if (dados.order_number) form.append('order_number', dados.order_number)
+        if (dados.with_signature) form.append('with_signature', 'true')
         arquivos.forEach((f) => form.append('files', f))
         ticket = await api.post<TicketCriado>('/api/v1/tickets/', form)
       }

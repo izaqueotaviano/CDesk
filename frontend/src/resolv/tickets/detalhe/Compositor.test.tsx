@@ -60,6 +60,10 @@ const ME: Me = {
   phone: '',
   ui_density: 'comfortable',
   signature: '',
+  signature_kind: '' as const,
+  signature_html: '',
+  signature_image_url: '',
+  signature_render: '',
 }
 
 const TICKET: TicketDetalhe = {
@@ -262,6 +266,39 @@ describe('Compositor — enviar só com anexo', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Enviar resposta/ }))
     expect(corpoEnviado()?.body).toBe('Segue o comprovante.')
+  })
+
+  it('sem assinatura configurada, a caixa nem aparece', () => {
+    montar()
+    expect(screen.queryByLabelText('Incluir minha assinatura')).not.toBeInTheDocument()
+  })
+
+  it('quem tem assinatura assina por padrão, vê a prévia, e pode desmarcar', () => {
+    const comAssinatura: Me = { ...ME, signature_render: '<p>Samuel — Suporte</p>' }
+    montar(0, comAssinatura)
+
+    const caixa = screen.getByLabelText('Incluir minha assinatura')
+    expect(caixa).toBeChecked()
+    // a prévia evita a surpresa de descobrir o rodapé depois de enviado
+    expect(screen.getByText('Samuel — Suporte')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Resposta ao cliente'), { target: { value: 'Resolvido.' } })
+    fireEvent.click(screen.getByRole('button', { name: /Enviar resposta/ }))
+    expect(corpoEnviado()?.with_signature).toBe(true)
+    // e a assinatura NÃO entra no corpo
+    expect(corpoEnviado()?.body).toBe('Resolvido.')
+  })
+
+  it('desmarcando, a resposta vai sem assinatura', () => {
+    const comAssinatura: Me = { ...ME, signature_render: '<p>Samuel — Suporte</p>' }
+    montar(0, comAssinatura)
+
+    fireEvent.click(screen.getByLabelText('Incluir minha assinatura'))
+    expect(screen.queryByText('Samuel — Suporte')).not.toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText('Resposta ao cliente'), { target: { value: 'Resolvido.' } })
+    fireEvent.click(screen.getByRole('button', { name: /Enviar resposta/ }))
+    expect(corpoEnviado()?.with_signature).toBe(false)
   })
 
   it('sem texto e sem anexo continua sem envio nenhum', () => {

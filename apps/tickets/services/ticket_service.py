@@ -56,6 +56,7 @@ def create_ticket(
     category=None,
     order_number: str = "",
     actor=None,
+    with_signature: bool = False,
 ) -> Ticket:
     """Cria o ticket com a primeira mensagem, consumindo cota quando devido.
 
@@ -103,7 +104,10 @@ def create_ticket(
             ticket=ticket, from_status=None, to_status=TicketStatus.NEW, changed_by=actor
         )
         TicketMessage.objects.create(
-            ticket=ticket, author=actor, body=body, is_public=True
+            ticket=ticket, author=actor, body=body, is_public=True,
+            # agente abrindo em nome do cliente assina; o cliente não tem
+            # assinatura para pôr
+            with_signature=bool(with_signature) and actor.is_internal,
         )
         if source == TicketSource.WEB:
             # levanta QuotaExceeded e desfaz tudo se o período está cheio
@@ -496,6 +500,7 @@ def add_reply(
     resolution_started_at: dt.datetime | None = None,
     resolution_ended_at: dt.datetime | None = None,
     close_note: str = "",
+    with_signature: bool = False,
 ) -> TicketMessage:
     """Adiciona resposta e aplica a transição de status correspondente.
 
@@ -526,6 +531,8 @@ def add_reply(
             body=body,
             is_public=is_public,
             source=MessageSource.WEB,
+            # nota interna nunca leva assinatura, mesmo se a tela pedir
+            with_signature=bool(with_signature) and is_public and author.is_internal,
         )
 
         if author.is_internal:
@@ -586,7 +593,7 @@ def add_reply(
                 _change_status(ticket, new_status, author)
             # o CLIENTE fica sabendo que respondemos — in-app e e-mail. Antes
             # ele só descobria entrando no portal por conta própria.
-            _notify_requester_replied(ticket, author)
+            _notify_requester_replied(ticket, author, com_assinatura=message.with_signature)
             return message
 
         # ---- resposta de cliente: transições automáticas ----
@@ -889,11 +896,16 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
     return ticket
 
 
-def _notify_requester_replied(ticket: Ticket, author) -> None:
+def _notify_requester_replied(ticket: Ticket, author, *, com_assinatura: bool = False) -> None:
     """Resposta pública de agente avisa o SOLICITANTE — sino do portal e
     e-mail (cada canal respeitando a preferência da conta). O corpo da
     resposta NÃO vai no e-mail: conteúdo de chamado restrito não pode parar
-    em caixa de entrada; o e-mail convida a abrir o portal."""
+    em caixa de entrada; o e-mail convida a abrir o portal.
+
+    A ASSINATURA de quem respondeu vai — quando a pessoa pediu para incluí-la
+    no envio. Ela não é conteúdo do chamado: é o rodapé de identidade de quem
+    escreveu, e é justamente no e-mail que ela se parece com o que o nome
+    promete (`apps/accounts/assinatura.py`)."""
     from apps.notifications.models import NotificationKind
     from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
@@ -910,6 +922,16 @@ def _notify_requester_replied(ticket: Ticket, author) -> None:
         actor=author,
     )
     if requester.email and quer_email(requester, NotificationKind.TICKET_REPLIED):
+        from django.conf import settings
+
+        from apps.accounts import assinatura as assinatura_do_agente
+
+        texto = assinatura_do_agente.render_texto(author) if com_assinatura else ""
+        html = (
+            assinatura_do_agente.render_html(author, base_url=settings.SITE_URL)
+            if com_assinatura
+            else ""
+        )
         queue_email(
             to=requester.email,
             subject=f"Resposta no chamado {ticket.reference}",
@@ -919,6 +941,11 @@ def _notify_requester_replied(ticket: Ticket, author) -> None:
                 "reference": ticket.reference,
                 "subject": ticket.subject,
                 "agent_name": author.full_name,
+                # `assinatura` entra no molde de texto; `assinatura_html` é
+                # retirado do contexto pelo envio e vira a parte rica do
+                # e-mail (ver apps/notifications/tasks.py)
+                "assinatura": f"\n{texto}\n" if texto else "",
+                "assinatura_html": html,
             },
             ticket=ticket,
             # uma resposta = um e-mail; várias na mesma hora não viram rajada

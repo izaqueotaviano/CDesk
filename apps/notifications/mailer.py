@@ -60,18 +60,31 @@ def _paragrafos(texto: str) -> str:
     return "".join(blocos)
 
 
-def montar_html(modelo: str, *, assunto: str, texto: str) -> str:
+def montar_html(modelo: str, *, assunto: str, texto: str, extra_html: str = "") -> str:
     """Preenche os marcadores do modelo do admin. Substituição literal, não
     engine de template: o admin controla o modelo, o sistema controla o
     conteúdo, e nenhum dos dois consegue executar nada no outro."""
+    conteudo = _paragrafos(texto)
+    if extra_html:
+        # `extra_html` é a assinatura do agente, JÁ higienizada na gravação
+        # (apps/accounts/assinatura.py) — é o único HTML que entra aqui sem
+        # passar pelo escape, e por isso ele nunca vem do corpo da mensagem.
+        conteudo += f'<div style="margin:16px 0 0;">{extra_html}</div>'
     return (
         modelo.replace("{{assunto}}", escape(assunto))
-        .replace("{{conteudo}}", _paragrafos(texto))
+        .replace("{{conteudo}}", conteudo)
         .replace("{{ano}}", str(timezone.now().year))
     )
 
 
-def enviar(*, to: str, subject: str, body: str, config: SystemConfig | None = None) -> None:
+def enviar(
+    *,
+    to: str,
+    subject: str,
+    body: str,
+    config: SystemConfig | None = None,
+    html_extra: str = "",
+) -> None:
     """Envia AGORA pela conexão configurada. Levanta `EmailDesligado` com a
     entrega desligada, e deixa subir o erro do SMTP — quem chama decide se
     registra falha (outbox) ou mostra na tela (e-mail de teste)."""
@@ -88,6 +101,12 @@ def enviar(*, to: str, subject: str, body: str, config: SystemConfig | None = No
     )
     if config.email_html_template.strip():
         mensagem.attach_alternative(
-            montar_html(config.email_html_template, assunto=subject, texto=body), "text/html"
+            montar_html(
+                config.email_html_template,
+                assunto=subject,
+                texto=body,
+                extra_html=html_extra,
+            ),
+            "text/html",
         )
     mensagem.send(fail_silently=False)

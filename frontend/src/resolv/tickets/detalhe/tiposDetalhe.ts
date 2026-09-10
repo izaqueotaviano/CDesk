@@ -40,6 +40,10 @@ export interface Mensagem {
   edited_at: string | null
   is_deleted: boolean
   can_edit: boolean
+  /** Rodapé de assinatura desta mensagem, montado pelo servidor a partir do
+   *  perfil de quem escreveu (vazio quando o envio não pediu assinatura).
+   *  Ver `apps/accounts/assinatura.py`. */
+  signature_html: string
 }
 
 export interface Evento {

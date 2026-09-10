@@ -31,6 +31,7 @@ function msg(id: number, created_at: string, extra: Partial<Mensagem> = {}): Men
     edited_at: null,
     is_deleted: false,
     can_edit: false,
+    signature_html: '',
     ...extra,
   }
 }

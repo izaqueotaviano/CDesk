@@ -93,6 +93,10 @@ const ME: Me = {
   phone: '',
   ui_density: 'comfortable',
   signature: '',
+  signature_kind: '' as const,
+  signature_html: '',
+  signature_image_url: '',
+  signature_render: '',
 }
 
 function chat(extra: Partial<Chat> = {}): Chat {

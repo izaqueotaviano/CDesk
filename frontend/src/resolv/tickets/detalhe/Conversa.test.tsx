@@ -53,6 +53,10 @@ const ME: Me = {
   phone: '',
   ui_density: 'comfortable',
   signature: '',
+  signature_kind: '' as const,
+  signature_html: '',
+  signature_image_url: '',
+  signature_render: '',
 }
 
 function evento(extra: Partial<Evento> = {}): Evento {
@@ -85,6 +89,7 @@ function mensagem(extra: Partial<Mensagem> = {}): Mensagem {
     edited_at: null,
     is_deleted: false,
     can_edit: false,
+    signature_html: '',
     ...extra,
   }
 }
@@ -439,5 +444,33 @@ describe('Conversa — contagem de públicas/notas vira filtro clicável', () =>
     expect(screen.getByText('Mensagem pública 1')).toBeInTheDocument()
     expect(screen.getByText('Nota interna 1')).toBeInTheDocument()
     expect(screen.getByText('Mensagem pública 2')).toBeInTheDocument()
+  })
+})
+
+describe('Conversa — assinatura do agente', () => {
+  it('desenha o rodapé da mensagem que foi assinada', () => {
+    montar(
+      ticket({
+        messages: [
+          mensagem({ id: 1, body: 'Resolvido.', signature_html: '<p>Samuel — Suporte</p>' }),
+        ],
+      }),
+    )
+    expect(screen.getByText('Resolvido.')).toBeInTheDocument()
+    expect(screen.getByText('Samuel — Suporte')).toBeInTheDocument()
+  })
+
+  it('mensagem sem assinatura não ganha bloco nenhum', () => {
+    const { container } = montar(ticket({ messages: [mensagem({ id: 1, signature_html: '' })] }))
+    expect(container.querySelector('.assinatura-mensagem')).toBeNull()
+  })
+
+  it('mensagem apagada não mostra a assinatura de quem a escreveu', () => {
+    const { container } = montar(
+      ticket({
+        messages: [mensagem({ id: 1, is_deleted: true, signature_html: '<p>Samuel</p>' })],
+      }),
+    )
+    expect(container.querySelector('.assinatura-mensagem')).toBeNull()
   })
 })

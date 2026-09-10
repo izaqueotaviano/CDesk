@@ -29,12 +29,15 @@ EMAIL_TEMPLATES = {
         "Se você não tentou entrar, ignore este e-mail e avise o suporte.\n\n"
         "Este e-mail não recebe respostas."
     ),
+    # `{assinatura}` é a assinatura de quem respondeu, em texto puro, e vem
+    # vazia quando ele não pediu para incluí-la — ver `_notify_requester_replied`
     "ticket_replied": (
         "Olá, {requester_name}.\n\n"
         "{agent_name} respondeu o chamado {reference} — {subject}.\n\n"
         "Acesse o portal de suporte para ler a resposta e continuar a "
         "conversa.\n"
-        "Este e-mail não recebe respostas."
+        "Este e-mail não recebe respostas.\n"
+        "{assinatura}"
     ),
     "chat_converted": (
         "Olá, {requester_name}.\n\n"
@@ -199,6 +202,20 @@ EMAIL_TEMPLATES = {
 }
 
 
+class _ContextoTolerante(dict):
+    """Marcador sem valor vira string vazia em vez de derrubar o envio.
+
+    O outbox guarda o CONTEXTO; o molde é código. Quando um molde ganha um
+    marcador novo (foi o caso de `{assinatura}`), as mensagens que já estavam
+    na fila não o têm — e um `KeyError` aqui não é um e-mail feio, é um e-mail
+    que nunca sai e uma task em retry até desistir.
+    """
+
+    def __missing__(self, chave: str) -> str:  # noqa: D105
+        logger.warning("molde de e-mail pediu %r, que não está no contexto", chave)
+        return ""
+
+
 @shared_task(bind=True, max_retries=5, default_retry_delay=30)
 def send_outbound_email(self, email_id: int):
     from apps.core.models import SystemConfig
@@ -219,12 +236,17 @@ def send_outbound_email(self, email_id: int):
         return
 
     template = EMAIL_TEMPLATES.get(email.template, "{body}")
+    contexto = _ContextoTolerante(email.context)
+    # não é marcador do molde de texto: é o bloco HTML da assinatura, que só
+    # existe na parte rica do e-mail (a de texto puro recebe `{assinatura}`)
+    html_extra = contexto.pop("assinatura_html", "")
     try:
         mailer.enviar(
             to=email.to_email,
             subject=email.subject,
-            body=template.format(**email.context),
+            body=template.format_map(contexto),
             config=config,
+            html_extra=html_extra,
         )
     except Exception as exc:
         email.attempts += 1

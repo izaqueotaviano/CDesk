@@ -18,6 +18,7 @@ import {
   urlApi,
 } from './linhaDoTempo'
 import type { Anexo, Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
+import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
 
 const ROTULO_VARREDURA: Record<string, string> = {
   pending: 'verificando…',
@@ -246,6 +247,7 @@ function ItemMensagem({
         ) : (
           <div className="msg__texto">
             {msg.is_deleted ? <em>Mensagem apagada</em> : renderizarCorpo(msg)}
+            {!msg.is_deleted && <AssinaturaDaMensagem html={msg.signature_html} />}
           </div>
         )}
 

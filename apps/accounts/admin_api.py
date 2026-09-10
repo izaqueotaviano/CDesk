@@ -34,7 +34,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from apps.accounts import avatars, rbac
+from apps.accounts import assinatura, avatars, rbac
 from apps.accounts.models import (
     AccessEventKind,
     AgentTeam,
@@ -284,6 +284,11 @@ class UserAdminSerializer(serializers.ModelSerializer):
             "company", "company_name", "job_title", "phone", "phone_secondary",
             "is_active", "last_login", "last_seen_at", "anonymized_at",
             "invite_status", "team_ids", "two_factor_method", "avatar_url",
+            # assinatura do rodapé das respostas: o admin edita a de qualquer
+            # agente (quem pede ajuda pra montar a própria costuma pedir a
+            # ele), com as MESMAS regras do self-service
+            "signature", "signature_kind", "signature_html", "signature_image_url",
+            "signature_render",
             # RBAC: papel personalizado e escopo por pessoa (ver rbac.py).
             "custom_role", "custom_role_name", "ticket_scope",
         ]
@@ -299,6 +304,26 @@ class UserAdminSerializer(serializers.ModelSerializer):
     custom_role_name = serializers.CharField(
         source="custom_role.name", read_only=True, default=None
     )
+    signature_render = serializers.SerializerMethodField()
+
+    def get_signature_render(self, obj) -> str:
+        """A assinatura montada — o mesmo HTML que o cliente vê. É o que a
+        prévia da tela desenha, e vir do servidor é o que garante que a
+        prévia mostre o resultado DEPOIS da higienização."""
+        return assinatura.render_html(obj)
+
+    def validate_signature_html(self, value):
+        """Guarda o HTML já higienizado. Duas linhas repetidas de
+        `ProfileUpdateSerializer` (apps/accounts/views.py), pelo mesmo motivo
+        que `avatar_url` acima."""
+        return assinatura.limpar_html(value or "")
+
+    def validate_signature_image_url(self, value):
+        if not assinatura.imagem_aceitavel(value or ""):
+            raise ValidationError(
+                "Envie a imagem pelo botão — endereço de fora não é aceito aqui."
+            )
+        return value
 
     def get_team_ids(self, obj) -> list[int]:
         # lê o prefetch da view (team_links) em vez de uma query por linha
@@ -585,6 +610,38 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         avatars.apagar(user)
         user.avatar_url = ""
         user.save(update_fields=["avatar_url"])
+        return Response(self.get_serializer(user).data)
+
+    @extend_schema(request=None, responses=UserAdminSerializer)
+    @action(detail=True, methods=["post"], permission_classes=[IsAdmin],
+            parser_classes=[MultiPartParser], url_path="assinatura-imagem")
+    def upload_assinatura(self, request, pk=None):
+        """Imagem da assinatura de OUTRA pessoa — gêmeo de
+        `POST me/assinatura-imagem/`, pelo mesmo motivo do avatar acima."""
+        user = self.get_object()
+        enviado = request.FILES.get("file")
+        if enviado is None:
+            raise ValidationError({"file": "Nenhum arquivo enviado."})
+        try:
+            url = assinatura.guardar_imagem(user, enviado)
+        except assinatura.AssinaturaInvalida as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+        user.signature_image_url = url
+        user.signature_kind = assinatura.IMAGEM
+        user.save(update_fields=["signature_image_url", "signature_kind"])
+        return Response(self.get_serializer(user).data)
+
+    @extend_schema(request=None, responses=UserAdminSerializer)
+    @upload_assinatura.mapping.delete
+    def remove_assinatura(self, request, pk=None):
+        user = self.get_object()
+        assinatura.apagar_imagem(user)
+        user.signature_image_url = ""
+        campos = ["signature_image_url"]
+        if user.signature_kind == assinatura.IMAGEM:
+            user.signature_kind = assinatura.NENHUMA
+            campos.append("signature_kind")
+        user.save(update_fields=campos)
         return Response(self.get_serializer(user).data)
 
     @action(detail=True, methods=["put"], permission_classes=[IsAdmin],

@@ -118,6 +118,10 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const [modoPublico, setPublico] = useState(true)
   // quem só pode anotar escreve em "nota interna", sem estado extra: deriva
   const publico = podePublico && modoPublico
+  // Nota interna não leva assinatura (ninguém assina um bilhete para a
+  // própria equipe) e quem não configurou uma não vê a opção — o servidor
+  // segura as duas regras de qualquer forma.
+  const podeAssinar = interno && publico && !!me?.signature_render
   const [texto, setTexto] = useState(rascunhoInicial)
   const [status, setStatus] = useState<StatusTicket>(() => statusInicialAoEnviar(ticket.status))
   // Mudanças vindas de fora (status do ticket por realtime; "Reabrir…" no
@@ -156,6 +160,10 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const [inicioSolucao, setInicioSolucao] = useState(() => paraDatetimeLocal(ticket.created_at))
   const [fimSolucao, setFimSolucao] = useState(() => paraDatetimeLocal(new Date().toISOString()))
   const [notaFechamento, setNotaFechamento] = useState('')
+  // Assinatura: ligada por padrão para quem tem uma configurada — é o
+  // comportamento de cliente de e-mail, e é o que a pessoa quis dizer ao
+  // cadastrá-la. Desmarcar vale só para esta mensagem.
+  const [assinar, setAssinar] = useState(true)
 
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const inputAnexo = useRef<HTMLInputElement>(null)
@@ -271,6 +279,9 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
       {
         body: corpoDaMensagem,
         is_public: publico,
+        // a assinatura NÃO entra no corpo: o servidor a desenha abaixo dele,
+        // a partir do perfil (apps/accounts/assinatura.py)
+        with_signature: assinar && podeAssinar,
         // resposta pública de agente exige status; nota interna não manda status
         ...(publico && interno ? { new_status: status } : {}),
         ...(vaiFechar
@@ -551,6 +562,27 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
         <p id={idErro} className="compositor__erro" role="alert">
           <i className="ti ti-alert-circle" aria-hidden="true" /> {erro}
         </p>
+      )}
+
+      {podeAssinar && (
+        <div className="compositor__assinatura">
+          <label className="compositor__assinatura-toggle">
+            <input
+              type="checkbox"
+              checked={assinar}
+              onChange={(e) => setAssinar(e.target.checked)}
+            />
+            Incluir minha assinatura
+          </label>
+          {/* a prévia evita a surpresa de descobrir o rodapé depois de enviado;
+              o HTML já vem higienizado do servidor (`signature_render`) */}
+          {assinar && (
+            <div
+              className="compositor__assinatura-previa assinatura-mensagem"
+              dangerouslySetInnerHTML={{ __html: me?.signature_render ?? '' }}
+            />
+          )}
+        </div>
       )}
 
       <div className="compositor__rodape">

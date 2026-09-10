@@ -95,6 +95,9 @@ export interface DadosResposta {
   resolution_started_at?: string
   resolution_ended_at?: string
   close_note?: string
+  /** A assinatura do agente entra no rodapé desta mensagem? Ela NÃO vai no
+   *  `body` — o servidor a desenha a partir do perfil (apps/accounts/assinatura.py). */
+  with_signature?: boolean
   files?: File[]
 }
 

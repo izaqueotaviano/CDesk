@@ -66,6 +66,12 @@ const ME = {
   is_admin: true,
   teams: ['suporte'],
   signature: 'Samuel — Suporte Resolv',
+  signature_kind: 'texto' as const,
+  signature_html: '',
+  signature_image_url: '',
+  // é o bloco pronto do servidor que a tela mostra e usa para decidir se
+  // oferece "incluir minha assinatura"
+  signature_render: 'Samuel — Suporte Resolv',
   // Admin recebe TODO o catálogo por construção (apps/accounts/rbac.py
   // `_ADMIN_PERMS`) — sem isto o mock mentia um admin sem
   // `ticket.edit_properties`, permissão que qualquer admin real tem.
@@ -362,7 +368,7 @@ describe('PaginaNovoTicket', () => {
     expect(screen.getByLabelText('Prioridade')).toHaveValue('high')
   })
 
-  it('envia o chamado com assinatura e cai no detalhe', async () => {
+  it('envia o chamado assinado — a assinatura vai como marca, não colada no texto', async () => {
     abrirMock.mockResolvedValue({ ticket: { id: 42, reference: 'TD-00042' }, pendencias: [] })
     montar()
 
@@ -382,7 +388,11 @@ describe('PaginaNovoTicket', () => {
       requester_id: 2,
       subject: 'Boleto errado',
       priority: 'normal',
-      body: 'Olá, segue o boleto.\n\n--\nSamuel — Suporte Resolv',
+      // o corpo é só o que a pessoa escreveu: quem desenha o rodapé é o
+      // servidor, a partir do perfil (apps/accounts/assinatura.py) — foi o
+      // que permitiu assinatura em imagem e em HTML
+      body: 'Olá, segue o boleto.',
+      with_signature: true,
       category_id: null,
       assignee_id: null,
       tag_ids: [],

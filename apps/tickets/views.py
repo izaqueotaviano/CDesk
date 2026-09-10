@@ -407,6 +407,7 @@ class TicketViewSet(viewsets.GenericViewSet):
                 category=data.get("category"),
                 order_number=data.get("order_number", ""),
                 actor=request.user,
+                with_signature=data.get("with_signature", False),
             )
         except QuotaExceeded as exc:
             # 422 com dados para a mensagem clara exigida pelo requisito
@@ -603,6 +604,7 @@ class TicketViewSet(viewsets.GenericViewSet):
                 resolution_started_at=data.get("resolution_started_at"),
                 resolution_ended_at=data.get("resolution_ended_at"),
                 close_note=data.get("close_note", ""),
+                with_signature=data.get("with_signature", False),
             )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc

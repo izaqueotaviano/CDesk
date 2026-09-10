@@ -14,6 +14,8 @@ from apps.accounts.admin_api import (
     UserAdminViewSet,
 )
 from apps.accounts.views import (
+    AssinaturaFileView,
+    AssinaturaImagemView,
     AvatarFileView,
     AvatarUploadView,
     DefinirSenhaView,
@@ -170,6 +172,10 @@ urlpatterns = router.urls + [
     path("auth/me/", MeView.as_view(), name="auth-me"),
     path("me/avatar/", AvatarUploadView.as_view(), name="my-avatar"),
     path("avatars/<str:nome>", AvatarFileView.as_view(), name="avatar-file"),
+    path("me/assinatura-imagem/", AssinaturaImagemView.as_view(), name="my-signature-image"),
+    # sem sessão de propósito: esta URL vai dentro do e-mail do cliente
+    # (ver AssinaturaFileView)
+    path("assinaturas/<str:nome>", AssinaturaFileView.as_view(), name="signature-file"),
     path("me/password/", MyPasswordView.as_view(), name="my-password"),
     path("me/sessions/", MySessionsView.as_view(), name="my-sessions"),
     path("me/sessions/<str:key>/", MySessionRevokeView.as_view(), name="my-session-revoke"),

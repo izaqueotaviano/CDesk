@@ -23,7 +23,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.accounts import rbac
+from apps.accounts import assinatura, rbac
 from apps.core.models import TimeStampedModel
 
 
@@ -314,7 +314,16 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     # --- preferências da própria conta (Lacuna 5) ---
     # Editáveis pelo próprio usuário em "Minha conta", nunca pela admin global.
-    signature = models.TextField(blank=True)  # assinatura padrão de resposta
+    # Assinatura do rodapé das respostas, em uma de três formas — ver
+    # `apps/accounts/assinatura.py`, que é quem higieniza e renderiza. O campo
+    # `signature` (texto puro) é o mais antigo dos três e continua sendo o
+    # conteúdo da forma "texto"; `signature_kind` vazio = sem assinatura.
+    signature = models.TextField(blank=True)
+    signature_kind = models.CharField(
+        max_length=10, blank=True, default="", choices=assinatura.FORMAS
+    )
+    signature_html = models.TextField(blank=True)
+    signature_image_url = models.CharField(max_length=300, blank=True)
     ui_language = models.CharField(max_length=10, default="pt-br")
     # Altura da linha nas listagens. VAZIO É "automático", e não um esquecimento:
     # quem atende vive na fila e precisa comparar vários chamados de uma vez

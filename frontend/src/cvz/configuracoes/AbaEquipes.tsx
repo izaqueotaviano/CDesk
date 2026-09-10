@@ -23,6 +23,7 @@ import { useMe } from '@/api/queries/useMe'
 import { useAgentes } from '@/cvz/tickets/dados'
 import { AcoesAgenteCfg } from './AcoesAgenteCfg'
 import { ModalAdicionarAgente } from './ModalAdicionarAgente'
+import { ModalAssinaturaAgente } from './ModalAssinaturaAgente'
 import { ModalHistoricoAcessoAgente } from './ModalHistoricoAcessoAgente'
 import {
   useAtualizarEquipeCfg,
@@ -61,6 +62,7 @@ export function AbaEquipes() {
   const [equipeEmEdicao, setEquipeEmEdicao] = useState<EquipeCfg | null>(null)
   const [equipeParaAdicionarAgente, setEquipeParaAdicionarAgente] = useState<EquipeRosterCfg | null>(null)
   const [agenteHistorico, setAgenteHistorico] = useState<AgenteCfg | null>(null)
+  const [agenteAssinatura, setAgenteAssinatura] = useState<AgenteCfg | null>(null)
   const [agenteEquipes, setAgenteEquipes] = useState<AgenteCfg | null>(null)
 
   const nomeAgente = useMemo(() => {
@@ -131,7 +133,12 @@ export function AbaEquipes() {
         header: '',
         mobile: 'hidden',
         render: (a) => (
-          <AcoesAgenteCfg agente={a} onVerHistorico={setAgenteHistorico} onEditarEquipes={setAgenteEquipes} />
+          <AcoesAgenteCfg
+            agente={a}
+            onVerHistorico={setAgenteHistorico}
+            onEditarEquipes={setAgenteEquipes}
+            onEditarAssinatura={setAgenteAssinatura}
+          />
         ),
       },
     ],
@@ -246,6 +253,7 @@ export function AbaEquipes() {
       />
 
       <ModalHistoricoAcessoAgente agente={agenteHistorico} onClose={() => setAgenteHistorico(null)} />
+      <ModalAssinaturaAgente agente={agenteAssinatura} onClose={() => setAgenteAssinatura(null)} />
 
       <ModalEquipesAgente
         agente={agenteEquipes}

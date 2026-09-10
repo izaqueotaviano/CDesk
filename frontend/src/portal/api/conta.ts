@@ -16,6 +16,17 @@ export interface PerfilEscrita {
   phone?: string
 }
 
+/** Assinatura do rodapé das respostas. Tipo próprio, e não mais três campos
+ *  opcionais em `PerfilEscrita`: a tela de dados pessoais usa
+ *  `Required<PerfilEscrita>` como "os campos do formulário", e ela não tem
+ *  nada a ver com assinatura. A imagem entra por `useEnviarImagemAssinatura`
+ *  (multipart), não por aqui. */
+export interface AssinaturaEscrita {
+  signature_kind: '' | 'texto' | 'html' | 'imagem'
+  signature: string
+  signature_html: string
+}
+
 export interface MinhaEmpresa {
   id: number
   name: string
@@ -102,7 +113,8 @@ function useGravarMe() {
 export function useAtualizarPerfil() {
   const gravar = useGravarMe()
   return useMutation({
-    mutationFn: (dados: PerfilEscrita) => api.patch<Me>('/api/v1/auth/me/', dados),
+    mutationFn: (dados: PerfilEscrita | AssinaturaEscrita) =>
+      api.patch<Me>('/api/v1/auth/me/', dados),
     onSuccess: gravar,
   })
 }
@@ -115,6 +127,29 @@ export function useEnviarAvatar() {
       fd.append('file', arquivo)
       return api.post<Me>('/api/v1/me/avatar/', fd)
     },
+    onSuccess: gravar,
+  })
+}
+
+export function useEnviarImagemAssinatura() {
+  const gravar = useGravarMe()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      // enviar a imagem também LIGA a forma "imagem" no servidor: mandar uma
+      // assinatura e ela não aparecer seria o resultado mais surpreendente
+      // possível de um botão chamado "Enviar imagem"
+      return api.post<Me>('/api/v1/me/assinatura-imagem/', fd)
+    },
+    onSuccess: gravar,
+  })
+}
+
+export function useRemoverImagemAssinatura() {
+  const gravar = useGravarMe()
+  return useMutation({
+    mutationFn: () => api.delete<Me>('/api/v1/me/assinatura-imagem/'),
     onSuccess: gravar,
   })
 }

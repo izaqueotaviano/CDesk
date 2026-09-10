@@ -86,10 +86,12 @@ export function AcoesAgenteCfg({
   agente,
   onVerHistorico,
   onEditarEquipes,
+  onEditarAssinatura,
 }: {
   agente: AgenteCfg
   onVerHistorico: (agente: AgenteCfg) => void
   onEditarEquipes: (agente: AgenteCfg) => void
+  onEditarAssinatura: (agente: AgenteCfg) => void
 }) {
   const { push } = useToast()
   const reenviarConvite = useReenviarConviteAgente(agente.id)
@@ -289,6 +291,17 @@ export function AcoesAgenteCfg({
                 Resetar verificação em duas etapas
               </button>
             )}
+            <button
+              type="button"
+              role="menuitem"
+              className="cfg-roster__menu-item"
+              onClick={() => {
+                fechar()
+                onEditarAssinatura(agente)
+              }}
+            >
+              Assinatura das respostas
+            </button>
             <button
               type="button"
               role="menuitem"

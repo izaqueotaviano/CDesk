@@ -452,7 +452,7 @@ class TestLixeira:
         assert minha.deleted_at is not None
 
     def test_apagada_some_da_lista_padrao(self, agente_suporte, api):
-        minha = nota(agente_suporte, deleted_at=timezone.now())
+        nota(agente_suporte, deleted_at=timezone.now())
         cliente = api(agente_suporte)
 
         assert corpo(cliente.get(URL)) == []
@@ -477,7 +477,8 @@ class TestLixeira:
         minha = nota(agente_suporte, deleted_at=timezone.now())
         cliente = api(agente_suporte)
 
-        assert cliente.patch(f"{URL}{minha.pk}/", {"title": "novo"}, format="json").status_code == 404
+        patch = cliente.patch(f"{URL}{minha.pk}/", {"title": "novo"}, format="json")
+        assert patch.status_code == 404
         assert cliente.delete(f"{URL}{minha.pk}/").status_code == 404
 
     def test_restore_traz_de_volta(self, agente_suporte, api):

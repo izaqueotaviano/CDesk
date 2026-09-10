@@ -53,10 +53,6 @@ const PRIORIDADES: Prioridade[] = ['low', 'normal', 'high', 'urgent']
 const TIPOS_ACEITOS =
   'image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,text/csv,application/zip,.docx,.xlsx,.pptx'
 
-/** Separa o que a pessoa escreveu da assinatura — e permite validar só o
- *  texto (a assinatura sozinha não conta como "mensagem preenchida"). */
-const SEP_ASSINATURA = '\n\n--\n'
-
 /** Só o que o aviso de duplicidade (abaixo) mostra. */
 interface ChamadoResumo {
   id: number
@@ -432,7 +428,12 @@ export function PaginaNovoTicket() {
   const semEquipeRef = useRef<HTMLDivElement>(null)
   const enviadoRef = useRef(false)
 
-  const assinatura = (me?.signature ?? '').trim()
+  // A assinatura JÁ MONTADA pelo servidor (texto, HTML ou imagem — ver
+  // apps/accounts/assinatura.py). Ela não entra mais no corpo da mensagem:
+  // vai como `with_signature`, e o servidor a desenha abaixo do texto. Colar
+  // no corpo funcionava enquanto assinatura era só texto; com imagem e HTML,
+  // o cliente veria marcação crua no portal.
+  const assinatura = me?.signature_render ?? ''
 
   const ids = {
     equipe: `${idBase}-equipe`,
@@ -814,10 +815,7 @@ export function PaginaNovoTicket() {
       return
     }
 
-    const corpo =
-      assinaturaLigada && assinatura
-        ? `${texto.trim()}${SEP_ASSINATURA}${assinatura}`
-        : texto.trim()
+    const corpo = texto.trim()
 
     try {
       const { ticket, pendencias } = await abrir.mutateAsync({
@@ -829,6 +827,7 @@ export function PaginaNovoTicket() {
         category_id: categoriaId ? Number(categoriaId) : null,
         order_number: numeroPedido.trim(),
         arquivos: anexos,
+        with_signature: assinaturaLigada && !!assinatura,
         // Guarda mesmo sem controle na tela: um rascunho gravado enquanto a
         // pessoa TINHA a permissão (perfil trocado depois) não pode enviar,
         // por baixo dos panos, um campo que a tela agora nem mostra.
@@ -1489,7 +1488,14 @@ export function PaginaNovoTicket() {
                   />
                   Incluir minha assinatura
                 </label>
-                {assinaturaLigada && <pre className="novo__assinatura-previa">{assinatura}</pre>}
+                {/* prévia do que o cliente vai ver; o HTML vem higienizado do
+                    servidor (`signature_render`) */}
+                {assinaturaLigada && (
+                  <div
+                    className="novo__assinatura-previa assinatura-mensagem"
+                    dangerouslySetInnerHTML={{ __html: assinatura }}
+                  />
+                )}
               </div>
             )}
 
