@@ -107,9 +107,29 @@ export function useAutosave({
     return () => clearTimeout(t)
   }, [assinaturaAtual, atraso])
 
-  // Gravação de saída: trocar de nota ou sair da tela não pode levar junto o
-  // que foi digitado dentro da janela do debounce.
+  // Gravação de saída: trocar de nota ou fechar o modal não pode levar
+  // junto o que foi digitado dentro da janela do debounce — isto roda no
+  // DESMONTE do componente (troca de nota, fechar o modal, sair da rota).
   useEffect(() => () => void gravarRef.current(), [])
+
+  // Recarregar a aba, fechar ou digitar outra URL NÃO desmonta nada — é
+  // navegação de verdade, o `useEffect` acima nunca chega a rodar, e foi
+  // assim que a pessoa perdeu texto escrito segundos antes de apertar F5.
+  // `beforeunload` é o único aviso que esse caminho tem: dispara a gravação
+  // JÁ (não espera o resto do debounce) e pede confirmação — o navegador
+  // pausa a saída pro diálogo, e é nessa pausa que a gravação em voo tem a
+  // chance de terminar antes da aba morrer de verdade. Sem nada pendente,
+  // nem entra aqui. Mesmo idioma de `PaginaNovoTicket.tsx` (só
+  // `preventDefault`; navegador nenhum deixa customizar o texto do aviso).
+  useEffect(() => {
+    if (estado === 'ocioso' || estado === 'salvo') return
+    function aoSair(e: BeforeUnloadEvent) {
+      void gravarRef.current()
+      e.preventDefault()
+    }
+    window.addEventListener('beforeunload', aoSair)
+    return () => window.removeEventListener('beforeunload', aoSair)
+  }, [estado])
 
   return { estado, salvarAgora: () => void gravarRef.current() }
 }

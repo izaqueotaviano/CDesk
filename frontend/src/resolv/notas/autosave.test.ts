@@ -164,4 +164,74 @@ describe('useAutosave', () => {
     expect(result.current.estado).toBe('salvo')
     expect(salvar).toHaveBeenLastCalledWith({ id: 7, content: 'x' })
   })
+
+  describe('beforeunload', () => {
+    // Recarregar a aba não passa pelo `unmount` — é o caminho que faltava
+    // cobrir (achado ao vivo: texto digitado sumia num F5).
+    function dispararSaida() {
+      const evento = new Event('beforeunload', { cancelable: true })
+      window.dispatchEvent(evento)
+      return evento
+    }
+
+    it('pendente: dispara a gravação já e pede confirmação pra sair', () => {
+      const { rerender } = montar()
+      rerender({ v: { ...INICIAL, content: 'quase perdido' } })
+      act(() => void vi.advanceTimersByTime(100)) // ainda dentro do debounce
+      expect(salvar).not.toHaveBeenCalled()
+
+      const evento = dispararSaida()
+
+      expect(evento.defaultPrevented).toBe(true)
+      expect(salvar).toHaveBeenCalledWith({ id: 7, content: 'quase perdido' })
+    })
+
+    it('salvando: não manda duas vezes a mesma gravação', () => {
+      let liberar!: (v: unknown) => void
+      salvar.mockImplementationOnce(() => new Promise((r) => (liberar = r)))
+      const { rerender } = montar()
+      rerender({ v: { ...INICIAL, content: 'em voo' } })
+      act(() => void vi.advanceTimersByTime(800))
+      expect(salvar).toHaveBeenCalledTimes(1)
+
+      const evento = dispararSaida()
+
+      expect(evento.defaultPrevented).toBe(true)
+      expect(salvar).toHaveBeenCalledTimes(1)
+      liberar({})
+    })
+
+    it('salvo: nada pendente, sai sem aviso', async () => {
+      const { rerender } = montar()
+      rerender({ v: { ...INICIAL, content: 'x' } })
+      act(() => void vi.advanceTimersByTime(800))
+      await escoar()
+
+      const evento = dispararSaida()
+
+      expect(evento.defaultPrevented).toBe(false)
+    })
+
+    it('ocioso: nada foi digitado, sai sem aviso', () => {
+      montar()
+
+      const evento = dispararSaida()
+
+      expect(evento.defaultPrevented).toBe(false)
+    })
+
+    it('erro: tenta de novo e pede confirmação', async () => {
+      salvar.mockRejectedValueOnce(new Error('rede'))
+      const { rerender } = montar()
+      rerender({ v: { ...INICIAL, content: 'x' } })
+      act(() => void vi.advanceTimersByTime(800))
+      await escoar()
+      salvar.mockResolvedValue({})
+
+      const evento = dispararSaida()
+
+      expect(evento.defaultPrevented).toBe(true)
+      expect(salvar).toHaveBeenLastCalledWith({ id: 7, content: 'x' })
+    })
+  })
 })
