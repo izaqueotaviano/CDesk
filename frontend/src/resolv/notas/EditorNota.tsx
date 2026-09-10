@@ -35,6 +35,14 @@ function Campos({ nota }: { nota: Nota }) {
 
   return (
     <div className="editor-nota">
+      {nota.ticket_reference && (
+        <a className="editor-nota__chamado" href={`/chamados/${nota.ticket}`}>
+          <i className="ti ti-ticket" aria-hidden="true" />
+          {nota.ticket_reference}
+          {nota.ticket_subject ? ` — ${nota.ticket_subject}` : ''}
+        </a>
+      )}
+
       <input
         className="editor-nota__titulo"
         aria-label="Título da nota"
@@ -44,8 +52,16 @@ function Campos({ nota }: { nota: Nota }) {
         onChange={(e) => setTitle(e.target.value)}
       />
 
-      <div className="editor-nota__meta">
+      <EditorConteudo valor={content} onMudar={setContent} placeholder="Escreva aqui." />
+
+      {/* Rodapé: etiquetas à esquerda, estado do salvamento à direita — o
+       *  mesmo par que fecha a tela em qualquer editor de nota (o que muda
+       *  a organização de quem escreve, e o que confirma que já foi
+       *  guardado), sem disputar espaço com o título nem com a barra de
+       *  formatação logo acima. */}
+      <div className="editor-nota__rodape">
         <label className="editor-nota__etiquetas">
+          <i className="ti ti-tag" aria-hidden="true" />
           <span className="editor-nota__rotulo">Etiquetas</span>
           <input
             aria-label="Etiquetas da nota"
@@ -54,28 +70,19 @@ function Campos({ nota }: { nota: Nota }) {
             onChange={(e) => setEtiquetas(e.target.value)}
           />
         </label>
-        {nota.ticket_reference && (
-          <a className="editor-nota__chamado" href={`/chamados/${nota.ticket}`}>
-            <i className="ti ti-ticket" aria-hidden="true" />
-            {nota.ticket_reference}
-            {nota.ticket_subject ? ` — ${nota.ticket_subject}` : ''}
-          </a>
-        )}
+
+        <p
+          className={'editor-nota__estado' + (estado === 'erro' ? ' editor-nota__estado--erro' : '')}
+          role={estado === 'erro' ? 'alert' : 'status'}
+        >
+          {RECADO[estado]}
+          {estado === 'erro' && (
+            <button type="button" className="notas-pg__link" onClick={salvarAgora}>
+              Tentar de novo
+            </button>
+          )}
+        </p>
       </div>
-
-      <EditorConteudo valor={content} onMudar={setContent} placeholder="Escreva aqui." />
-
-      <p
-        className={'editor-nota__estado' + (estado === 'erro' ? ' editor-nota__estado--erro' : '')}
-        role={estado === 'erro' ? 'alert' : 'status'}
-      >
-        {RECADO[estado]}
-        {estado === 'erro' && (
-          <button type="button" className="notas-pg__link" onClick={salvarAgora}>
-            Tentar de novo
-          </button>
-        )}
-      </p>
     </div>
   )
 }
@@ -135,7 +142,7 @@ export function EditorNota({ notaId }: { notaId: number }) {
          *  raciocínio de `portal/ajuda/PaginaArtigo.tsx` para o artigo da
          *  central de ajuda. */}
         <div
-          className="editor-nota__corpo-lido"
+          className="ck-content editor-nota__corpo-lido"
           dangerouslySetInnerHTML={{ __html: nota.content }}
         />
       </div>

@@ -451,12 +451,34 @@ class TestLixeira:
         minha.refresh_from_db()
         assert minha.deleted_at is not None
 
-    def test_apagada_some_da_lista_e_do_detalhe(self, agente_suporte, api):
+    def test_apagada_some_da_lista_padrao(self, agente_suporte, api):
         minha = nota(agente_suporte, deleted_at=timezone.now())
         cliente = api(agente_suporte)
 
         assert corpo(cliente.get(URL)) == []
-        assert cliente.get(f"{URL}{minha.pk}/").status_code == 404
+
+    def test_apagada_continua_legivel_no_detalhe(self, agente_suporte, api):
+        """`retrieve` é a exceção que alcança a lixeira: a tela lê o corpo
+        inteiro da nota apagada (`EditorNota.tsx`, ramo `nota.is_deleted`)
+        antes de oferecer "Restaurar" — sem isto o botão nunca aparece,
+        porque o próprio `GET` que abre a tela já vinha 404."""
+        minha = nota(agente_suporte, deleted_at=timezone.now(), content="<p>lembrar disto</p>")
+        cliente = api(agente_suporte)
+
+        r = cliente.get(f"{URL}{minha.pk}/")
+
+        assert r.status_code == 200
+        assert r.json()["content"] == "<p>lembrar disto</p>"
+        assert r.json()["is_deleted"] is True
+
+    def test_apagada_nao_aceita_patch_nem_delete_de_novo(self, agente_suporte, api):
+        """`retrieve` afrouxou; escrita continua batendo na lixeira — só dá
+        para editar ou apagar de novo depois de restaurar."""
+        minha = nota(agente_suporte, deleted_at=timezone.now())
+        cliente = api(agente_suporte)
+
+        assert cliente.patch(f"{URL}{minha.pk}/", {"title": "novo"}, format="json").status_code == 404
+        assert cliente.delete(f"{URL}{minha.pk}/").status_code == 404
 
     def test_restore_traz_de_volta(self, agente_suporte, api):
         minha = nota(agente_suporte, deleted_at=timezone.now())
@@ -562,6 +584,107 @@ class TestConteudoRico:
         r = cliente.post(URL, {"title": "T", "content": html}, format="json")
 
         assert r.json()["excerpt"] == "Primeiro parágrafo. Segundo parágrafo."
+
+    def test_alinhamento_e_recuo_sobrevivem_por_classe_fixa(self, agente_suporte, api):
+        """`Alignment`/`IndentBlock`, em `EditorConteudo.tsx`, saem em classe
+        (`align-center`, `indent-2`), não no `style="text-align:…"` padrão do
+        plugin — é o que torna a allowlist enumerável em vez de exigir
+        confiar em CSS livre."""
+        cliente = api(agente_suporte)
+        html = '<p class="align-center">centro</p><p class="indent-2">recuado</p>'
+
+        r = cliente.post(URL, {"title": "T", "content": html}, format="json")
+
+        assert r.json()["content"] == html
+
+    def test_classe_fora_da_lista_some_mas_a_tag_fica(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {"title": "T", "content": '<p class="align-center evil-tracker">x</p>'},
+            format="json",
+        )
+
+        assert r.json()["content"] == '<p class="align-center">x</p>'
+
+    def test_cor_de_fonte_sobrevive_so_na_propriedade_color(self, agente_suporte, api):
+        """A paleta de `fontColor` em `EditorConteudo.tsx` cita os tokens do
+        produto (`var(--accent)` etc.) — o valor sobrevive tal qual, porque
+        quem resolve a variável é o navegador de quem lê, não quem escreveu."""
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {"title": "T", "content": '<span style="color:var(--accent)">azul</span>'},
+            format="json",
+        )
+
+        assert r.json()["content"] == '<span style="color:var(--accent)">azul</span>'
+
+    def test_propriedade_de_style_fora_de_color_nao_sobrevive(self, agente_suporte, api):
+        """`style` só entra na allowlist de `span` PORQUE `filter_style_properties`
+        restringe ao que sobra dentro dele — sem essa dupla trava, "permitir
+        style" seria permitir qualquer CSS, `url(...)` de rastreamento
+        incluso (o mesmo vetor do `<img src>` de fora)."""
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {
+                "title": "T",
+                "content": '<span style="color:red;background:url(https://fora.test/x.gif)">x</span>',
+            },
+            format="json",
+        )
+
+        assert "url(" not in r.json()["content"]
+        assert "background" not in r.json()["content"]
+        assert r.json()["content"] == '<span style="color:red">x</span>'
+
+    def test_marca_texto_sobrevive_pelos_seis_presets(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        html = '<mark class="marker-yellow">y</mark><mark class="pen-red">r</mark>'
+
+        r = cliente.post(URL, {"title": "T", "content": html}, format="json")
+
+        assert r.json()["content"] == html
+
+    def test_lista_de_tarefas_sobrevive_inteira(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        html = (
+            '<ul class="todo-list"><li><label class="todo-list__label">'
+            '<input type="checkbox" checked="checked" disabled="disabled">'
+            '<span class="todo-list__label__description">tarefa</span>'
+            "</label></li></ul>"
+        )
+
+        r = cliente.post(URL, {"title": "T", "content": html}, format="json")
+
+        assert r.json()["content"] == html
+
+    def test_checkbox_disfarcado_de_outro_input_perde_o_type(self, agente_suporte, api):
+        """Um `<input>` sobrevive mesmo sem `type="checkbox"` (o `nh3` tira o
+        atributo errado, não a tag inteira) — mas sem `name`/`value` em
+        lugar nenhum da allowlist, vira uma caixa de texto vazia e inerte:
+        não submete nada a lugar nenhum. Ruído visual na pior hipótese, não
+        um campo de senha disfarçado."""
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {"title": "T", "content": '<input type="password" name="senha" value="x">'},
+            format="json",
+        )
+
+        conteudo = r.json()["content"]
+        assert 'type="password"' not in conteudo
+        assert "name=" not in conteudo
+        assert "value=" not in conteudo
+
+    def test_sobrescrito_e_subscrito_sobrevivem(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        html = "<p>x<sup>2</sup> e H<sub>2</sub>O</p>"
+
+        r = cliente.post(URL, {"title": "T", "content": html}, format="json")
+
+        assert r.json()["content"] == html
 
 
 class TestDesempenho:

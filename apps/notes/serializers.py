@@ -14,12 +14,13 @@ Duas decisões que valem ser ditas:
 3. `content` é saneado na ESCRITA (`validate_content`), não relido saneado a
    cada GET. O corpo é HTML do editor rico da própria tela — mas a API
    aceita o campo direto por HTTP também, sem passar pelo editor nenhum, e
-   é aí que um payload malicioso chegaria. `nh3` sozinho, sem allowlist
-   customizada: os padrões do próprio `nh3` (`p`, `strong`, `em`, `u`, `s`,
-   `h1`-`h6`, `ul`/`ol`/`li`, `blockquote`, `a[href]`, ...) já cobrem tudo
-   que a barra de ferramentas produz — diferente do artigo da central de
-   ajuda (`apps.knowledge`), que precisa de `figure`/`figcaption` a mais
-   por vir do WordPress.
+   é aí que um payload malicioso chegaria. Nada aqui usa o padrão do `nh3`
+   (`ALLOWED_TAGS`/`ALLOWED_ATTRIBUTES`) por conta própria: cada tag,
+   atributo, classe e propriedade de `style` que sobrevive está listada a
+   dedo, do tamanho exato do que `EditorConteudo.tsx` consegue produzir —
+   diferente do artigo da central de ajuda (`apps.knowledge`), que precisa
+   de `figure`/`figcaption` a mais por vir do WordPress. Ver a docstring de
+   `validate_content` para o porquê de cada peça da allowlist.
 """
 
 import re
@@ -49,12 +50,67 @@ _FIM_DE_BLOCO = re.compile(r"</(p|div|li|h[1-6]|blockquote)\s*>|<br\s*/?>", re.I
 #: rastreamento — o navegador de quem abre a nota faz a requisição sozinho.
 #: `h1` fica de fora de propósito: o dropdown "Heading" do editor só oferece
 #: h2/h3/h4 (h1 é reservado pro título da própria página em toda a volta do
-#: sistema, não para o corpo de uma nota).
+#: sistema, não para o corpo de uma nota). `sub`/`sup`/`mark` são as tags que
+#: sobrescrito/subscrito e marca-texto produzem; `span`/`label`/`input`
+#: existem só para carregar atributo (cor de fonte, lista de tarefas) — sem
+#: eles nenhum texto solto muda de aparência.
 _TAGS_PERMITIDAS = {
     "p", "br", "strong", "em", "u", "s",
     "h2", "h3", "h4",
     "ul", "ol", "li",
     "blockquote", "a",
+    "sub", "sup", "mark", "span", "label", "input",
+}
+
+#: `alignment.options`/`indentBlock.classes`, em `EditorConteudo.tsx`, trocam
+#: o `style="text-align:…"`/`style="margin-left:…"` que o CKEditor usa por
+#: padrão por uma classe fixa — é o que torna alinhamento e recuo de
+#: parágrafo allowlist ENUMERÁVEL aqui, em vez de exigir confiar em CSS
+#: arbitrário. `p`/`h2`-`h4`/`li`/`blockquote` são todos os blocos que o
+#: editor deixa alinhar ou recuar.
+_CLASSES_DE_BLOCO = {
+    "align-left", "align-center", "align-right", "align-justify",
+    "indent-1", "indent-2", "indent-3",
+}
+
+#: Cada peça do saneamento de `content`, com o que ela deixa passar e por
+#: quê — `nh3.clean` recebe todas de uma vez em `validate_content`.
+#:
+#: `attributes`/`allowed_classes` são MUTUAMENTE EXCLUSIVOS por tag: listar
+#: `"class"` nos dois pro MESMO nome de tag derruba o processo inteiro (é um
+#: `panic` do lado Rust do `nh3`, não uma exceção Python capturável) — por
+#: isso nenhuma entrada abaixo repete uma tag nos dois dicionários.
+_ATRIBUTOS_PERMITIDOS = {
+    "a": {"href"},
+    # `style` só entra aqui porque `filter_style_properties`, abaixo, restringe
+    # ao que sobrevive DENTRO dele — sem essa dupla trava, "permitir style"
+    # seria permitir qualquer CSS, `url(...)` de rastreamento incluso.
+    "span": {"style"},
+    # SEM `type`/`value`/`name`: o checkbox da lista de tarefas é sempre
+    # `disabled` (não é um formulário) — `type` vem de `tag_attribute_values`
+    # abaixo, e `value`/`name` nunca aparecem em lugar nenhum da allowlist,
+    # o que barra um `<input>` virar campo de senha disfarçado. Um `<input>`
+    # sem `type="checkbox"` ainda sobrevive (o `nh3` não remove a tag
+    # inteira por causa de UM atributo errado — só o atributo) como uma
+    # caixa de texto vazia e inerte: sem `name`, não submete nada a lugar
+    # nenhum; é ruído visual na pior hipótese, não furo de segurança.
+    "input": {"disabled", "checked"},
+}
+
+#: `mark`/`ul`/`label`/`span` só têm as classes que a barra de fato produz —
+#: `marker-*`/`pen-*` são os seis presets do plugin `Highlight`; `todo-list*`
+#: é a marcação fixa que `TodoList` gera (ver `EditorConteudo.tsx`).
+_CLASSES_PERMITIDAS = {
+    "p": _CLASSES_DE_BLOCO,
+    "h2": _CLASSES_DE_BLOCO,
+    "h3": _CLASSES_DE_BLOCO,
+    "h4": _CLASSES_DE_BLOCO,
+    "li": _CLASSES_DE_BLOCO,
+    "blockquote": _CLASSES_DE_BLOCO,
+    "mark": {"marker-yellow", "marker-green", "marker-pink", "marker-blue", "pen-red", "pen-green"},
+    "ul": {"todo-list"},
+    "label": {"todo-list__label"},
+    "span": {"todo-list__label__description"},
 }
 
 
@@ -226,8 +282,39 @@ class NoteSerializer(NoteListSerializer):
         somem — é o mesmo saneamento de
         `apps.knowledge.serializers.ArticleDetailSerializer`, só que na
         escrita em vez da leitura (ver docstring do modelo).
+
+        A barra ficou mais rica que só negrito/título/lista (cor de fonte,
+        marca-texto, alinhamento, recuo, lista de tarefas, sub/sobrescrito —
+        ver `EditorConteudo.tsx`), e cada peça nova tem sua trava aqui:
+
+        - `attributes`/`allowed_classes` (não os `ALLOWED_ATTRIBUTES`
+          padrão do `nh3`): só `href` em `a`, `style` em `span` e um punhado
+          de classe fixa por tag — ver `_ATRIBUTOS_PERMITIDOS`/
+          `_CLASSES_PERMITIDAS`.
+        - `filter_style_properties={"color"}`: o `style` de `span` só
+          sobrevive na propriedade `color` — qualquer outra (`background`
+          com `url(...)` incluso, o mesmo vetor de pixel de rastreamento do
+          `<img>`) é cortada, mesmo com `style` na allowlist de atributo.
+        - `tag_attribute_values`: o `type` de `input` só sobrevive sendo
+          `"checkbox"` — outros valores (`password`, `radio`, ...) saem do
+          atributo, não do `<input>` inteiro (ver o comentário de
+          `_ATRIBUTOS_PERMITIDOS["input"]` pro porquê disso ser aceitável).
+
+        Tudo verificado direto contra o `nh3` instalado (não por memória de
+        documentação) antes de entrar aqui — inclusive um jeito de travar o
+        processo (não só uma exceção Python) que `attributes`/
+        `allowed_classes` tomam se a mesma tag aparecer nos dois pela mesma
+        `"class"`.
         """
-        return nh3.clean(html, tags=_TAGS_PERMITIDAS, link_rel="noopener noreferrer")
+        return nh3.clean(
+            html,
+            tags=_TAGS_PERMITIDAS,
+            attributes=_ATRIBUTOS_PERMITIDOS,
+            tag_attribute_values={"input": {"type": {"checkbox"}}},
+            allowed_classes=_CLASSES_PERMITIDAS,
+            filter_style_properties={"color"},
+            link_rel="noopener noreferrer",
+        )
 
     def validate_tag_names(self, nomes: list[str]) -> list[str]:
         """Descarta o vazio; recusa o que foi escrito mas não vira etiqueta.

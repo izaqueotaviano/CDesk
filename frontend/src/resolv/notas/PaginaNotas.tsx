@@ -263,48 +263,55 @@ export function PaginaNotas() {
       <section className="notas-pg__editor" aria-label="Nota aberta">
         {notaAberta ? (
           <>
-            <div className="notas-pg__acoes">
-              {notaAberta.is_deleted ? (
-                <button
-                  type="button"
-                  className="notas-pg__botao"
-                  onClick={() => restaurar.mutate(notaAberta.id)}
-                >
-                  <i className="ti ti-arrow-back-up" aria-hidden="true" /> Restaurar
-                </button>
-              ) : (
-                <>
+            <div className="notas-pg__cabecalho-editor">
+              <p className="notas-pg__migalha">
+                Notas
+                <i className="ti ti-chevron-right" aria-hidden="true" />
+                <span>{notaAberta.title || 'Sem título'}</span>
+              </p>
+              <div className="notas-pg__acoes">
+                {notaAberta.is_deleted ? (
                   <button
                     type="button"
                     className="notas-pg__botao"
-                    aria-pressed={notaAberta.is_pinned}
-                    onClick={() =>
-                      salvar.mutate({ id: notaAberta.id, is_pinned: !notaAberta.is_pinned })
-                    }
+                    onClick={() => restaurar.mutate(notaAberta.id)}
                   >
-                    <i className="ti ti-pin" aria-hidden="true" />
-                    {notaAberta.is_pinned ? 'Desafixar' : 'Fixar'}
+                    <i className="ti ti-arrow-back-up" aria-hidden="true" /> Restaurar
                   </button>
-                  <button
-                    type="button"
-                    className="notas-pg__botao"
-                    aria-pressed={notaAberta.is_archived}
-                    onClick={() =>
-                      salvar.mutate({ id: notaAberta.id, is_archived: !notaAberta.is_archived })
-                    }
-                  >
-                    <i className="ti ti-archive" aria-hidden="true" />
-                    {notaAberta.is_archived ? 'Desarquivar' : 'Arquivar'}
-                  </button>
-                  <button
-                    type="button"
-                    className="notas-pg__botao"
-                    onClick={() => excluir.mutate(notaAberta.id)}
-                  >
-                    <i className="ti ti-trash" aria-hidden="true" /> Excluir
-                  </button>
-                </>
-              )}
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="notas-pg__botao"
+                      aria-pressed={notaAberta.is_pinned}
+                      onClick={() =>
+                        salvar.mutate({ id: notaAberta.id, is_pinned: !notaAberta.is_pinned })
+                      }
+                    >
+                      <i className="ti ti-pin" aria-hidden="true" />
+                      {notaAberta.is_pinned ? 'Desafixar' : 'Fixar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="notas-pg__botao"
+                      aria-pressed={notaAberta.is_archived}
+                      onClick={() =>
+                        salvar.mutate({ id: notaAberta.id, is_archived: !notaAberta.is_archived })
+                      }
+                    >
+                      <i className="ti ti-archive" aria-hidden="true" />
+                      {notaAberta.is_archived ? 'Desarquivar' : 'Arquivar'}
+                    </button>
+                    <button
+                      type="button"
+                      className="notas-pg__botao"
+                      onClick={() => excluir.mutate(notaAberta.id)}
+                    >
+                      <i className="ti ti-trash" aria-hidden="true" /> Excluir
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             <EditorNota notaId={notaAberta.id} />
           </>

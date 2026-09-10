@@ -177,12 +177,43 @@
     padding: 14px 18px 18px;
     overflow-y: auto;
   }
+  // Migalha de pão (esquerda) + ações sobre a nota (direita) na mesma linha —
+  // o "Notas" fica fixo porque é a única coleção que esta tela tem; o título
+  // depois do "›" é o que muda de nota para nota.
+  &__cabecalho-editor {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  &__migalha {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    i {
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+  }
   &__acoes {
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--stroke);
+    flex-shrink: 0;
   }
   &__vazio {
     margin: auto;
@@ -280,18 +311,21 @@
     font-weight: 600;
     color: var(--text-primary);
   }
-  &__meta {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 12px;
-  }
+  // Ícone + rótulo pequeno + campo, tudo numa linha — o par vive no rodapé
+  // agora (ver `&__rodape`), então não precisa mais do rótulo empilhado em
+  // cima do campo como quando ficava ao lado do chip de chamado.
   &__etiquetas {
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--text-secondary);
+    > i {
+      font-size: 14px;
+      flex-shrink: 0;
+    }
     input {
-      width: 240px;
+      width: 220px;
       max-width: 100%;
       padding: 5px 8px;
       border: 1px solid var(--stroke);
@@ -349,42 +383,42 @@
     // texto com `\n` literal), então sem `white-space: pre-wrap`: o próprio
     // `<p>`/`<br>` do editor já é a quebra de linha; aparar aqui dobraria o
     // espaçamento sempre que a marcação tiver espaço entre tags.
+    //
+    // Título, lista, marca-texto, tarefa, alinhamento — tudo isso vem da
+    // classe `ck-content` que `EditorNota.tsx` acrescenta junto com esta
+    // (`className="ck-content editor-nota__corpo-lido"`): é a MESMA regra
+    // de `editorConteudo.scss` que estiliza o corpo enquanto edita, então
+    // ler e editar nunca podem discordar um do outro. Só o que é específico
+    // de TEXTO JÁ SALVO — sem cursor, sem foco — mora aqui.
     font-size: 13px;
     line-height: 1.6;
     color: var(--text-secondary);
     overflow-wrap: anywhere;
 
-    // O reset do Tailwind (`@layer base`) zera título e lista — sem isto,
-    // "<h2>Pauta</h2>" chegaria do servidor certo e apareceria na tela como
-    // texto normal, do mesmo tamanho do parágrafo ao lado (mesmo furo que
-    // `portal/ajuda/PaginaArtigo.tsx` já teve de fechar para o artigo).
     p { margin: 0 0 8px; }
     p:last-child { margin-bottom: 0; }
+    // O corpo lido é `--text-secondary` de propósito (para destoar do
+    // título, que é `--text-primary`) — sem isto o título de dentro da nota
+    // herdaria o MESMO cinza do parágrafo ao lado e perderia a ênfase que
+    // tinha enquanto a nota estava sendo editada.
     h2, h3, h4 {
-      margin: 14px 0 6px;
-      font-weight: 600;
       color: var(--text-primary);
     }
-    h2 { font-size: 15px; }
-    h3 { font-size: 14px; }
-    h4 { font-size: 13px; }
-    ul, ol {
-      margin: 0 0 8px;
-      padding-left: 20px;
-    }
-    li { margin: 2px 0; }
-    blockquote {
-      margin: 8px 0;
-      padding-left: 10px;
-      border-left: 2px solid var(--accent);
-      color: var(--text-secondary);
-    }
     a {
-      color: var(--accent);
-      text-decoration: underline;
       text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
     }
-    strong { font-weight: 600; }
+  }
+  // Etiquetas à esquerda, estado do salvamento à direita — o par que fecha a
+  // tela, sempre visível embaixo do corpo em vez de disputar espaço com o
+  // título ou a barra de formatação.
+  &__rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    padding-top: 10px;
+    border-top: 1px solid var(--stroke);
   }
   &__estado {
     display: flex;

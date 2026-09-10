@@ -37,13 +37,21 @@ class NoteViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """O recorte de acesso, com o estado que cada ação precisa enxergar.
 
-        `restore` é a única que alcança a lixeira: todo o resto trabalha sobre
-        o que está vivo, então uma nota apagada responde 404 a `PATCH` e a
-        `GET` de detalhe — o que é a resposta certa, ela não está mais lá.
+        `restore` e o `GET` de detalhe (`retrieve`) alcançam a lixeira;
+        `PATCH`/`DELETE`/etc. não — uma nota apagada responde 404 a essas, o
+        que é a resposta certa, ela não é mais editável nem apagável de novo.
+        `retrieve` é a exceção porque a TELA precisa ler o corpo inteiro de
+        uma nota na lixeira antes de restaurar (`EditorNota.tsx`, o ramo
+        `nota.is_deleted`) — sem isto o próprio botão "Restaurar" nunca
+        aparece: o `GET` que o abre já vinha 404 antes de a tela decidir o
+        que mostrar. Continua raspado por dono (`visible_notes`), só a régua
+        viva/lixeira que afrouxa aqui.
         """
         base = selectors.visible_notes(self.request.user)
         if self.action == "restore":
             return base.trashed()
+        if self.action == "retrieve":
+            return base
         if self.action == "list":
             return self._filtrar(base)
         return base.alive()
