@@ -6,6 +6,18 @@ ENV PYTHONUNBUFFERED=1 \
 
 # libmagic: validação de anexo por magic bytes, não por extensão (D13)
 # pango: renderização de PDF pelo WeasyPrint (exportação de relatórios)
+# Cliente do PostgreSQL 16 — o pg_dump/psql que Configurações → Backup usa
+# (apps/ferramentas/backup.py). Precisa ser a MESMA versão maior do servidor
+# (docker-compose: postgres:16): pg_dump mais antigo que o servidor recusa
+# rodar. Vem do repositório oficial (PGDG) porque o da distro pode não ser 16.
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+       -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(. /etc/os-release && echo "$VERSION_CODENAME")-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get purge -y --auto-remove curl gnupg && rm -rf /var/lib/apt/lists/*
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         libpq-dev \

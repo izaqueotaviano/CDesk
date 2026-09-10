@@ -1,9 +1,11 @@
 import { useSearchParams } from 'react-router-dom'
 import { PageHeader, Tabs } from '@/cvz/components'
+import { AbaBackup } from './AbaBackup'
 import { AbaCalendarios } from './AbaCalendarios'
 import { AbaCategorias } from './AbaCategorias'
 import { AbaChat } from './AbaChat'
 import { AbaEquipes } from './AbaEquipes'
+import { AbaImportar } from './AbaImportar'
 import { AbaModeracao } from './AbaModeracao'
 import { AbaPapeis } from './AbaPapeis'
 import { AbaPlanos } from './AbaPlanos'
@@ -29,6 +31,8 @@ const ABAS = [
   'chat',
   'moderacao',
   'login',
+  'importar',
+  'backup',
 ] as const
 const ABA_PADRAO = ABAS[0]
 
@@ -88,6 +92,11 @@ export function PaginaConfiguracoes() {
           { id: 'moderacao', label: 'Moderação', content: <AbaModeracao /> },
           // Textos e imagem do painel da tela de login, por público.
           { id: 'login', label: 'Tela de login', content: <AbaTelaDeLogin /> },
+          // Ferramentas de administração (apps/ferramentas): trazer os tickets
+          // do Movidesk pela API, e o backup/restauração do banco. Por último
+          // porque não são cadastro nem parâmetro — são operações.
+          { id: 'importar', label: 'Importar', content: <AbaImportar /> },
+          { id: 'backup', label: 'Backup', content: <AbaBackup /> },
         ]}
       />
     </>

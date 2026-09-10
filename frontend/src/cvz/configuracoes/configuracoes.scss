@@ -430,3 +430,142 @@
     opacity: 0.9;
   }
 }
+
+// ── Ferramentas: Importar (Movidesk) e Backup ─────────────────────────────
+// O console de um trabalho — estado, barra e o log ao vivo. Compartilhado
+// pelas duas abas (ConsoleDeTrabalho.tsx).
+.cfg-console {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  padding: $sp-4;
+  border: $border;
+  border-radius: $radius;
+  background: $surface;
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    flex-wrap: wrap;
+  }
+  &__titulo {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex-wrap: wrap;
+  }
+  &__quando {
+    color: $text-muted;
+    font-size: $fs-meta;
+  }
+  &__etapa {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $fs-meta;
+  }
+  &__erro {
+    margin: 0;
+    padding: $sp-2 $sp-3;
+    border-radius: $radius;
+    background: $danger-tint;
+    color: $danger;
+    font-size: $fs-meta;
+  }
+  // Monoespaçado e com teto de altura: o log de uma base inteira tem
+  // centenas de linhas — rola dentro da caixa, não empurra a página.
+  &__log {
+    margin: 0;
+    padding: $sp-3;
+    max-height: 320px;
+    overflow-y: auto;
+    list-style: none;
+    border-radius: $radius;
+    background: $chrome;
+    font-family: $f-mono;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  &__linha {
+    white-space: pre-wrap;
+    word-break: break-word;
+    time {
+      margin-right: $sp-2;
+      color: $text-muted;
+    }
+    &--aviso { color: $away; }
+    &--erro { color: $danger; }
+  }
+}
+
+.cfg-importar {
+  &__resumo {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    align-items: flex-start;
+  }
+  &__contadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: $sp-3;
+    width: 100%;
+    margin: 0;
+    > div {
+      padding: $sp-3;
+      border: $border;
+      border-radius: $radius;
+      background: $surface;
+    }
+    dt { font-size: $fs-meta; color: $text-muted; }
+    dd { margin: $sp-1 0 0; font-size: 20px; font-weight: 600; }
+  }
+  &__avisos {
+    margin: 0;
+    padding: $sp-3 $sp-3 $sp-3 $sp-6;
+    width: 100%;
+    border-radius: $radius;
+    background: $away-tint;
+    color: $text;
+    font-size: $fs-meta;
+    li + li { margin-top: $sp-1; }
+  }
+  &__historico {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    li {
+      display: grid;
+      grid-template-columns: 1fr auto 2fr;
+      gap: $sp-3;
+      padding: $sp-2 0;
+      border-bottom: $border;
+      font-size: $fs-meta;
+      color: $text-secondary;
+      &:last-child { border-bottom: 0; }
+    }
+  }
+}
+
+.cfg-backup {
+  &__nome {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-2;
+    flex-wrap: wrap;
+    code { font-family: $f-mono; font-size: 12px; }
+  }
+  &__acoes {
+    display: inline-flex;
+    gap: $sp-1;
+    white-space: nowrap;
+  }
+  &__nota {
+    margin: 0;
+    font-size: $fs-meta;
+    color: $text-secondary;
+  }
+}

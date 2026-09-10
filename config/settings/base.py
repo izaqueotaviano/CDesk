@@ -70,6 +70,7 @@ LOCAL_APPS = [
     "apps.reports",
     "apps.knowledge",
     "apps.notes",
+    "apps.ferramentas",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -551,6 +552,17 @@ RETENTION_REQUIRE_REVIEWED_DRY_RUN = env.bool(
 # do qual um restore pode ressuscitar dado já anonimizado (ver
 # `manage.py reapply_lgpd`).
 BACKUP_ROTATION_DAYS = env.int("BACKUP_ROTATION_DAYS", default=30)
+
+# Onde os backups ficam — o mesmo diretório que scripts/backup_postgres.sh e
+# o timer do systemd usam em produção (/var/backups/resolv), pra tela de
+# Configurações → Backup listar os dois na mesma lista. Em dev cai numa pasta
+# do projeto (ignorada pelo git).
+BACKUP_DIR = env("BACKUP_DIR", default=str(BASE_DIR / "backups"))
+
+# Token da API do Movidesk pra Configurações → Importar. Opcional: a tela
+# também aceita o token digitado na hora (que não é gravado em lugar nenhum).
+# Este é o "deixa fixo no servidor" de quem vai importar várias vezes.
+MOVIDESK_TOKEN = env("MOVIDESK_TOKEN", default="")
 RETENTION_DAYS = {
     "ticket_after_close": 365 * 5,
     # Mesmo prazo do ticket: a conversa de chat é o mesmo tipo de registro de

@@ -41,6 +41,7 @@ from __future__ import annotations
 import datetime as dt
 import html
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from django.db import transaction
@@ -406,10 +407,17 @@ def import_tickets(
     team: Team,
     plan: Plan,
     limit: int | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> ImportReport:
-    """Importa (ou atualiza) os tickets. Cada um em sua própria transação."""
+    """Importa (ou atualiza) os tickets. Cada um em sua própria transação.
+
+    `on_progress(feitos, total)` é chamado depois de cada ticket — é o que a
+    tela de Configurações → Importar usa pra barra de progresso; a linha de
+    comando não passa nada.
+    """
     report = ImportReport()
     selecionados = most_recent(tickets, limit)
+    total = len(selecionados)
     directory = _Directory(
         plan, report,
         agent_names={
@@ -417,14 +425,16 @@ def import_tickets(
         },
     )
 
-    for raw in selecionados:
+    for i, raw in enumerate(selecionados, start=1):
         movidesk_id = raw.get("id")
         if movidesk_id in (None, ""):
             report.skipped += 1
             report.warnings.append("ticket sem id no arquivo — ignorado")
-            continue
-        with transaction.atomic():
-            _import_one(raw, movidesk_id, directory, team, report)
+        else:
+            with transaction.atomic():
+                _import_one(raw, movidesk_id, directory, team, report)
+        if on_progress is not None:
+            on_progress(i, total)
 
     return report
 

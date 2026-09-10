@@ -4,7 +4,7 @@ Organização: recursos operacionais na raiz, configuração sob `settings/`
 (telas de admin) e trilhas sob `audit/`.
 """
 
-from django.urls import path
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from apps.accounts.admin_api import (
@@ -193,6 +193,8 @@ urlpatterns = router.urls + [
          name="cfg-branding-login-audience"),
     path("settings/branding/login/<str:audience>/image/",
          LoginBrandingImageAdminView.as_view(), name="cfg-branding-login-image"),
+    # Configurações → Importar (Movidesk) e → Backup — só admin, ver apps/ferramentas
+    path("ferramentas/", include("apps.ferramentas.urls")),
     path("search/", GlobalSearchView.as_view(), name="global-search"),
     # LGPD: self-service do titular e download do pacote de portabilidade
     path("me/data-requests/", MyDataRequestView.as_view(), name="my-data-requests"),

@@ -39,3 +39,6 @@ dump.rdb
 # clone do plugin superpowers (repo de terceiro, com .git próprio) — mora
 # aqui só por conveniência de desenvolvimento, não faz parte do produto
 superpowers/
+
+# Configurações → Backup (dev): dumps do banco, nunca versionados
+backups/
