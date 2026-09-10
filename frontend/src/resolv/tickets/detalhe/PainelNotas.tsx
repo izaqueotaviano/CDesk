@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAcoesNota, useNota, useNotas, type NotaResumo } from '@/api/notas'
+import { EditorConteudo } from '../../notas/EditorConteudo'
 import { tempoRelativo } from './linhaDoTempo'
 
 /**
@@ -13,9 +14,13 @@ import { tempoRelativo } from './linhaDoTempo'
  * Sem autosave de propósito. O autosave é da tela `/notas`, onde a pessoa
  * senta para escrever; aqui a nota nasce no meio do atendimento, e um
  * "Salvar" explícito é o que evita rascunho pela metade virar registro.
+ *
+ * O corpo usa o mesmo `EditorConteudo` (CKEditor) da tela cheia — não um
+ * `<textarea>` à parte. Os dois editam o mesmo campo HTML; se este painel
+ * ainda fosse texto puro, abrir aqui uma nota formatada na tela cheia
+ * mostraria as tags cruas, e salvar de volta corromperia a formatação.
  */
 
-const CORPO_MAX = 50_000
 const TITULO_MAX = 200
 
 /**
@@ -119,14 +124,10 @@ function FormularioDeNota({
         value={rascunho.title}
         onChange={(e) => setRascunho({ ...rascunho, title: e.target.value })}
       />
-      <textarea
-        className="notas__corpo-campo"
+      <EditorConteudo
+        valor={rascunho.content}
+        onMudar={(content) => setRascunho((r) => ({ ...r, content }))}
         placeholder="O que você precisa lembrar sobre este chamado…"
-        aria-label="Conteúdo da nota"
-        maxLength={CORPO_MAX}
-        rows={5}
-        value={rascunho.content}
-        onChange={(e) => setRascunho({ ...rascunho, content: e.target.value })}
       />
       {erro && (
         <p className="notas__erro" role="alert">
@@ -166,8 +167,9 @@ function Cartao({
         <h3 className="notas__item-titulo">{nota.title}</h3>
         <span className="notas__item-quando">{tempoRelativo(nota.updated_at, agoraMs)}</span>
       </div>
-      {/* Texto puro: renderizado como nó de texto pelo React, nunca como HTML
-       *  — é esse contrato (e não um filtro no backend) que fecha o XSS. */}
+      {/* `excerpt` é o corpo SEM marcação (o backend já tira as tags para a
+       *  prévia — `apps.notes.serializers._texto_simples`); ainda é texto
+       *  puro, renderizado como nó de texto, mesmo com `content` sendo HTML. */}
       {nota.excerpt && <p className="notas__item-corpo">{nota.excerpt}</p>}
       {nota.tags.length > 0 && (
         <ul className="notas__etiquetas">

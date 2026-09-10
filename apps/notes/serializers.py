@@ -10,8 +10,21 @@ Duas decisões que valem ser ditas:
    São nomes de campo diferentes de propósito: o mesmo nome servindo aos dois
    lados exigiria um campo que muda de tipo conforme a direção, e a tela de
    edição precisa mesmo mandar texto ("Urgente") sem saber de id nenhum.
+
+3. `content` é saneado na ESCRITA (`validate_content`), não relido saneado a
+   cada GET. O corpo é HTML do editor rico da própria tela — mas a API
+   aceita o campo direto por HTTP também, sem passar pelo editor nenhum, e
+   é aí que um payload malicioso chegaria. `nh3` sozinho, sem allowlist
+   customizada: os padrões do próprio `nh3` (`p`, `strong`, `em`, `u`, `s`,
+   `h1`-`h6`, `ul`/`ol`/`li`, `blockquote`, `a[href]`, ...) já cobrem tudo
+   que a barra de ferramentas produz — diferente do artigo da central de
+   ajuda (`apps.knowledge`), que precisa de `figure`/`figcaption` a mais
+   por vir do WordPress.
 """
 
+import re
+
+import nh3
 from rest_framework import serializers
 
 from apps.notes.models import CONTENT_MAX_LENGTH, Note, NoteTag
@@ -22,6 +35,41 @@ from apps.tickets.selectors import visible_ticket_or_none, visible_tickets
 #: mostra prévia, e mandar 50 mil caracteres por linha para desenhar duas é
 #: desperdício de banda em toda página.
 EXCERPT_LENGTH = 180
+
+#: Fim de bloco no HTML do editor — vira espaço antes de tirar a marcação em
+#: `_texto_simples`, para o texto de dois parágrafos não colar numa palavra só.
+_FIM_DE_BLOCO = re.compile(r"</(p|div|li|h[1-6]|blockquote)\s*>|<br\s*/?>", re.IGNORECASE)
+
+#: Exatamente o que `EditorConteudo.tsx` (a barra de ferramentas) consegue
+#: produzir — não o padrão inteiro do `nh3`. A allowlist genérica do `nh3`
+#: também deixa passar `<img>`, `<table>`, `<div>` e outras tags que o
+#: editor nunca gera pela UI, mas que sobreviveriam a um POST direto por
+#: HTTP (o caminho que de fato importa defender). `<img>` em especial: sem
+#: `onerror` já não executa nada, mas um `src` para fora ainda é um pixel de
+#: rastreamento — o navegador de quem abre a nota faz a requisição sozinho.
+#: `h1` fica de fora de propósito: o dropdown "Heading" do editor só oferece
+#: h2/h3/h4 (h1 é reservado pro título da própria página em toda a volta do
+#: sistema, não para o corpo de uma nota).
+_TAGS_PERMITIDAS = {
+    "p", "br", "strong", "em", "u", "s",
+    "h2", "h3", "h4",
+    "ul", "ol", "li",
+    "blockquote", "a",
+}
+
+
+def _texto_simples(html: str) -> str:
+    """O corpo sem marcação, para a prévia da lista.
+
+    `nh3.clean(html, tags=set())` tira toda tag mas cola o texto de blocos
+    diferentes sem espaço entre eles ("primeiro parágrafosegundo parágrafo"
+    em vez de "primeiro parágrafo segundo parágrafo"). Por isso o fim de
+    cada bloco vira espaço ANTES de tirar a marcação — o espaço duplicado
+    que isso cria é normalizado depois, pelo `" ".join(...split())` de quem
+    chama.
+    """
+    com_respiro = _FIM_DE_BLOCO.sub(" ", html)
+    return nh3.clean(com_respiro, tags=set())
 
 
 class ChamadoVisivelField(serializers.PrimaryKeyRelatedField):
@@ -77,7 +125,7 @@ class NoteListSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_excerpt(self, obj) -> str:
-        corpo = " ".join(obj.content.split())
+        corpo = " ".join(_texto_simples(obj.content).split())
         return corpo[:EXCERPT_LENGTH]
 
     def _chamado_visivel(self, obj) -> bool:
@@ -124,16 +172,12 @@ class NoteSerializer(NoteListSerializer):
     title = serializers.CharField(max_length=200, allow_blank=True, trim_whitespace=False)
 
     # TEXTO PURO, guardado e devolvido tal qual — sem `nh3`, sem escape.
-    # Não é descuido: o projeto não tem editor de texto rico, e sanear texto
-    # puro corrompe ("a < b" viraria "a &lt; b" na nota de quem escreveu
-    # código). A defesa contra XSS é a tela renderizar como texto (nó de
-    # texto do React), NUNCA como HTML — contrato que o teste
-    # `TestTextoPuro` deixa explícito para quem for fazer a tela.
+    # A tela manda o HTML do editor rico. Sem `trim_whitespace`: o editor
+    # sempre entrega tags fechadas (nunca "  " puro), então aparar aqui não
+    # tem o que proteger e só arriscaria cortar espaço intencional dentro de
+    # uma tag — o saneamento de verdade é `validate_content`, abaixo.
     content = serializers.CharField(
         required=False, allow_blank=True, max_length=CONTENT_MAX_LENGTH,
-        # Sem `trim_whitespace`: espaço e quebra de linha no fim são
-        # formatação de quem escreveu, e o autosave dispara no meio da
-        # digitação — aparar o texto faria o cursor pular de linha sozinho.
         trim_whitespace=False,
     )
     ticket = ChamadoVisivelField(required=False, allow_null=True)
@@ -169,6 +213,21 @@ class NoteSerializer(NoteListSerializer):
         if not valor:
             raise serializers.ValidationError("Dê um título para a nota.")
         return valor
+
+    def validate_content(self, html: str) -> str:
+        """Saneia o HTML do editor — e de quem mandar `content` direto por
+        HTTP, sem passar pelo editor nenhum, que é o caminho que de fato
+        importa defender.
+
+        Allowlist restrita a `_TAGS_PERMITIDAS` — exatamente o que a barra
+        de ferramentas produz, não o padrão genérico do `nh3` (que também
+        deixaria `<img>` passar; ver o porquê no comentário da constante).
+        `<script>`, `on*=`, `javascript:` e qualquer tag fora da lista
+        somem — é o mesmo saneamento de
+        `apps.knowledge.serializers.ArticleDetailSerializer`, só que na
+        escrita em vez da leitura (ver docstring do modelo).
+        """
+        return nh3.clean(html, tags=_TAGS_PERMITIDAS, link_rel="noopener noreferrer")
 
     def validate_tag_names(self, nomes: list[str]) -> list[str]:
         """Descarta o vazio; recusa o que foi escrito mas não vira etiqueta.

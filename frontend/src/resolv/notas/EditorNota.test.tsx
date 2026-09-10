@@ -40,6 +40,28 @@ vi.mock('./autosave', () => ({
   },
 }))
 
+// O CKEditor de verdade não monta em jsdom (depende de layout/seleção que só
+// um navegador real tem — conferido ao vivo com Playwright, não aqui). O
+// mock preserva a MESMA superfície pro teste: rótulo, valor, `onChange`.
+vi.mock('./EditorConteudo', () => ({
+  EditorConteudo: ({
+    valor,
+    onMudar,
+    placeholder,
+  }: {
+    valor: string
+    onMudar: (v: string) => void
+    placeholder?: string
+  }) => (
+    <textarea
+      aria-label="Conteúdo da nota"
+      placeholder={placeholder}
+      value={valor}
+      onChange={(e) => onMudar(e.target.value)}
+    />
+  ),
+}))
+
 beforeEach(() => {
   vi.clearAllMocks()
   detalhe = { data: nota(), isLoading: false, isError: false }
@@ -104,6 +126,18 @@ describe('EditorNota', () => {
     expect(screen.getByText(/está na lixeira/i)).toBeInTheDocument()
     // o corpo continua legível, só não editável
     expect(screen.getByText(/Ramal 2231/)).toBeInTheDocument()
+  })
+
+  it('lixeira renderiza o corpo como HTML de verdade, não como texto de tag crua', () => {
+    // `content` já chega saneado pelo backend (`nh3`, na escrita) — renderizar
+    // de novo como nó de texto mostraria "<strong>SLA</strong>" na tela em
+    // vez de "SLA" em negrito. Ver a docstring do modelo e
+    // `portal/ajuda/PaginaArtigo.tsx` para o mesmo raciocínio com artigos.
+    detalhe.data = nota({ is_deleted: true, content: '<p>Falar sobre o <strong>SLA</strong>.</p>' })
+    const { container } = render(<EditorNota notaId={7} />)
+
+    expect(container.querySelector('strong')).toHaveTextContent('SLA')
+    expect(screen.queryByText('<strong>SLA</strong>')).not.toBeInTheDocument()
   })
 
   it('mostra o chamado vinculado quando ele ainda está no meu escopo', () => {

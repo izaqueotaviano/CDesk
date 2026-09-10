@@ -345,12 +345,46 @@
     }
   }
   &__corpo-lido {
-    margin: 0;
+    // `content` é HTML de verdade agora (parágrafo, título, lista — não
+    // texto com `\n` literal), então sem `white-space: pre-wrap`: o próprio
+    // `<p>`/`<br>` do editor já é a quebra de linha; aparar aqui dobraria o
+    // espaçamento sempre que a marcação tiver espaço entre tags.
     font-size: 13px;
     line-height: 1.6;
     color: var(--text-secondary);
-    white-space: pre-wrap;
     overflow-wrap: anywhere;
+
+    // O reset do Tailwind (`@layer base`) zera título e lista — sem isto,
+    // "<h2>Pauta</h2>" chegaria do servidor certo e apareceria na tela como
+    // texto normal, do mesmo tamanho do parágrafo ao lado (mesmo furo que
+    // `portal/ajuda/PaginaArtigo.tsx` já teve de fechar para o artigo).
+    p { margin: 0 0 8px; }
+    p:last-child { margin-bottom: 0; }
+    h2, h3, h4 {
+      margin: 14px 0 6px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    h2 { font-size: 15px; }
+    h3 { font-size: 14px; }
+    h4 { font-size: 13px; }
+    ul, ol {
+      margin: 0 0 8px;
+      padding-left: 20px;
+    }
+    li { margin: 2px 0; }
+    blockquote {
+      margin: 8px 0;
+      padding-left: 10px;
+      border-left: 2px solid var(--accent);
+      color: var(--text-secondary);
+    }
+    a {
+      color: var(--accent);
+      text-decoration: underline;
+      text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent);
+    }
+    strong { font-weight: 600; }
   }
   &__estado {
     display: flex;

@@ -483,27 +483,85 @@ class TestLixeira:
         assert api(agente_suporte).post(f"{URL}{viva.pk}/restore/").status_code == 404
 
 
-class TestTextoPuro:
-    """`content` e `title` são texto puro: entram e saem tal qual.
+class TestConteudoRico:
+    """`content` é o HTML do editor rico, saneado na ESCRITA com `nh3`.
 
-    Este teste é o CONTRATO com quem fizer a tela: a API não saneia nem
-    escapa, então o corpo tem de ser renderizado como nó de texto (React
-    escapa sozinho), NUNCA via `dangerouslySetInnerHTML`. Sanear aqui
-    corromperia texto legítimo ("a < b"); escapar aqui quebraria a edição
-    (o textarea mostraria "&lt;").
+    `title` continua um campo de texto simples e não passa por saneamento
+    nenhum — só `content` mudou de contrato (a tela ganhou um editor tipo
+    Word). Este teste é o CONTRATO com quem mantiver a API: o que sobrevive
+    ao `nh3` é o que a tela pode renderizar como HTML de verdade
+    (`dangerouslySetInnerHTML`); o resto (`<script>`, `on*=`, `javascript:`)
+    tem de morrer aqui, não na hora de exibir.
     """
 
-    def test_html_entra_e_sai_tal_qual(self, agente_suporte, api):
+    def test_titulo_continua_texto_simples_sem_saneamento(self, agente_suporte, api):
         cliente = api(agente_suporte)
-        titulo = "<b>t</b>"
-        corpo_ = "if a < b && c > d: <script>alert(1)</script>"
+        titulo = "<b>não é HTML aqui</b>"
 
-        criado = cliente.post(URL, {"title": titulo, "content": corpo_}, format="json").json()
-        detalhe = cliente.get(f"{URL}{criado['id']}/").json()
+        r = cliente.post(URL, {"title": titulo, "content": ""}, format="json")
 
-        assert criado["title"] == detalhe["title"] == titulo
-        assert detalhe["content"] == corpo_
-        assert criado["excerpt"] == corpo_
+        assert r.json()["title"] == titulo
+
+    def test_formatacao_da_barra_de_ferramentas_sobrevive(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        html = (
+            "<h2>Título</h2><p>Texto <strong>forte</strong> e <em>itálico</em>, "
+            '<u>sublinhado</u>.</p><ul><li>um</li><li>dois</li></ul>'
+            '<blockquote>citação</blockquote><a href="https://x.test">link</a>'
+        )
+
+        criado = cliente.post(URL, {"title": "T", "content": html}, format="json")
+        detalhe = cliente.get(f"{URL}{criado.json()['id']}/").json()
+
+        for pedaco in ("<h2>", "<strong>", "<em>", "<u>", "<ul>", "<li>", "<blockquote>"):
+            assert pedaco in detalhe["content"], pedaco
+
+    def test_script_nao_sobrevive(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL, {"title": "T", "content": "<p>oi</p><script>alert(1)</script>"}, format="json"
+        )
+
+        assert "<script" not in r.json()["content"]
+        assert "alert" not in r.json()["content"]
+
+    def test_atributo_on_e_url_javascript_nao_sobrevivem(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {
+                "title": "T",
+                "content": '<p onclick="alert(1)">x</p><a href="javascript:alert(1)">y</a>',
+            },
+            format="json",
+        )
+
+        assert "onclick" not in r.json()["content"]
+        assert "javascript:" not in r.json()["content"]
+
+    def test_tag_que_a_barra_nao_produz_tambem_nao_sobrevive(self, agente_suporte, api):
+        """`nh3` sozinho (sem allowlist) deixaria `<img>` passar — está na
+        lista padrão dele. A barra de ferramentas não tem plugin de imagem
+        nenhum, então nem `onerror` precisa: um `<img src="https://fora">`
+        sem atributo malicioso já é pixel de rastreamento — o navegador de
+        quem ABRE a nota faz a requisição sozinho, sem clique nenhum."""
+        cliente = api(agente_suporte)
+        r = cliente.post(
+            URL,
+            {"title": "T", "content": '<p>oi</p><img src="https://fora.test/x.gif">'},
+            format="json",
+        )
+
+        assert "<img" not in r.json()["content"]
+        assert r.json()["content"] == "<p>oi</p>"
+
+    def test_excerpt_e_texto_sem_marcacao_com_espaco_entre_blocos(self, agente_suporte, api):
+        cliente = api(agente_suporte)
+        html = "<p>Primeiro parágrafo.</p><p>Segundo parágrafo.</p>"
+
+        r = cliente.post(URL, {"title": "T", "content": html}, format="json")
+
+        assert r.json()["excerpt"] == "Primeiro parágrafo. Segundo parágrafo."
 
 
 class TestDesempenho:

@@ -16,11 +16,18 @@ por `visible_to` é um vazamento, e o teste estrutural
 `ticket` é opcional e é um ATALHO, não um vínculo de propriedade: o chamado
 some, a anotação de quem trabalhou nele fica (SET_NULL).
 
-`content` é TEXTO PURO. Não é HTML nem Markdown: o projeto não tem editor de
-texto rico, e o texto entra e sai da API tal qual foi digitado — sem saneamento
-(que corromperia "a < b") e sem escape (que é trabalho de quem renderiza). A
-tela tem de mostrar o corpo como nó de texto, nunca como HTML; é esse contrato,
-e não um filtro, que fecha a porta do XSS.
+`content` é HTML SANEADO. A tela usa um editor rico (CKEditor) sobre a nota
+completa; o que entra é o HTML que o editor produz, e o que sai já passou por
+`nh3.clean` — a mesma ferramenta e o mesmo instante da defesa que
+`apps.knowledge.serializers.ArticleDetailSerializer` usa para o corpo dos
+artigos. Diferença de propósito: lá o saneamento é na LEITURA (o corpo vem de
+fora, do WordPress); aqui é na ESCRITA
+(`apps.notes.serializers.NoteSerializer.validate_content`), porque o conteúdo
+nasce da nossa própria API — sanear uma vez, no ponto de entrada, evita
+limpar de novo em toda leitura e cobre também quem manda `content` direto por
+HTTP, sem passar pelo editor. A tela renderiza o corpo como HTML
+(`dangerouslySetInnerHTML`) — o que fecha a porta do XSS não é mais "nunca
+tratar como HTML", é "nunca guardar HTML que não passou pelo saneamento".
 """
 
 from django.db import models

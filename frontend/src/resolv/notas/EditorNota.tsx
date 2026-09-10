@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useAcoesNota, useNota, type Nota } from '@/api/notas'
 import { useAutosave, type EstadoSalvamento, type ValoresNota } from './autosave'
+import { EditorConteudo } from './EditorConteudo'
 
 const TITULO_MAX = 200
-const CORPO_MAX = 50_000
 
 const RECADO: Record<EstadoSalvamento, string> = {
   ocioso: '',
@@ -63,14 +63,7 @@ function Campos({ nota }: { nota: Nota }) {
         )}
       </div>
 
-      <textarea
-        className="editor-nota__corpo"
-        aria-label="Conteúdo da nota"
-        placeholder="Escreva aqui."
-        maxLength={CORPO_MAX}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
+      <EditorConteudo valor={content} onMudar={setContent} placeholder="Escreva aqui." />
 
       <p
         className={'editor-nota__estado' + (estado === 'erro' ? ' editor-nota__estado--erro' : '')}
@@ -135,7 +128,16 @@ export function EditorNota({ notaId }: { notaId: number }) {
             Restaurar
           </button>
         </p>
-        <p className="editor-nota__corpo-lido">{nota.content}</p>
+        {/* O corpo vem saneado do SERVIDOR (`nh3`, em
+         *  `NoteSerializer.validate_content` — na ESCRITA, não na leitura,
+         *  mas o resultado guardado já está limpo). Sanear de novo aqui
+         *  seria uma segunda régua para discordar da primeira — mesmo
+         *  raciocínio de `portal/ajuda/PaginaArtigo.tsx` para o artigo da
+         *  central de ajuda. */}
+        <div
+          className="editor-nota__corpo-lido"
+          dangerouslySetInnerHTML={{ __html: nota.content }}
+        />
       </div>
     )
   }

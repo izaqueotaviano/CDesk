@@ -14,6 +14,7 @@
     "generate:api": "openapi-typescript ../resolv-openapi.yaml -o src/api/schema.d.ts"
   },
   "dependencies": {
+    "@ckeditor/ckeditor5-react": "^11.2.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -27,6 +28,7 @@
     "@radix-ui/react-tabs": "^1.1.21",
     "@tabler/icons-react": "^3.46.0",
     "@tanstack/react-query": "^5.102.8",
+    "ckeditor5": "^48.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.4.0",

@@ -43,6 +43,28 @@ vi.mock('@/api/notas', () => ({
   }),
 }))
 
+// O CKEditor de verdade não monta em jsdom — conferido ao vivo com
+// Playwright, não aqui. O mock preserva a mesma superfície de sempre
+// (rótulo, valor, `onChange`), mesmo caminho usado por `PainelNotas.tsx`.
+vi.mock('../../notas/EditorConteudo', () => ({
+  EditorConteudo: ({
+    valor,
+    onMudar,
+    placeholder,
+  }: {
+    valor: string
+    onMudar: (v: string) => void
+    placeholder?: string
+  }) => (
+    <textarea
+      aria-label="Conteúdo da nota"
+      placeholder={placeholder}
+      value={valor}
+      onChange={(e) => onMudar(e.target.value)}
+    />
+  ),
+}))
+
 function montar(ticketId = 42) {
   return render(<PainelNotas ticketId={ticketId} agoraMs={AGORA} onFechar={vi.fn()} />)
 }
