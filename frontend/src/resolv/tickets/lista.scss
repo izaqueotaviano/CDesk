@@ -1,6 +1,6 @@
 // ============================================================================
 // Lista de tickets — design system Resolv (densidade alta, ruído baixo).
-// Borda 0.7px, radius 2px, mono nos números, accent único #0275DE.
+// Borda 1px, radius 2px, mono nos números, accent único #0275DE.
 // ============================================================================
 
 .lista-tickets {
@@ -13,7 +13,7 @@
     width: 256px;
     flex-shrink: 0;
     background: var(--surface-card);
-    border-right: 0.7px solid var(--stroke);
+    border-right: 1px solid var(--stroke);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -110,7 +110,7 @@
     // heranca de styles/tokens.css, o design system do portal. Era a unica
     // superficie do Resolv pintada com o azul da outra paleta.
     background: var(--accent);
-    border: 0.7px solid var(--accent);
+    border: 1px solid var(--accent);
     border-radius: var(--raio);
     font-size: 12px;
     font-weight: 500;
@@ -132,7 +132,7 @@
     height: 34px;
     padding: 0 10px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     i {
@@ -173,7 +173,7 @@
     // Barra de ação em lote: accent diluído. Em rgba cru ela ficava no azul
     // escuro do tema claro e sumia sobre a superfície escura.
     background: color-mix(in srgb, var(--accent) 4%, transparent);
-    border: 0.7px solid color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
     border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-secondary);
@@ -196,7 +196,7 @@
     height: 28px;
     padding: 0 8px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-family: var(--f-ui);
     font-size: 12px;
@@ -233,7 +233,7 @@
     }
   }
   &__aviso-erro {
-    border: 0.7px solid var(--danger);
+    border: 1px solid var(--danger);
     color: var(--danger);
     background: color-mix(in srgb, var(--danger) 8%, transparent);
   }
@@ -241,7 +241,7 @@
   // trocando --danger por --ok — a mesma dupla de tokens que já cobre o
   // resto da tela (COR_PRIORIDADE/corEstadoSla em format.ts).
   &__aviso-sucesso {
-    border: 0.7px solid var(--ok);
+    border: 1px solid var(--ok);
     color: var(--ok);
     background: var(--tom-ok);
   }
@@ -257,7 +257,7 @@
     padding: 64px 24px;
     color: var(--text-muted);
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     i {
       font-size: 32px;
@@ -298,7 +298,7 @@
       gap: 4px;
       padding: 6px 12px;
       background: var(--surface-card);
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       font-size: 12px;
       font-weight: 500;
@@ -329,7 +329,7 @@
     gap: 8px;
     height: 48px;
     padding: 0 12px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     flex-shrink: 0;
     i {
       font-size: 15px;
@@ -355,7 +355,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     background: var(--surface-card);
     border-radius: var(--raio);
     color: var(--text-secondary);
@@ -381,7 +381,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     background: var(--surface-card);
     border-radius: var(--raio);
     color: var(--text-secondary);
@@ -470,7 +470,7 @@
   }
 
   &__sep {
-    height: 0.7px;
+    height: 1px;
     background: var(--stroke);
     margin: 4px 0;
   }
@@ -485,7 +485,7 @@
   &__personalizar {
     margin: 8px 16px 16px;
     padding: 8px;
-    border: 0.7px dashed var(--stroke);
+    border: 1px dashed var(--stroke);
     background: transparent;
     border-radius: var(--raio);
     font-size: 12px;
@@ -529,7 +529,7 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
   }
 
@@ -538,7 +538,7 @@
     top: 0;
     z-index: 1;
     background: var(--surface-alt);
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     text-align: left;
     padding: 0 12px;
     height: 40px;
@@ -580,7 +580,7 @@
   tbody td {
     padding: 0 12px;
     height: 44px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     color: var(--text-primary);
     vertical-align: middle;
   }
@@ -741,7 +741,7 @@
     height: 22px;
     padding: 0 9px 0 7px;
     border-radius: 999px;
-    border: 0.7px solid color-mix(in srgb, var(--cor) 35%, transparent);
+    border: 1px solid color-mix(in srgb, var(--cor) 35%, transparent);
     background: color-mix(in srgb, var(--cor) 12%, var(--surface-card));
     color: var(--cor);
     font-size: 12px;

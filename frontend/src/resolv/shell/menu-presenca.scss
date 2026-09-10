@@ -155,7 +155,7 @@
     flex-direction: column;
     gap: 2px;
     padding: 8px 10px 10px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
 
     strong {
       font-size: 13px;
@@ -229,7 +229,7 @@
   }
 
   &__separador {
-    height: 0.7px;
+    height: 1px;
     margin: 6px 0;
     background: var(--stroke);
   }

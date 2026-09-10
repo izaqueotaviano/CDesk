@@ -1,6 +1,6 @@
 // ============================================================================
 // Console de chat — design system Resolv. Três colunas de altura cheia;
-// mesma densidade da lista de tickets (borda 0.7px, radius 2px).
+// mesma densidade da lista de tickets (borda 1px, radius 2px).
 // ============================================================================
 
 .chat-console {
@@ -36,14 +36,14 @@
   flex-direction: column;
   overflow-y: auto;
   background: var(--surface-card);
-  border-right: 0.7px solid var(--stroke);
+  border-right: 1px solid var(--stroke);
 
   // Ativos | Finalizados. Sublinhado, como as abas de Configurações — o
   // mesmo padrão de "duas leituras do mesmo lugar" do resto do console.
   &__abas {
     display: flex;
     flex-shrink: 0;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__aba {
     flex: 1;
@@ -73,7 +73,7 @@
 
   &__secao {
     padding: 12px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -121,7 +121,7 @@
   gap: 8px;
   width: 100%;
   padding: 8px;
-  border: 0.7px solid var(--stroke);
+  border: 1px solid var(--stroke);
   border-radius: var(--raio);
   background: var(--surface-card);
   text-align: left;
@@ -296,7 +296,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 14px 20px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     background: var(--surface-card);
   }
   &__titulo {
@@ -361,7 +361,7 @@
   }
   &__anteriores {
     align-self: center;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     padding: 4px 12px;
@@ -393,7 +393,7 @@
     justify-content: space-between;
     gap: 12px;
     padding: 10px 20px;
-    border-top: 0.7px solid var(--stroke);
+    border-top: 1px solid var(--stroke);
     background: color-mix(in srgb, var(--accent) 6%, var(--surface-card));
     font-size: 13px;
     color: var(--text-primary);
@@ -421,7 +421,7 @@
     padding: 6px 20px;
     font-size: 12px;
     color: var(--danger);
-    border-top: 0.7px solid var(--stroke);
+    border-top: 1px solid var(--stroke);
     background: var(--surface-card);
   }
   // Aviso de macro aplicada — mesmo acento do `.cc-conversa__banner` (tint
@@ -434,7 +434,7 @@
     padding: 6px 20px;
     font-size: 12px;
     color: var(--text-primary);
-    border-top: 0.7px solid var(--stroke);
+    border-top: 1px solid var(--stroke);
     background: color-mix(in srgb, var(--accent) 6%, var(--surface-card));
 
     i {
@@ -522,7 +522,7 @@
     // Quem fala do outro lado: balão branco, sem borda — sobre o canvas a
     // própria diferença de superfície já recorta; a borda virava sujeira.
     background: var(--surface-card);
-    border: 0.7px solid transparent;
+    border: 1px solid transparent;
     border-radius: 12px 12px 12px 4px;
     box-shadow: 0 1px 1px color-mix(in srgb, var(--text-primary) 5%, transparent);
     white-space: pre-wrap;
@@ -557,7 +557,7 @@
   gap: 4px;
   font-size: 12px;
   color: var(--accent);
-  border: 0.7px solid var(--stroke);
+  border: 1px solid var(--stroke);
   border-radius: var(--raio);
   padding: 3px 8px;
   background: var(--surface-card);
@@ -569,7 +569,7 @@
 }
 
 .cc-composer {
-  border-top: 0.7px solid var(--stroke);
+  border-top: 1px solid var(--stroke);
   background: var(--surface-card);
   padding: 12px 20px 14px;
   display: flex;
@@ -578,7 +578,7 @@
 
   &__textarea {
     min-height: 64px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     padding: 10px 12px;
     font-family: var(--f-ui);
@@ -609,7 +609,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: none;
     padding: 6px 10px;
@@ -654,7 +654,7 @@
     height: 32px;
     padding: 0 10px;
     border: none;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     background: transparent;
     color: var(--text-primary);
     font: inherit;
@@ -738,11 +738,11 @@
   flex-shrink: 0;
   overflow-y: auto;
   background: var(--surface-card);
-  border-left: 0.7px solid var(--stroke);
+  border-left: 1px solid var(--stroke);
 
   &__bloco {
     padding: 14px 16px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
 
     h3 {
       font-size: 11px;
@@ -777,7 +777,7 @@
       align-items: center;
       gap: 8px;
       width: 100%;
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       background: none;
       padding: 8px 10px;
@@ -807,7 +807,7 @@
       color: var(--text-secondary);
     }
     select {
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       background: var(--surface-card);
       padding: 6px 8px;
@@ -886,7 +886,7 @@
       min-width: 0;
       height: 28px;
       padding: 0 8px;
-      border: 0.7px solid var(--borda-campo);
+      border: 1px solid var(--borda-campo);
       border-radius: var(--raio);
       background: var(--surface);
       color: var(--text-primary);
@@ -910,7 +910,7 @@
     flex-direction: column;
     gap: 4px;
     padding: 8px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-alt);
 
@@ -925,7 +925,7 @@
     input {
       height: 28px;
       padding: 0 6px;
-      border: 0.7px solid var(--borda-campo);
+      border: 1px solid var(--borda-campo);
       border-radius: var(--raio);
       background: var(--surface);
       color: var(--text-primary);
@@ -983,7 +983,7 @@
   &__historico-item {
     width: 100%;
     padding: 6px 8px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface);
     color: var(--text-primary);
@@ -1042,7 +1042,7 @@
   textarea {
     width: 100%;
     padding: 5px 6px;
-    border: 0.7px solid var(--borda-campo);
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
     background: var(--surface);
     color: var(--text-primary);
@@ -1094,7 +1094,7 @@
   }
   &__cancelar {
     padding: 7px 10px;
-    border: 0.7px solid var(--stroke-hover);
+    border: 1px solid var(--stroke-hover);
     border-radius: var(--raio);
     background: var(--surface);
     color: var(--text-secondary);

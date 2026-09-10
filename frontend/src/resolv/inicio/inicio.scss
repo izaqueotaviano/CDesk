@@ -67,7 +67,7 @@
     &--secundario {
       background: var(--surface-card);
       color: var(--text-primary);
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       &:hover {
         filter: none;
         border-color: var(--stroke-hover);
@@ -93,7 +93,7 @@
     display: flex;
     flex-wrap: wrap;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     overflow: hidden;
   }
@@ -106,7 +106,7 @@
     gap: 6px;
     padding: 20px;
     border: none;
-    border-right: 0.7px solid var(--stroke);
+    border-right: 1px solid var(--stroke);
     border-bottom: 3px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -179,7 +179,7 @@
   gap: 8px;
   padding: 16px;
   background: var(--surface-card);
-  border: 0.7px solid var(--stroke);
+  border: 1px solid var(--stroke);
   border-radius: var(--raio);
   min-width: 0;
 
@@ -378,7 +378,7 @@
     align-items: flex-start;
     gap: 10px;
     padding: 12px 14px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-left: 3px solid var(--accent);
     border-radius: var(--raio);
     background: var(--surface-card);

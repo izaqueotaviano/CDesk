@@ -44,7 +44,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface);
-    border: 0.7px solid var(--stroke-hover);
+    border: 1px solid var(--stroke-hover);
     border-bottom: none;
     border-radius: var(--raio) var(--raio) 0 0;
     box-shadow: 0 -2px 16px var(--sombra-forte);
@@ -187,7 +187,7 @@
     flex-direction: column;
     gap: 2px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke-hover);
+    border: 1px solid var(--stroke-hover);
     border-radius: var(--raio);
     box-shadow: var(--sombra-flutuante);
     color: var(--text-primary);
@@ -219,7 +219,7 @@
     hr {
       margin: 4px 0;
       border: none;
-      border-top: 0.7px solid var(--stroke);
+      border-top: 1px solid var(--stroke);
     }
   }
   &__menu-info {
@@ -248,7 +248,7 @@
     gap: 6px;
     padding: 6px 8px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke-hover);
+    border: 1px solid var(--stroke-hover);
     border-bottom: none;
     border-radius: var(--raio) var(--raio) 0 0;
     box-shadow: 0 -2px 12px var(--sombra-suave);
@@ -328,7 +328,7 @@
     gap: 6px;
     max-width: 180px;
     padding: 4px 10px 4px 4px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     // a barrinha da esquerda repete a cor do painel — a aba e o cabeçalho
     // dela são a mesma cor, e a pessoa acha o painel pelo tom
     border-left: 3px solid var(--tom, var(--stroke));
@@ -407,7 +407,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke-hover);
+    border: 1px solid var(--stroke-hover);
     border-radius: var(--raio);
     box-shadow: var(--sombra-flutuante);
     font-family: var(--f-ui);
@@ -419,7 +419,7 @@
     align-items: center;
     gap: 8px;
     padding: 10px 12px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     font-size: 13px;
 
     .cc-link {
@@ -465,7 +465,7 @@
     align-items: center;
     gap: 8px;
     padding: 6px 6px 6px 8px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface);
   }

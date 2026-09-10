@@ -54,18 +54,20 @@ $identity-text: (
 );
 
 // --- stroke ------------------------------------------------------------------
-$stroke-w:        0.7px;
+$stroke-w:        1px;
 $border:          $stroke-w solid $stroke;
 
-// Campo de entrada tem linha PRÓPRIA, mais escura e de 1px: input precisa se
-// anunciar como editável, e com a linha estrutural (que é clara, de traço fino)
-// o formulário desaparecia dentro da página. Só input/select/textarea/combobox
-// usam isto — tabela, card, sidebar e aba continuam em `$border`.
+// Campo de entrada tem linha PRÓPRIA, mais escura: input precisa se anunciar
+// como editável, e com a cor da linha estrutural (mais clara) o formulário
+// desaparecia dentro da página. A espessura hoje é a mesma de `$stroke-w`
+// (as duas em 1px) — a distinção é só de cor. Só input/select/textarea/
+// combobox usam isto — tabela, card, sidebar e aba continuam em `$border`.
 $field-border-w:  1px;
 $border-field:    $field-border-w solid $field-border;
 
 // Marcador de estado — aba ativa, linha selecionada, item de menu ativo, borda
-// esquerda de notificação. Não é borda: a 0.7px o indicador desaparece.
+// esquerda de notificação. Mais grosso que `$stroke-w` de propósito: um
+// indicador do mesmo traço da borda estrutural se perde ao lado dela.
 $marker-w:        2px;
 $focus-w:         2px;   // espessura do anel de foco
 $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip

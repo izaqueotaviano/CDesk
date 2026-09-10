@@ -2,7 +2,7 @@
 // Detalhe do ticket — design system Resolv.
 //
 // Estrutura: abas · cabeçalho do ticket · 3 colunas (Propriedades · Conversa ·
-// Cliente). Borda 0.7px, raio 2px nos controles, raio total nas pílulas, mono
+// Cliente). Borda 1px, raio 2px nos controles, raio total nas pílulas, mono
 // nas referências, um acento só. Tudo aqui vive sob .resolv-scope, e é de lá
 // (tokens.scss) que vêm --tom-*, --anel-foco e --sombra-flutuante: eram oito
 // declarações copiadas linha a linha entre este arquivo e novo.scss, escritas
@@ -95,7 +95,7 @@
     height: 34px;
     padding: 0 14px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-size: 13px;
     font-weight: 500;
@@ -135,7 +135,7 @@
     padding: 8px 20px;
     background: var(--tom-perigo);
     // Borda e hover derivam do --danger do tema em vez do vermelho do claro.
-    border-bottom: 0.7px solid color-mix(in srgb, var(--danger) 25%, transparent);
+    border-bottom: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
     font-size: 12px;
     color: var(--danger);
     i {
@@ -169,7 +169,7 @@
     padding: 8px 20px;
     margin: 0;
     background: var(--tom-acento);
-    border-bottom: 0.7px solid var(--tom-acento-borda);
+    border-bottom: 1px solid var(--tom-acento-borda);
     font-size: 12px;
     color: var(--accent);
     i {
@@ -223,7 +223,7 @@
   &--cabecalho {
     align-items: center;
     padding: 16px 20px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &--coluna {
     flex-direction: column;
@@ -231,7 +231,7 @@
   }
   &--props {
     width: var(--largura-props, 272px);
-    border-right: 0.7px solid var(--stroke);
+    border-right: 1px solid var(--stroke);
   }
   &--conversa {
     flex: 1;
@@ -239,7 +239,7 @@
   }
   &--cliente {
     width: var(--largura-cliente, 296px);
-    border-left: 0.7px solid var(--stroke);
+    border-left: 1px solid var(--stroke);
   }
   &__bloco {
     display: block;
@@ -290,7 +290,7 @@
 // ============================================================================
 .ticket-cab {
   background: var(--surface-card);
-  border-bottom: 0.7px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
   padding: 10px 20px 10px 12px;
   display: flex;
   flex-direction: column;
@@ -376,7 +376,7 @@
     height: 32px;
     padding: 0 12px;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-size: 12px;
     font-weight: 500;
@@ -429,14 +429,14 @@
     gap: 2px;
     margin-left: 4px;
     padding-left: 6px;
-    border-left: 0.7px solid var(--stroke);
+    border-left: 1px solid var(--stroke);
   }
   &__gaveta {
     width: 32px;
     height: 32px;
     display: grid;
     place-items: center;
-    border: 0.7px solid transparent;
+    border: 1px solid transparent;
     background: transparent;
     border-radius: var(--raio);
     color: var(--text-secondary);
@@ -463,7 +463,7 @@
     height: 22px;
     padding: 0 9px 0 7px;
     border-radius: var(--raio);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     background: var(--surface-card);
     font-size: 12px;
     font-weight: 500;
@@ -549,7 +549,7 @@
     height: 24px;
     padding: 0 9px;
     border-radius: var(--raio);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     background: var(--surface-alt);
     font-size: 11px;
     color: var(--text-secondary);
@@ -589,7 +589,7 @@
   width: var(--largura-props);
   flex-shrink: 0;
   background: var(--surface-card);
-  border-right: 0.7px solid var(--stroke);
+  border-right: 1px solid var(--stroke);
   overflow-y: auto;
   padding-bottom: 24px;
 
@@ -598,7 +598,7 @@
     flex-direction: column;
     gap: 12px;
     padding: 14px 16px 16px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__titulo {
     font-size: 11px;
@@ -670,7 +670,7 @@
     display: flex;
     align-items: center;
     height: 34px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     padding-left: 10px;
@@ -767,7 +767,7 @@
     gap: 6px;
     padding: 3px 9px;
     background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-primary);
@@ -852,7 +852,7 @@
     gap: 10px;
     height: 40px;
     padding: 0 20px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     background: var(--surface-card);
     flex-shrink: 0;
   }
@@ -879,7 +879,7 @@
     font-size: 12px;
     color: var(--text-secondary);
     background: transparent;
-    border: 0.7px solid transparent;
+    border: 1px solid transparent;
     border-radius: var(--raio);
     padding: 2px 9px;
     cursor: pointer;
@@ -960,7 +960,7 @@
     &::after {
       content: '';
       flex: 1;
-      height: 0.7px;
+      height: 1px;
       background: var(--stroke);
     }
   }
@@ -998,7 +998,7 @@
   gap: 10px;
   padding: 12px 14px;
   background: var(--surface-card);
-  border: 0.7px solid var(--stroke);
+  border: 1px solid var(--stroke);
   border-radius: var(--raio);
 
   &--agente {
@@ -1156,7 +1156,7 @@
     gap: 8px;
     textarea {
       width: 100%;
-      border: 0.7px solid var(--accent);
+      border: 1px solid var(--accent);
       border-radius: var(--raio);
       padding: 8px 10px;
       font-family: var(--f-ui);
@@ -1189,7 +1189,7 @@
   &__btn {
     height: 28px;
     padding: 0 10px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
@@ -1231,7 +1231,7 @@
     gap: 6px;
     max-width: 100%;
     padding: 4px 8px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
@@ -1276,7 +1276,7 @@
   color: var(--text-secondary);
   &__linha {
     flex: 1;
-    height: 0.7px;
+    height: 1px;
     background: var(--stroke);
   }
   &__miolo {
@@ -1324,7 +1324,7 @@
 // ============================================================================
 .compositor {
   flex-shrink: 0;
-  border-top: 0.7px solid var(--stroke);
+  border-top: 1px solid var(--stroke);
   background: var(--surface-card);
   padding: 10px 20px 14px;
   display: flex;
@@ -1373,7 +1373,7 @@
     gap: 6px;
     height: 30px;
     padding: 0 10px;
-    border: 0.7px solid transparent;
+    border: 1px solid transparent;
     background: transparent;
     border-radius: var(--raio);
     font-size: 12px;
@@ -1424,7 +1424,7 @@
     min-height: 84px;
     max-height: 40vh;
     padding: 10px 12px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
@@ -1467,7 +1467,7 @@
     gap: 6px;
     padding: 3px 4px 3px 8px;
     background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-size: 12px;
     color: var(--text-primary);
@@ -1527,7 +1527,7 @@
     align-items: flex-start;
     gap: 6px;
     padding: 8px 10px;
-    border: 0.7px solid var(--tom-alerta-borda);
+    border: 1px solid var(--tom-alerta-borda);
     border-radius: var(--raio);
     background: var(--tom-alerta);
     font-size: 12px;
@@ -1552,7 +1552,7 @@
   &__pergunta-botao {
     height: 28px;
     padding: 0 10px;
-    border: 0.7px solid var(--tom-alerta-borda);
+    border: 1px solid var(--tom-alerta-borda);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
@@ -1575,7 +1575,7 @@
   &__fechamento {
     margin: 0;
     padding: 10px 12px 12px;
-    border: 0.7px solid color-mix(in srgb, var(--ok) 30%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
     border-radius: var(--raio);
     background: var(--surface-card);
     legend {
@@ -1608,7 +1608,7 @@
     input {
       height: 32px;
       padding: 0 10px;
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       font-family: var(--f-ui);
       font-size: 13px;
@@ -1680,7 +1680,7 @@
     gap: 6px;
     height: 30px;
     padding: 0 10px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-size: 12px;
@@ -1736,7 +1736,7 @@
     height: 32px;
     padding: 0 10px;
     border: none;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
     background: transparent;
     color: var(--text-primary);
     font: inherit;
@@ -1815,7 +1815,7 @@
     display: inline-flex;
     align-items: center;
     height: 34px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     select {
@@ -1867,7 +1867,7 @@
       padding: 3px 4px;
       // Borda diluída da PRÓPRIA cor do texto do botão: um branco a 40% some
       // quando o --accent clareia no escuro.
-      border: 0.7px solid color-mix(in srgb, var(--surface-card) 40%, transparent);
+      border: 1px solid color-mix(in srgb, var(--surface-card) 40%, transparent);
       border-radius: var(--raio);
       opacity: 0.8;
     }
@@ -1896,7 +1896,7 @@
   width: var(--largura-cliente);
   flex-shrink: 0;
   background: var(--surface-card);
-  border-left: 0.7px solid var(--stroke);
+  border-left: 1px solid var(--stroke);
   overflow-y: auto;
   padding-bottom: 24px;
 
@@ -1905,7 +1905,7 @@
     align-items: center;
     gap: 10px;
     padding: 16px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__avatar {
     width: 36px;
@@ -1943,7 +1943,7 @@
     margin-left: auto;
     flex-shrink: 0;
     padding: 2px 8px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-size: 11px;
     font-weight: 500;
@@ -1955,7 +1955,7 @@
     flex-direction: column;
     gap: 10px;
     padding: 14px 16px 16px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__titulo {
     font-size: 11px;
@@ -2031,7 +2031,7 @@
     // Neutro de propósito: não existe faixa de "nota boa/ruim" no backend, e
     // pintar de verde/vermelho aqui inventaria uma (ver PainelCliente.tsx).
     background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     font-family: var(--f-mono);
     font-size: 13px;
     font-weight: 600;
@@ -2100,7 +2100,7 @@
     gap: 2px 8px;
     padding: 8px 10px;
     border-radius: var(--raio);
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-left-width: 3px;
     background: var(--surface-card);
     &--ok {
@@ -2186,7 +2186,7 @@
     }
     input,
     textarea {
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       padding: 7px 10px;
       font-family: inherit;
@@ -2239,7 +2239,7 @@
   padding: 0 14px 20px;
   overflow-y: auto;
   background: var(--surface-card);
-  border-left: 0.7px solid var(--stroke);
+  border-left: 1px solid var(--stroke);
   box-shadow: var(--sombra-flutuante);
 
   &__cabecalho {
@@ -2253,7 +2253,7 @@
     margin: 0 -14px;
     padding: 14px;
     background: var(--surface-card);
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__cabecalho-titulo {
     display: flex;
@@ -2295,7 +2295,7 @@
     flex-direction: column;
     gap: 8px;
     padding: 10px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-alt);
   }
@@ -2303,7 +2303,7 @@
   &__corpo-campo {
     width: 100%;
     padding: 7px 9px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
@@ -2333,7 +2333,7 @@
     justify-content: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
@@ -2413,7 +2413,7 @@
   }
   &__item {
     padding: 10px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
   }

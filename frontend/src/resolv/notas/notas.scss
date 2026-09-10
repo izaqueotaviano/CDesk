@@ -17,7 +17,7 @@
     padding: 14px;
     overflow-y: auto;
     background: var(--surface-card);
-    border-right: 0.7px solid var(--stroke);
+    border-right: 1px solid var(--stroke);
   }
   &__cabecalho {
     display: flex;
@@ -40,7 +40,7 @@
   &__filtro-etiqueta select {
     width: 100%;
     padding: 7px 9px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
@@ -58,7 +58,7 @@
   }
   &__recorte {
     padding: 4px 10px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: 999px;
     background: transparent;
     color: var(--text-secondary);
@@ -105,7 +105,7 @@
     flex-direction: column;
     gap: 3px;
     padding: 9px 10px;
-    border: 0.7px solid transparent;
+    border: 1px solid transparent;
     border-radius: var(--raio);
     background: transparent;
     text-align: left;
@@ -182,7 +182,7 @@
     flex-wrap: wrap;
     gap: 6px;
     padding-bottom: 12px;
-    border-bottom: 0.7px solid var(--stroke);
+    border-bottom: 1px solid var(--stroke);
   }
   &__vazio {
     margin: auto;
@@ -196,7 +196,7 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
@@ -294,7 +294,7 @@
       width: 240px;
       max-width: 100%;
       padding: 5px 8px;
-      border: 0.7px solid var(--stroke);
+      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       background: var(--surface-card);
       color: var(--text-primary);
@@ -331,7 +331,7 @@
     min-height: 320px;
     width: 100%;
     padding: 10px 12px;
-    border: 0.7px solid var(--stroke);
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
@@ -419,7 +419,7 @@
       width: auto;
       max-height: 45vh;
       border-right: none;
-      border-bottom: 0.7px solid var(--stroke);
+      border-bottom: 1px solid var(--stroke);
     }
   }
 }
