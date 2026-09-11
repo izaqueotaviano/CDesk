@@ -28,10 +28,12 @@
    ── Cor ───────────────────────────────────────────────────────────────────
    As paletas tonais foram geradas no espírito do HCT (o espaço de cor do M3:
    tom = L* do CIELAB, matiz e croma constantes, com gamut mapping por
-   redução de croma). A âncora é o AZUL QUE O SISTEMA JÁ USA, #0f62fe, que
-   tem L* 47 — ele é o `primary` do tema claro, e todos os demais papéis
-   (containers, on-colors, tema escuro) descem do mesmo matiz (262°). Nada
-   de trocar a marca por um azul de referência do Google.
+   redução de croma). A âncora é #1A73E8 — o azul de botão do próprio Google
+   (Gmail/Drive/Docs), pedido explicitamente no lugar do azul de marca
+   anterior (#0f62fe, mais escuro/índigo, que não lia como "Google" pra quem
+   olhava a tela). L* 50 — ele é o `primary` do tema claro, e todos os demais
+   papéis (containers, on-colors, tema escuro) descem do mesmo matiz
+   (257,9°).
 
    Os neutros têm croma quase zero de propósito (3 milésimos): a identidade
    do produto é cinza + um azul, não "tudo levemente azulado".
@@ -50,37 +52,37 @@
   /* ── Paletas de referência (tonal palettes) ──────────────────────────────
      Matéria-prima. Em tela use os PAPÉIS (--md-primary, --md-surface…), nunca
      um tom cru: é o papel que troca sozinho entre claro e escuro. */
-  /* primary — matiz 262°, croma do #0f62fe */
-  --md-ref-primary-0: #000000; --md-ref-primary-4: #000a31; --md-ref-primary-6: #000f3d; --md-ref-primary-10: #00164e;
-  --md-ref-primary-12: #001a58; --md-ref-primary-17: #00226e; --md-ref-primary-20: #00287d; --md-ref-primary-22: #002c86;
-  --md-ref-primary-24: #00308f; --md-ref-primary-30: #003bad; --md-ref-primary-40: #0050e2; --md-ref-primary-50: #226dff;
-  --md-ref-primary-60: #528dff; --md-ref-primary-70: #7dabff; --md-ref-primary-80: #a9c8ff; --md-ref-primary-87: #c7dbff;
-  --md-ref-primary-90: #d4e4ff; --md-ref-primary-92: #dce9ff; --md-ref-primary-94: #e5eeff; --md-ref-primary-95: #eaf1ff;
-  --md-ref-primary-96: #edf4ff; --md-ref-primary-98: #f6f9ff; --md-ref-primary-100: #ffffff;
+  /* primary — matiz 257,9°, croma do #1a73e8 */
+  --md-ref-primary-0: #000000; --md-ref-primary-4: #000c29; --md-ref-primary-6: #001233; --md-ref-primary-10: #001942;
+  --md-ref-primary-12: #001d4a; --md-ref-primary-17: #00275e; --md-ref-primary-20: #002d6a; --md-ref-primary-22: #003273;
+  --md-ref-primary-24: #00367c; --md-ref-primary-30: #004396; --md-ref-primary-40: #005ac3; --md-ref-primary-50: #1b74e9;
+  --md-ref-primary-60: #4290ff; --md-ref-primary-70: #74acff; --md-ref-primary-80: #a3c9ff; --md-ref-primary-87: #c3dcff;
+  --md-ref-primary-90: #d2e4ff; --md-ref-primary-92: #dbeaff; --md-ref-primary-94: #e3eeff; --md-ref-primary-95: #e8f2ff;
+  --md-ref-primary-96: #edf4ff; --md-ref-primary-98: #f6faff; --md-ref-primary-100: #ffffff;
   /* secondary — mesmo matiz, croma baixa (apoio, seleção) */
-  --md-ref-secondary-0: #000000; --md-ref-secondary-4: #060e1d; --md-ref-secondary-6: #0b1423; --md-ref-secondary-10: #131c2c;
-  --md-ref-secondary-12: #161f30; --md-ref-secondary-17: #202a3c; --md-ref-secondary-20: #273142; --md-ref-secondary-22: #2b3548;
-  --md-ref-secondary-24: #2f3a4c; --md-ref-secondary-30: #3c475a; --md-ref-secondary-40: #535f73; --md-ref-secondary-50: #6c778c;
-  --md-ref-secondary-60: #8592a7; --md-ref-secondary-70: #9facc2; --md-ref-secondary-80: #bbc7de; --md-ref-secondary-87: #cddbf2;
-  --md-ref-secondary-90: #d6e4fb; --md-ref-secondary-92: #dce8ff; --md-ref-secondary-94: #e5eeff; --md-ref-secondary-95: #eaf1ff;
-  --md-ref-secondary-96: #edf4ff; --md-ref-secondary-98: #f6faff; --md-ref-secondary-100: #ffffff;
+  --md-ref-secondary-0: #000000; --md-ref-secondary-4: #050e1d; --md-ref-secondary-6: #091323; --md-ref-secondary-10: #111c2b;
+  --md-ref-secondary-12: #152030; --md-ref-secondary-17: #1f2b3b; --md-ref-secondary-20: #253142; --md-ref-secondary-22: #2a3547;
+  --md-ref-secondary-24: #2d3a4b; --md-ref-secondary-30: #3b485a; --md-ref-secondary-40: #525f73; --md-ref-secondary-50: #6a788c;
+  --md-ref-secondary-60: #8392a6; --md-ref-secondary-70: #9eacc2; --md-ref-secondary-80: #b9c7dd; --md-ref-secondary-87: #ccdbf2;
+  --md-ref-secondary-90: #d4e4fa; --md-ref-secondary-92: #dbe9ff; --md-ref-secondary-94: #e3efff; --md-ref-secondary-95: #e8f1ff;
+  --md-ref-secondary-96: #edf5ff; --md-ref-secondary-98: #f6faff; --md-ref-secondary-100: #ffffff;
   /* tertiary — matiz +60°, para acento de terceira ordem */
-  --md-ref-tertiary-10: #36003d; --md-ref-tertiary-20: #4f1858; --md-ref-tertiary-30: #683070; --md-ref-tertiary-40: #82498b;
-  --md-ref-tertiary-80: #f0b1f9; --md-ref-tertiary-90: #fad7ff;
+  --md-ref-tertiary-10: #350042; --md-ref-tertiary-20: #4c195b; --md-ref-tertiary-30: #653274; --md-ref-tertiary-40: #7e498e;
+  --md-ref-tertiary-80: #ebb2fe; --md-ref-tertiary-90: #f6d8ff;
   /* neutral — superfícies e texto */
-  --md-ref-neutral-0: #000000; --md-ref-neutral-4: #0d0e10; --md-ref-neutral-6: #131315; --md-ref-neutral-10: #1b1b1d;
-  --md-ref-neutral-12: #1f2021; --md-ref-neutral-17: #292a2b; --md-ref-neutral-20: #303032; --md-ref-neutral-22: #343436;
-  --md-ref-neutral-24: #38393b; --md-ref-neutral-30: #464648; --md-ref-neutral-40: #5e5f60; --md-ref-neutral-50: #767779;
-  --md-ref-neutral-60: #8f9092; --md-ref-neutral-70: #aaacad; --md-ref-neutral-80: #c5c7c8; --md-ref-neutral-87: #d9dadc;
-  --md-ref-neutral-90: #e1e2e5; --md-ref-neutral-92: #e7e9eb; --md-ref-neutral-94: #ecedf0; --md-ref-neutral-95: #eff1f3;
-  --md-ref-neutral-96: #f2f4f6; --md-ref-neutral-98: #f8fafc; --md-ref-neutral-100: #ffffff;
+  --md-ref-neutral-0: #000000; --md-ref-neutral-4: #0e0e10; --md-ref-neutral-6: #131415; --md-ref-neutral-10: #1b1b1d;
+  --md-ref-neutral-12: #1f2021; --md-ref-neutral-17: #292a2b; --md-ref-neutral-20: #2f3132; --md-ref-neutral-22: #333436;
+  --md-ref-neutral-24: #383a3b; --md-ref-neutral-30: #454648; --md-ref-neutral-40: #5d5e60; --md-ref-neutral-50: #767778;
+  --md-ref-neutral-60: #8f9192; --md-ref-neutral-70: #aaabad; --md-ref-neutral-80: #c5c6c8; --md-ref-neutral-87: #d9dadc;
+  --md-ref-neutral-90: #e1e2e4; --md-ref-neutral-92: #e7e8ea; --md-ref-neutral-94: #eceef0; --md-ref-neutral-95: #eff1f2;
+  --md-ref-neutral-96: #f2f4f5; --md-ref-neutral-98: #f8f9fb; --md-ref-neutral-100: #ffffff;
   /* neutral-variant — linhas, contornos e texto secundário */
-  --md-ref-nv-0: #000000; --md-ref-nv-4: #0c0e12; --md-ref-nv-6: #111417; --md-ref-nv-10: #191c1f;
-  --md-ref-nv-12: #1d1f23; --md-ref-nv-17: #272a2e; --md-ref-nv-20: #2e3035; --md-ref-nv-22: #323439;
-  --md-ref-nv-24: #37393e; --md-ref-nv-30: #44474b; --md-ref-nv-40: #5c5e63; --md-ref-nv-50: #75777c;
-  --md-ref-nv-60: #8e9195; --md-ref-nv-70: #a9abb1; --md-ref-nv-80: #c4c7cc; --md-ref-nv-87: #d7dbe0;
-  --md-ref-nv-90: #dfe3e8; --md-ref-nv-92: #e5e9ee; --md-ref-nv-94: #eaeef3; --md-ref-nv-95: #eef1f6;
-  --md-ref-nv-96: #f0f3f9; --md-ref-nv-98: #f6faff; --md-ref-nv-100: #ffffff;
+  --md-ref-nv-0: #000000; --md-ref-nv-4: #0c0f12; --md-ref-nv-6: #111417; --md-ref-nv-10: #191c1f;
+  --md-ref-nv-12: #1d2023; --md-ref-nv-17: #282a2e; --md-ref-nv-20: #2e3134; --md-ref-nv-22: #323538;
+  --md-ref-nv-24: #37393e; --md-ref-nv-30: #44474b; --md-ref-nv-40: #5b5f63; --md-ref-nv-50: #74787c;
+  --md-ref-nv-60: #8d9196; --md-ref-nv-70: #a8acb0; --md-ref-nv-80: #c3c7cc; --md-ref-nv-87: #d7dae0;
+  --md-ref-nv-90: #dfe2e8; --md-ref-nv-92: #e5e9ee; --md-ref-nv-94: #eaeef3; --md-ref-nv-95: #eef1f6;
+  --md-ref-nv-96: #f0f4f9; --md-ref-nv-98: #f6f9ff; --md-ref-nv-100: #ffffff;
   /* error (M3) + success/warning (extensões deste projeto) */
   --md-ref-error-0: #000000; --md-ref-error-4: #270000; --md-ref-error-6: #320000; --md-ref-error-10: #410000;
   --md-ref-error-12: #490000; --md-ref-error-17: #5d0001; --md-ref-error-20: #690001; --md-ref-error-22: #710001;
@@ -198,9 +200,9 @@
    ============================================================================ */
 :root,
 html[data-tema='claro'] {
-  /* primary é literalmente o azul que o sistema já usava (L* 47) — não o tom
+  /* primary é literalmente o azul de botão do Google (L* 50) — não o tom
      40 da rampa. O resto da família desce do mesmo matiz. */
-  --md-primary: #0f62fe;
+  --md-primary: #1a73e8;
   --md-on-primary: #ffffff;
   --md-primary-container: var(--md-ref-primary-90);
   --md-on-primary-container: var(--md-ref-primary-10);
@@ -283,7 +285,7 @@ html[data-tema='escuro'] {
   --md-primary-container: var(--md-ref-primary-30);
   --md-on-primary-container: var(--md-ref-primary-90);
   --md-primary-fixed-dim: var(--md-ref-primary-80);
-  --md-inverse-primary: #0f62fe;
+  --md-inverse-primary: #1a73e8;
 
   --md-secondary: var(--md-ref-secondary-80);
   --md-on-secondary: var(--md-ref-secondary-20);
@@ -352,7 +354,7 @@ html[data-tema='escuro'] {
     --md-primary-container: var(--md-ref-primary-30);
     --md-on-primary-container: var(--md-ref-primary-90);
     --md-primary-fixed-dim: var(--md-ref-primary-80);
-    --md-inverse-primary: #0f62fe;
+    --md-inverse-primary: #1a73e8;
 
     --md-secondary: var(--md-ref-secondary-80);
     --md-on-secondary: var(--md-ref-secondary-20);

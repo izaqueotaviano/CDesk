@@ -9,7 +9,8 @@
 // resto do app (login etc.) fica intocado.
 //
 // A paleta é a do produto: conteúdo em BRANCO, cromo (sidebar + barra de
-// abas) em #f0f0f0, ação em #0f62fe. Antes era uma família quente
+// abas) em #f0f0f0, ação em #1a73e8 (azul de botão do Google — trocou de
+// #0f62fe nesta rodada, ver styles/md3.css). Antes era uma família quente
 // (fundo #f9f8f7, texto marrom, azul #0275de); a troca é global e mora aqui —
 // nenhum componente repete hex.
 // ============================================================================
@@ -142,8 +143,8 @@
   --presenca-offline: #59524d;
 
   // ── Semânticas ──
-  // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
-  // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.
+  // #1a73e8 sobre branco dá 4.51:1 (passa AA) e branco sobre ele dá o mesmo
+  // contraste — é por isso que o botão primário pode escrever em branco.
   --accent: var(--md-primary);
   --accent-hover: var(--md-primary-hover);
   --accent-active: var(--md-primary-pressed);

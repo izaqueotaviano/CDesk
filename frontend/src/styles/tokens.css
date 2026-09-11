@@ -2,8 +2,9 @@
    resolv — tokens do Painel do Cliente (e de tudo que é Tailwind)
 
    Desde a Rodada 12 os VALORES são os do console do agente
-   (resolv/styles/tokens.scss e cvz/styles/_theme.scss): cromo #f0f0f0,
-   canvas #f8f8f7, conteúdo branco, azul de ação #0f62fe, linha estrutural
+   (resolv/styles/tokens.scss): cromo #f0f0f0, canvas #f8f8f7, conteúdo
+   branco, azul de ação #1a73e8 (o azul de botão do Google — trocou de
+   #0f62fe na rodada do Material 3), linha estrutural
    preta translúcida, raio único de 2px e separação por LINHA, não por
    sombra. Os NOMES continuam os do portal (--acento, --superficie,
    --divisoria…) porque ~50 arquivos Tailwind os consomem; só o valor por
@@ -47,16 +48,17 @@
   --neutro-975: #17130e;  /* canvas (escuro) */
 
   /* ---------- primitivos: acento e estado ----------
-     O azul é o Carbon #0f62fe do console (5,05:1 sobre branco, e branco sobre
-     ele dá os mesmos 5,05:1 — por isso o botão primário escreve em branco).
+     O azul é #1a73e8, o azul de botão do Google (4,51:1 sobre branco, e
+     branco sobre ele dá o mesmo contraste — por isso o botão primário
+     escreve em branco).
      No escuro é o role `primary` REAL do M3 (TonalSpot, tom 80) para essa
      mesma cor — não mais uma aproximação manual "clareada": mais claro/
      pastel que o valor anterior e com contraste MAIOR (9,6–10,9:1 como
      texto, contra 7,4:1 de antes). perigo/alerta/ok seguem o mesmo método
      (retonados no hue/chroma reais de cada um; M3 não tem role nativo para
      sucesso/atenção). */
-  --acento-escuro: #0f62fe;
-  --acento-escuro-hover: #0043ce;
+  --acento-escuro: #1a73e8;
+  --acento-escuro-hover: #2c7eea;
   --acento-claro:  #b4c5ff;
   --acento-claro-hover: #d3dcff;
   --acento-tinta-sobre-claro: #1b2d60;
