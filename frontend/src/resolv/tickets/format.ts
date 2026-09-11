@@ -50,14 +50,12 @@ export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
   urgent: 'Urgente',
 }
 
-/** Ícone do selo de prioridade (Material Symbols) — o segundo sinal além da
- *  cor. A escada é de leitura: duas setas para os extremos, uma para alta,
- *  traço para o normal. */
+/** Ícone da pílula de prioridade (Tabler) — o segundo sinal além da cor. */
 export const ICONE_PRIORIDADE: Record<Prioridade, string> = {
-  low: 'keyboard_double_arrow_down',
-  normal: 'remove',
-  high: 'arrow_upward',
-  urgent: 'keyboard_double_arrow_up',
+  low: 'ti-arrow-down',
+  normal: 'ti-minus',
+  high: 'ti-arrow-up',
+  urgent: 'ti-alert-triangle',
 }
 
 /** Cor da pílula de prioridade — mapeada às cores semânticas do design system. */
@@ -84,35 +82,6 @@ export function corEstadoSla(sla: RelogioSla): string {
   if (sla.state === 'at_risk') return 'var(--away)'
   if (sla.state === 'none') return 'var(--text-muted)'
   return 'var(--ok)'
-}
-
-/** O TOM semântico do relógio, no vocabulário do M3 (o selo/badge).
- *
- *  Existe ao lado de `corEstadoSla` (que devolve uma cor solta para `style`)
- *  porque o M3 pinta estado por COMPONENTE, não por propriedade: quem recebe
- *  o tom escolhe a classe `.md-badge--danger|warning|success` e ganha o par
- *  container/on-container e o ponto de uma vez — e o ponto é o que faz o
- *  estado não depender só da cor (WCAG 1.4.1). Usado na Início, na fila e no
- *  ticket. */
-export function tomSla(sla: RelogioSla): 'danger' | 'warning' | 'success' | 'neutral' {
-  if (sla.state === 'breached') return 'danger'
-  if (sla.state === 'at_risk') return 'warning'
-  if (sla.state === 'none') return 'neutral'
-  return 'success'
-}
-
-/** O mesmo, para a prioridade — mas só o que PEDE ação ganha cor.
- *
- *  "Normal" é a prioridade da maioria dos chamados: pintá-la (de verde, que
- *  era o valor antigo) deixava a fila inteira colorida e a cor parava de
- *  querer dizer alguma coisa. Com neutro no normal e no baixo, o âmbar e o
- *  vermelho voltam a saltar de uma tabela de 25 linhas — que é a razão de a
- *  coluna existir. O texto continua dizendo o nome nos quatro casos, então
- *  nada se perde para quem não distingue a cor. */
-export function tomPrioridade(p: Prioridade): 'danger' | 'warning' | 'neutral' {
-  if (p === 'urgent') return 'danger'
-  if (p === 'high') return 'warning'
-  return 'neutral'
 }
 
 /** Texto curto do relógio — "2h restantes", "Estourado", "Sem SLA". */

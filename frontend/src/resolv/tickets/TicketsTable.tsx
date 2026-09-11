@@ -1,17 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Icone } from '../shell/Icone'
 import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
+  COR_PRIORIDADE,
   ICONE_PRIORIDADE,
   ROTULO_PRIORIDADE,
   ROTULO_STATUS,
+  corEstadoSla,
   esperaEmFila,
   formatarDataHora,
   rotuloAbrirChamado,
   textoEstadoSla,
-  tomPrioridade,
-  tomSla,
 } from './format'
 
 interface Coluna {
@@ -20,31 +19,24 @@ interface Coluna {
   className?: string
 }
 
-/**
- * A ordem das colunas é a de IMPORTÂNCIA, não a do banco: protocolo e assunto
- * primeiro (é por eles que se reconhece o chamado), depois o estado
- * (status, prioridade, SLA — o que decide se atende agora), depois as pessoas
- * (cliente, responsável) e por último o que se consulta de vez em quando
- * (data, categoria, justificativa, espera). Nenhuma coluna saiu.
- */
 const COLUNAS: Coluna[] = [
   { chave: 'reference', rotulo: 'Protocolo', className: 'col-protocolo' },
   { chave: 'subject', rotulo: 'Assunto', className: 'col-assunto' },
-  { chave: 'status', rotulo: 'Status', className: 'col-status' },
+  { chave: 'criado', rotulo: 'Aberto em', className: 'col-data' },
+  { chave: 'cliente', rotulo: 'Cliente (Completo)', className: 'col-cliente' },
+  { chave: 'responsavel', rotulo: 'Responsável', className: 'col-resp' },
+  { chave: 'categoria', rotulo: 'Categoria', className: 'col-cat' },
   // Rótulo "Prioridade", não "Urgência": o detalhe (CabecalhoTicket.tsx,
   // PainelPropriedades.tsx) e o histórico do backend (ticket_service.py) já
   // dizem "prioridade" para o mesmo campo — nome duplo pra mesma coisa é o
   // achado transversal desta rodada. Chave/classe ficam "urgencia"/"col-urg":
   // são nome interno, não o que a pessoa lê.
   { chave: 'urgencia', rotulo: 'Prioridade', className: 'col-urg' },
+  { chave: 'status', rotulo: 'Status', className: 'col-status' },
   // O prazo já vinha em toda linha (`sla` no TicketListSerializer) e a fila
   // era a única tela que não o mostrava — quem decide o que atender AGORA
   // abria chamado a chamado pra achar o que está estourando.
   { chave: 'sla', rotulo: 'SLA', className: 'col-sla' },
-  { chave: 'cliente', rotulo: 'Cliente (Completo)', className: 'col-cliente' },
-  { chave: 'responsavel', rotulo: 'Responsável', className: 'col-resp' },
-  { chave: 'criado', rotulo: 'Aberto em', className: 'col-data' },
-  { chave: 'categoria', rotulo: 'Categoria', className: 'col-cat' },
   { chave: 'justificativa', rotulo: 'Justificativa', className: 'col-just' },
   { chave: 'espera', rotulo: 'Tempo de espera em fila', className: 'col-espera' },
 ]
@@ -102,8 +94,8 @@ export function TicketsTable({
       : `Selecionar os ${linhas.length} tickets desta página`
 
   return (
-    <div className="md-tabela__wrap tickets-tabela__wrap">
-      <table className="md-tabela tickets-tabela">
+    <div className="tickets-tabela__wrap">
+      <table className="tickets-tabela">
         <thead>
           <tr>
             <th className="col-check">
@@ -119,19 +111,22 @@ export function TicketsTable({
             {COLUNAS.map((c) => {
               const ativo = c.chave === campoAtual
               return (
-                <th key={c.rotulo} className={c.className} aria-sort={ativo ? (desc ? 'descending' : 'ascending') : undefined}>
+                <th key={c.rotulo} className={c.className}>
                   {c.chave ? (
                     <button
                       type="button"
-                      className={'md-tabela__ordenar' + (ativo ? ' md-tabela__ordenar--ativo' : '')}
+                      className={'tickets-tabela__sort' + (ativo ? ' tickets-tabela__sort--ativo' : '')}
                       onClick={() => onOrdenar(c.chave as ColunaOrdenavel)}
                     >
                       {c.rotulo}
-                      {/* Indicador discreto: seta só quando esta é a coluna que
-                          ordena; nas demais, o "pode ordenar" fica a 40% */}
-                      <Icone
-                        nome={ativo ? (desc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more'}
-                        tamanho={16}
+                      <i
+                        className={
+                          ativo
+                            ? desc
+                              ? 'ti ti-arrow-down'
+                              : 'ti ti-arrow-up'
+                            : 'ti ti-arrows-up-down'
+                        }
                       />
                     </button>
                   ) : (
@@ -144,11 +139,7 @@ export function TicketsTable({
         </thead>
         <tbody>
           {linhas.map((t) => (
-            <tr
-              key={t.id}
-              data-selecionado={selecionados.has(t.id) ? 'true' : undefined}
-              onClick={() => onAbrir(t.id)}
-            >
+            <tr key={t.id} onClick={() => onAbrir(t.id)}>
               <td className="col-check" onClick={(e) => e.stopPropagation()}>
                 {/* O <label> em volta é o ALVO: a caixa continua com 16px de
                     desenho, mas a área clicável passa a ter 24px (WCAG 2.5.8)
@@ -189,40 +180,52 @@ export function TicketsTable({
                 <span className="tickets-tabela__assunto" title={t.subject}>
                   {t.is_restricted && (
                     <>
-                      {/* Ícone sozinho não tem nome — daí o texto real ao lado,
-                          só recortado da tela. TEXTO FIXO, não
-                          `restriction_reason`: para usuário interno esse campo
-                          do backend chega sempre vazio (`is_content_visible_to`
-                          libera tudo que ele enxerga — a máscara é regra do
-                          portal, não daqui), então declarar o campo prometeria
-                          um texto que esta tela nunca teria pra mostrar. */}
-                      <Icone nome="lock" tamanho={16} className="tickets-tabela__cadeado" />
+                      {/* Ícone sozinho não tem nome: `<i>` sem role tem papel
+                          implícito "generic", que não recebe nome de autor
+                          (mesmo defeito do `aria-label` na barra de urgência
+                          logo abaixo) — daí o texto real ao lado, só recortado
+                          da tela. TEXTO FIXO, não `restriction_reason`: para
+                          usuário interno esse campo do backend chega sempre
+                          vazio (`is_content_visible_to` libera tudo que ele
+                          enxerga — a máscara é regra do portal, não daqui, ver
+                          `_busca_q` em apps/tickets/views.py), então declarar
+                          o campo prometeria um texto que esta tela nunca
+                          teria pra mostrar. */}
+                      <i className="ti ti-lock tickets-tabela__cadeado" aria-hidden="true" />
                       <span className="tickets-tabela__sr">Equipe restrita: visível só para quem abriu. </span>
                     </>
                   )}
                   {t.subject}
                 </span>
               </td>
-              <td className="col-status">
-                <span className="md-badge md-badge--contorno tickets-tabela__status">
-                  {/* O ponto carrega a cor que a EQUIPE configurou para a etapa
-                      (`stage_color`, do banco) — é o único lugar da paleta fora
-                      do design system, e por isso ele fica no ponto e não no
-                      fundo do selo, que precisa continuar legível. */}
-                  <span
-                    className="md-badge__ponto tickets-tabela__status-dot"
-                    style={{ background: t.stage_color || 'var(--md-on-surface-variant)' }}
-                  />
-                  <span className="md-badge__texto">{t.stage_name || ROTULO_STATUS[t.status]}</span>
+              <td className="col-data tickets-tabela__mono-muted">{formatarDataHora(t.created_at)}</td>
+              <td className="col-cliente">
+                <span className="tickets-tabela__cliente" title={t.requester_display}>
+                  {t.requester_display}
                 </span>
+                {t.company_name && <span className="tickets-tabela__empresa">{t.company_name}</span>}
               </td>
-              {/* Prioridade escrita, com ícone e cor semântica: a barra de 4px
-                  de antes não se distinguia entre uma linha e outra — e cor
+              <td className="col-resp">{t.assignee_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
+              <td className="col-cat">{t.category_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
+              {/* Prioridade escrita, com ícone e cor: a barra de 4px de
+                  antes não se distinguia entre uma linha e outra — e cor
                   sozinha nunca devia ser o único sinal (WCAG 1.4.1). */}
               <td className="col-urg">
-                <span className={`md-badge md-badge--${tomPrioridade(t.priority)} tickets-tabela__prio`}>
-                  <Icone nome={ICONE_PRIORIDADE[t.priority]} tamanho={16} />
+                <span
+                  className="tickets-tabela__prio"
+                  style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
+                >
+                  <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
                   {ROTULO_PRIORIDADE[t.priority]}
+                </span>
+              </td>
+              <td className="col-status">
+                <span className="tickets-tabela__status">
+                  <span
+                    className="tickets-tabela__status-dot"
+                    style={{ background: t.stage_color || 'var(--text-muted)' }}
+                  />
+                  {t.stage_name || ROTULO_STATUS[t.status]}
                 </span>
               </td>
               {/* Relógio de RESOLUÇÃO, não o de 1ª resposta: é por
@@ -231,26 +234,13 @@ export function TicketsTable({
                   mostra um prazo e ordena por outro mente no clique. */}
               <td className="col-sla">
                 <span
-                  className={`md-badge md-badge--${tomSla(t.sla.resolution)} tickets-tabela__sla`}
+                  className="tickets-tabela__sla"
+                  style={{ color: corEstadoSla(t.sla.resolution) }}
                   title={tituloPrazo(t.sla.resolution)}
                 >
-                  <span className="md-badge__ponto" aria-hidden="true" />
                   {textoEstadoSla(t.sla.resolution)}
                 </span>
               </td>
-              <td className="col-cliente">
-                <span className="tickets-tabela__cliente" title={t.requester_display}>
-                  {t.requester_display}
-                </span>
-                {t.company_name && (
-                  <span className="md-tabela__meta tickets-tabela__empresa">{t.company_name}</span>
-                )}
-              </td>
-              <td className="col-resp">{t.assignee_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
-              <td className="col-data md-tabela__num tickets-tabela__mono-muted">
-                {formatarDataHora(t.created_at)}
-              </td>
-              <td className="col-cat">{t.category_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
               <td className="col-just">
                 {t.current_status_note ? (
                   <span className="tickets-tabela__just" title={t.current_status_note}>
@@ -260,7 +250,7 @@ export function TicketsTable({
                   <span className="tickets-tabela__vazio">—</span>
                 )}
               </td>
-              <td className="col-espera md-tabela__num tickets-tabela__mono-muted">
+              <td className="col-espera tickets-tabela__mono-muted">
                 {esperaEmFila(t.created_at, t.first_response_at, agoraMs)}
               </td>
             </tr>

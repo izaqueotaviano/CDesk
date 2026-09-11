@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode } from 'react'
 import './menu-flutuante.scss'
-import { Icone } from './Icone'
 
 /**
  * Menu flutuante do shell — o mesmo componente atende três usos da barra de
@@ -217,7 +216,7 @@ export function MenuFlutuante({
               item.onSelecionar()
             }}
           >
-            {item.icone && <Icone nome={item.icone} tamanho={16} />}
+            {item.icone && <i className={item.icone} aria-hidden="true" />}
             <span>{item.rotulo}</span>
           </button>
         ),

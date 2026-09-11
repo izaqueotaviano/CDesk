@@ -64,42 +64,37 @@ module.exports = {
         },
       },
 
-      // Roboto é a fonte do Material 3. `display` não é mais serifa: o M3 faz
-      // destaque com a MESMA família num corpo maior — o nome fica porque
-      // `font-display` aparece em algumas telas.
       fontFamily: {
-        ui:      ['Roboto', 'Inter', '-apple-system', 'system-ui', 'sans-serif'],
+        ui:      ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
         mono:    ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
-        display: ['Roboto', 'Inter', '-apple-system', 'system-ui', 'sans-serif'],
+        // Serifa de UM lugar só (saudação da Início), como `--f-display` no console.
+        display: ['Libre Baskerville', 'ui-serif', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
       },
 
-      // A escala do Material 3, com o topo podado (ver md3.css). Tamanho,
-      // entrelinha e tracking andam juntos porque no M3 eles são UM degrau.
-      // Têm que ficar IDÊNTICOS aos --md-fs-*/--md-lh-*/--md-ls-* de md3.css.
+      // escala base 14px razão 1,125
       fontSize: {
-        micro:       ['11px', { lineHeight: '16px', letterSpacing: '0.04545em' }], // label-small
-        legenda:     ['12px', { lineHeight: '16px', letterSpacing: '0.03333em' }], // body-small
-        pequeno:     ['12px', { lineHeight: '16px', letterSpacing: '0.03333em' }],
-        corpo:       ['14px', { lineHeight: '20px', letterSpacing: '0.01786em' }], // body-medium
-        'corpo-lg':  ['16px', { lineHeight: '24px', letterSpacing: '0.03125em' }], // body-large
-        'titulo-sm': ['16px', { lineHeight: '24px', letterSpacing: '0.009375em' }], // title-medium
-        titulo:      ['22px', { lineHeight: '28px', letterSpacing: '0em' }],        // title-large
-        'titulo-lg': ['24px', { lineHeight: '32px', letterSpacing: '0em' }],        // headline-small
-        display:     ['24px', { lineHeight: '32px', letterSpacing: '0em' }],
+        micro:       ['9.75px',  { lineHeight: '1' }],
+        legenda:     ['11px',    { lineHeight: '1.45' }],
+        pequeno:     ['12.5px',  { lineHeight: '1.45' }],
+        corpo:       ['14px',    { lineHeight: '1.45' }],
+        'corpo-lg':  ['15.75px', { lineHeight: '1.45' }],
+        'titulo-sm': ['17.75px', { lineHeight: '1.25', letterSpacing: '-0.015em' }],
+        titulo:      ['20px',    { lineHeight: '1.25', letterSpacing: '-0.015em' }],
+        'titulo-lg': ['22.5px',  { lineHeight: '1.25', letterSpacing: '-0.03em' }],
+        display:     ['25.25px', { lineHeight: '1.25', letterSpacing: '-0.03em' }],
       },
       fontWeight: { normal: '400', medio: '500', forte: '600' },
-      lineHeight: { nenhuma: '1', justa: '1.27', normal: '1.43', solta: '1.6' },
-      letterSpacing: { titulo: '0em', display: '0em', nenhum: '0em', rotulo: '0.04167em' },
+      lineHeight: { nenhuma: '1', justa: '1.25', normal: '1.45', solta: '1.6' },
+      letterSpacing: { titulo: '-0.015em', display: '-0.03em', nenhum: '0em', rotulo: '0.05em' },
 
       // grade de 4px com meio-degrau de 2px
       spacing: {
         px: '1px', 1: '4px', 1.5: '6px', 2: '8px', 2.5: '10px',
         3: '12px', 3.5: '14px', 4: '16px', 5: '20px', 6: '24px',
         8: '32px', 10: '40px', 11: '44px', 16: '64px',
-        'icone-sm': '16px', 'icone-md': '18px', 'icone-lg': '20px', 'icone-xl': '24px',
+        'icone-sm': '12px', 'icone-md': '16px', 'icone-lg': '20px', 'icone-xl': '24px',
         'sidebar-larga': '240px', 'sidebar-recolhida': '64px',
-        // Alturas do briefing: 36 / 40 / 44. Espelham --control-height-* de md3.css.
-        'alvo-minimo': '36px', 'altura-controle': '40px', 'altura-controle-lg': '44px',
+        'alvo-minimo': '24px', 'altura-controle': '34px',
         'respiro-painel': 'var(--respiro-painel)',
       },
 

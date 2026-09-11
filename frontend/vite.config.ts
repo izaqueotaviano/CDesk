@@ -24,11 +24,6 @@ export default defineConfig({
         // schema.d.ts é gerado (openapi-typescript) e pode ficar grande;
         // não faz sentido pré-cachear como "asset" do app.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // O bundle do app passa de 2 MB (o teto padrão do Workbox) desde antes
-        // dos ícones do Fluent — que somaram ~100 KB. Sem isto ele não entra
-        // no pré-cache, e o app deixa de abrir offline: o service worker
-        // buscaria na rede justamente o arquivo que faz o app existir.
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       // Os dois manifests reais (equipe/cliente) são arquivos estáticos em
       // public/, escolhidos em runtime por rota (src/features/pwa/PwaManifest.tsx)

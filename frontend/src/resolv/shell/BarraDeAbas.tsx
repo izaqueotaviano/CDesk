@@ -14,7 +14,6 @@ import { chaveAba, useTabs, type Aba } from '@/stores/tabs'
 import { MenuFlutuante, type ItemDoMenu } from './MenuFlutuante'
 import { NAV } from './Sidebar'
 import './barra-de-abas.scss'
-import { Icone } from './Icone'
 
 /**
  * Barra de abas do shell — abas de NAVEGADOR: a ativa tem os cantos de cima
@@ -315,7 +314,7 @@ export function BarraDeAbas({ onAbrirNavegacao }: Props) {
           title="Menu"
           onClick={onAbrirNavegacao}
         >
-          <Icone nome="ti ti-menu-2" tamanho={16} />
+          <i className="ti ti-menu-2" aria-hidden="true" />
         </button>
       )}
 
@@ -380,7 +379,7 @@ export function BarraDeAbas({ onAbrirNavegacao }: Props) {
               }
             }}
           >
-            <Icone nome="ti ti-plus" tamanho={16} />
+            <i className="ti ti-plus" aria-hidden="true" />
           </button>
           <MenuFlutuante
             aberto={abrirRapido}
@@ -403,7 +402,7 @@ export function BarraDeAbas({ onAbrirNavegacao }: Props) {
         aria-expanded={menuMais}
         onClick={() => setMenuMais((v) => !v)}
       >
-        <Icone nome="ti ti-dots" tamanho={16} />
+        <i className="ti ti-dots" aria-hidden="true" />
       </button>
       <MenuFlutuante
         aberto={menuMais}
@@ -511,7 +510,7 @@ function Aba({ item, ativa, antesDaAtiva, tabIndex, registrar, onAtivar, onFecha
         }}
       >
         <span className="barra-de-abas__titulo">
-          {fixa && <Icone nome="ti ti-home" tamanho={16} />}
+          {fixa && <i className="ti ti-home" aria-hidden="true" />}
           {!fixa && aba.tipo === 'ticket' && aba.resumo?.stage_color && (
             <span
               className="barra-de-abas__etapa"
@@ -519,7 +518,7 @@ function Aba({ item, ativa, antesDaAtiva, tabIndex, registrar, onAtivar, onFecha
               aria-hidden="true"
             />
           )}
-          {!fixa && aba.tipo === 'secao' && <Icone nome={aba.icone} tamanho={16} />}
+          {!fixa && aba.tipo === 'secao' && <i className={aba.icone} aria-hidden="true" />}
           {titulo}
         </span>
         {ref && (
@@ -544,7 +543,7 @@ function Aba({ item, ativa, antesDaAtiva, tabIndex, registrar, onAtivar, onFecha
           title="Fechar aba"
           onClick={onFechar}
         >
-          <Icone nome="ti ti-x" tamanho={16} />
+          <i className="ti ti-x" aria-hidden="true" />
         </button>
       )}
     </div>

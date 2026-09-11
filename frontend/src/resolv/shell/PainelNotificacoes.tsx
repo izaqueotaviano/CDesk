@@ -10,7 +10,6 @@ import {
   type EstadoAviso,
 } from '@/realtime/avisos'
 import './notificacoes.scss'
-import { Icone } from './Icone'
 
 const ICONE_TIPO: Record<string, string> = {
   ticket_created: 'ti ti-ticket',
@@ -151,7 +150,7 @@ export function PainelNotificacoes() {
               o selo ancorar no SINO (e não na ponta da linha) e os rótulos
               alinharem numa coluna só com a barra expandida. */}
           <span className="sidebar-rail__icone">
-            <Icone nome="ti ti-bell" tamanho={16} />
+            <i className="ti ti-bell" aria-hidden="true" />
             {naoLidas > 0 && <span className="painel-notif__badge">{naoLidas > 9 ? '9+' : naoLidas}</span>}
           </span>
           <span className="sidebar-rail__rotulo" aria-hidden="true">

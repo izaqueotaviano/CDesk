@@ -3,7 +3,6 @@ import { useConfigChat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useIndicadores } from '@/cvz/relatorios/dados'
 import { direcaoVariacao, formatarVariacao } from '@/cvz/relatorios/formato'
-import { Icone } from '../shell/Icone'
 import { dataHoraDe } from '../chat/format'
 import { FilaDeChat } from './FilaDeChat'
 import { FilaDePrioridade } from './FilaDePrioridade'
@@ -14,27 +13,18 @@ import { VencimentosSla } from './VencimentosSla'
 import './inicio.scss'
 
 /**
- * Home do Resolv, no Material Design 3 — na versão compacta da casa.
- *
- * A página é lida de cima para baixo em quatro faixas, e NENHUMA delas é um
- * card:
- *
- * 1. **Cabeçalho** — quem é a pessoa, qual é o contexto (estado da fila de
- *    chat) e as ações. A ação principal é UMA e é um Filled Button ("Novo
- *    ticket"); a de apoio fica em Outlined ("Chat"). É a hierarquia de botão
- *    do M3 fazendo o trabalho de dizer o que é o quê.
- * 2. **Avisos** — o banner do M3, quando há o que avisar.
- * 3. **Indicadores** — números soltos sobre a superfície, separados por
- *    divisor. Seis cartõezinhos aqui seriam exatamente o "dashboard genérico"
- *    que este produto não quer ser; o número em corpo grande com o rótulo
- *    embaixo diz a mesma coisa ocupando um terço da altura.
- * 4. **Trabalho** — duas colunas de SEÇÕES (cabeçalho, divisor, linhas), não
- *    de caixas. À esquerda o que é do atendimento (seus próximos, vencendo na
- *    equipe); à direita o contexto (chat na fila, equipe agora), numa coluna
- *    mais estreita porque é apoio, não destino.
- *
- * Nada de dado, rota, texto ou ação mudou — as mesmas queries, os mesmos
- * destinos de clique.
+ * Home do Resolv. Ordem deliberada, do mais acionável pro mais ambiente
+ * (overview primeiro, detalhe sob demanda):
+ * 1. Saudação — com o estado real da fila de chat e as duas ações mais
+ *    comuns (abrir chat/ticket), não só um "olá" decorativo.
+ * 2. Mural de avisos — o que a equipe publicou.
+ * 3. O que precisa de atenção AGORA — fila de prioridade própria,
+ *    vencimentos da equipe, fila de chat, quem está online. Cada um é uma
+ *    lista de verdade, não só um contador: clicar leva direto ao item, não
+ *    a uma lista genérica que ainda precisa ser filtrada de novo.
+ * 4. A faixa de KPI de sempre (contagens totais) mais um resumo "hoje" com
+ *    tendência — ainda útil como visão geral, agora complementar às
+ *    listas, não a única coisa na tela.
  */
 export function PaginaInicio() {
   const { data: me } = useMe()
@@ -59,88 +49,67 @@ export function PaginaInicio() {
         <div className="inicio__saudacao">
           <h1 className="inicio__titulo">Olá, {me?.full_name?.split(' ')[0] ?? '—'}</h1>
           <p className="inicio__sub">
-            <span>Visão geral do atendimento</span>
+            Visão geral do atendimento
             {filaAberta != null && (
-              <span className={'md-badge ' + (filaAberta ? 'md-badge--success' : 'md-badge--warning')}>
-                {/* o ponto é o segundo sinal: o estado não fica só na cor */}
-                <span className="md-badge__ponto" aria-hidden="true" />
-                {filaAberta
-                  ? 'Fila de chat aberta'
-                  : `Fila de chat fechada${config.data?.queue_opens_at ? ` — volta ${dataHoraDe(config.data.queue_opens_at)}` : ''}`}
-              </span>
+              <>
+                {' · '}
+                <span className={'inicio__fila-estado' + (filaAberta ? ' inicio__fila-estado--aberta' : '')}>
+                  {filaAberta
+                    ? 'Fila de chat aberta'
+                    : `Fila de chat fechada${config.data?.queue_opens_at ? ` — volta ${dataHoraDe(config.data.queue_opens_at)}` : ''}`}
+                </span>
+              </>
             )}
           </p>
         </div>
         <div className="inicio__acoes">
-          <button type="button" className="md-btn md-btn--outlined" onClick={() => navigate('/chat')}>
-            <Icone nome="chat" tamanho={18} /> Chat
+          <button type="button" className="inicio__botao inicio__botao--secundario" onClick={() => navigate('/chat')}>
+            <i className="ti ti-message-circle-2" aria-hidden="true" /> Chat
           </button>
-          <button
-            type="button"
-            className="md-btn md-btn--filled"
-            onClick={() => navigate('/chamados/novo')}
-          >
-            <Icone nome="add" tamanho={18} /> Novo ticket
+          <button type="button" className="inicio__botao" onClick={() => navigate('/chamados/novo')}>
+            <i className="ti ti-plus" aria-hidden="true" /> Novo ticket
           </button>
         </div>
       </header>
 
       <MuralAvisos />
 
-      <section className="inicio__metricas" aria-label="Indicadores do atendimento">
+      <div className="inicio__grade">
+        <FilaDePrioridade />
+        <VencimentosSla />
+        <FilaDeChat />
+        <QuemEstaOnline />
+      </div>
+
+      <div className="inicio__kpis">
         {kpis.map((k) => (
           <button
             key={k.chave}
             type="button"
-            className="inicio__metrica"
+            className="inicio__kpi"
             onClick={() => navigate(irPara[k.chave] ?? '/chamados')}
           >
-            <span className={'inicio__metrica-valor' + (k.tom ? ` inicio__metrica-valor--${k.tom}` : '')}>
-              {carregando && k.valor == null ? (
-                <span className="md-skeleton inicio__metrica-esqueleto" aria-label="Carregando" />
-              ) : (
-                (k.valor ?? '—')
-              )}
+            <span className="inicio__kpi-rotulo">{k.rotulo}</span>
+            <span
+              className={
+                'inicio__kpi-valor' + (k.tom ? ` inicio__kpi-valor--${k.tom}` : '')
+              }
+            >
+              {carregando && k.valor == null ? '···' : (k.valor ?? '—')}
             </span>
-            <span className="inicio__metrica-rotulo">{k.rotulo}</span>
           </button>
         ))}
         {resolvidosHoje && resolvidosHoje.value != null && (
-          <div className="inicio__metrica inicio__metrica--inerte">
-            <span className="inicio__metrica-valor inicio__metrica-valor--ok">
-              {resolvidosHoje.value}
-            </span>
-            <span className="inicio__metrica-rotulo">
-              Resolvidos hoje
-              {resolvidosHoje.variation != null && (
-                <span
-                  className={`inicio__metrica-delta inicio__metrica-delta--${direcaoVariacao(resolvidosHoje.variation)}`}
-                >
-                  <Icone
-                    nome={
-                      direcaoVariacao(resolvidosHoje.variation) === 'down'
-                        ? 'trending_down'
-                        : 'trending_up'
-                    }
-                    tamanho={18}
-                  />
-                  {formatarVariacao(resolvidosHoje.variation)} vs ontem
-                </span>
-              )}
-            </span>
+          <div className="inicio__kpi inicio__kpi--tendencia">
+            <span className="inicio__kpi-rotulo">Resolvidos hoje</span>
+            <span className="inicio__kpi-valor inicio__kpi-valor--ok">{resolvidosHoje.value}</span>
+            {resolvidosHoje.variation != null && (
+              <span className={`inicio__kpi-delta inicio__kpi-delta--${direcaoVariacao(resolvidosHoje.variation)}`}>
+                {formatarVariacao(resolvidosHoje.variation)} vs ontem
+              </span>
+            )}
           </div>
         )}
-      </section>
-
-      <div className="inicio__grade">
-        <div className="inicio__coluna">
-          <FilaDePrioridade />
-          <VencimentosSla />
-        </div>
-        <div className="inicio__coluna inicio__coluna--apoio">
-          <FilaDeChat />
-          <QuemEstaOnline />
-        </div>
       </div>
     </div>
   )

@@ -2,9 +2,8 @@
    resolv — tokens do Painel do Cliente (e de tudo que é Tailwind)
 
    Desde a Rodada 12 os VALORES são os do console do agente
-   (resolv/styles/tokens.scss): cromo #f0f0f0, canvas #f8f8f7, conteúdo
-   branco, azul de ação #1a73e8 (o azul de botão do Google — trocou de
-   #0f62fe na rodada do Material 3), linha estrutural
+   (resolv/styles/tokens.scss e cvz/styles/_theme.scss): cromo #f0f0f0,
+   canvas #f8f8f7, conteúdo branco, azul de ação #0f62fe, linha estrutural
    preta translúcida, raio único de 2px e separação por LINHA, não por
    sombra. Os NOMES continuam os do portal (--acento, --superficie,
    --divisoria…) porque ~50 arquivos Tailwind os consomem; só o valor por
@@ -48,17 +47,16 @@
   --neutro-975: #17130e;  /* canvas (escuro) */
 
   /* ---------- primitivos: acento e estado ----------
-     O azul é #1a73e8, o azul de botão do Google (4,51:1 sobre branco, e
-     branco sobre ele dá o mesmo contraste — por isso o botão primário
-     escreve em branco).
+     O azul é o Carbon #0f62fe do console (5,05:1 sobre branco, e branco sobre
+     ele dá os mesmos 5,05:1 — por isso o botão primário escreve em branco).
      No escuro é o role `primary` REAL do M3 (TonalSpot, tom 80) para essa
      mesma cor — não mais uma aproximação manual "clareada": mais claro/
      pastel que o valor anterior e com contraste MAIOR (9,6–10,9:1 como
      texto, contra 7,4:1 de antes). perigo/alerta/ok seguem o mesmo método
      (retonados no hue/chroma reais de cada um; M3 não tem role nativo para
      sucesso/atenção). */
-  --acento-escuro: #1a73e8;
-  --acento-escuro-hover: #2c7eea;
+  --acento-escuro: #0f62fe;
+  --acento-escuro-hover: #0043ce;
   --acento-claro:  #b4c5ff;
   --acento-claro-hover: #d3dcff;
   --acento-tinta-sobre-claro: #1b2d60;
@@ -79,38 +77,29 @@
      Inter na interface (a mesma pilha do console); JetBrains Mono só em dado
      técnico; a serifa é de UM lugar só — a saudação da Início, como no
      console (resolv/inicio/inicio.scss). */
-  --f-ui: var(--md-font);
-  --f-mono: var(--md-font-mono);
-  /* `--f-display` não é mais uma serifa: o M3 faz destaque com a MESMA
-     família num corpo maior. O nome fica porque ~50 arquivos o usam. */
-  --f-display: var(--md-font);
+  --f-ui: "Inter", -apple-system, system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  --f-display: "Libre Baskerville", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
-  /* A rampa é a do Material 3 (md3.css), com o topo podado: 11/12/14/16/22/24.
-     Os NOMES são os de sempre — `text-corpo`, `text-titulo`… continuam valendo
-     em ~50 arquivos —, só o passo mudou. A escala do M3 é inteira e leva
-     entrelinha fixa por degrau, o que alinha texto a controle na grade de 4px;
-     a anterior era fracionária (15,75 / 17,75 / 22,5) e nunca alinhava. */
-  --fs-micro:     var(--md-fs-label-small);   /* 11 */
-  --fs-legenda:   var(--md-fs-body-small);    /* 12 */
-  --fs-pequeno:   var(--md-fs-body-small);    /* 12 */
-  --fs-corpo:     var(--md-fs-body-medium);   /* 14 — corpo padrão */
-  --fs-corpo-lg:  var(--md-fs-body-large);    /* 16 */
-  --fs-titulo-sm: var(--md-fs-title-medium);  /* 16 — título de bloco */
-  --fs-titulo:    var(--md-fs-title-large);   /* 22 — título de página */
-  --fs-titulo-lg: var(--md-fs-headline-small);/* 24 */
-  --fs-display:   var(--md-fs-headline-small);/* 24 — o maior em uso corrente */
+  --fs-micro:     9.75px;
+  --fs-legenda:   11px;
+  --fs-pequeno:   12.5px;
+  --fs-corpo:     14px;
+  --fs-corpo-lg:  15.75px;
+  --fs-titulo-sm: 17.75px;
+  --fs-titulo:    20px;
+  --fs-titulo-lg: 22.5px;
+  --fs-display:   25.25px;
 
   --lh-nenhuma: 1;
-  --lh-justa:   1.27;  /* 28/22: a entrelinha de title-large */
-  --lh-normal:  1.43;  /* 20/14: a entrelinha de body-medium */
+  --lh-justa:   1.25;
+  --lh-normal:  1.45;
   --lh-solta:   1.6;
 
-  /* No M3 o tracking é POSITIVO e faz parte do degrau (a Roboto foi desenhada
-     assim). Título grande vai em zero; corpo e rótulo abrem um pouco. */
-  --ls-titulo:  var(--md-ls-title-large);
-  --ls-display: var(--md-ls-headline-small);
+  --ls-titulo:  -0.015em;
+  --ls-display: -0.03em;
   --ls-nenhum:  0em;
-  --ls-rotulo:  var(--md-ls-label-medium);
+  --ls-rotulo:  0.05em;
 
   --fw-normal: 400;
   --fw-medio:  500;
@@ -133,23 +122,18 @@
      `--r-total`: é forma, não estilo. `--r-painel` é a exceção nomeada e só
      do shell: o painel de conteúdo apoiado sobre o cromo, igual ao console
      (`--raio-painel`). */
-  --r-sm: var(--radius-default);
-  --r-md: var(--radius-default);   /* controles: botão, campo, selo */
-  --r-lg: var(--radius-default);   /* superfícies: cartão, painel, menu */
-  --r-xl: var(--radius-default);   /* modal, popover grande */
-  --r-total: var(--md-radius-full);
-  --r-painel: var(--radius-default);
+  --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px; --r-total: 999px;
+  --r-painel: 16px;
   --respiro-painel: 12px;
   --borda-fina: 1px;
 
   /* ---------- ícone ---------- */
-  /* A grade do Material Symbols é 24; 20 é o par do controle de 40px. */
-  --icone-sm: 16px; --icone-md: 18px; --icone-lg: 20px; --icone-xl: 24px;
+  --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
   --icone-traco: 1.75px;
 
   /* ---------- movimento ---------- */
-  --dur: var(--md-dur-curta-2);
-  --ease: var(--md-ease-padrao);
+  --dur: 150ms;
+  --ease: cubic-bezier(.2, 0, .38, .9);
 
   /* ---------- camada ---------- */
   --z-suspenso: 100; --z-fixo: 200; --z-cortina: 300;
@@ -158,8 +142,8 @@
   /* ---------- layout ---------- */
   --sidebar-larga: 240px;
   --sidebar-recolhida: 64px;
-  --alvo-minimo: var(--control-height-sm);      /* 36px */
-  --altura-controle: var(--control-height-md);  /* 40px — o padrão do projeto */
+  --alvo-minimo: 24px;
+  --altura-controle: 34px;
 }
 
 /* ============================================================
@@ -167,11 +151,11 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  --canvas:             var(--md-surface);            /* fundo geral atrás do conteúdo */
-  --superficie:         var(--md-surface-container-lowest);       /* cartão, campo, modal */
-  --superficie-sutil:   var(--md-surface-container);
-  --superficie-elevada: var(--md-surface-container-lowest);
-  --navegacao:          var(--md-surface-container);  /* cromo: sidebar, barra, hover */
+  --canvas:             var(--neutro-50);   /* fundo geral atrás do conteúdo */
+  --superficie:         var(--neutro-0);    /* cartão, campo, modal */
+  --superficie-sutil:   var(--neutro-50);
+  --superficie-elevada: var(--neutro-0);
+  --navegacao:          var(--neutro-100);  /* cromo: sidebar, barra, hover, caixa de ícone */
 
   /* Duas famílias de linha, de propósito (como no console):
      --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
@@ -180,35 +164,34 @@
                     precisa se anunciar como editável; com a linha estrutural
                     o formulário sumia dentro da página
      --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      var(--md-outline-variant);
-  --borda-controle: var(--md-outline);
-  --borda-campo:    var(--md-outline);
+  --divisoria:      #e5e7eb;  /* hex fixo: sobre o canvas (#f8f8f7) a linha derivada de preto ficava clara demais */
+  --borda-controle: rgba(0, 0, 0, .14);
+  --borda-campo:    var(--neutro-600);
 
-  --tinta:            var(--md-on-surface);
-  --tinta-secundaria: var(--md-on-surface-variant);
-  --tinta-terciaria:  var(--md-on-surface-faint);
-  --texto-cromo:      var(--md-on-surface-variant);  /* texto e ícone sobre o cromo */
+  --tinta:            var(--neutro-900);
+  --tinta-secundaria: var(--neutro-700);
+  --tinta-terciaria:  #737373;
+  --texto-cromo:      #333333;  /* texto e ícone sobre o cromo */
 
-  --acento:       var(--md-primary);
-  --acento-hover: var(--md-primary-hover);
-  --acento-tinta: var(--md-primary);
-  --acento-sobre: var(--md-on-primary);
-  --acento-suave: var(--md-primary-container);
+  --acento:       var(--acento-escuro);
+  --acento-hover: var(--acento-escuro-hover);
+  --acento-tinta: var(--acento-escuro);
+  --acento-sobre: var(--neutro-0);
+  --acento-suave: rgba(15, 98, 254, .08);
 
-  --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
-  --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
-  --ok:     var(--md-success);  --ok-suave:     var(--md-success-container);
+  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .08);
+  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .10);
+  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .10);
 
-  --hover: var(--md-state-layer-hover);
-  --ativo: var(--md-state-layer-pressed);
+  --hover: rgba(0, 0, 0, .06);
+  --ativo: rgba(0, 0, 0, .10);
 
-  /* Elevação com moderação, como o M3 pede: o que separa superfície aqui é o
-     TOM (surface-container-*) e a LINHA. O nível 1 é quase imperceptível e
-     serve de reforço; o nível 3 é para o que de fato flutua (menu, diálogo,
-     popover). */
-  --elevacao-1: var(--md-elev-1);
-  --elevacao-3: var(--md-elev-3);
-  --sobreposicao: var(--md-scrim);  /* véu atrás do modal */
+  /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
+     do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
+     sombra, e é a mesma do console (--sombra-flutuante). */
+  --elevacao-1: none;
+  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .06);
+  --sobreposicao: rgba(26, 26, 26, .42);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
@@ -223,44 +206,39 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  /* Os papéis `--md-*` já viram escuros sozinhos ([data-tema] em md3.css); o
-     que sobra aqui é só o que NÃO é derivado deles. */
-  /* No escuro os papéis de superfície do M3 trocam de ORDEM: o mais escuro
-     (surface-container-lowest) é o cromo, e o conteúdo sobe de tom. É assim
-     que a hierarquia do claro (cromo < canvas < superfície < elevado) se
-     mantém espelhada — no M3 quem sobe de nível clareia, não escurece. */
-  --canvas:             var(--md-surface-container-low);
-  --superficie:         var(--md-surface-container);
-  --superficie-sutil:   var(--md-surface-container-high);
-  --superficie-elevada: var(--md-surface-container-high);
-  --navegacao:          var(--md-surface);
+  --canvas:             var(--neutro-975);
+  --superficie:         var(--neutro-875);
+  --superficie-sutil:   var(--neutro-975);
+  --superficie-elevada: var(--neutro-850);
+  --navegacao:          var(--neutro-950);
 
-  --divisoria:      var(--md-outline-variant);
-  --borda-controle: var(--md-outline);
-  --borda-campo:    var(--md-outline);
+  --divisoria:      var(--neutro-800);
+  --borda-controle: #9d8e81;
+  /* No escuro o contraste de campo se ganha CLAREANDO a linha. */
+  --borda-campo:    var(--neutro-500);
 
-  --tinta:            var(--md-on-surface);
-  --tinta-secundaria: var(--md-on-surface-variant);
-  --tinta-terciaria:  var(--md-on-surface-faint);
-  --texto-cromo:      var(--md-on-surface-variant);
+  --tinta:            #ebe0d9;
+  --tinta-secundaria: #cfc5be;
+  --tinta-terciaria:  #a59c96;
+  --texto-cromo:      #ebe0d9;
 
-  --acento:       var(--md-primary);
-  --acento-hover: var(--md-primary-hover);
-  --acento-tinta: var(--md-primary);
-  --acento-sobre: var(--md-on-primary);
-  --acento-suave: var(--md-primary-container);
+  --acento:       var(--acento-claro);
+  --acento-hover: var(--acento-claro-hover);
+  --acento-tinta: var(--acento-claro);
+  --acento-sobre: var(--acento-tinta-sobre-claro);
+  --acento-suave: rgba(180, 197, 255, .14);
 
-  --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
-  --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
-  --ok:     var(--md-success);  --ok-suave:     var(--md-success-container);
+  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+  --ok:     var(--ok-escuro);      --ok-suave:     rgba(129, 217, 162, .14);
 
-  --hover: var(--md-state-layer-hover);
-  --ativo: var(--md-state-layer-pressed);
+  --hover: rgba(235, 224, 217, .06);
+  --ativo: rgba(235, 224, 217, .10);
 
-  --elevacao-1: var(--md-elev-1);
-  --elevacao-3: var(--md-elev-3);
-  --sobreposicao: var(--md-scrim);
-  --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+  --elevacao-1: none;
+  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+  --sobreposicao: rgba(0, 0, 0, .62);
+  --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
 
   --esquema: dark;
   color-scheme: dark;
@@ -269,32 +247,39 @@
 /* Respeita a preferência do sistema quando ninguém fixou o tema. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
-    --canvas: var(--md-surface-container-low);        --superficie: var(--md-surface-container);
-    --superficie-sutil: var(--md-surface-container-high);
-    --superficie-elevada: var(--md-surface-container-high);
-    --navegacao: var(--md-surface);
-    --divisoria: var(--md-outline-variant);      --borda-controle: var(--md-outline);
-    --borda-campo: var(--md-outline);
-    --tinta: var(--md-on-surface);              --tinta-secundaria: var(--md-on-surface-variant);
-    --tinta-terciaria: var(--md-on-surface-faint);    --texto-cromo: var(--md-on-surface-variant);
-    --acento: var(--md-primary);         --acento-hover: var(--md-primary-hover);
-    --acento-tinta: var(--md-primary); --acento-sobre: var(--md-on-primary);
-    --acento-suave: var(--md-primary-container);
-    --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
-    --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
-    --ok: var(--md-success);      --ok-suave: var(--md-success-container);
-    --hover: var(--md-state-layer-hover); --ativo: var(--md-state-layer-pressed);
-    --elevacao-1: var(--md-elev-1);
-    --elevacao-3: var(--md-elev-3);
-    --sobreposicao: var(--md-scrim);
-    --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+    --canvas: var(--neutro-975);          --superficie: var(--neutro-875);
+    --superficie-sutil: var(--neutro-975); --superficie-elevada: var(--neutro-850);
+    --navegacao: var(--neutro-950);
+    --divisoria: var(--neutro-800);        --borda-controle: #9d8e81;
+    --borda-campo: var(--neutro-500);
+    --tinta: #ebe0d9;                      --tinta-secundaria: #cfc5be;
+    --tinta-terciaria: #a59c96;            --texto-cromo: #ebe0d9;
+    --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
+    --acento-tinta: var(--acento-claro);
+    --acento-sobre: var(--acento-tinta-sobre-claro);
+    --acento-suave: rgba(180, 197, 255, .14);
+    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+    --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);
+    --hover: rgba(235, 224, 217, .06);    --ativo: rgba(235, 224, 217, .10);
+    --elevacao-1: none;
+    --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+    --sobreposicao: rgba(0, 0, 0, .62);
+    --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
     --esquema: dark;
     color-scheme: dark;
   }
 }
 
-/* Foco visível: a regra única mora em md3.css (anel de 3px na cor primária,
-   deslocado 2px). Nada aqui a sobrescreve. */
+/* Foco visível — regra ÚNICA, a mesma do console (mixin focus-ring do cvz:
+   contorno sólido de 2px com folga). Nenhum componente do portal a
+   sobrescreve: o `ring` com alfa a 30–40% que as primitivas desenhavam dava
+   ~1,9:1 sobre branco e reprovava WCAG 1.4.11. */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
 
 /* WCAG 2.3.3 / boa prática. */
 @media (prefers-reduced-motion: reduce) {

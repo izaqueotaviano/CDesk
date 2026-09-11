@@ -126,29 +126,36 @@
   // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
   // central que ele abre. Um <input> aqui teria dois lugares para digitar a
   // mesma coisa.
-  // Campo no molde do "outlined text field" do M3: moldura de 1px na cor de
-  // contorno, raio de 2px, altura de controle e o atalho como dica à direita.
   &__busca {
     display: flex;
     align-items: center;
-    gap: var(--md-space-8);
-    height: var(--control-height-md);
-    margin: var(--md-space-12) var(--md-space-12) var(--md-space-4);
-    padding: 0 var(--md-space-12);
+    gap: 8px;
+    height: 34px;
+    margin: 12px 12px 4px;
+    padding: 0 8px;
     flex-shrink: 0;
-    border: var(--md-borda) solid var(--md-outline);
-    border-bottom-color: var(--md-outline);
-    border-radius: var(--radius-default);
-    background: var(--md-surface-container-lowest);
-    color: var(--md-on-surface-faint);
-    font-family: inherit;
-    font-size: var(--md-fs-body-medium);
+    border: none;
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-family: var(--f-ui);
+    font-size: 13px;
     text-align: left;
     cursor: pointer;
-    transition: border-color var(--md-dur-curta-2) var(--md-ease-padrao);
 
+    i {
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    // Sem borda, o hover precisa de outro sinal — mesmo fundo que o item de
+    // navegação usa (var(--stroke)) em vez de escurecer uma borda que não
+    // existe mais.
     &:hover {
-      border-color: var(--md-outline);
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
     }
   }
 
@@ -161,14 +168,14 @@
 
   &__busca-atalho {
     flex-shrink: 0;
-    padding: 1px var(--md-space-6);
-    border: var(--md-borda) solid var(--md-outline-variant);
-    border-radius: var(--radius-default);
-    background: var(--md-surface-container);
-    font-family: var(--md-font-mono);
-    font-size: var(--md-fs-label-small);
-    line-height: var(--md-lh-label-small);
-    color: var(--md-on-surface-faint);
+    padding: 2px 5px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-muted);
   }
 
   // ── Navegação ─────────────────────────────────────────────────────────────
@@ -186,84 +193,65 @@
     overflow-x: hidden;
   }
 
-  // Item do navigation drawer do M3, na densidade da casa: altura de
-  // controle (40px, não os 56px do padrão), raio de 2px, fundo só na
-  // interação, e o item atual em `secondary-container` — que é a marca de
-  // seleção do M3.
   &__item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: var(--md-space-12);
+    gap: 12px;
     width: 100%;
-    min-height: var(--control-height-md);
-    padding: 0 var(--md-space-12);
+    min-height: 36px;
+    padding: 0 10px;
     flex-shrink: 0;
     border: none;
-    border-radius: var(--radius-default);
+    border-radius: var(--raio);
     background: transparent;
-    color: var(--md-on-surface-variant);
-    font-family: inherit;
-    font-size: var(--md-fs-body-medium);
-    line-height: var(--md-lh-body-medium);
-    font-weight: var(--md-peso-regular);
+    color: var(--texto-cromo);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    font-weight: 500;
     text-align: left;
     cursor: pointer;
-    transition:
-      background-color var(--md-dur-curta-2) var(--md-ease-padrao),
-      color var(--md-dur-curta-2) var(--md-ease-padrao);
+    transition: background 0.15s ease, color 0.15s ease;
 
     &:hover {
-      background: var(--md-state-layer-hover);
-      color: var(--md-on-surface);
+      background: var(--stroke);
+      color: var(--text-primary);
     }
-    &:active {
-      background: var(--md-state-layer-pressed);
-    }
-    // Item atual: cor de marca no texto e peso 500 — dois sinais, além do
-    // `aria-current` para o leitor de tela. A MARCAÇÃO de fundo mora só no
-    // ícone (abaixo, `&__icone`): é a cápsula atrás do ícone, não a linha
-    // inteira tingida, que é como a navegação do Material 3 sinaliza seleção
-    // nos apps do próprio Google (Gmail, Drive) — a fileira continua neutra
-    // e só o ícone ganha destaque.
+    // Ativo: fundo tingido da cor de ação + a barrinha vertical na borda
+    // esquerda (a marca de "você está aqui" das barras laterais de navegador
+    // e editor). A barrinha fica FORA do padding da lista, encostada na
+    // borda do rail, por isso o `left` negativo.
     &--ativo {
-      color: var(--md-primary);
-      font-weight: var(--md-peso-medio);
+      background: var(--sidebar-ativo);
+      color: var(--text-primary);
+      font-weight: 600;
 
-      // A cápsula é um `::before` maior que a caixa do ícone, não o fundo
-      // da própria caixa — assim ela cresce por cima do layout sem MUDAR o
-      // tamanho da caixa (que é fixo de propósito, para os rótulos
-      // continuarem alinhados numa coluna só).
-      //
-      // O ícone (svg/i) PRECISA ganhar `position: relative` aqui, e não só a
-      // cor: sem isso ele é conteúdo "não posicionado", que na ordem de
-      // pintura do CSS desenha ANTES de qualquer elemento posicionado — a
-      // cápsula (posicionada) pintaria por cima dele mesmo vindo depois na
-      // árvore, e o ícone sumia atrás do próprio fundo que deveria realçá-lo.
-      // Posicionado, ele volta a competir pela ordem de pintura por z-index/
-      // ordem no documento, que é depois do `::before` — e aparece por cima.
-      // O selo de conversas (`&__badge`) já é posicionado desde a regra base
-      // (`position: absolute`), por isso não precisa do mesmo ajuste aqui.
-      .sidebar-rail__icone::before {
+      &::before {
         content: '';
         position: absolute;
-        inset: -6px -10px;
-        border-radius: var(--md-radius-full);
-        background: var(--md-secondary-container);
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        border-radius: 0 3px 3px 0;
+        background: var(--accent);
       }
-      .sidebar-rail__icone svg,
       .sidebar-rail__icone i {
-        position: relative;
-        color: var(--md-on-secondary-container);
+        color: var(--accent);
       }
     }
     &--inerte {
-      color: color-mix(in srgb, var(--md-on-surface) 38%, transparent);
+      color: var(--text-muted);
       cursor: default;
       &:hover {
         background: transparent;
-        color: color-mix(in srgb, var(--md-on-surface) 38%, transparent);
+        color: var(--text-muted);
       }
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
     }
   }
 
@@ -279,16 +267,14 @@
     align-items: center;
     justify-content: center;
 
-    svg,
     i {
       font-size: 18px;
       line-height: 1;
-      color: var(--md-on-surface-faint);
+      color: var(--text-secondary);
     }
   }
-  &__item:hover &__icone svg,
   &__item:hover &__icone i {
-    color: var(--md-on-surface);
+    color: var(--text-primary);
   }
 
   &__rotulo {
@@ -318,12 +304,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--md-radius-full);
-    background: var(--md-primary);
-    color: var(--md-on-primary);
-    font-family: inherit;
-    font-size: var(--md-fs-label-small);
-    font-weight: var(--md-peso-medio);
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: #ffffff;
+    font-family: var(--f-ui);
+    font-size: 9px;
+    font-weight: 700;
     line-height: 1;
   }
 

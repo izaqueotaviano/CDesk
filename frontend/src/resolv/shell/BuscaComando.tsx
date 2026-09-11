@@ -4,7 +4,6 @@ import { useFocusTrap } from '@/cvz/hooks'
 import { MINIMO_PARA_BUSCAR, useBuscaGlobal } from '@/api/busca'
 import { NAV } from './Sidebar'
 import './busca-comando.scss'
-import { Icone } from './Icone'
 
 /** Uma linha do painel, já achatada — os quatro grupos têm campos diferentes,
  *  mas o teclado anda por UMA lista só. */
@@ -228,7 +227,7 @@ export function BuscaComando({
     >
       <div ref={painelRef} className="busca-comando" role="dialog" aria-modal="true" aria-label="Buscar e navegar">
         <div className="busca-comando__caixa">
-          <Icone nome="ti ti-search" className="busca-comando__lupa" />
+          <i className="ti ti-search busca-comando__lupa" aria-hidden="true" />
           <input
             ref={campoRef}
             type="text"
@@ -255,7 +254,7 @@ export function BuscaComando({
         <div className="busca-comando__resultados" id={idPainel}>
           {isError ? (
             <div className="busca-comando__estado busca-comando__estado--erro" role="alert">
-              <Icone nome="ti ti-alert-triangle" tamanho={16} />
+              <i className="ti ti-alert-triangle" aria-hidden="true" />
               <p>Não foi possível buscar agora.</p>
               <button
                 type="button"
@@ -283,7 +282,7 @@ export function BuscaComando({
                     const posicao = navegaveis.indexOf(linha)
                     const conteudo = (
                       <>
-                        <Icone nome={linha.icone} className="busca-comando__icone" />
+                        <i className={`${linha.icone} busca-comando__icone`} aria-hidden="true" />
                         <span className="busca-comando__texto">
                           <span className="busca-comando__titulo">
                             {linha.referencia && (

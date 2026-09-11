@@ -2,7 +2,6 @@ import { useNavigate } from 'react-router-dom'
 import { useFilaChat, usePegarChat } from '@/api/chat'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
-import { Icone } from '../shell/Icone'
 
 const LIMITE = 4
 
@@ -21,46 +20,34 @@ export function FilaDeChat() {
   const naFila = fila ?? []
 
   return (
-    <section className="inicio-secao" aria-labelledby="inicio-chat-fila">
-      <header className="inicio-secao__cabecalho">
-        <Icone nome="forum" />
-        <h2 id="inicio-chat-fila">Chat na fila</h2>
-        {!isLoading && (
-          <span className={'md-badge' + (naFila.length > 0 ? ' md-badge--brand' : '')}>
-            {naFila.length}
-          </span>
-        )}
-        <button
-          type="button"
-          className="md-btn md-btn--texto md-btn--sm inicio-secao__acao"
-          onClick={() => navigate('/chat')}
-        >
+    <div className="inicio-lista">
+      <header className="inicio-lista__cabecalho">
+        <h2>Chat na fila</h2>
+        <button type="button" className="inicio-lista__ver-tudo" onClick={() => navigate('/chat')}>
           Ver console
         </button>
       </header>
       {isLoading ? (
-        <p className="inicio-secao__vazio">Carregando…</p>
+        <p className="inicio-lista__vazio">Carregando…</p>
       ) : naFila.length === 0 ? (
-        <p className="inicio-secao__vazio">Ninguém esperando agora.</p>
+        <p className="inicio-lista__vazio">Ninguém esperando agora.</p>
       ) : (
-        <ul className="md-lista">
+        <ul className="inicio-lista__itens">
           {naFila.slice(0, LIMITE).map((c) => (
             <li key={c.id}>
-              <div className="md-lista__item inicio-secao__item inicio-secao__item--inerte">
-                <span className="md-avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
+              <div className="inicio-lista__item inicio-lista__item--chat">
+                <span className="inicio-chat__avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
                   {iniciais(c.client_name)}
                 </span>
-                <span className="inicio-secao__texto">
-                  <span className="inicio-secao__assunto">{c.client_name}</span>
-                  <span className="inicio-secao__meta">{c.company_name}</span>
+                <span className="inicio-lista__texto">
+                  <span className="inicio-lista__assunto">{c.client_name}</span>
+                  <span className="inicio-lista__meta">{c.company_name}</span>
                 </span>
                 <button
                   type="button"
-                  className="md-btn md-btn--tonal md-btn--sm"
+                  className="inicio-chat__pegar"
                   disabled={pegar.isPending}
-                  onClick={() =>
-                    pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })
-                  }
+                  onClick={() => pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })}
                 >
                   Pegar
                 </button>
@@ -69,6 +56,6 @@ export function FilaDeChat() {
           ))}
         </ul>
       )}
-    </section>
+    </div>
   )
 }

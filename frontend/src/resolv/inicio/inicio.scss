@@ -1,410 +1,411 @@
-// ============================================================================
-// Início — Material Design 3, na densidade da casa.
-//
-// A página é só composição: quem desenha botão, badge, lista, avatar e
-// esqueleto são as primitivas de `resolv/styles/md3.scss`. O que sobra aqui é
-// o layout e as três peças que só existem nesta tela — a faixa de
-// indicadores, a seção de trabalho e o banner de avisos.
-//
-// Nenhum valor literal: tudo sai de `--md-*` / `--control-height-*`
-// (styles/md3.css). E nenhum CARD: a Início é feita de seções sobre a
-// superfície, separadas por divisor e por espaço.
-// ============================================================================
-
+// Home — KPI row no estilo do design system (cards brancos lado a lado,
+// separados por borda, sem gap; valor grande peso 300; accent na borda inferior).
 .inicio {
-  padding: var(--md-space-24);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: var(--md-space-24);
-  max-width: 1440px; // linha de leitura: acima disso a grade só estica à toa
+  gap: 20px;
 
-  @media (max-width: 599px) {
-    padding: var(--md-space-16);
-    gap: var(--md-space-16);
-  }
-
-  // ── Cabeçalho da página ───────────────────────────────────────────────────
-  // Nome → contexto → ações. Sem barra de cabeçalho: o título se apoia na
-  // própria superfície e só o divisor de baixo separa da faixa seguinte.
   &__cabecalho {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: var(--md-space-16);
+    gap: 16px;
     flex-wrap: wrap;
-    padding-bottom: var(--md-space-16);
-    border-bottom: var(--md-borda) solid var(--md-outline-variant);
   }
-
+  // Único lugar do produto com a serifa de destaque (--f-display) — mesmo
+  // tratamento do título grande do app da Manus (manus.im): serifa só aqui,
+  // peso regular (bold em serifa de texto pesa demais num título já grande),
+  // resto da interface continua em Inter.
   &__titulo {
-    margin: 0;
-    font-size: var(--md-fs-title-large);
-    line-height: var(--md-lh-title-large);
-    letter-spacing: var(--md-ls-title-large);
-    font-weight: var(--md-peso-medio);
-    color: var(--md-on-surface);
+    font-family: var(--f-display);
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
   }
-
   &__sub {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--md-space-8);
-    margin: var(--md-space-4) 0 0;
-    font-size: var(--md-fs-body-small);
-    line-height: var(--md-lh-body-small);
-    letter-spacing: var(--md-ls-body-small);
-    color: var(--md-on-surface-variant);
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  &__fila-estado {
+    color: var(--away);
+    font-weight: 500;
+    &--aberta {
+      color: var(--ok);
+    }
   }
 
   &__acoes {
     display: flex;
-    gap: var(--md-space-8);
+    gap: 8px;
     flex-shrink: 0;
   }
-
-  // ── Faixa de indicadores ──────────────────────────────────────────────────
-  // Números soltos sobre a superfície, separados por divisor vertical. Cada um
-  // é um alvo de clique com os estados do M3; o bloco de tendência não é
-  // clicável e por isso não tem estado nenhum.
-  // A faixa é uma GRADE, não uma fila que quebra: com `flex-wrap` a segunda
-  // fileira herdava as larguras da primeira e os divisores caíam em lugares
-  // que não correspondiam a nada. Com número fixo de colunas por faixa de
-  // tela, o divisor sempre cai entre duas colunas.
-  &__metricas {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    margin: 0 calc(var(--md-space-12) * -1);
-
-    @media (max-width: 1099px) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      row-gap: var(--md-space-16);
-    }
-    @media (max-width: 599px) {
-      // Sete números em fila única viravam sete linhas de uma coluna só e a
-      // leitura de relance (que é a razão da faixa existir) se perdia.
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      margin: 0;
-    }
-  }
-
-  &__metrica {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--md-space-2);
-    padding: var(--md-space-4) var(--md-space-12);
-    border: 0;
-    border-left: var(--md-borda) solid var(--md-outline-variant);
-    border-radius: var(--radius-default);
-    background: transparent;
-    text-align: left;
-    font-family: inherit;
-    cursor: pointer;
-    transition: background-color var(--md-dur-curta-2) var(--md-ease-padrao);
-
-    // quem abre a fileira não leva divisor à esquerda — muda com a contagem
-    // de colunas de cada faixa
-    &:nth-child(7n + 1) {
-      border-left: 0;
-    }
-
-    @media (max-width: 1099px) {
-      &:nth-child(7n + 1) {
-        border-left: var(--md-borda) solid var(--md-outline-variant);
-      }
-      &:nth-child(4n + 1) {
-        border-left: 0;
-      }
-    }
-    @media (max-width: 599px) {
-      &:nth-child(4n + 1) {
-        border-left: var(--md-borda) solid var(--md-outline-variant);
-      }
-      &:nth-child(2n + 1) {
-        border-left: 0;
-      }
-    }
-
-    &:hover {
-      background: var(--md-state-layer-hover);
-    }
-    &:active {
-      background: var(--md-state-layer-pressed);
-    }
-
-    &--inerte {
-      cursor: default;
-
-      &:hover,
-      &:active {
-        background: transparent;
-      }
-    }
-  }
-
-  &__metrica-valor {
-    font-size: var(--md-fs-headline-small);
-    line-height: var(--md-lh-headline-small);
-    letter-spacing: var(--md-ls-headline-small);
-    font-weight: var(--md-peso-medio);
-    color: var(--md-on-surface);
-    font-variant-numeric: tabular-nums;
-
-    &--accent {
-      color: var(--md-primary);
-    }
-    &--danger {
-      color: var(--md-error);
-    }
-    &--ok {
-      color: var(--md-success);
-    }
-  }
-
-  &__metrica-esqueleto {
-    display: block;
-    width: 2ch;
-    height: var(--md-lh-headline-small);
-  }
-
-  &__metrica-rotulo {
-    display: flex;
-    align-items: center;
-    gap: var(--md-space-6);
-    flex-wrap: wrap;
-    font-size: var(--md-fs-body-small);
-    line-height: var(--md-lh-body-small);
-    letter-spacing: var(--md-ls-body-small);
-    color: var(--md-on-surface-variant);
-  }
-
-  &__metrica-delta {
+  &__botao {
     display: inline-flex;
     align-items: center;
-    gap: var(--md-space-2);
-    color: var(--md-on-surface-faint);
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
+    // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
+    color: var(--surface-card);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
 
-    svg {
-      width: 14px;
-      height: 14px;
+    i {
+      font-size: 15px;
     }
-    // os sufixos são os que `direcaoVariacao` devolve (up/down/flat) — o
-    // par anterior estava em português e por isso nunca casava
-    &--up {
-      color: var(--md-success);
+    &:hover {
+      filter: brightness(1.08);
     }
-    &--down {
-      color: var(--md-error);
+    &--secundario {
+      background: var(--surface-card);
+      color: var(--text-primary);
+      border: 1px solid var(--stroke);
+      &:hover {
+        filter: none;
+        border-color: var(--stroke-hover);
+        background: var(--surface);
+      }
     }
   }
 
-  // ── Grade de trabalho ─────────────────────────────────────────────────────
-  // Duas colunas de peso diferente: a da esquerda é o trabalho (fila pessoal e
-  // SLA), a da direita é apoio (chat e equipe) — e por isso é mais estreita.
-  // Abaixo de 1100px vira uma coluna só, na mesma ordem de leitura.
+  // Duas colunas no desktop (fila de prioridade/vencimentos à esquerda,
+  // chat/equipe à direita); uma coluna abaixo de 900px — mesmo ponto de
+  // quebra do mini chat, que já some nessa largura.
   &__grade {
     display: grid;
-    grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
-    align-items: start;
-    gap: var(--md-space-32);
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
 
-    @media (max-width: 1099px) {
+    @media (max-width: 899px) {
       grid-template-columns: 1fr;
-      gap: var(--md-space-24);
     }
   }
 
-  &__coluna {
+  &__kpis {
+    display: flex;
+    flex-wrap: wrap;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    overflow: hidden;
+  }
+
+  &__kpi {
+    flex: 1 1 160px;
+    min-width: 160px;
     display: flex;
     flex-direction: column;
-    gap: var(--md-space-24);
-    min-width: 0;
+    gap: 6px;
+    padding: 20px;
+    border: none;
+    border-right: 1px solid var(--stroke);
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease, border-color 0.12s ease;
+
+    &:last-child {
+      border-right: none;
+    }
+    &:hover {
+      background: var(--surface);
+      border-bottom-color: var(--accent);
+    }
+  }
+
+  &__kpi-rotulo {
+    font-size: 12.5px;
+    font-weight: 300;
+    color: var(--text-secondary);
+  }
+  &__kpi-valor {
+    font-size: 36px;
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    color: var(--text-primary);
+    line-height: 1;
+    &--accent {
+      color: var(--accent);
+    }
+    &--danger {
+      color: var(--danger);
+    }
+    &--ok {
+      color: var(--ok);
+    }
+  }
+
+  // "Resolvidos hoje" — mesmo cartão, mais a variação vs a mesma hora
+  // ontem (apps/reports/services/indicators.py::variation, período "today").
+  &__kpi--tendencia {
+    cursor: default;
+    &:hover {
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+  }
+  &__kpi-delta {
+    font-size: 11px;
+    font-weight: 500;
+    &--up {
+      color: var(--ok);
+    }
+    &--down {
+      color: var(--danger);
+    }
+    &--flat {
+      color: var(--text-muted);
+    }
   }
 }
 
 // ============================================================================
-// Seção de trabalho — cabeçalho, divisor, linhas. NÃO é card.
+// Listas da Início — fila de prioridade, vencimentos de SLA, fila de chat,
+// equipe online. Um cartão por widget, mesma borda/raio do resto do design
+// system; cada linha é o item de verdade (clicável), não um resumo.
 // ============================================================================
-.inicio-secao {
+.inicio-lista {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio);
   min-width: 0;
 
   &__cabecalho {
     display: flex;
     align-items: center;
-    gap: var(--md-space-8);
-    min-height: var(--control-height-sm);
-    padding-bottom: var(--md-space-8);
-    border-bottom: var(--md-borda) solid var(--md-outline-variant);
+    justify-content: space-between;
+    gap: 8px;
 
     h2 {
-      flex: 1;
-      min-width: 0;
-      margin: 0;
-      font-size: var(--md-fs-title-medium);
-      line-height: var(--md-lh-title-medium);
-      letter-spacing: var(--md-ls-title-medium);
-      font-weight: var(--md-peso-medio);
-      color: var(--md-on-surface);
-    }
-
-    > svg {
-      color: var(--md-on-surface-variant);
-      flex-shrink: 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
     }
   }
-
-  // "Ver console" — ação terciária do cabeçalho (Text Button)
-  &__acao {
-    margin-right: calc(var(--md-space-12) * -1);
+  &__contador {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  &__ver-tudo {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  &__vazio {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 8px 2px;
   }
 
+  &__itens {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
   &__item {
-    // a primitiva já dá alvo, estados e alinhamento; aqui só o ritmo e as
-    // linhas internas, que são mais tênues que o divisor do cabeçalho
-    min-height: 52px;
-    padding-left: 0;
-    padding-right: var(--md-space-8);
-    border-bottom: var(--md-borda) solid var(--md-outline-faint);
-    border-radius: var(--radius-default);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 6px;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
 
-    &--inerte {
+    &:hover {
+      background: var(--surface);
+    }
+    &--chat {
       cursor: default;
-
-      &::before {
-        content: none;
+      &:hover {
+        background: none;
       }
     }
   }
-
-  // Prioridade (ou estado de SLA): barra fina à esquerda da linha. Continua
-  // sendo cor, mas nunca sozinha — o `title` diz o nome e o badge à direita
-  // repete o estado em texto.
   &__barra {
     width: 3px;
     align-self: stretch;
-    min-height: 28px;
-    border-radius: var(--radius-default);
+    border-radius: var(--raio);
     flex-shrink: 0;
   }
-
   &__texto {
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--md-space-2);
-    min-width: 0;
-    flex: 1;
   }
-
   &__assunto {
-    font-size: var(--md-fs-body-medium);
-    line-height: var(--md-lh-body-medium);
-    letter-spacing: var(--md-ls-body-medium);
-    font-weight: var(--md-peso-medio);
-    color: var(--md-on-surface);
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
-
   &__meta {
-    font-size: var(--md-fs-body-small);
-    line-height: var(--md-lh-body-small);
-    letter-spacing: var(--md-ls-body-small);
-    color: var(--md-on-surface-variant);
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
   }
-
-  &__vazio {
-    margin: 0;
-    padding: var(--md-space-24) 0;
-    font-size: var(--md-fs-body-medium);
-    line-height: var(--md-lh-body-medium);
-    letter-spacing: var(--md-ls-body-medium);
-    color: var(--md-on-surface-variant);
+  &__sla {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
   }
 }
 
-// ── "Equipe agora": grade de pessoas, não lista de linhas ────────────────────
-.inicio-online {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--md-space-16);
-  list-style: none;
-  margin: 0;
-  padding: var(--md-space-16) 0 0;
+.inicio-chat {
+  &__avatar {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  &__pegar {
+    flex-shrink: 0;
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: var(--surface-card);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
 
+.inicio-online {
+  &__grade {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    list-style: none;
+    margin: 0;
+    padding: 4px 2px;
+  }
   &__pessoa {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--md-space-4);
-    width: 56px;
+    gap: 4px;
+    width: 52px;
   }
-
+  &__avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-card);
+    &--available {
+      background: var(--presenca-disponivel);
+    }
+    &--away {
+      background: var(--presenca-ausente);
+    }
+  }
   &__nome {
-    font-size: var(--md-fs-body-small);
-    line-height: var(--md-lh-body-small);
-    letter-spacing: var(--md-ls-body-small);
-    color: var(--md-on-surface-variant);
-    max-width: 100%;
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    max-width: 100%;
   }
 }
 
 // ============================================================================
-// Mural de avisos — o banner do M3.
-//
-// Superfície de container, uma linha de cor à esquerda para a intenção, ícone,
-// corpo e a ação de dispensar. Container tênue (e não cor cheia) porque o
-// aviso mora no topo da página o tempo todo: em cor cheia ele competiria com
-// o cabeçalho toda vez.
+// Mural de avisos — o que a equipe publicou pra essa audiência (fixados
+// primeiro). Uma borda de cor por tipo, mesmo padrão do aviso de erro do
+// Kanban (border + fundo tingido via color-mix).
 // ============================================================================
 .mural-avisos {
   display: flex;
   flex-direction: column;
-  gap: var(--md-space-8);
+  gap: 8px;
 
   &__item {
     display: flex;
     align-items: flex-start;
-    gap: var(--md-space-12);
-    padding: var(--md-space-12) var(--md-space-16);
-    border: var(--md-borda) solid var(--md-outline-variant);
-    border-left: 3px solid var(--md-primary);
-    border-radius: var(--radius-default);
-    background: var(--md-surface-container-low);
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--stroke);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 13px;
 
-    > svg {
-      color: var(--md-primary);
-      flex-shrink: 0;
-      margin-top: 1px;
+    > i:first-child {
+      margin-top: 2px;
+      font-size: 16px;
+      color: var(--accent);
     }
-
-    // intenções: a mesma peça, trocando a cor da linha, do ícone e do fundo
     &--urgent {
-      border-left-color: var(--md-error);
-      background: var(--md-error-container);
-      color: var(--md-on-error-container);
-
-      > svg {
-        color: var(--md-error);
+      border-left-color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 6%, var(--surface-card));
+      > i:first-child {
+        color: var(--danger);
       }
     }
-    &--holiday,
+    &--holiday {
+      border-left-color: var(--ok);
+      > i:first-child {
+        color: var(--ok);
+      }
+    }
     &--vacation {
-      border-left-color: var(--md-warning);
-      background: var(--md-warning-container);
-      color: var(--md-on-warning-container);
-
-      > svg {
-        color: var(--md-warning);
+      border-left-color: var(--away);
+      > i:first-child {
+        color: var(--away);
       }
     }
   }
@@ -412,23 +413,27 @@
   &__texto {
     flex: 1;
     min-width: 0;
-
     strong {
       display: block;
-      font-size: var(--md-fs-body-medium);
-      line-height: var(--md-lh-body-medium);
-      letter-spacing: var(--md-ls-body-medium);
-      font-weight: var(--md-peso-medio);
-      color: inherit;
+      color: var(--text-primary);
+      font-weight: 600;
     }
-
     p {
-      margin: var(--md-space-2) 0 0;
-      font-size: var(--md-fs-body-medium);
-      line-height: var(--md-lh-body-medium);
-      letter-spacing: var(--md-ls-body-medium);
-      color: inherit;
-      opacity: 0.86;
+      margin-top: 2px;
+      color: var(--text-secondary);
+    }
+  }
+
+  &__item button {
+    display: grid;
+    place-items: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    &:hover {
+      color: var(--text-primary);
     }
   }
 }
