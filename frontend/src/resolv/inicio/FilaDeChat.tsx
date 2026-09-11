@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useFilaChat, usePegarChat } from '@/api/chat'
 import { identidadeDe } from '@/ui/identidade'
+import { Botao } from '@/ui/material'
 import { iniciais } from '../chat/format'
 
 const LIMITE = 4
@@ -23,9 +24,9 @@ export function FilaDeChat() {
     <div className="inicio-lista">
       <header className="inicio-lista__cabecalho">
         <h2>Chat na fila</h2>
-        <button type="button" className="inicio-lista__ver-tudo" onClick={() => navigate('/chat')}>
+        <Botao variante="text" className="inicio-lista__ver-tudo" onClick={() => navigate('/chat')}>
           Ver console
-        </button>
+        </Botao>
       </header>
       {isLoading ? (
         <p className="inicio-lista__vazio">Carregando…</p>
@@ -43,14 +44,16 @@ export function FilaDeChat() {
                   <span className="inicio-lista__assunto">{c.client_name}</span>
                   <span className="inicio-lista__meta">{c.company_name}</span>
                 </span>
-                <button
-                  type="button"
+                {/* Tonal: ação de destaque secundária, o degrau do Material
+                    entre o filled da barra e o text do cabeçalho. */}
+                <Botao
+                  variante="tonal"
                   className="inicio-chat__pegar"
                   disabled={pegar.isPending}
                   onClick={() => pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })}
                 >
                   Pegar
-                </button>
+                </Botao>
               </div>
             </li>
           ))}

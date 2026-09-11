@@ -1,5 +1,8 @@
 /* tokens.css primeiro — regra do próprio design system ("Importe antes de
    qualquer outro estilo"; PROMPT-IMPLEMENTACAO.md). */
+/* material.css ANTES de tokens.css: é ele quem define os papéis
+   (--md-sys-color-*) para os quais os nomes de tokens.css apontam. */
+@import './material.css';
 @import './tokens.css';
 
 @tailwind base;

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAgentes } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import { Botao, BotaoIcone, Campo, Icone, Select } from '@/ui/material'
 import { mensagemDeErro } from './detalhe/linhaDoTempo'
 import { useAcoesEmLote, type ResultadoLote } from './dados'
 import { ROTULO_PRIORIDADE } from './format'
@@ -291,39 +292,29 @@ export function PaginaListaTickets() {
           </div>
 
           <div className="lista-tickets__acoes">
-            <button
-              type="button"
-              className="lista-tickets__novo"
-              onClick={() => navigate('/chamados/novo')}
-            >
-              <i className="ti ti-plus" />
+            <Botao variante="filled" icone="add" onClick={() => navigate('/chamados/novo')}>
               Novo chamado
-            </button>
-            <button
-              type="button"
-              className={'lista-tickets__refresh' + (isFetching ? ' is-loading' : '')}
+            </Botao>
+            <BotaoIcone
+              icone="refresh"
+              className={isFetching ? 'lista-tickets__spin' : undefined}
               onClick={() => refetch()}
               aria-label="Atualizar"
-            >
-              <i className="ti ti-refresh" />
-            </button>
-            <div className="lista-tickets__search">
-              <i className="ti ti-search" />
-              {/* Item 15: só tinha `placeholder` — some assim que a pessoa
-                  digita, e um placeholder nunca é nome acessível confiável
-                  (leitor de tela não anuncia com o campo já preenchido em
-                  todo navegador). O aria-label também diz o ESCOPO: `_busca_q`
-                  (apps/tickets/views.py) casa só referência, assunto e número
-                  do pedido — sem isso, alguém digitava um nome de cliente,
-                  não achava nada e desconfiava da tela errada. */}
-              <input
-                type="text"
-                placeholder="Pesquisar"
-                aria-label="Buscar por referência, assunto ou número do pedido"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
+              title="Atualizar"
+            />
+            {/* Campo oficial do Material (outlined text field). O `aria-label`
+                diz o ESCOPO da busca: `_busca_q` (apps/tickets/views.py) casa
+                só referência, assunto e número do pedido — sem isso, alguém
+                digita um nome de cliente, não acha nada e desconfia da tela
+                errada. */}
+            <Campo
+              className="lista-tickets__search"
+              icone="search"
+              placeholder="Pesquisar"
+              aria-label="Buscar por referência, assunto ou número do pedido"
+              value={busca}
+              onChange={setBusca}
+            />
           </div>
         </header>
 
@@ -337,48 +328,46 @@ export function PaginaListaTickets() {
             <strong>{selecionados.size}</strong> selecionado(s)
             {podeLote && (
               <>
-                <select
+                {/* Selects oficiais do Material. O valor volta a "" depois de
+                    cada ação: são menus de COMANDO ("atribuir a…"), não campos
+                    que guardam escolha — deixar o nome selecionado sugeriria um
+                    filtro aplicado que não existe. */}
+                <Select
                   className="lista-tickets__lote-select"
+                  aria-label="Atribuir os selecionados a"
                   value=""
                   disabled={atribuir.isPending}
-                  onChange={(e) => {
-                    const v = e.target.value
+                  opcoes={[
+                    { valor: '', rotulo: 'Atribuir a…' },
+                    { valor: 'ninguem', rotulo: 'Ninguém' },
+                    ...(agentes ?? []).map((a) => ({ valor: String(a.id), rotulo: a.full_name })),
+                  ]}
+                  onChange={(v) => {
                     if (!v) return
                     atribuirEmLote(v === 'ninguem' ? null : Number(v))
                   }}
-                >
-                  <option value="">Atribuir a…</option>
-                  <option value="ninguem">Ninguém</option>
-                  {(agentes ?? []).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.full_name}
-                    </option>
-                  ))}
-                </select>
-                <select
+                />
+                <Select
                   className="lista-tickets__lote-select"
+                  aria-label="Mudar a prioridade dos selecionados"
                   value=""
                   disabled={mudarPrioridade.isPending}
-                  onChange={(e) => {
-                    const v = e.target.value
+                  opcoes={[
+                    { valor: '', rotulo: 'Mudar prioridade…' },
+                    ...PRIORIDADES.map((p) => ({ valor: p, rotulo: ROTULO_PRIORIDADE[p] })),
+                  ]}
+                  onChange={(v) => {
                     if (!v) return
                     mudarPrioridadeEmLote(v as Prioridade)
                   }}
-                >
-                  <option value="">Mudar prioridade…</option>
-                  {PRIORIDADES.map((p) => (
-                    <option key={p} value={p}>
-                      {ROTULO_PRIORIDADE[p]}
-                    </option>
-                  ))}
-                </select>
+                />
                 {(atribuir.isPending || mudarPrioridade.isPending) && (
-                  <i className="ti ti-loader-2 lista-tickets__spin" aria-hidden="true" />
+                  <Icone nome="progress_activity" className="lista-tickets__spin" />
                 )}
               </>
             )}
-            <button
-              type="button"
+            <Botao
+              variante="text"
               onClick={() => {
                 setSelecionados(new Set())
                 setAvisoLote(null)
@@ -386,17 +375,15 @@ export function PaginaListaTickets() {
               }}
             >
               Limpar
-            </button>
+            </Botao>
           </div>
         )}
 
         {avisoLote && (
           <div className="lista-tickets__aviso-erro" role="alert">
-            <i className="ti ti-alert-triangle" aria-hidden="true" />
+            <Icone nome="error" tamanho={20} />
             <span>{avisoLote}</span>
-            <button type="button" onClick={() => setAvisoLote(null)} aria-label="Dispensar">
-              <i className="ti ti-x" aria-hidden="true" />
-            </button>
+            <BotaoIcone icone="close" onClick={() => setAvisoLote(null)} aria-label="Dispensar" />
           </div>
         )}
 
@@ -405,29 +392,27 @@ export function PaginaListaTickets() {
             interromper leitor de tela como o erro acima interrompe. */}
         {avisoSucessoLote && (
           <div className="lista-tickets__aviso-sucesso" role="status">
-            <i className="ti ti-circle-check" aria-hidden="true" />
+            <Icone nome="check_circle" tamanho={20} />
             <span>{avisoSucessoLote}</span>
-            <button type="button" onClick={() => setAvisoSucessoLote(null)} aria-label="Dispensar">
-              <i className="ti ti-x" aria-hidden="true" />
-            </button>
+            <BotaoIcone icone="close" onClick={() => setAvisoSucessoLote(null)} aria-label="Dispensar" />
           </div>
         )}
 
         {/* ---------- corpo ---------- */}
         {isError ? (
           <div className="lista-tickets__estado lista-tickets__estado--erro">
-            <i className="ti ti-alert-triangle" />
+            <Icone nome="error" tamanho={28} />
             <p>
               Não foi possível carregar os tickets
               {error instanceof ApiError ? ` (${error.status})` : ''}.
             </p>
-            <button type="button" onClick={() => refetch()}>
+            <Botao variante="outlined" onClick={() => refetch()}>
               Tentar de novo
-            </button>
+            </Botao>
           </div>
         ) : isLoading ? (
           <div className="lista-tickets__estado">
-            <i className="ti ti-loader-2 lista-tickets__spin" />
+            <Icone nome="progress_activity" tamanho={28} className="lista-tickets__spin" />
             <p>Carregando tickets…</p>
           </div>
         ) : linhas.length === 0 ? (
@@ -440,15 +425,15 @@ export function PaginaListaTickets() {
                 existe. */}
             {termoBuscaAplicado ? (
               <>
-                <i className="ti ti-search" />
+                <Icone nome="search_off" tamanho={28} />
                 <p>Nenhum resultado para "{termoBuscaAplicado}".</p>
-                <button type="button" onClick={limparBusca}>
+                <Botao variante="outlined" onClick={limparBusca}>
                   Limpar busca
-                </button>
+                </Botao>
               </>
             ) : (
               <>
-                <i className="ti ti-inbox" />
+                <Icone nome="inbox" tamanho={28} />
                 <p>Nenhum ticket nesta visualização.</p>
               </>
             )}
@@ -469,25 +454,25 @@ export function PaginaListaTickets() {
         {/* ---------- paginação ---------- */}
         {total > LIMITE && (
           <footer className="lista-tickets__paginacao">
-            <button
-              type="button"
+            <Botao
+              variante="text"
+              icone="chevron_left"
               disabled={offset === 0}
               onClick={() => irParaOffset(Math.max(0, offset - LIMITE))}
             >
-              <i className="ti ti-chevron-left" />
               Anterior
-            </button>
+            </Botao>
             <span>
               {inicio}–{fim} de {total}
             </span>
-            <button
-              type="button"
+            <Botao
+              variante="text"
+              iconeFinal="chevron_right"
               disabled={fim >= total}
               onClick={() => irParaOffset(offset + LIMITE)}
             >
               Próxima
-              <i className="ti ti-chevron-right" />
-            </button>
+            </Botao>
           </footer>
         )}
       </section>

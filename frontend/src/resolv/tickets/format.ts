@@ -50,12 +50,13 @@ export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
   urgent: 'Urgente',
 }
 
-/** Ícone da pílula de prioridade (Tabler) — o segundo sinal além da cor. */
+/** Ícone da pílula de prioridade (Material Symbols) — o segundo sinal além
+ *  da cor, para a prioridade não depender só dela (WCAG 1.4.1). */
 export const ICONE_PRIORIDADE: Record<Prioridade, string> = {
-  low: 'ti-arrow-down',
-  normal: 'ti-minus',
-  high: 'ti-arrow-up',
-  urgent: 'ti-alert-triangle',
+  low: 'arrow_downward',
+  normal: 'unfold_more',
+  high: 'arrow_upward',
+  urgent: 'warning',
 }
 
 /** Cor da pílula de prioridade — mapeada às cores semânticas do design system. */

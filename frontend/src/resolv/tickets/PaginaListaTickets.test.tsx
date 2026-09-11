@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaginaListaTickets } from './PaginaListaTickets'
+import { digitar, escolher } from '@/test/material'
 
 /** Mostra caminho + querystring do MemoryRouter — só usado pelos testes do
  *  item 18 (estado na URL), pra confirmar o que de fato foi escrito na URL
@@ -106,7 +107,7 @@ describe('PaginaListaTickets — ações em lote', () => {
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
     expect(await screen.findByText('1', { selector: 'strong' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+    await escolher(screen.getByRole('combobox', { name: 'Atribuir os selecionados a' }), '9')
 
     await waitFor(() =>
       expect(chamadas.some((c) => c.url === '/api/v1/tickets/bulk-assign/' && c.metodo === 'POST')).toBe(true),
@@ -121,7 +122,7 @@ describe('PaginaListaTickets — ações em lote', () => {
     respostaDoBulkAssign = () => jsonDe({ updated: [], failed: [{ id: 7, detail: 'Ticket de outra equipe.' }] })
     montar()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
-    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: 'ninguem' } })
+    await escolher(screen.getByRole('combobox', { name: 'Atribuir os selecionados a' }), 'ninguem')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ticket de outra equipe.')
     expect(screen.getByText('1', { selector: 'strong' })).toBeInTheDocument() // seleção continua
@@ -136,7 +137,7 @@ describe('PaginaListaTickets — ações em lote', () => {
       jsonDe({ updated: [7], failed: [{ id: 8, detail: 'Ticket de outra equipe.' }] })
     montar()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
-    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+    await escolher(screen.getByRole('combobox', { name: 'Atribuir os selecionados a' }), '9')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Ticket de outra equipe.')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
@@ -151,7 +152,7 @@ describe('PaginaListaTickets — ações em lote', () => {
     montar()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
 
-    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+    await escolher(screen.getByRole('combobox', { name: 'Atribuir os selecionados a' }), '9')
 
     // role="status" (não "alert"): confirmação, não precisa interromper o
     // leitor de tela como o erro parcial do teste acima interrompe.
@@ -162,7 +163,7 @@ describe('PaginaListaTickets — ações em lote', () => {
     respostaDoBulkAssign = () => jsonDe({ updated: [7], failed: [] })
     montar()
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
-    fireEvent.change(screen.getByDisplayValue('Atribuir a…'), { target: { value: '9' } })
+    await escolher(screen.getByRole('combobox', { name: 'Atribuir os selecionados a' }), '9')
     expect(await screen.findByText('1 atribuídos certo.')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: /Tickets Resolvidos/ }))
@@ -238,7 +239,7 @@ describe('PaginaListaTickets — a seleção segue o recorte da tela', () => {
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Selecionar T-0007' }))
     expect(await screen.findByText('1', { selector: 'strong' })).toBeInTheDocument()
 
-    fireEvent.change(screen.getByPlaceholderText('Pesquisar'), { target: { value: 'cobrança' } })
+    digitar(screen.getByPlaceholderText('Pesquisar'), 'cobrança')
 
     await waitFor(() =>
       expect(screen.queryByText('selecionado(s)', { exact: false })).not.toBeInTheDocument(),
@@ -270,7 +271,7 @@ describe('PaginaListaTickets — recorte mora na URL, não em useState solto (it
     montar()
     await screen.findByText('T-0007')
 
-    fireEvent.change(screen.getByPlaceholderText('Pesquisar'), { target: { value: 'cobrança' } })
+    digitar(screen.getByPlaceholderText('Pesquisar'), 'cobrança')
     // Logo após a tecla, antes do debounce de 300ms: a URL ainda não mudou.
     // Regressão que o item 18 avisa: escrever a cada tecla enche o
     // histórico e desfaz busca em cima de busca a cada resposta que chega.
@@ -308,7 +309,7 @@ describe('PaginaListaTickets — a busca distingue "sem resultado" de "view vazi
     montar()
     expect(await screen.findByText('Nenhum ticket nesta visualização.')).toBeInTheDocument()
 
-    fireEvent.change(screen.getByPlaceholderText('Pesquisar'), { target: { value: 'Acme' } })
+    digitar(screen.getByPlaceholderText('Pesquisar'), 'Acme')
 
     expect(await screen.findByText('Nenhum resultado para "Acme".')).toBeInTheDocument()
     expect(screen.queryByText('Nenhum ticket nesta visualização.')).not.toBeInTheDocument()
