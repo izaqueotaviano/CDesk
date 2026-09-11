@@ -1,69 +1,91 @@
 // Home — KPI row no estilo do design system (cards brancos lado a lado,
 // separados por borda, sem gap; valor grande peso 300; accent na borda inferior).
 .inicio {
-  padding: 24px;
+  padding: 30px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 22px;
+  max-width: 1360px;
+  width: 100%;
+  margin: 0 auto;
 
+  &__cabecalho {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+  }
+  &__pre {
+    display: block;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 7px;
+  }
   &__titulo {
-    font-size: 20px;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
+    font-size: 28px;
+    font-weight: 500;
+    color: #0c0a09;
+    letter-spacing: -0.04em;
   }
   &__sub {
-    margin-top: 2px;
-    font-size: 13px;
+    margin-top: 7px;
+    font-size: 12px;
     color: var(--text-muted);
+  }
+  &__acoes { display: flex; gap: 8px; }
+  &__secao-cabecalho { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
+    h2 { font-size: 12px; font-weight: 600; color: #0c0a09; }
+    span { color: var(--text-muted); font-size: 10px; }
   }
 
   &__kpis {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
     overflow: hidden;
   }
 
   &__kpi {
-    flex: 1 1 160px;
-    min-width: 160px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
     gap: 6px;
-    padding: 20px;
-    border: none;
-    border-right: 0.7px solid var(--stroke);
-    border-bottom: 3px solid transparent;
+    min-height: 86px;
+    padding: 15px 17px;
+    border-right: 1px solid var(--stroke);
+    --md-text-button-container-height: 86px;
+    --md-text-button-container-shape: 0;
+    --md-text-button-label-text-color: var(--text-primary);
+    --md-text-button-hover-label-text-color: var(--text-primary);
+    --md-text-button-hover-state-layer-color: #f0efed;
     background: transparent;
-    cursor: pointer;
     text-align: left;
-    transition: background 0.12s ease, border-color 0.12s ease;
 
     &:last-child {
       border-right: none;
     }
     &:hover {
-      background: var(--surface);
-      border-bottom-color: var(--accent);
+      box-shadow: inset 0 -2px #292524;
     }
   }
 
   &__kpi-rotulo {
-    font-size: 12.5px;
-    font-weight: 300;
+    font-size: 10px;
+    font-weight: 400;
     color: var(--text-secondary);
   }
   &__kpi-valor {
-    font-size: 36px;
-    font-weight: 300;
+    font-size: 27px;
+    font-weight: 500;
     letter-spacing: -0.02em;
     color: var(--text-primary);
     line-height: 1;
     &--accent {
-      color: var(--accent);
+      color: var(--text-primary);
     }
     &--danger {
       color: var(--danger);
@@ -71,5 +93,27 @@
     &--ok {
       color: var(--ok);
     }
+  }
+
+  &__orientacao {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 17px;
+    border: 1px solid var(--stroke);
+    border-radius: 10px;
+    background: linear-gradient(100deg, rgba(167, 229, 211, .16), transparent 42%), var(--surface-card);
+    &-icone { width: 31px; height: 31px; border-radius: 8px; background: #eaf5ef; color: #47785d; display: grid; place-items: center; font-weight: 600; }
+    h2 { font-size: 12px; font-weight: 600; color: #0c0a09; }
+    p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+    md-text-button { margin-left: auto; }
+  }
+
+  @media (max-width: 800px) {
+    padding: 20px;
+    &__cabecalho { align-items: flex-start; flex-direction: column; }
+    &__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    &__kpi { border-bottom: 1px solid var(--stroke); }
+    &__orientacao { align-items: flex-start; flex-wrap: wrap; md-text-button { margin-left: 43px; } }
   }
 }

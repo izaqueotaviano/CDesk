@@ -32,11 +32,7 @@ export function Topbar() {
       <div className="topbar-glass__left" />
 
       <div className="topbar-glass__center">
-        <div className="topbar-glass__search" role="button" tabIndex={0}>
-          <i className="ri-search-line topbar-glass__search-icon" />
-          <span className="topbar-glass__search-placeholder">Buscar…</span>
-          <span className="topbar-glass__search-kbd">⌘K</span>
-        </div>
+        <md-outlined-text-field className="topbar-glass__search" label="Buscar" placeholder="Tickets, clientes e conversas" />
       </div>
 
       <div className="topbar-glass__right">
@@ -47,18 +43,18 @@ export function Topbar() {
           </span>
         </div>
         <div className="topbar-glass__sep" />
-        <button type="button" className="topbar-glass__icon-btn" aria-label="Notificações">
-          <i className="ri-notification-3-line" />
+        <md-icon-button className="topbar-glass__icon-btn" aria-label="Notificações">
+          <i slot="icon" className="ri-notification-3-line" />
           <span className="topbar-glass__badge">2</span>
-        </button>
+        </md-icon-button>
         <div className="topbar-glass__sep" />
-        <button type="button" className="topbar-glass__user">
+        <md-text-button className="topbar-glass__user">
           <span className="topbar-glass__avatar topbar-glass__avatar--available">
             <span className="topbar-glass__avatar-initials">{iniciais(nome)}</span>
             <span className="topbar-glass__presence topbar-glass__presence--available" />
           </span>
           <span className="topbar-glass__user-name">{nome}</span>
-        </button>
+        </md-text-button>
       </div>
     </header>
   )

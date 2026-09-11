@@ -16,23 +16,72 @@
   --f-mono: 'JetBrains Mono', monospace;
 
   // ── Superfícies ──
-  --surface: #f9f8f7;
-  --surface-alt: #f5f3f2;
+  --surface: #f5f5f5;
+  --surface-alt: #f0efed;
   --surface-card: #ffffff;
-  --stroke: #e3e1df;
-  --stroke-hover: #c9c0ba;
-  --stroke-subtle: #d6d3d0;
+  --stroke: #e7e5e4;
+  --stroke-hover: #d6d3d1;
+  --stroke-subtle: #d6d3d1;
 
   // ── Texto ──
-  --text-primary: #3b3532;
-  --text-secondary: #79706a;
-  --text-muted: #a79e97;
+  --text-primary: #292524;
+  --text-secondary: #4e4e4e;
+  --text-muted: #777169;
 
   // ── Semânticas ──
-  --accent: #0275de;
-  --danger: #b3261e;
-  --ok: #1d7a4c;
-  --away: #8a5d0f;
+  --accent: #292524;
+  --danger: #dc2626;
+  --ok: #16a34a;
+  --away: #84662b;
+
+  // Material Web: a paleta do sistema e a densidade vivem no mesmo escopo do
+  // novo shell para não afetar login e telas legadas ainda em migração.
+  --md-ref-typeface-plain: 'Inter', -apple-system, system-ui, sans-serif;
+  --md-ref-typeface-brand: 'Inter', -apple-system, system-ui, sans-serif;
+  --md-sys-color-primary: #292524;
+  --md-sys-color-on-primary: #ffffff;
+  --md-sys-color-primary-container: #f0efed;
+  --md-sys-color-on-primary-container: #0c0a09;
+  --md-sys-color-secondary: #4e4e4e;
+  --md-sys-color-secondary-container: #f0efed;
+  --md-sys-color-on-secondary-container: #292524;
+  --md-sys-color-surface: #ffffff;
+  --md-sys-color-surface-container: #ffffff;
+  --md-sys-color-surface-container-high: #ffffff;
+  --md-sys-color-surface-container-highest: #f0efed;
+  --md-sys-color-surface-variant: #f0efed;
+  --md-sys-color-on-surface: #292524;
+  --md-sys-color-on-surface-variant: #4e4e4e;
+  --md-sys-color-outline: #d6d3d1;
+  --md-sys-color-outline-variant: #e7e5e4;
+  --md-sys-color-error: #dc2626;
+  --md-sys-color-on-error: #ffffff;
+  --md-sys-color-error-container: #fdf1f1;
+  --md-sys-color-on-error-container: #991b1b;
+  --md-sys-color-background: #f5f5f5;
+  --md-sys-color-on-background: #292524;
+  --md-sys-typescale-body-large-font: var(--f-ui);
+  --md-sys-typescale-body-medium-font: var(--f-ui);
+  --md-sys-typescale-body-small-font: var(--f-ui);
+  --md-sys-typescale-label-large-font: var(--f-ui);
+  --md-sys-typescale-label-medium-font: var(--f-ui);
+  --md-sys-typescale-label-small-font: var(--f-ui);
+  --md-sys-typescale-title-medium-font: var(--f-ui);
+  --md-filled-button-container-height: 32px;
+  --md-filled-button-container-shape: 999px;
+  --md-filled-button-label-text-size: 12px;
+  --md-filled-tonal-button-container-height: 32px;
+  --md-filled-tonal-button-container-shape: 999px;
+  --md-filled-tonal-button-label-text-size: 12px;
+  --md-outlined-button-container-height: 32px;
+  --md-outlined-button-container-shape: 999px;
+  --md-outlined-button-label-text-size: 12px;
+  --md-outlined-button-outline-color: #d6d3d1;
+  --md-text-button-container-height: 32px;
+  --md-text-button-container-shape: 7px;
+  --md-text-button-label-text-size: 12px;
+  --md-icon-button-state-layer-width: 32px;
+  --md-icon-button-state-layer-height: 32px;
 
   font-family: var(--f-ui);
   color: var(--text-primary);

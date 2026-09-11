@@ -20,15 +20,26 @@ export function PaginaInicio() {
   return (
     <div className="inicio">
       <header className="inicio__cabecalho">
-        <h1 className="inicio__titulo">Olá, {me?.full_name?.split(' ')[0] ?? '—'}</h1>
-        <p className="inicio__sub">Visão geral do atendimento</p>
+        <div>
+          <span className="inicio__pre">Seu workspace, em dia</span>
+          <h1 className="inicio__titulo">Olá, {me?.full_name?.split(' ')[0] ?? '—'}</h1>
+          <p className="inicio__sub">Acompanhe a operação e o que precisa da sua atenção.</p>
+        </div>
+        <div className="inicio__acoes">
+          <md-outlined-button onClick={() => navigate('/chamados')}>Abrir tickets</md-outlined-button>
+          <md-filled-button onClick={() => navigate('/chamados/novo')}>Novo ticket</md-filled-button>
+        </div>
       </header>
 
+      <section className="inicio__visao" aria-labelledby="inicio-visao">
+        <div className="inicio__secao-cabecalho">
+          <h2 id="inicio-visao">Visão geral do atendimento</h2>
+          <span>Todos os tickets</span>
+        </div>
       <div className="inicio__kpis">
         {kpis.map((k) => (
-          <button
+          <md-text-button
             key={k.chave}
-            type="button"
             className="inicio__kpi"
             onClick={() => navigate(irPara[k.chave] ?? '/chamados')}
           >
@@ -40,9 +51,19 @@ export function PaginaInicio() {
             >
               {carregando && k.valor == null ? '···' : (k.valor ?? '—')}
             </span>
-          </button>
+          </md-text-button>
         ))}
       </div>
+      </section>
+
+      <section className="inicio__orientacao" aria-label="Próximos passos">
+        <div className="inicio__orientacao-icone" aria-hidden="true">✓</div>
+        <div>
+          <h2>Comece pela fila de tickets</h2>
+          <p>Filtre atendimentos, defina responsáveis e acompanhe os prazos de SLA em um único lugar.</p>
+        </div>
+        <md-text-button onClick={() => navigate('/chamados')}>Ver fila</md-text-button>
+      </section>
     </div>
   )
 }

@@ -98,26 +98,24 @@ export function PaginaListaTickets() {
           </div>
 
           <div className="lista-tickets__acoes">
-            <button
-              type="button"
+            <md-filled-button
               className="lista-tickets__novo"
               onClick={() => navigate('/chamados/novo')}
             >
-              <i className="ri-add-line" />
+              <i slot="icon" className="ri-add-line" />
               Novo chamado
-            </button>
-            <button
-              type="button"
+            </md-filled-button>
+            <md-icon-button
               className={'lista-tickets__refresh' + (isFetching ? ' is-loading' : '')}
               onClick={() => refetch()}
               aria-label="Atualizar"
             >
-              <i className="ri-refresh-line" />
-            </button>
-            <button type="button" className="lista-tickets__opcoes">
-              <i className="ri-list-check" />
+              <i slot="icon" className="ri-refresh-line" />
+            </md-icon-button>
+            <md-outlined-button className="lista-tickets__opcoes">
+              <i slot="icon" className="ri-list-check" />
               Opções
-            </button>
+            </md-outlined-button>
             <div className="lista-tickets__search">
               <i className="ri-search-line" />
               <input
@@ -141,9 +139,7 @@ export function PaginaListaTickets() {
         {selecionados.size > 0 && (
           <div className="lista-tickets__lote">
             <strong>{selecionados.size}</strong> selecionado(s)
-            <button type="button" onClick={() => setSelecionados(new Set())}>
-              Limpar
-            </button>
+            <md-text-button onClick={() => setSelecionados(new Set())}>Limpar</md-text-button>
           </div>
         )}
 
@@ -155,9 +151,7 @@ export function PaginaListaTickets() {
               Não foi possível carregar os tickets
               {error instanceof ApiError ? ` (${error.status})` : ''}.
             </p>
-            <button type="button" onClick={() => refetch()}>
-              Tentar de novo
-            </button>
+            <md-filled-button onClick={() => refetch()}>Tentar de novo</md-filled-button>
           </div>
         ) : isLoading ? (
           <div className="lista-tickets__estado">
@@ -185,25 +179,23 @@ export function PaginaListaTickets() {
         {/* ---------- paginação ---------- */}
         {total > LIMITE && (
           <footer className="lista-tickets__paginacao">
-            <button
-              type="button"
+            <md-outlined-button
               disabled={offset === 0}
               onClick={() => setOffset(Math.max(0, offset - LIMITE))}
             >
-              <i className="ri-arrow-left-s-line" />
+              <i slot="icon" className="ri-arrow-left-s-line" />
               Anterior
-            </button>
+            </md-outlined-button>
             <span>
               {inicio}–{fim} de {total}
             </span>
-            <button
-              type="button"
+            <md-outlined-button
               disabled={fim >= total}
               onClick={() => setOffset(offset + LIMITE)}
             >
               Próxima
-              <i className="ri-arrow-right-s-line" />
-            </button>
+              <i slot="icon" className="ri-arrow-right-s-line" />
+            </md-outlined-button>
           </footer>
         )}
       </section>

@@ -1,16 +1,16 @@
-// Sidebar Rail — 56px, só ícones + tooltip CSS. Portada da referência.
+// Material Web compacto: rail discreto, com ícones e foco nativo do componente.
 .sidebar-rail {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 56px;
-  background: var(--surface-alt);
-  border-right: 0.7px solid var(--stroke);
+  width: 64px;
+  background: var(--surface-card);
+  border-right: 1px solid var(--stroke);
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 16px 0;
+  padding: 14px 0;
   z-index: 100;
   gap: 4px;
 
@@ -22,7 +22,7 @@
     justify-content: center;
     margin-bottom: 20px;
     cursor: pointer;
-    border-radius: 2px;
+    border-radius: 8px;
 
     &-mark {
       width: 22px;
@@ -31,13 +31,13 @@
       transition: color 0.15s ease;
     }
     &:hover &-mark {
-      color: var(--accent);
+      color: #0c0a09;
     }
   }
 
   &__sep {
-    width: 24px;
-    height: 0.7px;
+    width: 28px;
+    height: 1px;
     background: var(--stroke);
     margin: 8px 0;
     flex-shrink: 0;
@@ -47,47 +47,37 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 4px;
     flex: 1;
   }
 
   &__item {
     position: relative;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    --md-icon-button-state-layer-width: 38px;
+    --md-icon-button-state-layer-height: 38px;
+    --md-icon-button-icon-size: 18px;
+    --md-icon-button-icon-color: var(--text-secondary);
+    --md-icon-button-hover-icon-color: #0c0a09;
+    --md-icon-button-hover-state-layer-color: #f0efed;
+    --md-icon-button-pressed-icon-color: #0c0a09;
+    --md-icon-button-pressed-state-layer-color: #f0efed;
     color: var(--text-secondary);
 
     i {
-      font-size: 16px;
+      font-size: 17px;
       line-height: 1;
     }
 
-    &:hover {
-      background: var(--stroke);
-      color: var(--text-primary);
-    }
     &--ativo {
-      background: var(--stroke);
-      color: var(--text-primary);
-      &:hover {
-        background: var(--stroke-subtle);
-      }
+      --md-icon-button-icon-color: #0c0a09;
+      --md-icon-button-state-layer-color: #f0efed;
+      background: #f0efed;
+      border-radius: 8px;
     }
     &--inerte {
       opacity: 0.55;
       cursor: default;
-      &:hover {
-        background: transparent;
-        color: var(--text-secondary);
-      }
+      pointer-events: none;
     }
 
     // tooltip CSS puro

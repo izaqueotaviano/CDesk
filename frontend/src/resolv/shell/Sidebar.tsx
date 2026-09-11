@@ -50,9 +50,8 @@ export function Sidebar() {
 
       <nav className="sidebar-rail__nav">
         {NAV.map((item) => (
-          <button
+          <md-icon-button
             key={item.id}
-            type="button"
             className={
               'sidebar-rail__item' +
               (ativo(item.route) ? ' sidebar-rail__item--ativo' : '') +
@@ -64,8 +63,8 @@ export function Sidebar() {
             aria-disabled={item.enabled ? undefined : true}
             onClick={() => item.enabled && navigate(item.route)}
           >
-            <i className={item.icon} />
-          </button>
+            <i slot="icon" className={item.icon} />
+          </md-icon-button>
         ))}
       </nav>
     </aside>

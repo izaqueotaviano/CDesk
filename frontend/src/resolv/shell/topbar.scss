@@ -35,41 +35,14 @@
   }
 
   &__search {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    width: 420px;
-    height: 40px;
-    padding: 0 14px;
-    background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    cursor: text;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    &:hover {
-      border-color: var(--stroke-hover);
-    }
-  }
-  &__search-icon {
-    font-size: 16px;
-    color: var(--text-muted);
-  }
-  &__search-placeholder {
-    font-size: 13px;
-    color: var(--text-muted);
-    user-select: none;
-    flex: 1;
-  }
-  &__search-kbd {
-    font-family: var(--f-mono);
-    font-size: 10px;
-    font-weight: 500;
-    color: var(--text-muted);
-    background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 2px 6px;
-    line-height: 1.4;
+    width: 340px;
+    --md-outlined-text-field-container-shape: 8px;
+    --md-outlined-text-field-container-height: 36px;
+    --md-outlined-text-field-input-text-size: 12px;
+    --md-outlined-text-field-label-text-size: 11px;
+    --md-outlined-text-field-outline-color: var(--stroke-hover);
+    --md-outlined-text-field-hover-outline-color: var(--text-secondary);
+    --md-outlined-text-field-focus-outline-color: var(--text-primary);
   }
 
   &__chats {
@@ -104,22 +77,14 @@
 
   &__icon-btn {
     position: relative;
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    border-radius: 2px;
-    cursor: pointer;
+    --md-icon-button-state-layer-width: 32px;
+    --md-icon-button-state-layer-height: 32px;
+    --md-icon-button-icon-size: 17px;
+    --md-icon-button-icon-color: var(--text-secondary);
+    --md-icon-button-hover-state-layer-color: #f0efed;
     color: var(--text-secondary);
     i {
       font-size: 16px;
-    }
-    &:hover {
-      background: var(--stroke);
-      color: var(--text-primary);
     }
   }
   &__badge {
@@ -143,13 +108,10 @@
     align-items: center;
     gap: 8px;
     padding: 4px 8px 4px 4px;
-    border: none;
-    background: transparent;
-    border-radius: 2px;
-    cursor: pointer;
-    &:hover {
-      background: var(--stroke);
-    }
+    --md-text-button-container-height: 36px;
+    --md-text-button-container-shape: 8px;
+    --md-text-button-label-text-color: var(--text-primary);
+    --md-text-button-hover-state-layer-color: #f0efed;
   }
   &__avatar {
     position: relative;
