@@ -1,6 +1,5 @@
-import { type CSSProperties } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
-import { Caixa, Icone } from '@/ui/material'
 import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
   COR_PRIORIDADE,
@@ -79,10 +78,15 @@ export function TicketsTable({
   const marcadasNaPagina = linhas.reduce((n, l) => (selecionados.has(l.id) ? n + 1 : n), 0)
   const todosMarcados = linhas.length > 0 && marcadasNaPagina === linhas.length
   const parcial = marcadasNaPagina > 0 && !todosMarcados
-  // `indeterminate` continua sendo PROPRIEDADE, não atributo — quem escreve
-  // nela agora é o wrapper do componente Material (ui/material), que faz isso
-  // para todo custom element. O estado existe porque "3 de 25 marcados"
-  // precisa desenhar diferente de "nada marcado".
+  const refTodos = useRef<HTMLInputElement>(null)
+
+  // `indeterminate` só existe como propriedade do DOM, não como atributo —
+  // daí o ref. O Checkbox do cvz resolve isso pronto, mas pinta com `--cvz-*`,
+  // que não é garantido sob o shell Resolv (detalhe.scss registra a mesma
+  // pegadinha com o Modal): trocar o input nativo aqui apagaria a caixa.
+  useEffect(() => {
+    if (refTodos.current) refTodos.current.indeterminate = parcial
+  }, [parcial])
 
   const rotuloTodos =
     linhas.length === 1
@@ -95,12 +99,13 @@ export function TicketsTable({
         <thead>
           <tr>
             <th className="col-check">
-              <Caixa
+              <input
+                ref={refTodos}
+                type="checkbox"
                 aria-label={rotuloTodos}
                 title={rotuloTodos}
                 checked={todosMarcados}
-                indeterminate={parcial}
-                onChange={onSelecionarTodos}
+                onChange={(e) => onSelecionarTodos(e.target.checked)}
               />
             </th>
             {COLUNAS.map((c) => {
@@ -114,9 +119,14 @@ export function TicketsTable({
                       onClick={() => onOrdenar(c.chave as ColunaOrdenavel)}
                     >
                       {c.rotulo}
-                      <Icone
-                        nome={ativo ? (desc ? 'arrow_downward' : 'arrow_upward') : 'unfold_more'}
-                        tamanho={14}
+                      <i
+                        className={
+                          ativo
+                            ? desc
+                              ? 'ti ti-arrow-down'
+                              : 'ti ti-arrow-up'
+                            : 'ti ti-arrows-up-down'
+                        }
                       />
                     </button>
                   ) : (
@@ -135,11 +145,14 @@ export function TicketsTable({
                     desenho, mas a área clicável passa a ter 24px (WCAG 2.5.8)
                     sem depender da exceção de espaçamento — que aqui não valeria,
                     porque a linha inteira também é clicável e envolve a caixa. */}
-                <Caixa
-                  aria-label={`Selecionar ${t.reference}`}
-                  checked={selecionados.has(t.id)}
-                  onChange={() => onSelecionar(t.id)}
-                />
+                <label className="col-check__alvo">
+                  <input
+                    type="checkbox"
+                    aria-label={`Selecionar ${t.reference}`}
+                    checked={selecionados.has(t.id)}
+                    onChange={() => onSelecionar(t.id)}
+                  />
+                </label>
               </td>
               {/* Item 26: <tr onClick> sozinho não é alcançável por teclado (a
                   linha não tem tabIndex/role, e as células são <span>) — quem
@@ -178,7 +191,7 @@ export function TicketsTable({
                           `_busca_q` em apps/tickets/views.py), então declarar
                           o campo prometeria um texto que esta tela nunca
                           teria pra mostrar. */}
-                      <Icone nome="lock" tamanho={14} className="tickets-tabela__cadeado" />
+                      <i className="ti ti-lock tickets-tabela__cadeado" aria-hidden="true" />
                       <span className="tickets-tabela__sr">Equipe restrita: visível só para quem abriu. </span>
                     </>
                   )}
@@ -202,7 +215,7 @@ export function TicketsTable({
                   className="tickets-tabela__prio"
                   style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
                 >
-                  <Icone nome={ICONE_PRIORIDADE[t.priority]} tamanho={14} />
+                  <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
                   {ROTULO_PRIORIDADE[t.priority]}
                 </span>
               </td>

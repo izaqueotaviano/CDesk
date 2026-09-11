@@ -42,10 +42,39 @@
     gap: 8px;
     flex-shrink: 0;
   }
-  // Os botões desta barra são componentes do @material/web — altura, forma,
-  // cor, ripple e foco vêm dos tokens em styles/material.css. Aqui não sobra
-  // nada para estilizar; o bloco antigo (fundo, borda, filtro de brilho)
-  // brigaria com o desenho do próprio componente.
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
+    // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
+    color: var(--surface-card);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+
+    i {
+      font-size: 15px;
+    }
+    &:hover {
+      filter: brightness(1.08);
+    }
+    &--secundario {
+      background: var(--surface-card);
+      color: var(--text-primary);
+      border: 1px solid var(--stroke);
+      &:hover {
+        filter: none;
+        border-color: var(--stroke-hover);
+        background: var(--surface);
+      }
+    }
+  }
 
   // Duas colunas no desktop (fila de prioridade/vencimentos à esquerda,
   // chat/equipe à direita); uma coluna abaixo de 900px — mesmo ponto de
@@ -171,10 +200,16 @@
     font-size: 12px;
     color: var(--text-muted);
   }
-  // Text button do Material; aqui só a folga para ele encostar na borda do
-  // cabeçalho sem parecer deslocado.
   &__ver-tudo {
-    margin-right: -10px;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    padding: 0;
+    &:hover {
+      text-decoration: underline;
+    }
   }
   &__vazio {
     font-size: 13px;
@@ -258,9 +293,20 @@
     font-size: 10px;
     font-weight: 600;
   }
-  // Filled tonal button do Material.
   &__pegar {
     flex-shrink: 0;
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: var(--surface-card);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   }
 }
 
@@ -338,27 +384,27 @@
     background: var(--surface-card);
     font-size: 13px;
 
-    > svg:first-child {
+    > i:first-child {
       margin-top: 2px;
+      font-size: 16px;
       color: var(--accent);
-      flex-shrink: 0;
     }
     &--urgent {
       border-left-color: var(--danger);
       background: color-mix(in srgb, var(--danger) 6%, var(--surface-card));
-      > svg:first-child {
+      > i:first-child {
         color: var(--danger);
       }
     }
     &--holiday {
       border-left-color: var(--ok);
-      > svg:first-child {
+      > i:first-child {
         color: var(--ok);
       }
     }
     &--vacation {
       border-left-color: var(--away);
-      > svg:first-child {
+      > i:first-child {
         color: var(--away);
       }
     }
@@ -378,9 +424,16 @@
     }
   }
 
-  // Dispensar é um md-icon-button; o alvo de 32px e o ripple vêm dele.
-  &__item md-icon-button {
-    flex-shrink: 0;
-    margin: -4px -6px 0 0;
+  &__item button {
+    display: grid;
+    place-items: center;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 2px;
+    &:hover {
+      color: var(--text-primary);
+    }
   }
 }

@@ -84,7 +84,7 @@
   --fs-micro:     9.75px;
   --fs-legenda:   11px;
   --fs-pequeno:   12.5px;
-  --fs-corpo:     13px;
+  --fs-corpo:     14px;
   --fs-corpo-lg:  15.75px;
   --fs-titulo-sm: 17.75px;
   --fs-titulo:    20px;
@@ -122,10 +122,8 @@
      `--r-total`: é forma, não estilo. `--r-painel` é a exceção nomeada e só
      do shell: o painel de conteúdo apoiado sobre o cromo, igual ao console
      (`--raio-painel`). */
-  /* Forma do Material Web: controle em 8px, superfície em 12px, botão em
-     pílula (`--r-total`, aplicado pelos tokens de container do componente). */
-  --r-sm: 6px; --r-md: 8px; --r-lg: 12px; --r-xl: 12px; --r-total: 999px;
-  --r-painel: 12px;
+  --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px; --r-total: 999px;
+  --r-painel: 16px;
   --respiro-painel: 12px;
   --borda-fina: 1px;
 
@@ -144,10 +142,8 @@
   /* ---------- layout ---------- */
   --sidebar-larga: 240px;
   --sidebar-recolhida: 64px;
-  /* Densidade ≈78% da escala Material: botão 32, campo/controle 44 (ver
-     styles/material.css, que é quem manda nos componentes oficiais). */
-  --alvo-minimo: 32px;
-  --altura-controle: 44px;
+  --alvo-minimo: 24px;
+  --altura-controle: 34px;
 }
 
 /* ============================================================
@@ -155,44 +151,47 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  /* Os VALORES agora saem do tema Material (styles/material.css); os NOMES
-     continuam os de sempre, porque ~50 arquivos Tailwind os consomem. */
-  --canvas:             var(--md-sys-color-background);          /* fundo geral */
-  --superficie:         var(--md-sys-color-surface);             /* cartão, campo, modal */
-  --superficie-sutil:   var(--md-sys-color-surface-variant);
-  --superficie-elevada: var(--md-sys-color-surface);
-  --navegacao:          var(--md-sys-color-surface);             /* cromo: sidebar e barra */
+  --canvas:             var(--neutro-50);   /* fundo geral atrás do conteúdo */
+  --superficie:         var(--neutro-0);    /* cartão, campo, modal */
+  --superficie-sutil:   var(--neutro-50);
+  --superficie-elevada: var(--neutro-0);
+  --navegacao:          var(--neutro-100);  /* cromo: sidebar, barra, hover, caixa de ícone */
 
-  /* Três famílias de linha: divisória (decorativa), controle (reforçada) e
-     CAMPO — esta última mais escura porque precisa passar na régua de 3:1 da
-     WCAG 1.4.11; a borda decorativa do briefing (#d6d3d1) não passaria. */
-  --divisoria:      var(--md-sys-color-outline-variant);
-  --borda-controle: var(--md-sys-color-outline);
-  --borda-campo:    var(--md-ext-outline-campo);
+  /* Duas famílias de linha, de propósito (como no console):
+     --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
+                    translúcida, a MESMA linha funciona sobre os três fundos
+     --borda-campo  SÓ campo de entrada — bem mais escura, porque campo
+                    precisa se anunciar como editável; com a linha estrutural
+                    o formulário sumia dentro da página
+     --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
+  --divisoria:      #e5e7eb;  /* hex fixo: sobre o canvas (#f8f8f7) a linha derivada de preto ficava clara demais */
+  --borda-controle: rgba(0, 0, 0, .14);
+  --borda-campo:    var(--neutro-600);
 
-  --tinta:            var(--md-sys-color-on-surface);
-  --tinta-secundaria: var(--md-sys-color-on-surface-variant);
-  --tinta-terciaria:  var(--md-sys-color-tertiary);
-  --texto-cromo:      var(--md-sys-color-on-surface-variant);
+  --tinta:            var(--neutro-900);
+  --tinta-secundaria: var(--neutro-700);
+  --tinta-terciaria:  #737373;
+  --texto-cromo:      #333333;  /* texto e ícone sobre o cromo */
 
-  --acento:       var(--md-sys-color-primary);
-  --acento-hover: #0c0a09;
-  --acento-tinta: var(--md-sys-color-primary);
-  --acento-sobre: var(--md-sys-color-on-primary);
-  --acento-suave: var(--md-sys-color-primary-container);
+  --acento:       var(--acento-escuro);
+  --acento-hover: var(--acento-escuro-hover);
+  --acento-tinta: var(--acento-escuro);
+  --acento-sobre: var(--neutro-0);
+  --acento-suave: rgba(15, 98, 254, .08);
 
-  --perigo: var(--md-sys-color-error);   --perigo-suave: var(--md-sys-color-error-container);
-  --alerta: var(--md-ext-warning);       --alerta-suave: var(--md-ext-warning-container);
-  --ok:     var(--md-ext-success);       --ok-suave:     var(--md-ext-success-container);
+  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .08);
+  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .10);
+  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .10);
 
-  --hover: rgba(0, 0, 0, .05);
-  --ativo: rgba(0, 0, 0, .09);
+  --hover: rgba(0, 0, 0, .06);
+  --ativo: rgba(0, 0, 0, .10);
 
-  /* Sem sombra em superfície apoiada: cartão e campo se separam pela linha,
-     como na referência. Sombra só no que de fato flutua. */
+  /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
+     do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
+     sombra, e é a mesma do console (--sombra-flutuante). */
   --elevacao-1: none;
-  --elevacao-3: 0 5px 25px rgba(0, 0, 0, .13);
-  --sobreposicao: rgba(12, 10, 9, .40);
+  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .06);
+  --sobreposicao: rgba(26, 26, 26, .42);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
@@ -207,40 +206,39 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  /* O par escuro dos mesmos papéis — o tema Material já troca os
-     `--md-sys-color-*` no <html>, então aqui é só a mesma fiação. */
-  --canvas:             var(--md-sys-color-background);
-  --superficie:         var(--md-sys-color-surface);
-  --superficie-sutil:   var(--md-sys-color-surface-variant);
-  --superficie-elevada: var(--md-sys-color-surface-container-high);
-  --navegacao:          var(--md-sys-color-surface-container-lowest);
+  --canvas:             var(--neutro-975);
+  --superficie:         var(--neutro-875);
+  --superficie-sutil:   var(--neutro-975);
+  --superficie-elevada: var(--neutro-850);
+  --navegacao:          var(--neutro-950);
 
-  --divisoria:      var(--md-sys-color-outline-variant);
-  --borda-controle: var(--md-sys-color-outline);
-  --borda-campo:    var(--md-ext-outline-campo);
+  --divisoria:      var(--neutro-800);
+  --borda-controle: #9d8e81;
+  /* No escuro o contraste de campo se ganha CLAREANDO a linha. */
+  --borda-campo:    var(--neutro-500);
 
-  --tinta:            var(--md-sys-color-on-surface);
-  --tinta-secundaria: var(--md-sys-color-on-surface-variant);
-  --tinta-terciaria:  var(--md-sys-color-tertiary);
-  --texto-cromo:      var(--md-sys-color-on-surface-variant);
+  --tinta:            #ebe0d9;
+  --tinta-secundaria: #cfc5be;
+  --tinta-terciaria:  #a59c96;
+  --texto-cromo:      #ebe0d9;
 
-  --acento:       var(--md-sys-color-primary);
-  --acento-hover: #ffffff;
-  --acento-tinta: var(--md-sys-color-primary);
-  --acento-sobre: var(--md-sys-color-on-primary);
-  --acento-suave: var(--md-sys-color-primary-container);
+  --acento:       var(--acento-claro);
+  --acento-hover: var(--acento-claro-hover);
+  --acento-tinta: var(--acento-claro);
+  --acento-sobre: var(--acento-tinta-sobre-claro);
+  --acento-suave: rgba(180, 197, 255, .14);
 
-  --perigo: var(--md-sys-color-error);   --perigo-suave: var(--md-sys-color-error-container);
-  --alerta: var(--md-ext-warning);       --alerta-suave: var(--md-ext-warning-container);
-  --ok:     var(--md-ext-success);       --ok-suave:     var(--md-ext-success-container);
+  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+  --ok:     var(--ok-escuro);      --ok-suave:     rgba(129, 217, 162, .14);
 
-  --hover: rgba(255, 255, 255, .07);
-  --ativo: rgba(255, 255, 255, .12);
+  --hover: rgba(235, 224, 217, .06);
+  --ativo: rgba(235, 224, 217, .10);
 
   --elevacao-1: none;
-  --elevacao-3: 0 5px 25px rgba(0, 0, 0, .55);
-  --sobreposicao: rgba(0, 0, 0, .60);
-  --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+  --sobreposicao: rgba(0, 0, 0, .62);
+  --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
 
   --esquema: dark;
   color-scheme: dark;
@@ -249,37 +247,29 @@
 /* Respeita a preferência do sistema quando ninguém fixou o tema. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
-    --canvas: var(--md-sys-color-background);
-    --superficie: var(--md-sys-color-surface);
-    --superficie-sutil: var(--md-sys-color-surface-variant);
-    --superficie-elevada: var(--md-sys-color-surface-container-high);
-    --navegacao: var(--md-sys-color-surface-container-lowest);
-    --divisoria: var(--md-sys-color-outline-variant);
-    --borda-controle: var(--md-sys-color-outline);
-    --borda-campo: var(--md-ext-outline-campo);
-    --tinta: var(--md-sys-color-on-surface);
-    --tinta-secundaria: var(--md-sys-color-on-surface-variant);
-    --tinta-terciaria: var(--md-sys-color-tertiary);
-    --texto-cromo: var(--md-sys-color-on-surface-variant);
-    --acento: var(--md-sys-color-primary);
-    --acento-hover: #ffffff;
-    --acento-tinta: var(--md-sys-color-primary);
-    --acento-sobre: var(--md-sys-color-on-primary);
-    --acento-suave: var(--md-sys-color-primary-container);
-    --perigo: var(--md-sys-color-error);   --perigo-suave: var(--md-sys-color-error-container);
-    --alerta: var(--md-ext-warning);       --alerta-suave: var(--md-ext-warning-container);
-    --ok: var(--md-ext-success);           --ok-suave: var(--md-ext-success-container);
-    --hover: rgba(255, 255, 255, .07);
-    --ativo: rgba(255, 255, 255, .12);
+    --canvas: var(--neutro-975);          --superficie: var(--neutro-875);
+    --superficie-sutil: var(--neutro-975); --superficie-elevada: var(--neutro-850);
+    --navegacao: var(--neutro-950);
+    --divisoria: var(--neutro-800);        --borda-controle: #9d8e81;
+    --borda-campo: var(--neutro-500);
+    --tinta: #ebe0d9;                      --tinta-secundaria: #cfc5be;
+    --tinta-terciaria: #a59c96;            --texto-cromo: #ebe0d9;
+    --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
+    --acento-tinta: var(--acento-claro);
+    --acento-sobre: var(--acento-tinta-sobre-claro);
+    --acento-suave: rgba(180, 197, 255, .14);
+    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
+    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
+    --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);
+    --hover: rgba(235, 224, 217, .06);    --ativo: rgba(235, 224, 217, .10);
     --elevacao-1: none;
-    --elevacao-3: 0 5px 25px rgba(0, 0, 0, .55);
-    --sobreposicao: rgba(0, 0, 0, .60);
-    --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
+    --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+    --sobreposicao: rgba(0, 0, 0, .62);
+    --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
     --esquema: dark;
     color-scheme: dark;
   }
 }
-
 
 /* Foco visível — regra ÚNICA, a mesma do console (mixin focus-ring do cvz:
    contorno sólido de 2px com folga). Nenhum componente do portal a

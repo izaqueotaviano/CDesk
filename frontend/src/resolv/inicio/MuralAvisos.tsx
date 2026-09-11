@@ -1,12 +1,10 @@
 import { useAvisosDoMural, useDispensarAviso, type TipoAviso } from '@/api/avisos'
-import { BotaoIcone, Icone } from '@/ui/material'
 
-/** Ícone por intenção do aviso — Material Symbols (ver ui/material/simbolos). */
 const ICONE_TIPO: Record<TipoAviso, string> = {
-  info: 'info',
-  urgent: 'warning',
-  holiday: 'celebration',
-  vacation: 'beach_access',
+  info: 'ti ti-info-circle',
+  urgent: 'ti ti-alert-triangle',
+  holiday: 'ti ti-calendar-event',
+  vacation: 'ti ti-beach',
 }
 
 /** Mural de avisos — o que a equipe (admin/supervisor) publicou pra essa
@@ -23,17 +21,19 @@ export function MuralAvisos() {
     <div className="mural-avisos">
       {avisos.map((a) => (
         <div key={a.id} className={`mural-avisos__item mural-avisos__item--${a.kind}`}>
-          <Icone nome={ICONE_TIPO[a.kind]} tamanho={20} />
+          <i className={ICONE_TIPO[a.kind]} aria-hidden="true" />
           <div className="mural-avisos__texto">
             <strong>{a.title}</strong>
             <p>{a.body}</p>
           </div>
-          <BotaoIcone
-            icone="close"
+          <button
+            type="button"
             aria-label="Dispensar aviso"
             disabled={dispensar.isPending}
             onClick={() => dispensar.mutate(a.id)}
-          />
+          >
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
         </div>
       ))}
     </div>

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { BotaoIcone, Campo } from '@/ui/material'
 import { useConsultaDeMidia } from '../shell/useConsultaDeMidia'
 import { useResumoFila } from './dados'
 import { duracaoEmMinutos } from './format'
@@ -152,12 +151,15 @@ export function ViewsPanel({
   if (recolhido) {
     return (
       <aside className="lista-tickets__views lista-tickets__views--recolhido" aria-label="Visualizações">
-        <BotaoIcone
-          icone="left_panel_open"
+        <button
+          type="button"
+          className="views-panel__expandir"
           aria-label="Expandir painel de visualizações"
           title="Expandir painel"
           onClick={alternarRecolhido}
-        />
+        >
+          <i className="ti ti-chevron-right" />
+        </button>
       </aside>
     )
   }
@@ -165,32 +167,30 @@ export function ViewsPanel({
   return (
     <aside className="lista-tickets__views" aria-label="Visualizações">
       <div className="views-panel__busca">
+        <i className="ti ti-search" />
         {/* Filtrar visualizações ainda não existe. `readOnly` + `aria-disabled`
             em vez de `disabled` porque o campo continua focalizável — é assim
-            que o leitor de tela e o teclado chegam ao "em breve"; um campo
-            desabilitado sai da ordem de foco e a explicação some junto.
-            (No md-outlined-text-field `readOnly` é PROPRIEDADE, não atributo:
-            quem escreve é o wrapper, ver ui/material/index.tsx.) */}
-        <Campo
-          className="views-panel__filtro"
-          value=""
-          onChange={() => {}}
-          icone="search"
+            que o leitor de tela e o teclado chegam ao "em breve"; um input
+            desabilitado sai da ordem de foco e a explicação some junto. */}
+        <input
+          type="text"
           placeholder="Painel do agente"
           aria-label="Filtrar visualizações"
           title="Filtrar visualizações — em breve"
           aria-disabled="true"
-          somenteLeitura
+          readOnly
         />
         {/* Item (rodada 3): era o botão "em breve" da rodada 2 — agora liga
             de verdade (estado + persistência acima). */}
-        <BotaoIcone
-          icone="left_panel_close"
+        <button
+          type="button"
           aria-label="Recolher painel"
           title="Recolher painel"
           className="views-panel__recolher"
           onClick={alternarRecolhido}
-        />
+        >
+          <i className="ti ti-chevron-left" />
+        </button>
       </div>
 
       <nav className="views-panel__lista">

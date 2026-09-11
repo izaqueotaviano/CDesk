@@ -76,13 +76,87 @@
     flex-shrink: 0;
   }
 
-  // "Novo chamado" (md-filled-button), "Atualizar" (md-icon-button) e a busca
-  // (md-outlined-text-field) são componentes do @material/web: altura, forma,
-  // cor, foco e ripple vêm dos tokens de styles/material.css. O que sobra aqui
-  // é só o que o componente não decide — a LARGURA da busca, que é escolha
-  // desta barra, não do campo.
+  &__refresh {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent);
+    // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
+    // no escuro (tokens.scss:77) e branco por cima reprova o AA.
+    color: var(--surface-card);
+    border: none;
+    border-radius: var(--raio);
+    cursor: pointer;
+    i {
+      font-size: 16px;
+    }
+    &.is-loading i {
+      animation: resolv-spin 0.8s linear infinite;
+    }
+  }
+
+  // Entrada para a tela de abertura (/chamados/novo). Mesma altura e raio dos
+  // outros controles da barra; sólida porque é a única ação primária daqui.
+  &__novo {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 12px;
+    // --accent/--surface-card (paleta Resolv), nao --acento/--acento-sobre:
+    // aqueles dois nao existem em resolv/styles/tokens.scss e vinham por
+    // heranca de styles/tokens.css, o design system do portal. Era a unica
+    // superficie do Resolv pintada com o azul da outra paleta.
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: var(--raio);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--surface-card);
+    cursor: pointer;
+    i {
+      font-size: 15px;
+    }
+    &:hover {
+      filter: brightness(1.06);
+    }
+  }
+
   &__search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
     width: 260px;
+    height: 34px;
+    padding: 0 10px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    i {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: var(--f-ui);
+      font-size: 13px;
+      color: var(--text-primary);
+      &::placeholder {
+        color: var(--text-muted);
+      }
+    }
+    &:focus-within {
+      border-color: var(--accent);
+      // Anel de foco derivado do accent do tema: cravado no azul do claro ele
+      // some no escuro, e foco invisível é falha de acessibilidade.
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
   }
 
   &__dica {
@@ -107,17 +181,34 @@
       color: var(--accent);
       font-weight: 600;
     }
-    // "Limpar" é um md-text-button; daqui sai só a posição na barra.
-    md-text-button {
+    button {
       margin-left: auto;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
     }
   }
 
-  // Os dois menus de comando são md-outlined-select. Largura fixa para que
-  // "Atribuir a…" e "Mudar prioridade…" não mudem de tamanho a cada opção
-  // escolhida — o resto (altura, borda, foco) é do componente.
   &__lote-select {
-    width: 180px;
+    height: 28px;
+    padding: 0 8px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   }
 
   &__aviso-erro,
@@ -131,14 +222,14 @@
     span {
       flex: 1;
     }
-    // Dispensar é um md-icon-button — herda a cor do aviso (erro/sucesso) em
-    // vez de repintar, que é o que `color: currentColor` no token faz.
-    md-icon-button {
-      flex-shrink: 0;
-      margin: -4px -6px -4px 0;
-      --md-icon-button-icon-color: currentColor;
-      --md-icon-button-hover-icon-color: currentColor;
-      --md-icon-button-pressed-icon-color: currentColor;
+    button {
+      display: grid;
+      place-items: center;
+      border: 0;
+      background: none;
+      color: inherit;
+      cursor: pointer;
+      padding: 2px;
     }
   }
   &__aviso-erro {
@@ -168,14 +259,24 @@
     background: var(--surface-card);
     border: 1px solid var(--stroke);
     border-radius: var(--raio);
+    i {
+      font-size: 32px;
+    }
     p {
       font-size: 13px;
     }
-    // O botão de recuperação é um md-outlined-button; aqui só a folga acima.
-    md-outlined-button {
+    button {
       margin-top: 4px;
+      padding: 7px 16px;
+      background: var(--accent);
+      color: var(--surface-card);
+      border: none;
+      border-radius: var(--raio);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
     }
-    &--erro > svg:first-child {
+    &--erro i {
       color: var(--danger);
     }
   }
@@ -191,8 +292,30 @@
     gap: 16px;
     font-size: 12px;
     color: var(--text-secondary);
-    // Anterior/Próxima são md-text-button: navegação, não ação primária. O
-    // estado desabilitado nas pontas da lista também é do componente.
+    button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 12px;
+      background: var(--surface-card);
+      border: 1px solid var(--stroke);
+      border-radius: var(--raio);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      i {
+        font-size: 15px;
+      }
+      &:hover:not(:disabled) {
+        border-color: var(--stroke-hover);
+        color: var(--text-primary);
+      }
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+    }
   }
 }
 
@@ -200,27 +323,76 @@
 // Painel de visualizações
 // ============================================================================
 .views-panel {
-  // O cabeçalho do painel ganhou altura: o campo do Material tem 44px (contra
-  // os 34 do input solto de antes) e precisa da folga em volta pra não encostar
-  // na borda de baixo.
   &__busca {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 8px 8px 8px 12px;
+    gap: 8px;
+    height: 48px;
+    padding: 0 12px;
     border-bottom: 1px solid var(--stroke);
     flex-shrink: 0;
+    i {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: var(--f-ui);
+      font-size: 13px;
+      color: var(--text-primary);
+      &::placeholder {
+        color: var(--text-secondary);
+      }
+    }
   }
-  // Campo "em breve" (readOnly): ocupa o que sobra da linha depois do botão
-  // de recolher. Altura, contorno, ícone e foco são do md-outlined-text-field.
-  &__filtro {
-    flex: 1;
-    min-width: 0;
-  }
-  // Recolher e expandir são md-icon-button — o alvo de 32px, o ripple e o
-  // foco vêm do componente; daqui sai só o que a faixa precisa.
   &__recolher {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
     flex-shrink: 0;
+    i {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  // Único conteúdo da faixa recolhida (`.lista-tickets__views--recolhido`) —
+  // mesmo desenho de `__recolher`, só que sozinho e centralizado na faixa de
+  // 44px, sem o resto do painel (busca, lista de views, personalizar) que
+  // some junto: é assim que a janela estreita ganha os 212px de volta.
+  &__expandir {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
+    }
   }
 
   &__lista {

@@ -3,7 +3,6 @@ import { useConfigChat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useIndicadores } from '@/cvz/relatorios/dados'
 import { direcaoVariacao, formatarVariacao } from '@/cvz/relatorios/formato'
-import { Botao } from '@/ui/material'
 import { dataHoraDe } from '../chat/format'
 import { FilaDeChat } from './FilaDeChat'
 import { FilaDePrioridade } from './FilaDePrioridade'
@@ -63,16 +62,13 @@ export function PaginaInicio() {
             )}
           </p>
         </div>
-        {/* Hierarquia de botão do Material: UMA ação principal (filled) e a de
-            apoio em outlined. Os dois são os componentes oficiais — quem
-            desenha, anima e trata teclado é o @material/web. */}
         <div className="inicio__acoes">
-          <Botao variante="outlined" icone="chat" onClick={() => navigate('/chat')}>
-            Chat
-          </Botao>
-          <Botao variante="filled" icone="add" onClick={() => navigate('/chamados/novo')}>
-            Novo ticket
-          </Botao>
+          <button type="button" className="inicio__botao inicio__botao--secundario" onClick={() => navigate('/chat')}>
+            <i className="ti ti-message-circle-2" aria-hidden="true" /> Chat
+          </button>
+          <button type="button" className="inicio__botao" onClick={() => navigate('/chamados/novo')}>
+            <i className="ti ti-plus" aria-hidden="true" /> Novo ticket
+          </button>
         </div>
       </header>
 

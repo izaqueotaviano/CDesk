@@ -24,11 +24,6 @@ export default defineConfig({
         // schema.d.ts é gerado (openapi-typescript) e pode ficar grande;
         // não faz sentido pré-cachear como "asset" do app.
         globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
-        // O padrão do Workbox é 2 MiB e o bundle do app já passava de 2,0 MB
-        // antes dos componentes do Material (que somam ~250 KB). Sem elevar o
-        // teto, o arquivo principal fica FORA do precache e o app deixa de
-        // abrir offline — que é a razão de existir o service worker.
-        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       // Os dois manifests reais (equipe/cliente) são arquivos estáticos em
       // public/, escolhidos em runtime por rota (src/features/pwa/PwaManifest.tsx)
@@ -43,9 +38,6 @@ export default defineConfig({
     alias: {
       '@': '/src',
     },
-    // Só sob o Vitest (ver o bloco `test` adiante): fora dele o Vite já usa as
-    // condições certas sozinho, e cravar a lista aqui derrubaria as dele.
-    ...(process.env.VITEST ? { conditions: ['browser', 'module', 'import', 'default'] } : {}),
   },
   server: {
     port: 5174,
@@ -60,15 +52,5 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: true,
-    // O Lit publica DUAS builds no package.json: a do navegador e a de SSR,
-    // escolhidas pela condição de exportação. Dependência externalizada é
-    // carregada pelo Node, e o Node escolhe a condição "node" — a de SSR, onde
-    // `isServer` é true e TODO custom element vira casca: o setter de `value`
-    // do md-outlined-select, por exemplo, retorna sem fazer nada (ver
-    // select/internal/select.js:53). O `inline` abaixo devolve a resolução ao
-    // Vite, que usa as condições de `resolve.conditions` logo adiante.
-    server: {
-      deps: { inline: [/node_modules\/(lit|lit-html|lit-element|@lit|@lit-labs|@material)\//] },
-    },
   },
 })
