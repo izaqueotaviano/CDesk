@@ -22,7 +22,10 @@
   max-width: 640px;
   max-height: 76vh;
   overflow: hidden;
-  background: var(--surface-card);
+  // Nível 3 do M3 (diálogo/modal): o fundo mistura 11% de `primary` na
+  // superfície, além da sombra — as duas formas de "isto está acima de
+  // tudo" que o Material 3 usa juntas. Ver o cabeçalho de md3.css.
+  background: var(--md-surface-tint-3);
   border-radius: var(--raio);
   box-shadow: var(--sombra-flutuante);
   animation: busca-comando-entrar 0.15s ease;

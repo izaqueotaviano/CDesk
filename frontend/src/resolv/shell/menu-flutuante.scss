@@ -12,7 +12,9 @@
   padding: 4px;
   display: flex;
   flex-direction: column;
-  background: var(--surface-card);
+  // Nível 2 do M3 (menu de contexto): 8% de `primary` misturado na
+  // superfície — mais discreto que o diálogo da busca, mesma ideia.
+  background: var(--md-surface-tint-2);
   border: 1px solid var(--stroke);
   border-radius: var(--raio);
   box-shadow: var(--sombra-flutuante);

@@ -414,6 +414,31 @@ html[data-tema='escuro'] {
 }
 
 /* ============================================================================
+   Tingimento de elevação (surface tint) — a segunda metade do sistema de
+   elevação do M3, e a que faltava.
+
+   O M3 sinaliza profundidade de DUAS formas, não só sombra: a superfície que
+   sobe também MISTURA um pouco da cor primária nela mesma — quanto mais alto,
+   mais tingida. É esse tingimento (mais do que o raio ou a sombra) que faz
+   menu, diálogo e popover do Material 3 lerem como "acima de tudo" mesmo
+   quando a sombra é discreta, e é a segunda coisa, depois da forma, que mais
+   entrega a assinatura visual do Google Material.
+
+   Os cinco níveis são os do M3 (m3.material.io/styles/elevation): 5% / 8% /
+   11% / 12% / 14% de `primary` misturado na superfície. Aqui só entram 2 e 3
+   — os únicos níveis que este produto usa (menu/popover e diálogo/modal); os
+   demais existem só para completar a escala se algo precisar no futuro.
+
+   `color-mix()` referencia os PAPÉIS (`--md-primary`, não um tom cru da
+   rampa), então o valor recalcula sozinho em qualquer tema — não precisa de
+   bloco por tema, e é por isso que esta declaração mora fora dos dois blocos
+   de `html[data-tema]` acima. */
+:root {
+  --md-surface-tint-2: color-mix(in srgb, var(--md-primary) 8%, var(--md-surface-container-lowest));
+  --md-surface-tint-3: color-mix(in srgb, var(--md-primary) 11%, var(--md-surface-container-lowest));
+}
+
+/* ============================================================================
    Foco visível — o indicador do M3.
 
    Anel de 3px na cor primária, DESLOCADO 2px para fora do controle. O

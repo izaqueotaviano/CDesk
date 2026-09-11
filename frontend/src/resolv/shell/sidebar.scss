@@ -220,17 +220,40 @@
     &:active {
       background: var(--md-state-layer-pressed);
     }
-    // Item atual: `secondary-container` com o texto em `on-secondary-container`
-    // — a marca de seleção do M3. O peso vai a 500 e o ícone assume a cor de
-    // conteúdo do container: três sinais, para "você está aqui" não depender
-    // só da cor (o `aria-current` no elemento diz o mesmo ao leitor de tela).
+    // Item atual: cor de marca no texto e peso 500 — dois sinais, além do
+    // `aria-current` para o leitor de tela. A MARCAÇÃO de fundo mora só no
+    // ícone (abaixo, `&__icone`): é a cápsula atrás do ícone, não a linha
+    // inteira tingida, que é como a navegação do Material 3 sinaliza seleção
+    // nos apps do próprio Google (Gmail, Drive) — a fileira continua neutra
+    // e só o ícone ganha destaque.
     &--ativo {
-      background: var(--md-secondary-container);
-      color: var(--md-on-secondary-container);
+      color: var(--md-primary);
       font-weight: var(--md-peso-medio);
 
+      // A cápsula é um `::before` maior que a caixa do ícone, não o fundo
+      // da própria caixa — assim ela cresce por cima do layout sem MUDAR o
+      // tamanho da caixa (que é fixo de propósito, para os rótulos
+      // continuarem alinhados numa coluna só).
+      //
+      // O ícone (svg/i) PRECISA ganhar `position: relative` aqui, e não só a
+      // cor: sem isso ele é conteúdo "não posicionado", que na ordem de
+      // pintura do CSS desenha ANTES de qualquer elemento posicionado — a
+      // cápsula (posicionada) pintaria por cima dele mesmo vindo depois na
+      // árvore, e o ícone sumia atrás do próprio fundo que deveria realçá-lo.
+      // Posicionado, ele volta a competir pela ordem de pintura por z-index/
+      // ordem no documento, que é depois do `::before` — e aparece por cima.
+      // O selo de conversas (`&__badge`) já é posicionado desde a regra base
+      // (`position: absolute`), por isso não precisa do mesmo ajuste aqui.
+      .sidebar-rail__icone::before {
+        content: '';
+        position: absolute;
+        inset: -6px -10px;
+        border-radius: var(--md-radius-full);
+        background: var(--md-secondary-container);
+      }
       .sidebar-rail__icone svg,
       .sidebar-rail__icone i {
+        position: relative;
         color: var(--md-on-secondary-container);
       }
     }
