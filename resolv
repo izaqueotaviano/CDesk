@@ -529,6 +529,14 @@ pasta_do_frontend_alheio() {
   return 1
 }
 
+# As dependências instaladas são mais velhas que o `package-lock.json`?
+# `-nt` (newer than) é a mesma ideia do carimbo do venv: se o lockfile mudou
+# depois da última instalação, o que está em node_modules está velho.
+frontend_desatualizado() {
+  [ ! -d "$FRONT_DIR/node_modules" ] \
+    || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]
+}
+
 subir_frontend() {
   if ! tem_frontend; then
     aviso "Sem a pasta $FRONT_DIR/ — subindo só o backend."
@@ -541,16 +549,32 @@ subir_frontend() {
     # isso calado servia a versão errada com um "já estava no ar" verde na
     # tela — o pior tipo de erro, o que parece sucesso.
     if frontend_e_daqui; then
-      ok "Já estava no ar."
-      return 0
+      # "É o meu Vite" ainda não é "é o meu Vite ATUALIZADO". O processo que
+      # está no ar guarda em memória o grafo de módulos e o pré-bundle de
+      # `node_modules/.vite/deps` de quando SUBIU. Depois de um `git pull` que
+      # mexe no `package-lock.json`, esse pré-bundle aponta para dependências
+      # que mudaram ou sumiram — e o navegador pede um módulo que não existe
+      # mais. Isso não dá erro na porta (ela responde 200, é o index.html):
+      # dá TELA EM BRANCO, porque quem falha é o import, depois do HTML.
+      # Sair daqui com "já estava no ar" era servir a versão errada com um
+      # visto verde — de novo o pior tipo de erro, o que parece sucesso.
+      if ! frontend_desatualizado; then
+        ok "Já estava no ar."
+        return 0
+      fi
+      aviso "O Vite no ar subiu com dependências antigas (o lockfile mudou)."
+      aviso "Reiniciando para não servir uma versão que o navegador não consegue carregar."
+      parar_frontend >/dev/null 2>&1 || true
+      sleep 1
+    else
+      local outra
+      outra="$(pasta_do_frontend_alheio || true)"
+      aviso "A porta 5174 já respondia, mas de OUTRA pasta:"
+      [ -n "$outra" ] && aviso "  $outra"
+      aviso "Derrubando esse para subir o desta aqui ($RAIZ)."
+      parar_frontend >/dev/null 2>&1 || true
+      sleep 1
     fi
-    local outra
-    outra="$(pasta_do_frontend_alheio || true)"
-    aviso "A porta 5174 já respondia, mas de OUTRA pasta:"
-    [ -n "$outra" ] && aviso "  $outra"
-    aviso "Derrubando esse para subir o desta aqui ($RAIZ)."
-    parar_frontend >/dev/null 2>&1 || true
-    sleep 1
     if front_no_ar; then
       morrer "A porta 5174 continua ocupada por outro processo. Feche-o e rode de novo."
     fi
@@ -562,7 +586,7 @@ subir_frontend() {
   # `-nt` (newer than) é a mesma ideia do `preparar_venv` (que confere um
   # import de verdade em vez de só a pasta existir): se o lockfile mudou
   # depois da última instalação, node_modules está desatualizado.
-  if [ ! -d "$FRONT_DIR/node_modules" ] || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]; then
+  if frontend_desatualizado; then
     passo "Instalando dependências do frontend (pode demorar um pouco)"
     ( cd "$FRONT_DIR" && npm install --no-audit --no-fund ) \
       || morrer "npm install falhou — veja a mensagem acima."
