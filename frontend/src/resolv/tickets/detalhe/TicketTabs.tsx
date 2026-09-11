@@ -30,8 +30,7 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
             aria-selected={ativo}
             className={'ticket-tabs__tab' + (ativo ? ' ticket-tabs__tab--ativo' : '')}
           >
-            <button
-              type="button"
+            <md-text-button
               className="ticket-tabs__abrir"
               onClick={() => {
                 definirAtiva(aba.ticketId)
@@ -40,9 +39,8 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
             >
               <span className="ticket-tabs__titulo">{titulo}</span>
               <span className="ticket-tabs__num">{aba.resumo?.reference ?? `#${aba.ticketId}`}</span>
-            </button>
-            <button
-              type="button"
+            </md-text-button>
+            <md-icon-button
               className="ticket-tabs__fechar"
               aria-label={`Fechar ${aba.resumo?.reference ?? aba.ticketId}`}
               onClick={() => {
@@ -54,20 +52,19 @@ export function TicketTabs({ idAtivo }: { idAtivo: number }) {
                 }
               }}
             >
-              <i className="ri-close-line" />
-            </button>
+              <i slot="icon" className="ri-close-line" />
+            </md-icon-button>
           </div>
         )
       })}
 
-      <button
-        type="button"
+      <md-icon-button
         className="ticket-tabs__mais"
         aria-label="Abrir outro ticket"
         onClick={() => navigate('/chamados')}
       >
-        <i className="ri-add-circle-line" />
-      </button>
+        <i slot="icon" className="ri-add-circle-line" />
+      </md-icon-button>
     </div>
   )
 }

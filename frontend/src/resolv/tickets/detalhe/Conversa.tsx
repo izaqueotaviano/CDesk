@@ -152,10 +152,10 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
           </div>
         </div>
         <div className="conversa__acoes-header">
-          <button type="button" aria-label="Resumo"><i className="ri-list-check" /></button>
-          <button type="button" aria-label="Filtrar"><i className="ri-filter-3-line" /></button>
-          <button type="button" aria-label="Histórico"><i className="ri-history-line" /></button>
-          <button type="button" aria-label="Mais"><i className="ri-more-2-fill" /></button>
+          <md-icon-button aria-label="Resumo"><i slot="icon" className="ri-list-check" /></md-icon-button>
+          <md-icon-button aria-label="Filtrar"><i slot="icon" className="ri-filter-3-line" /></md-icon-button>
+          <md-icon-button aria-label="Histórico"><i slot="icon" className="ri-history-line" /></md-icon-button>
+          <md-icon-button aria-label="Mais ações"><i slot="icon" className="ri-more-2-fill" /></md-icon-button>
         </div>
       </header>
 
@@ -173,37 +173,37 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
       <div className="conversa__composer">
         <div className="conversa__composer-topo">
           <div className="conversa__tipo-resposta">
-            <button
-              type="button"
+            <md-text-button
               className={'conversa__seg' + (publico ? ' conversa__seg--on' : '')}
               onClick={() => setPublico(true)}
             >
-              <i className="ri-reply-line" /> Resposta pública
-            </button>
-            <button
-              type="button"
+              <i slot="icon" className="ri-reply-line" /> Resposta pública
+            </md-text-button>
+            <md-text-button
               className={'conversa__seg' + (!publico ? ' conversa__seg--on' : '')}
               onClick={() => setPublico(false)}
             >
-              <i className="ri-sticky-note-line" /> Nota interna
-            </button>
+              <i slot="icon" className="ri-sticky-note-line" /> Nota interna
+            </md-text-button>
           </div>
           <div className="conversa__para">
             Para <span className="conversa__para-chip">{ticket.requester_display}</span>
           </div>
         </div>
 
-        <textarea
+        <md-outlined-text-field
           className="conversa__textarea"
+          type="textarea"
+          rows={4}
           placeholder={publico ? 'Escreva a resposta ao cliente…' : 'Nota interna (não vai para o cliente)…'}
           value={texto}
-          onChange={(e) => setTexto(e.target.value)}
+          onInput={(e) => setTexto((e.currentTarget as unknown as { value: string }).value)}
         />
 
         <div className="conversa__toolbar">
-          <button type="button" aria-label="Anexar" onClick={() => inputAnexo.current?.click()}>
-            <i className="ri-attachment-2" />
-          </button>
+          <md-icon-button aria-label="Anexar" onClick={() => inputAnexo.current?.click()}>
+            <i slot="icon" className="ri-attachment-2" />
+          </md-icon-button>
           <input
             ref={inputAnexo}
             type="file"
@@ -214,9 +214,9 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
               e.target.value = '' // permite re-selecionar o mesmo arquivo
             }}
           />
-          <button type="button" aria-label="Formatar"><i className="ri-text" /></button>
-          <button type="button" aria-label="Emoji"><i className="ri-emotion-happy-line" /></button>
-          <button type="button" aria-label="Link"><i className="ri-link" /></button>
+          <md-icon-button aria-label="Formatar"><i slot="icon" className="ri-text" /></md-icon-button>
+          <md-icon-button aria-label="Emoji"><i slot="icon" className="ri-emotion-happy-line" /></md-icon-button>
+          <md-icon-button aria-label="Inserir link"><i slot="icon" className="ri-link" /></md-icon-button>
         </div>
 
         {anexos.length > 0 && (
@@ -225,13 +225,12 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
               <span key={`${f.name}-${i}`} className="conversa__anexo-chip">
                 <i className="ri-attachment-2" />
                 {f.name}
-                <button
-                  type="button"
+                <md-icon-button
                   aria-label={`Remover ${f.name}`}
                   onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}
                 >
-                  <i className="ri-close-line" />
-                </button>
+                  <i slot="icon" className="ri-close-line" />
+                </md-icon-button>
               </span>
             ))}
           </div>
@@ -241,25 +240,24 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
           {/* Aplicar macro: preenche o texto pronto (macro.body) no compositor */}
           <div className="conversa__macro">
             <i className="ri-flashlight-line" />
-            <select
+            <md-outlined-select
+              label="Aplicar macro"
               value=""
               onChange={(e) => {
-                const m = macros?.find((x) => x.id === Number(e.target.value))
+                const value = (e.currentTarget as unknown as { value: string }).value
+                const m = macros?.find((x) => x.id === Number(value))
                 if (m?.body) setTexto((t) => (t ? `${t}\n${m.body}` : m.body))
               }}
             >
-              <option value="">Aplicar macro</option>
+              <md-select-option value="" headline="Aplicar macro" selected />
               {(macros ?? []).map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
+                <md-select-option key={m.id} value={String(m.id)} headline={m.name} />
               ))}
-            </select>
+            </md-outlined-select>
           </div>
 
           <div className="conversa__enviar-grupo">
-            <button
-              type="button"
+            <md-filled-button
               className="conversa__enviar"
               disabled={!podeEnviar}
               onClick={enviar}
@@ -271,30 +269,27 @@ export function Conversa({ ticket }: { ticket: TicketDetalhe }) {
                   : publico
                     ? 'Enviar'
                     : 'Salvar nota'}
-            </button>
+            </md-filled-button>
             {publico && me?.is_internal && (
               <div className="conversa__enviar-menu-wrap">
-                <button
-                  type="button"
-                  className="conversa__enviar-toggle"
+                <md-icon-button
                   aria-label="Escolher status"
                   onClick={() => setAbrirStatus((v) => !v)}
                 >
-                  <i className="ri-arrow-down-s-line" />
-                </button>
+                  <i slot="icon" className="ri-arrow-down-s-line" />
+                </md-icon-button>
                 {abrirStatus && (
                   <ul className="conversa__enviar-menu">
                     {STATUS_ENVIO.map((s) => (
                       <li key={s}>
-                        <button
-                          type="button"
+                        <md-text-button
                           onClick={() => {
                             setStatusEnvio(s)
                             setAbrirStatus(false)
                           }}
                         >
                           Enviar como {ROTULO_STATUS[s]}
-                        </button>
+                        </md-text-button>
                       </li>
                     ))}
                   </ul>

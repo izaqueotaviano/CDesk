@@ -91,9 +91,11 @@ export function PainelCliente({ ticket }: { ticket: TicketDetalhe }) {
 
       <div className="cliente-panel__campo cliente-panel__campo--col">
         <span className="cliente-panel__rotulo">Observações</span>
-        <textarea
+        <md-outlined-text-field
           className="cliente-panel__obs"
           rows={2}
+          type="textarea"
+          label="Observações"
           placeholder="Adicionar observações do cliente"
           disabled
         />

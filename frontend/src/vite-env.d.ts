@@ -21,6 +21,12 @@ declare namespace JSX {
     'md-outlined-text-field': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
       label?: string
       placeholder?: string
+      type?: 'email' | 'number' | 'password' | 'search' | 'tel' | 'text' | 'url' | 'textarea'
+      value?: string
+      rows?: number
+      disabled?: boolean
     }
+    'md-outlined-select': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { label?: string; value?: string; disabled?: boolean }
+    'md-select-option': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & { value?: string; headline?: string; selected?: boolean }
   }
 }

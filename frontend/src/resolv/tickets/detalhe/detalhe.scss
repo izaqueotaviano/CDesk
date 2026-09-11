@@ -6,6 +6,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
 
   &__colunas {
     display: flex;
@@ -260,24 +261,11 @@
   &__acoes-header {
     display: flex;
     gap: 2px;
-    button {
-      width: 32px;
-      height: 32px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: transparent;
-      border-radius: 2px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      i {
-        font-size: 18px;
-      }
-      &:hover {
-        background: var(--surface-alt);
-        color: var(--text-primary);
-      }
+    md-icon-button {
+      --md-icon-button-icon-color: var(--text-secondary);
+      --md-icon-button-hover-icon-color: var(--text-primary);
+      --md-icon-button-hover-state-layer-color: var(--surface-alt);
+      --md-icon-button-pressed-state-layer-color: var(--surface-alt);
     }
   }
 
@@ -415,24 +403,13 @@
     gap: 2px;
   }
   &__seg {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border: 0.7px solid transparent;
-    background: transparent;
-    border-radius: 2px;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    i {
-      font-size: 14px;
-    }
+    --md-text-button-label-text-color: var(--text-secondary);
+    --md-text-button-container-height: 28px;
+    --md-text-button-container-shape: 7px;
     &--on {
-      background: var(--surface-alt);
-      border-color: var(--stroke);
-      color: var(--text-primary);
+      --md-text-button-label-text-color: var(--text-primary);
+      --md-text-button-hover-label-text-color: var(--text-primary);
+      --md-text-button-container-color: var(--surface-alt);
     }
   }
   &__para {
@@ -467,24 +444,10 @@
   &__toolbar {
     display: flex;
     gap: 2px;
-    button {
-      width: 30px;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: none;
-      background: transparent;
-      border-radius: 2px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      i {
-        font-size: 16px;
-      }
-      &:hover {
-        background: var(--surface-alt);
-        color: var(--text-primary);
-      }
+    md-icon-button {
+      --md-icon-button-icon-color: var(--text-secondary);
+      --md-icon-button-hover-icon-color: var(--text-primary);
+      --md-icon-button-hover-state-layer-color: var(--surface-alt);
     }
   }
   &__anexos-pend {
@@ -761,5 +724,85 @@
     font-size: 11px;
     color: var(--text-secondary);
     margin-top: 1px;
+  }
+}
+
+// Componentes Material Web da tela. As variáveis preservam a escala compacta
+// sem transformar cada ação em um botão HTML customizado.
+.prop-panel__link {
+  --md-text-button-container-height: 26px;
+  --md-text-button-label-text-size: 11px;
+  --md-text-button-label-text-color: var(--accent);
+}
+
+.conversa__anexo-chip md-icon-button {
+  --md-icon-button-state-layer-width: 24px;
+  --md-icon-button-state-layer-height: 24px;
+  --md-icon-button-icon-size: 14px;
+  --md-icon-button-icon-color: var(--text-muted);
+  --md-icon-button-hover-icon-color: var(--danger);
+}
+
+.conversa__enviar {
+  --md-filled-button-container-height: 34px;
+  --md-filled-button-container-shape: 999px;
+  --md-filled-button-container-color: var(--text-primary);
+  --md-filled-button-label-text-color: #fff;
+}
+
+.conversa__enviar-menu-wrap md-icon-button {
+  --md-icon-button-icon-color: var(--text-primary);
+  --md-icon-button-hover-state-layer-color: var(--surface-alt);
+}
+
+.conversa__enviar-menu md-text-button {
+  width: 100%;
+  justify-content: flex-start;
+  --md-text-button-label-text-color: var(--text-primary);
+  --md-text-button-hover-state-layer-color: var(--surface-alt);
+}
+
+.prop-panel__select {
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  md-outlined-select {
+    width: 100%;
+    --md-outlined-select-text-field-container-height: 34px;
+    --md-outlined-select-text-field-outline-color: var(--stroke-hover);
+    --md-outlined-select-text-field-focus-outline-color: var(--text-primary);
+    --md-outlined-select-text-field-input-text-size: 12px;
+    --md-outlined-select-text-field-container-shape: 7px;
+  }
+}
+
+.conversa__textarea,
+.cliente-panel__obs {
+  width: 100%;
+  --md-outlined-text-field-container-shape: 7px;
+  --md-outlined-text-field-outline-color: var(--stroke-hover);
+  --md-outlined-text-field-focus-outline-color: var(--text-primary);
+  --md-outlined-text-field-input-text-size: 13px;
+}
+
+.conversa__macro {
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+
+  > i {
+    display: none;
+  }
+
+  md-outlined-select {
+    min-width: 148px;
+    --md-outlined-select-text-field-container-height: 34px;
+    --md-outlined-select-text-field-container-shape: 999px;
+    --md-outlined-select-text-field-outline-color: var(--stroke-hover);
+    --md-outlined-select-text-field-input-text-size: 12px;
   }
 }

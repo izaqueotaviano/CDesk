@@ -39,6 +39,10 @@
     background: transparent;
     cursor: pointer;
     text-align: left;
+    --md-text-button-container-height: 40px;
+    --md-text-button-container-shape: 0;
+    --md-text-button-label-text-color: var(--text-primary);
+    --md-text-button-hover-state-layer-color: var(--surface-alt);
   }
 
   &__titulo {
@@ -69,6 +73,10 @@
     border-radius: 2px;
     color: var(--text-muted);
     cursor: pointer;
+    --md-icon-button-state-layer-width: 26px;
+    --md-icon-button-state-layer-height: 26px;
+    --md-icon-button-icon-size: 15px;
+    --md-icon-button-icon-color: var(--text-muted);
     i {
       font-size: 12px;
     }
@@ -91,5 +99,10 @@
     &:hover {
       filter: brightness(0.95);
     }
+    --md-icon-button-state-layer-width: 40px;
+    --md-icon-button-state-layer-height: 40px;
+    --md-icon-button-icon-color: #fff;
+    --md-icon-button-hover-icon-color: #fff;
+    --md-icon-button-hover-state-layer-color: rgba(255, 255, 255, 0.12);
   }
 }

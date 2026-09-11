@@ -37,34 +37,32 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
             Atribuído <span className="prop-panel__obrig">*</span>
           </label>
           {!souOAtribuido && (
-            <button
-              type="button"
+            <md-text-button
               className="prop-panel__link"
               onClick={() => me && atribuir.mutate(me.id)}
               disabled={atribuir.isPending}
             >
               aceitar
-            </button>
+            </md-text-button>
           )}
         </div>
         <div className="prop-panel__select">
-          <i className="ri-customer-service-line" />
-          <select
-            value={ticket.assignee_id ?? ''}
-            onChange={(e) => atribuir.mutate(e.target.value ? Number(e.target.value) : null)}
+          <md-outlined-select
+            value={ticket.assignee_id == null ? '' : String(ticket.assignee_id)}
+            onChange={(e) => {
+              const value = (e.currentTarget as unknown as { value: string }).value
+              atribuir.mutate(value ? Number(value) : null)
+            }}
             disabled={atribuir.isPending}
           >
-            <option value="">Sem responsável</option>
+            <md-select-option value="" headline="Sem responsável" />
             {ticket.assignee_id != null && !agentes.some((a) => a.id === ticket.assignee_id) && (
-              <option value={ticket.assignee_id}>{ticket.assignee_name}</option>
+              <md-select-option value={String(ticket.assignee_id)} headline={ticket.assignee_name ?? 'Responsável'} />
             )}
             {agentes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+              <md-select-option key={a.id} value={String(a.id)} headline={a.name} />
             ))}
-          </select>
-          <i className="ri-arrow-down-s-line prop-panel__seta" />
+          </md-outlined-select>
         </div>
       </div>
 
@@ -72,23 +70,22 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
       <div className="prop-panel__campo">
         <label className="prop-panel__label">Dono técnico</label>
         <div className="prop-panel__select">
-          <i className="ri-tools-line" />
-          <select
-            value={ticket.owner_id ?? ''}
-            onChange={(e) => definirDono.mutate(e.target.value ? Number(e.target.value) : null)}
+          <md-outlined-select
+            value={ticket.owner_id == null ? '' : String(ticket.owner_id)}
+            onChange={(e) => {
+              const value = (e.currentTarget as unknown as { value: string }).value
+              definirDono.mutate(value ? Number(value) : null)
+            }}
             disabled={definirDono.isPending}
           >
-            <option value="">Sem dono técnico</option>
+            <md-select-option value="" headline="Sem dono técnico" />
             {ticket.owner_id != null && !agentes.some((a) => a.id === ticket.owner_id) && (
-              <option value={ticket.owner_id}>{ticket.owner_name}</option>
+              <md-select-option value={String(ticket.owner_id)} headline={ticket.owner_name ?? 'Dono técnico'} />
             )}
             {agentes.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+              <md-select-option key={a.id} value={String(a.id)} headline={a.name} />
             ))}
-          </select>
-          <i className="ri-arrow-down-s-line prop-panel__seta" />
+          </md-outlined-select>
         </div>
       </div>
 
@@ -96,14 +93,13 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
       <div className="prop-panel__campo">
         <div className="prop-panel__label-linha">
           <label className="prop-panel__label">Seguidores</label>
-          <button
-            type="button"
+          <md-text-button
             className="prop-panel__link"
             onClick={() => (jaSegue ? deixarDeSeguir.mutate() : seguir.mutate())}
             disabled={seguir.isPending || deixarDeSeguir.isPending}
           >
             {jaSegue ? 'deixar de seguir' : 'seguir'}
-          </button>
+          </md-text-button>
         </div>
         {ticket.watchers.length > 0 ? (
           <div className="prop-panel__chips">
@@ -139,37 +135,34 @@ export function PainelPropriedades({ ticket }: { ticket: TicketDetalhe }) {
         <div className="prop-panel__campo">
           <label className="prop-panel__label">Categoria</label>
           <div className="prop-panel__select">
-            <select
-              value={ticket.category ?? ''}
-              onChange={(e) => mudarCategoria.mutate(e.target.value ? Number(e.target.value) : null)}
+            <md-outlined-select
+              value={ticket.category == null ? '' : String(ticket.category)}
+              onChange={(e) => {
+                const value = (e.currentTarget as unknown as { value: string }).value
+                mudarCategoria.mutate(value ? Number(value) : null)
+              }}
               disabled={mudarCategoria.isPending}
             >
-              <option value="">—</option>
+              <md-select-option value="" headline="Sem categoria" />
               {(categorias ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
+                <md-select-option key={c.id} value={String(c.id)} headline={c.name} />
               ))}
-            </select>
-            <i className="ri-arrow-down-s-line prop-panel__seta" />
+            </md-outlined-select>
           </div>
         </div>
 
         <div className="prop-panel__campo">
           <label className="prop-panel__label">Prioridade</label>
           <div className="prop-panel__select">
-            <select
+            <md-outlined-select
               value={ticket.priority}
-              onChange={(e) => mudarPrioridade.mutate(e.target.value as Prioridade)}
+              onChange={(e) => mudarPrioridade.mutate((e.currentTarget as unknown as { value: Prioridade }).value)}
               disabled={mudarPrioridade.isPending}
             >
               {PRIORIDADES.map((p) => (
-                <option key={p} value={p}>
-                  {ROTULO_PRIORIDADE[p]}
-                </option>
+                <md-select-option key={p} value={p} headline={ROTULO_PRIORIDADE[p]} />
               ))}
-            </select>
-            <i className="ri-arrow-down-s-line prop-panel__seta" />
+            </md-outlined-select>
           </div>
         </div>
       </div>
