@@ -1,4 +1,5 @@
 import { useTema } from './useTema'
+import { Icone } from './Icone'
 
 /**
  * Sol/lua da zona utilitária da Sidebar (Fase 2 — antes vivia na Topbar, que
@@ -18,7 +19,7 @@ export function BotaoTema() {
   return (
     <button type="button" className="sidebar-rail__item" aria-label={acao} title={acao} onClick={alternar}>
       <span className="sidebar-rail__icone">
-        <i className={tema === 'escuro' ? 'ti ti-sun' : 'ti ti-moon'} aria-hidden="true" />
+        <Icone nome={tema === 'escuro' ? 'ti ti-sun' : 'ti ti-moon'} tamanho={16} />
       </span>
       <span className="sidebar-rail__rotulo" aria-hidden="true">
         {acao}

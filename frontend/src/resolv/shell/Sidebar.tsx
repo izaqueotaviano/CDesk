@@ -25,6 +25,7 @@ import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { usePrefs } from '@/stores/prefs'
 import { BotaoTema } from './BotaoTema'
+import { Icone } from './Icone'
 import { MenuPresenca } from './MenuPresenca'
 import { PainelNotificacoes } from './PainelNotificacoes'
 import './sidebar.scss'
@@ -124,7 +125,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
       title="Fechar menu"
       onClick={gaveta.onFechar}
     >
-      <i className="ti ti-x" aria-hidden="true" />
+      <Icone nome="ti ti-x" />
     </button>
   ) : (
     <button
@@ -135,9 +136,10 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
       aria-expanded={!recolhida}
       onClick={alternarSidebar}
     >
-      <i
-        className={recolhida ? 'ti ti-layout-sidebar-left-expand' : 'ti ti-layout-sidebar-left-collapse'}
-        aria-hidden="true"
+      <Icone
+        nome={
+          recolhida ? 'ti ti-layout-sidebar-left-expand' : 'ti ti-layout-sidebar-left-collapse'
+        }
       />
     </button>
   )
@@ -200,7 +202,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
           title="Buscar e navegar (Ctrl K)"
           onClick={onAbrirBusca}
         >
-          <i className="ti ti-search" aria-hidden="true" />
+          <Icone nome="ti ti-search" tamanho={16} />
           <span className="sidebar-rail__busca-rotulo">Buscar</span>
           <kbd className="sidebar-rail__busca-atalho">Ctrl K</kbd>
         </button>
@@ -230,7 +232,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
                 onClick={() => item.enabled && navigate(item.route)}
               >
                 <span className="sidebar-rail__icone">
-                  <i className={item.icon} aria-hidden="true" />
+                  <Icone nome={item.icon} />
                   {badge != null && <span className="sidebar-rail__badge">{badge}</span>}
                 </span>
                 {/* aria-hidden: o nome acessível do botão já é o `aria-label`

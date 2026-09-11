@@ -84,6 +84,28 @@ export function corEstadoSla(sla: RelogioSla): string {
   return 'var(--ok)'
 }
 
+/** O TOM semântico do relógio, no vocabulário do Fluent (selo/badge).
+ *
+ *  Existe ao lado de `corEstadoSla` (que devolve uma cor solta para `style`)
+ *  porque o Fluent pinta estado por COMPONENTE, não por propriedade: quem
+ *  recebe o tom escolhe a classe `.fui-badge--danger|warning|success` e ganha
+ *  fundo, texto e ponto de uma vez — e o ponto é o que faz o estado não
+ *  depender só da cor (WCAG 1.4.1). Usado na Início, na fila e no ticket. */
+export function tomSla(sla: RelogioSla): 'danger' | 'warning' | 'success' | 'neutral' {
+  if (sla.state === 'breached') return 'danger'
+  if (sla.state === 'at_risk') return 'warning'
+  if (sla.state === 'none') return 'neutral'
+  return 'success'
+}
+
+/** O mesmo, para a prioridade. */
+export function tomPrioridade(p: Prioridade): 'danger' | 'warning' | 'success' | 'neutral' {
+  if (p === 'urgent') return 'danger'
+  if (p === 'high') return 'warning'
+  if (p === 'low') return 'neutral'
+  return 'success'
+}
+
 /** Texto curto do relógio — "2h restantes", "Estourado", "Sem SLA". */
 export function textoEstadoSla(sla: RelogioSla): string {
   if (sla.state === 'breached') return 'Estourado'

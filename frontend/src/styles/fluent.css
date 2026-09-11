@@ -1,0 +1,358 @@
+/* ============================================================================
+   Fluent 2 — a camada de tokens do produto inteiro.
+
+   FONTE ÚNICA. Os dois conjuntos de nomes que já existiam (`--surface`,
+   `--stroke`, `--accent`… no console; `--superficie`, `--divisoria`,
+   `--acento`… no Tailwind/portal) continuam existindo e continuam sendo o que
+   os ~60 arquivos de estilo consomem — eles agora APONTAM para os `--fui-*`
+   daqui. Trocar um valor de aparência é trocar neste arquivo; nenhum
+   componente repete hex, raio, sombra ou passo de tipografia.
+
+   Os nomes seguem os do Fluent 2 (fluent2.microsoft.design / react.fluentui.dev
+   → Theme Designer), para quem conhece o design system achar o token pelo nome
+   que ele já sabe: `colorNeutralBackground1` → `--fui-bg-1`,
+   `colorBrandBackground` → `--fui-brand-bg`, `shadow4` → `--fui-shadow-4`.
+
+   A MARCA CONTINUA A DO PROJETO: o azul #0f62fe é o `--fui-brand-80`, a âncora
+   da rampa (o `brand80` do Fluent). Os outros quinze degraus foram derivados
+   dele com a mesma progressão de luminância e croma da rampa oficial do
+   Fluent, em OKLCH — por isso os estados (hover/pressed/selected) parecem
+   Fluent sem trocar a identidade. Conferência de contraste dos pares que
+   importam: branco sobre o azul 5,0:1; hover 6,6:1; pressed 7,8:1; o azul
+   claro do tema escuro 4,6:1 sobre o fundo mais claro do escuro.
+   ============================================================================ */
+
+:root {
+  /* ---------- rampa de marca (azul do projeto, progressão do Fluent) ------ */
+  --fui-brand-10: #081530;
+  --fui-brand-20: #0a204b;
+  --fui-brand-30: #0d2a62;
+  --fui-brand-40: #11357c;
+  --fui-brand-50: #113f9a;
+  --fui-brand-60: #124ab8;
+  --fui-brand-70: #0c52d7;
+  --fui-brand-80: #0f62fe; /* a marca */
+  --fui-brand-90: #2077ff;
+  --fui-brand-100: #3d91ff;
+  --fui-brand-110: #5aa2ff;
+  --fui-brand-120: #71b1ff;
+  --fui-brand-130: #8fc3ff;
+  --fui-brand-140: #b0d5ff;
+  --fui-brand-150: #cde4ff;
+  --fui-brand-160: #eaf4ff;
+
+  /* ---------- tipografia ----------
+     Segoe UI Variable primeiro: num Windows (que é onde este produto vive) a
+     interface fica na fonte de sistema do Fluent de verdade. Fora dele a
+     pilha cai no Inter, que já era a fonte do projeto e é o substituto de
+     métrica mais próxima. Nada é baixado por causa disto. */
+  --fui-font-base:
+    'Segoe UI Variable Text', 'Segoe UI Variable', 'Segoe UI', Inter, -apple-system, system-ui,
+    'Helvetica Neue', sans-serif;
+  --fui-font-display:
+    'Segoe UI Variable Display', 'Segoe UI Variable', 'Segoe UI', Inter, -apple-system, system-ui,
+    sans-serif;
+  --fui-font-mono: 'Cascadia Mono', 'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* rampa do Fluent: tamanho / entrelinha por passo */
+  --fui-fs-100: 10px;  --fui-lh-100: 14px; /* caption2 */
+  --fui-fs-200: 12px;  --fui-lh-200: 16px; /* caption1 */
+  --fui-fs-300: 14px;  --fui-lh-300: 20px; /* body1 — base da interface */
+  --fui-fs-400: 16px;  --fui-lh-400: 22px; /* body2 / subtitle2 */
+  --fui-fs-500: 20px;  --fui-lh-500: 26px; /* subtitle1 */
+  --fui-fs-600: 24px;  --fui-lh-600: 32px; /* title3 */
+  --fui-fs-700: 28px;  --fui-lh-700: 36px; /* title2 */
+  --fui-fs-800: 32px;  --fui-lh-800: 40px; /* title1 */
+
+  --fui-weight-regular: 400;
+  --fui-weight-medium: 500;
+  --fui-weight-semibold: 600;
+  --fui-weight-bold: 700;
+
+  /* ---------- espaço (rampa do Fluent) ---------- */
+  --fui-space-20: 2px;
+  --fui-space-40: 4px;
+  --fui-space-60: 6px;
+  --fui-space-80: 8px;
+  --fui-space-100: 10px;
+  --fui-space-120: 12px;
+  --fui-space-160: 16px;
+  --fui-space-200: 20px;
+  --fui-space-240: 24px;
+  --fui-space-280: 28px;
+  --fui-space-320: 32px;
+  --fui-space-360: 36px;
+  --fui-space-400: 40px;
+  --fui-space-480: 48px;
+
+  /* ---------- forma ----------
+     A escala do Fluent. O produto era 2px em tudo; o raio médio (4px) é o dos
+     controles e o grande (6px) o das superfícies — é a diferença que faz uma
+     tela parecer Fluent antes mesmo de olhar a cor. */
+  --fui-radius-none: 0;
+  --fui-radius-small: 2px;
+  --fui-radius-medium: 4px;
+  --fui-radius-large: 6px;
+  --fui-radius-xlarge: 8px;
+  --fui-radius-circular: 10000px;
+
+  --fui-stroke-thin: 1px;
+  --fui-stroke-thick: 2px;
+  --fui-stroke-thicker: 3px;
+
+  /* ---------- altura de controle (Fluent: small / medium / large) -------- */
+  --fui-height-small: 24px;
+  --fui-height-medium: 32px;
+  --fui-height-large: 40px;
+
+  /* ---------- movimento ---------- */
+  --fui-duration-ultra-fast: 50ms;
+  --fui-duration-faster: 100ms;
+  --fui-duration-fast: 150ms;
+  --fui-duration-normal: 200ms;
+  --fui-duration-slow: 300ms;
+  --fui-curve-accelerate-mid: cubic-bezier(0.7, 0, 1, 0.5);
+  --fui-curve-decelerate-mid: cubic-bezier(0.1, 0.9, 0.2, 1);
+  --fui-curve-easy-ease: cubic-bezier(0.33, 0, 0.67, 1);
+}
+
+/* ============================================================================
+   Tema claro
+   ============================================================================ */
+:root,
+[data-tema='claro'] {
+  /* superfícies neutras */
+  --fui-bg-1: #ffffff;
+  --fui-bg-1-hover: #f5f5f5;
+  --fui-bg-1-pressed: #e0e0e0;
+  --fui-bg-1-selected: #ebebeb;
+  --fui-bg-2: #fafafa;
+  --fui-bg-3: #f5f5f5;
+  --fui-bg-4: #f0f0f0;
+  --fui-bg-5: #ebebeb;
+  --fui-bg-6: #e6e6e6;
+  --fui-bg-disabled: #f0f0f0;
+  --fui-bg-canvas: #f5f5f5;
+
+  /* fundo "subtle": o dos botões transparentes, itens de menu e linhas de
+     tabela — em repouso não existe, e só aparece na interação */
+  --fui-subtle-hover: #f5f5f5;
+  --fui-subtle-pressed: #e0e0e0;
+  --fui-subtle-selected: #ebebeb;
+
+  /* texto */
+  --fui-fg-1: #242424;
+  --fui-fg-2: #424242;
+  --fui-fg-3: #616161;
+  --fui-fg-4: #707070;
+  --fui-fg-disabled: #bdbdbd;
+  --fui-fg-on-brand: #ffffff;
+  --fui-fg-inverted: #ffffff;
+
+  /* linhas */
+  --fui-stroke-1: #d1d1d1;
+  --fui-stroke-2: #e0e0e0;
+  --fui-stroke-3: #f0f0f0;
+  --fui-stroke-accessible: #616161;
+  --fui-stroke-accessible-hover: #575757;
+  --fui-stroke-disabled: #e0e0e0;
+  /* o anel de foco do Fluent é de duas cores: a externa contrasta com o
+     conteúdo, a interna com a externa — funciona sobre qualquer fundo */
+  --fui-stroke-focus-1: #ffffff;
+  --fui-stroke-focus-2: #000000;
+
+  /* marca */
+  --fui-brand-bg: var(--fui-brand-80);
+  --fui-brand-bg-hover: var(--fui-brand-70);
+  --fui-brand-bg-pressed: var(--fui-brand-60);
+  --fui-brand-bg-selected: var(--fui-brand-60);
+  --fui-brand-bg-static: var(--fui-brand-80);
+  --fui-brand-bg-2: var(--fui-brand-160); /* preenchimento tênue */
+  --fui-brand-bg-2-hover: var(--fui-brand-150);
+  --fui-brand-bg-inverted: #ffffff;
+  --fui-brand-fg-1: var(--fui-brand-80);
+  --fui-brand-fg-link: var(--fui-brand-70);
+  --fui-brand-stroke-1: var(--fui-brand-80);
+  --fui-brand-stroke-2: var(--fui-brand-140);
+
+  /* estado (paleta semântica do Fluent) */
+  --fui-success-fg: #0e700e;
+  --fui-success-bg: #f1faf1;
+  --fui-success-bg-static: #107c10;
+  --fui-success-stroke: #9fd89f;
+  --fui-warning-fg: #bc4b09;
+  --fui-warning-bg: #fff9f5;
+  --fui-warning-bg-static: #f7630c;
+  --fui-warning-stroke: #fdcfb4;
+  --fui-danger-fg: #b10e1c;
+  --fui-danger-bg: #fdf3f4;
+  --fui-danger-bg-static: #c50f1f;
+  --fui-danger-stroke: #eeacb2;
+
+  /* elevação — os seis níveis do Fluent */
+  --fui-shadow-2: 0 0 2px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.14);
+  --fui-shadow-4: 0 0 2px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(0, 0, 0, 0.14);
+  --fui-shadow-8: 0 0 2px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.14);
+  --fui-shadow-16: 0 0 2px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.14);
+  --fui-shadow-28: 0 0 8px rgba(0, 0, 0, 0.12), 0 14px 28px rgba(0, 0, 0, 0.14);
+  --fui-shadow-64: 0 0 8px rgba(0, 0, 0, 0.12), 0 32px 64px rgba(0, 0, 0, 0.14);
+  --fui-overlay: rgba(0, 0, 0, 0.4);
+  --fui-scrim: rgba(0, 0, 0, 0.32);
+}
+
+/* ============================================================================
+   Tema escuro — os neutros do Fluent (cinza puro), não mais o off-black quente.
+   ============================================================================ */
+[data-tema='escuro'] {
+  --fui-bg-1: #292929;
+  --fui-bg-1-hover: #3d3d3d;
+  --fui-bg-1-pressed: #1f1f1f;
+  --fui-bg-1-selected: #333333;
+  --fui-bg-2: #1f1f1f;
+  --fui-bg-3: #141414;
+  --fui-bg-4: #0a0a0a;
+  --fui-bg-5: #000000;
+  --fui-bg-6: #1f1f1f;
+  --fui-bg-disabled: #141414;
+  --fui-bg-canvas: #141414;
+
+  --fui-subtle-hover: #383838;
+  --fui-subtle-pressed: #2e2e2e;
+  --fui-subtle-selected: #333333;
+
+  --fui-fg-1: #ffffff;
+  --fui-fg-2: #d6d6d6;
+  --fui-fg-3: #adadad;
+  --fui-fg-4: #999999;
+  --fui-fg-disabled: #5c5c5c;
+  --fui-fg-on-brand: #ffffff;
+  --fui-fg-inverted: #242424;
+
+  --fui-stroke-1: #666666;
+  --fui-stroke-2: #525252;
+  --fui-stroke-3: #3d3d3d;
+  --fui-stroke-accessible: #adadad;
+  --fui-stroke-accessible-hover: #bdbdbd;
+  --fui-stroke-disabled: #424242;
+  --fui-stroke-focus-1: #000000;
+  --fui-stroke-focus-2: #ffffff;
+
+  /* No escuro o Fluent recua o preenchimento de marca um degrau e clareia o
+     texto de marca dois — o azul cheio do claro brilha demais sobre #141414. */
+  --fui-brand-bg: var(--fui-brand-70);
+  --fui-brand-bg-hover: var(--fui-brand-80);
+  --fui-brand-bg-pressed: var(--fui-brand-60);
+  --fui-brand-bg-selected: var(--fui-brand-60);
+  --fui-brand-bg-static: var(--fui-brand-80);
+  --fui-brand-bg-2: #0c1b33;
+  --fui-brand-bg-2-hover: #10254a;
+  --fui-brand-bg-inverted: var(--fui-brand-160);
+  --fui-brand-fg-1: var(--fui-brand-100);
+  --fui-brand-fg-link: var(--fui-brand-100);
+  --fui-brand-stroke-1: var(--fui-brand-100);
+  --fui-brand-stroke-2: var(--fui-brand-50);
+
+  --fui-success-fg: #54b054;
+  --fui-success-bg: #052505;
+  --fui-success-bg-static: #54b054;
+  --fui-success-stroke: #237b4b;
+  --fui-warning-fg: #fa9370;
+  --fui-warning-bg: #291209;
+  --fui-warning-bg-static: #ff8c00;
+  --fui-warning-stroke: #b1380b;
+  --fui-danger-fg: #ff9a9f;
+  --fui-danger-bg: #3b0509;
+  --fui-danger-bg-static: #dc626d;
+  --fui-danger-stroke: #a4262c;
+
+  --fui-shadow-2: 0 0 2px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(0, 0, 0, 0.28);
+  --fui-shadow-4: 0 0 2px rgba(0, 0, 0, 0.24), 0 2px 4px rgba(0, 0, 0, 0.28);
+  --fui-shadow-8: 0 0 2px rgba(0, 0, 0, 0.24), 0 4px 8px rgba(0, 0, 0, 0.28);
+  --fui-shadow-16: 0 0 2px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.28);
+  --fui-shadow-28: 0 0 8px rgba(0, 0, 0, 0.24), 0 14px 28px rgba(0, 0, 0, 0.28);
+  --fui-shadow-64: 0 0 8px rgba(0, 0, 0, 0.24), 0 32px 64px rgba(0, 0, 0, 0.28);
+  --fui-overlay: rgba(0, 0, 0, 0.5);
+  --fui-scrim: rgba(0, 0, 0, 0.5);
+}
+
+/* Sistema no escuro e ninguém escolheu: mesmo conjunto. (Duplicado em vez de
+   `:is()` porque o seletor precisa perder para `[data-tema='claro']`.) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema='claro']) {
+    --fui-bg-1: #292929;
+    --fui-bg-1-hover: #3d3d3d;
+    --fui-bg-1-pressed: #1f1f1f;
+    --fui-bg-1-selected: #333333;
+    --fui-bg-2: #1f1f1f;
+    --fui-bg-3: #141414;
+    --fui-bg-4: #0a0a0a;
+    --fui-bg-5: #000000;
+    --fui-bg-6: #1f1f1f;
+    --fui-bg-disabled: #141414;
+    --fui-bg-canvas: #141414;
+    --fui-subtle-hover: #383838;
+    --fui-subtle-pressed: #2e2e2e;
+    --fui-subtle-selected: #333333;
+    --fui-fg-1: #ffffff;
+    --fui-fg-2: #d6d6d6;
+    --fui-fg-3: #adadad;
+    --fui-fg-4: #999999;
+    --fui-fg-disabled: #5c5c5c;
+    --fui-fg-inverted: #242424;
+    --fui-stroke-1: #666666;
+    --fui-stroke-2: #525252;
+    --fui-stroke-3: #3d3d3d;
+    --fui-stroke-accessible: #adadad;
+    --fui-stroke-accessible-hover: #bdbdbd;
+    --fui-stroke-disabled: #424242;
+    --fui-stroke-focus-1: #000000;
+    --fui-stroke-focus-2: #ffffff;
+    --fui-brand-bg: var(--fui-brand-70);
+    --fui-brand-bg-hover: var(--fui-brand-80);
+    --fui-brand-bg-pressed: var(--fui-brand-60);
+    --fui-brand-bg-selected: var(--fui-brand-60);
+    --fui-brand-bg-2: #0c1b33;
+    --fui-brand-bg-2-hover: #10254a;
+    --fui-brand-bg-inverted: var(--fui-brand-160);
+    --fui-brand-fg-1: var(--fui-brand-100);
+    --fui-brand-fg-link: var(--fui-brand-100);
+    --fui-brand-stroke-1: var(--fui-brand-100);
+    --fui-brand-stroke-2: var(--fui-brand-50);
+    --fui-success-fg: #54b054;
+    --fui-success-bg: #052505;
+    --fui-success-bg-static: #54b054;
+    --fui-success-stroke: #237b4b;
+    --fui-warning-fg: #fa9370;
+    --fui-warning-bg: #291209;
+    --fui-warning-bg-static: #ff8c00;
+    --fui-warning-stroke: #b1380b;
+    --fui-danger-fg: #ff9a9f;
+    --fui-danger-bg: #3b0509;
+    --fui-danger-bg-static: #dc626d;
+    --fui-danger-stroke: #a4262c;
+    --fui-shadow-2: 0 0 2px rgba(0, 0, 0, 0.24), 0 1px 2px rgba(0, 0, 0, 0.28);
+    --fui-shadow-4: 0 0 2px rgba(0, 0, 0, 0.24), 0 2px 4px rgba(0, 0, 0, 0.28);
+    --fui-shadow-8: 0 0 2px rgba(0, 0, 0, 0.24), 0 4px 8px rgba(0, 0, 0, 0.28);
+    --fui-shadow-16: 0 0 2px rgba(0, 0, 0, 0.24), 0 8px 16px rgba(0, 0, 0, 0.28);
+    --fui-shadow-28: 0 0 8px rgba(0, 0, 0, 0.24), 0 14px 28px rgba(0, 0, 0, 0.28);
+    --fui-shadow-64: 0 0 8px rgba(0, 0, 0, 0.24), 0 32px 64px rgba(0, 0, 0, 0.28);
+    --fui-overlay: rgba(0, 0, 0, 0.5);
+    --fui-scrim: rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ============================================================================
+   Foco — o indicador de duas cores do Fluent, para a base inteira.
+
+   Substitui o contorno de 2px na cor da marca que havia antes: aquele sumia
+   sobre o próprio azul (um botão primário focado não mostrava foco nenhum) e
+   dependia da cor para comunicar. Aqui a linha externa é preta no claro e
+   branca no escuro, com a interna invertida — sempre visível, sobre qualquer
+   fundo, inclusive sobre a marca.
+   ============================================================================ */
+:focus-visible {
+  outline: var(--fui-stroke-thick) solid var(--fui-stroke-focus-2);
+  outline-offset: 1px;
+  border-radius: var(--fui-radius-medium);
+  box-shadow: 0 0 0 var(--fui-stroke-thin) var(--fui-stroke-focus-1);
+}

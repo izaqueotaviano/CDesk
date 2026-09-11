@@ -7,6 +7,7 @@ import type { Presence } from '@/api/types'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
 import './menu-presenca.scss'
+import { Icone } from './Icone'
 
 const ICONE_PRESENCA: Record<Presence, string> = {
   available: 'ti ti-circle-check',
@@ -80,7 +81,9 @@ export function MenuPresenca() {
               />
             </span>
             <span className="menu-presenca__nome">{nome}</span>
-            {mudar.isPending && <i className="ti ti-loader-2 menu-presenca__girando" aria-hidden="true" />}
+            {mudar.isPending && (
+              <Icone nome="ti ti-loader-2" tamanho={16} className="menu-presenca__girando" />
+            )}
             {mudar.isError && <i className="ti ti-alert-circle menu-presenca__alerta" aria-hidden="true" />}
           </button>
           {/* A mutação termina com o menu já fechado (fechamos no clique), então
@@ -151,7 +154,7 @@ export function MenuPresenca() {
               navigate('/conta')
             }}
           >
-            <i className="ti ti-user-cog" aria-hidden="true" />
+            <Icone nome="ti ti-user-cog" tamanho={16} />
             Minha conta
           </button>
 
@@ -167,7 +170,7 @@ export function MenuPresenca() {
               logout.mutate()
             }}
           >
-            <i className="ti ti-logout-2" aria-hidden="true" />
+            <Icone nome="ti ti-logout-2" tamanho={16} />
             Sair
           </button>
         </div>

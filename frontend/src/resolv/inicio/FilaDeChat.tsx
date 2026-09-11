@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { Chat20Regular } from '@fluentui/react-icons'
 import { useFilaChat, usePegarChat } from '@/api/chat'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
@@ -20,10 +21,20 @@ export function FilaDeChat() {
   const naFila = fila ?? []
 
   return (
-    <div className="inicio-lista">
+    <section className="inicio-lista fui-card" aria-labelledby="inicio-chat-fila">
       <header className="inicio-lista__cabecalho">
-        <h2>Chat na fila</h2>
-        <button type="button" className="inicio-lista__ver-tudo" onClick={() => navigate('/chat')}>
+        <Chat20Regular aria-hidden="true" />
+        <h2 id="inicio-chat-fila">Chat na fila</h2>
+        {!isLoading && (
+          <span className={'fui-badge' + (naFila.length > 0 ? ' fui-badge--brand' : '')}>
+            {naFila.length}
+          </span>
+        )}
+        <button
+          type="button"
+          className="fui-btn fui-btn--transparent fui-btn--sm inicio-lista__ver-tudo"
+          onClick={() => navigate('/chat')}
+        >
           Ver console
         </button>
       </header>
@@ -32,11 +43,11 @@ export function FilaDeChat() {
       ) : naFila.length === 0 ? (
         <p className="inicio-lista__vazio">Ninguém esperando agora.</p>
       ) : (
-        <ul className="inicio-lista__itens">
+        <ul className="fui-lista">
           {naFila.slice(0, LIMITE).map((c) => (
             <li key={c.id}>
-              <div className="inicio-lista__item inicio-lista__item--chat">
-                <span className="inicio-chat__avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
+              <div className="fui-lista__item inicio-lista__item inicio-lista__item--chat">
+                <span className="fui-avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
                   {iniciais(c.client_name)}
                 </span>
                 <span className="inicio-lista__texto">
@@ -45,9 +56,11 @@ export function FilaDeChat() {
                 </span>
                 <button
                   type="button"
-                  className="inicio-chat__pegar"
+                  className="fui-btn fui-btn--sm"
                   disabled={pegar.isPending}
-                  onClick={() => pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })}
+                  onClick={() =>
+                    pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })
+                  }
                 >
                   Pegar
                 </button>
@@ -56,6 +69,6 @@ export function FilaDeChat() {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   )
 }

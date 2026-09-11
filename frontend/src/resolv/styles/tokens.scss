@@ -21,9 +21,12 @@
   // serifa de UM lugar só (saudação da Início, ver inicio.scss) — referência:
   // o título grande do app da Manus (manus.im), que mistura serifa só no
   // destaque com a mesma pilha sans nativa no resto da interface.
-  --f-ui: 'Inter', -apple-system, system-ui, sans-serif;
-  --f-mono: 'JetBrains Mono', monospace;
-  --f-display: 'Libre Baskerville', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --f-ui: var(--fui-font-base);
+  --f-mono: var(--fui-font-mono);
+  // `--f-display` era a serifa de UM lugar (a saudação da Início). No Fluent
+  // o destaque de título é a mesma família num corpo maior (Segoe UI Variable
+  // Display) — a serifa saiu com a redação do Fluent 2, não por capricho.
+  --f-display: var(--fui-font-display);
 
   // ── Superfícies ──
   // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em
@@ -36,43 +39,43 @@
   // primeiros tons do app da Manus (nav e canvas); o card de lá (#fafafa)
   // não entrou — o pedido original já tinha fixado cartão/tabela em branco
   // puro, e isso não mudou.
-  --surface: #ffffff;
-  --surface-alt: #f0f0f0;
-  --surface-card: #ffffff;
-  --surface-canvas: #f8f8f7;
+  --surface: var(--fui-bg-1);
+  --surface-alt: var(--fui-bg-3);
+  --surface-card: var(--fui-bg-1);
+  --surface-canvas: var(--fui-bg-canvas);
   // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
   // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
   // branco puro) uma borda derivada de preto ficava clara demais. Mesma
   // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
   // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
-  --stroke: #e5e7eb;
-  --stroke-hover: rgba(0, 0, 0, 0.14);
-  --stroke-subtle: rgba(0, 0, 0, 0.04);
+  --stroke: var(--fui-stroke-2);
+  --stroke-hover: var(--fui-stroke-1);
+  --stroke-subtle: var(--fui-stroke-3);
 
   // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
   // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
   // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
   // o formulário sumir dentro da página.
-  --borda-campo: #7d7d7d;
+  --borda-campo: var(--fui-stroke-1);
 
   // ── Texto ──
   // Fonte: o mesmo material de referência do fundo (app da Manus) —
   // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
   // saem daqui (ver conferência de WCAG no commit).
-  --text-primary: #1a1a1a;
-  --text-secondary: #4d4d4d;
-  --text-muted: #737373;
+  --text-primary: var(--fui-fg-1);
+  --text-secondary: var(--fui-fg-2);
+  --text-muted: var(--fui-fg-3);
   // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
-  --texto-cromo: #333333;
+  --texto-cromo: var(--fui-fg-2);
   // Fundo do item ATIVO da sidebar — cinza neutro sólido, não o tom do
   // accent. Token à parte de `--tom-acento` (que seria o óbvio a reusar)
   // porque esse já pinta uma dúzia de lugares fora da sidebar (tickets,
   // notas) que continuam no tom de accent; só o item ativo do rail troca de
   // leitura. No escuro ele volta a ser `--tom-acento` — a troca pedida foi só
   // para o claro.
-  --sidebar-ativo: #e5e5e5;
+  --sidebar-ativo: var(--fui-subtle-selected);
 
   // ── Identidade ──
   // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
@@ -141,42 +144,42 @@
   // ── Semânticas ──
   // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
   // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.
-  --accent: #0f62fe;
-  --accent-hover: #0043ce;
-  --accent-active: #002d9c;
-  --danger: #b3261e;
-  --ok: #1d7a4c;
-  --away: #8a5d0f;
+  --accent: var(--fui-brand-bg);
+  --accent-hover: var(--fui-brand-bg-hover);
+  --accent-active: var(--fui-brand-bg-pressed);
+  --danger: var(--fui-danger-fg);
+  --ok: var(--fui-success-fg);
+  --away: var(--fui-warning-fg);
 
   // ── Tons (washes de fundo e de borda) ──
   // Derivados por color-mix do próprio token semântico: cada um é a semântica
   // com alfa, então acompanham a troca de tema (e a de paleta) sozinhos —
   // rgba() cru aqui era exatamente o que quebrava no escuro.
-  --tom-acento: color-mix(in srgb, var(--accent) 8%, transparent);
-  --tom-acento-forte: color-mix(in srgb, var(--accent) 16%, transparent);
-  --tom-acento-borda: color-mix(in srgb, var(--accent) 30%, transparent);
-  --tom-ok: color-mix(in srgb, var(--ok) 10%, transparent);
-  --tom-alerta-borda: color-mix(in srgb, var(--away) 28%, transparent);
-  --tom-perigo: color-mix(in srgb, var(--danger) 8%, transparent);
+  --tom-acento: var(--fui-brand-bg-2);
+  --tom-acento-forte: var(--fui-brand-bg-2-hover);
+  --tom-acento-borda: var(--fui-brand-stroke-2);
+  --tom-ok: var(--fui-success-bg);
+  --tom-alerta-borda: var(--fui-warning-stroke);
+  --tom-perigo: var(--fui-danger-bg);
 
   // As duas exceções da família: cremes SÓLIDOS, não o --away diluído. O --away
   // do claro é um âmbar escuro (#8a5d0f) e diluí-lo dá bege acinzentado, não
   // este creme — por isso os dois têm valor próprio por tema (ver a paleta
   // escura abaixo, onde viram wash e param de brilhar).
-  --tom-alerta: #fef3cd; // pílula de SLA em risco
-  --tom-nota: #fffbea; // fundo da nota interna, um degrau mais claro que a pílula
+  --tom-alerta: var(--fui-warning-bg); // pílula de SLA em risco
+  --tom-nota: var(--fui-warning-bg); // fundo da nota interna
 
   // ── Raio ──
   // Um raio só na interface inteira. Quem precisa de círculo de verdade
   // (avatar, ponto de presença) usa 50% direto — é forma, não estilo.
-  --raio: 2px;
+  --raio: var(--fui-radius-medium);
   // Exceção nomeada, e só do CROMO do shell: as abas no estilo de navegador
   // (barra-de-abas.scss) e o painel de conteúdo que flutua sobre o cromo
   // (shell.scss) dependem da curva — a junção côncava entre a aba ativa e o
   // painel É o desenho, e a 2px ela some. Botão, campo, card, modal continuam
   // em `--raio`; nada fora do shell lê estes dois.
-  --raio-aba: 12px;
-  --raio-painel: 16px;
+  --raio-aba: var(--fui-radius-xlarge);
+  --raio-painel: var(--fui-radius-xlarge);
   // Respiro entre o painel e a borda da janela (direita e baixo), o mesmo que
   // faz o painel parecer um cartão apoiado no cromo em vez de colado nele.
   --respiro-painel: 12px;
@@ -184,8 +187,11 @@
   // ── Foco ──
   // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em
   // toda a base e quem usa não deveria ter que lembrar do "0 0 0 2px".
-  --anel-foco: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
-  --anel-foco-alerta: 0 0 0 2px color-mix(in srgb, var(--away) 18%, transparent);
+  // O indicador de foco do Fluent: linha interna clara + externa escura (ou o
+  // inverso no tema escuro). Não depende da cor da marca, então continua
+  // visível sobre o próprio botão primário — que era o buraco do anel antigo.
+  --anel-foco: 0 0 0 1px var(--fui-stroke-focus-1), 0 0 0 3px var(--fui-stroke-focus-2);
+  --anel-foco-alerta: var(--anel-foco);
 
   // ── Elevação e véus ──
   // Sombra é o caso em que derivar do token NÃO serve: no claro ela é preto
@@ -194,9 +200,12 @@
   // é feita por LINHA nesta base, não por sombra.
   --sombra-suave: rgba(0, 0, 0, 0.06);
   --sombra-forte: rgba(0, 0, 0, 0.12);
-  --sombra-flutuante: 0 8px 24px var(--sombra-forte), 0 0 0 1px var(--stroke);
-  --veu: rgba(26, 26, 26, 0.42);
-  --veu-suave: rgba(26, 26, 26, 0.24);
+  // Elevação do Fluent: cartão em shadow2/4, o que flutua em shadow16.
+  --sombra-cartao: var(--fui-shadow-2);
+  --sombra-elevada: var(--fui-shadow-4);
+  --sombra-flutuante: var(--fui-shadow-16);
+  --veu: var(--fui-overlay);
+  --veu-suave: var(--fui-scrim);
 
   color-scheme: light;
   font-family: var(--f-ui);
@@ -221,55 +230,19 @@
 @mixin paleta-escura {
   color-scheme: dark;
 
-  // Superfícies pelos ROLES de escala do Material 3 (m3.material.io/styles/
-  // color/roles), calculados de verdade via @material/material-color-utilities
-  // (DynamicScheme/SchemeTonalSpot, a mesma classe do Material Theme Builder)
-  // a partir do accent da marca (#0f62fe): surface-container-lowest (tom 4) <
-  // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
-  // surface-container (tom 12) — a MESMA ordem relativa de antes
-  // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
-  --surface: #201b16;
-  --surface-alt: #120d09;
-  --surface-card: #241f1a;
-  --surface-canvas: #17130e;
-  // outline-variant (tom 30) / outline (tom 60) / outline-variant discreto (tom 24)
-  --stroke: #50453a;
-  --stroke-hover: #9d8e81;
-  --stroke-subtle: #42372d;
-  // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
-  --borda-campo: #8d8d8d;
+  // Quase tudo já virou escuro sozinho: `--surface`, `--stroke`, `--text-*`,
+  // `--accent` e os tons apontam para `--fui-*`, e o Fluent troca esses
+  // valores no próprio `[data-tema='escuro']` (styles/fluent.css). O que
+  // sobra aqui é o que NÃO é derivado deles.
 
-  // on-surface (tom 90) / on-surface-variant (tom 80) / on-surface-variant
-  // com menos ênfase (tom 65) — mesmos roles do M3 para texto sobre superfície.
-  --text-primary: #ebe0d9;
-  --text-secondary: #cfc5be;
-  --text-muted: #a59c96;
-  // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
-  // o mesmo texto principal (um cinza #333 ali seria ilegível).
-  --texto-cromo: var(--text-primary);
-  // Sem pedido de troca no escuro: mantém o valor de sempre (--tom-acento
-  // recalcula sozinho com o --accent redefinido logo abaixo).
-  --sidebar-ativo: var(--tom-acento);
+  // No escuro o cromo é o fundo mais escuro da tela, e o texto dele volta a
+  // ser o texto principal (um cinza médio ali seria ilegível).
+  --surface-alt: var(--fui-bg-2);
+  --texto-cromo: var(--fui-fg-1);
+  --sidebar-ativo: var(--fui-subtle-selected);
 
-  // O role `primary` do M3 (TonalSpot, tom 80) para a source color #0f62fe —
-  // não é mais uma aproximação manual "clareada": é o HCT real. Mais claro/
-  // pastel que o valor antigo (#78a9ff, tom≈69), e com contraste MAIOR
-  // (9,6–10,9:1 como texto nas três superfícies, contra os 7,4:1 de antes).
-  // hover/active seguem a MESMA paleta tonal do primary (tons 88/70).
-  --accent: #b4c5ff;
-  --accent-hover: #d3dcff;
-  --accent-active: #98a9e4;
-  // role `error` do M3 (tom 80) para #b3261e.
-  --danger: #ffb4ab;
-  // Sem role nativo no M3 para sucesso/atenção — retonados pelo MESMO método
-  // (HCT, tom 80) preservando o hue/chroma reais de #1d7a4c e #8a5d0f.
-  --ok: #81d9a2;
-  --away: #f7bc68;
-
-  // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e
-  // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, retonado
-  // pelo mesmo método M3 (tom 58) até passar 4,5:1 nas duas superfícies
-  // escuras do resolv e nas duas do cvz.
+  // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e branco
+  // em cima segue AA sobre qualquer fundo. Só o TEXTO clareia.
   --identidade-1-texto: #7c81eb;
   --identidade-2-texto: #4597a0;
   --identidade-3-texto: #6191b1;
@@ -277,19 +250,10 @@
   --identidade-5-texto: #808c9f;
   --identidade-6-texto: #d266a5;
 
-  // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
-  // aparece, e a peça flutuante perde a separação do fundo — que é a única
-  // função dela. O véu sobe pelo mesmo motivo.
+  // Sombra preta e muito mais opaca vem do Fluent (--fui-shadow-*); o véu
+  // acompanha.
   --sombra-suave: rgba(0, 0, 0, 0.45);
   --sombra-forte: rgba(0, 0, 0, 0.62);
-  --veu: rgba(0, 0, 0, 0.62);
-  --veu-suave: rgba(0, 0, 0, 0.45);
-
-  // Os dois cremes sólidos do claro viram wash do próprio --away: sólidos aqui
-  // eles brilhariam e o texto por cima sumiria (a pílula escreve em --away, a
-  // nota em --text-primary). 16% deixa --away sobre a pílula em 6,66:1.
-  --tom-alerta: color-mix(in srgb, var(--away) 16%, transparent);
-  --tom-nota: color-mix(in srgb, var(--away) 10%, transparent);
 }
 
 // A escolha explícita mora no atributo carimbado por useTema.ts no <html> e

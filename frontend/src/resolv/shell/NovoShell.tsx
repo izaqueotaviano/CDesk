@@ -6,6 +6,9 @@ import { usePrefs } from '@/stores/prefs'
 import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import '../styles/identidade.scss'
+// As primitivas Fluent 2 (botão, selo, cartão, lista, campo, avatar…) que as
+// telas do console compartilham — ver resolv/styles/fluent.scss.
+import '../styles/fluent.scss'
 import './shell.scss'
 import { BarraDeAbas } from './BarraDeAbas'
 import { BuscaComando } from './BuscaComando'

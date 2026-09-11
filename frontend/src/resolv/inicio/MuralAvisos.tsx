@@ -1,10 +1,19 @@
+import type { FluentIcon } from '@fluentui/react-icons'
+import {
+  CalendarLtr20Regular,
+  Dismiss16Regular,
+  Info20Regular,
+  Warning20Regular,
+  WeatherSunny20Regular,
+} from '@fluentui/react-icons'
 import { useAvisosDoMural, useDispensarAviso, type TipoAviso } from '@/api/avisos'
 
-const ICONE_TIPO: Record<TipoAviso, string> = {
-  info: 'ti ti-info-circle',
-  urgent: 'ti ti-alert-triangle',
-  holiday: 'ti ti-calendar-event',
-  vacation: 'ti ti-beach',
+/** Ícone por tipo de aviso — Fluent UI System Icons. */
+const ICONE_TIPO: Record<TipoAviso, FluentIcon> = {
+  info: Info20Regular,
+  urgent: Warning20Regular,
+  holiday: CalendarLtr20Regular,
+  vacation: WeatherSunny20Regular,
 }
 
 /** Mural de avisos — o que a equipe (admin/supervisor) publicou pra essa
@@ -19,23 +28,34 @@ export function MuralAvisos() {
 
   return (
     <div className="mural-avisos">
-      {avisos.map((a) => (
-        <div key={a.id} className={`mural-avisos__item mural-avisos__item--${a.kind}`}>
-          <i className={ICONE_TIPO[a.kind]} aria-hidden="true" />
-          <div className="mural-avisos__texto">
-            <strong>{a.title}</strong>
-            <p>{a.body}</p>
-          </div>
-          <button
-            type="button"
-            aria-label="Dispensar aviso"
-            disabled={dispensar.isPending}
-            onClick={() => dispensar.mutate(a.id)}
+      {avisos.map((a) => {
+        const Icone = ICONE_TIPO[a.kind]
+        return (
+          // MessageBar do Fluent: ícone de intenção, corpo e dispensar.
+          // `role=status` porque o aviso já está na tela quando ela abre — não
+          // é uma interrupção, e `alert` roubaria o leitor de tela.
+          <div
+            key={a.id}
+            role="status"
+            className={`mural-avisos__item mural-avisos__item--${a.kind}`}
           >
-            <i className="ti ti-x" aria-hidden="true" />
-          </button>
-        </div>
-      ))}
+            <Icone aria-hidden="true" />
+            <div className="mural-avisos__texto">
+              <strong>{a.title}</strong>
+              <p>{a.body}</p>
+            </div>
+            <button
+              type="button"
+              className="fui-btn fui-btn--subtle fui-btn--sm fui-btn--icone"
+              aria-label="Dispensar aviso"
+              disabled={dispensar.isPending}
+              onClick={() => dispensar.mutate(a.id)}
+            >
+              <Dismiss16Regular aria-hidden="true" />
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }

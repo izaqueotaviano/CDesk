@@ -126,36 +126,29 @@
   // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
   // central que ele abre. Um <input> aqui teria dois lugares para digitar a
   // mesma coisa.
+  // Campo de busca do Fluent: moldura clara, linha de baixo mais forte
+  // ("dá pra digitar aqui") e o atalho como dica à direita.
   &__busca {
     display: flex;
     align-items: center;
-    gap: 8px;
-    height: 34px;
-    margin: 12px 12px 4px;
-    padding: 0 8px;
+    gap: var(--fui-space-80);
+    height: var(--fui-height-medium);
+    margin: var(--fui-space-120) var(--fui-space-120) var(--fui-space-40);
+    padding: 0 var(--fui-space-100);
     flex-shrink: 0;
-    border: none;
-    border-radius: var(--raio);
-    background: var(--surface-card);
-    color: var(--text-secondary);
-    font-family: var(--f-ui);
-    font-size: 13px;
+    border: var(--fui-stroke-thin) solid var(--fui-stroke-1);
+    border-bottom-color: var(--fui-stroke-accessible);
+    border-radius: var(--fui-radius-medium);
+    background: var(--fui-bg-1);
+    color: var(--fui-fg-3);
+    font-family: inherit;
+    font-size: var(--fui-fs-300);
     text-align: left;
     cursor: pointer;
+    transition: border-color var(--fui-duration-faster) var(--fui-curve-easy-ease);
 
-    i {
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-    // Sem borda, o hover precisa de outro sinal — mesmo fundo que o item de
-    // navegação usa (var(--stroke)) em vez de escurecer uma borda que não
-    // existe mais.
     &:hover {
-      background: var(--stroke);
-    }
-    &:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
+      border-color: var(--fui-stroke-accessible);
     }
   }
 
@@ -168,14 +161,14 @@
 
   &__busca-atalho {
     flex-shrink: 0;
-    padding: 2px 5px;
-    border: 1px solid var(--stroke);
-    border-radius: var(--raio);
-    background: var(--surface-alt);
-    font-family: var(--f-mono);
-    font-size: 10px;
-    line-height: 1.4;
-    color: var(--text-muted);
+    padding: 1px var(--fui-space-60);
+    border: var(--fui-stroke-thin) solid var(--fui-stroke-2);
+    border-radius: var(--fui-radius-small);
+    background: var(--fui-bg-3);
+    font-family: var(--fui-font-mono);
+    font-size: var(--fui-fs-100);
+    line-height: var(--fui-lh-100);
+    color: var(--fui-fg-3);
   }
 
   // ── Navegação ─────────────────────────────────────────────────────────────
@@ -193,65 +186,73 @@
     overflow-x: hidden;
   }
 
+  // NavItem do Fluent: altura de controle, raio médio, fundo só na interação
+  // e o indicador de seleção como barra vertical curta na borda esquerda.
   &__item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--fui-space-120);
     width: 100%;
-    min-height: 36px;
-    padding: 0 10px;
+    min-height: var(--fui-height-medium);
+    padding: 0 var(--fui-space-100);
     flex-shrink: 0;
     border: none;
-    border-radius: var(--raio);
+    border-radius: var(--fui-radius-medium);
     background: transparent;
-    color: var(--texto-cromo);
-    font-family: var(--f-ui);
-    font-size: 13px;
-    font-weight: 500;
+    color: var(--fui-fg-2);
+    font-family: inherit;
+    font-size: var(--fui-fs-300);
+    line-height: var(--fui-lh-300);
+    font-weight: var(--fui-weight-regular);
     text-align: left;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition:
+      background-color var(--fui-duration-faster) var(--fui-curve-easy-ease),
+      color var(--fui-duration-faster) var(--fui-curve-easy-ease);
 
     &:hover {
-      background: var(--stroke);
-      color: var(--text-primary);
+      background: var(--fui-subtle-hover);
+      color: var(--fui-fg-1);
+    }
+    &:active {
+      background: var(--fui-subtle-pressed);
     }
     // Ativo: fundo tingido da cor de ação + a barrinha vertical na borda
     // esquerda (a marca de "você está aqui" das barras laterais de navegador
     // e editor). A barrinha fica FORA do padding da lista, encostada na
     // borda do rail, por isso o `left` negativo.
+    // Selecionado: fundo neutro selecionado + texto forte + a barra da marca.
+    // O peso e a barra são o segundo e o terceiro sinal — o item ativo não
+    // fica marcado só pela cor.
     &--ativo {
-      background: var(--sidebar-ativo);
-      color: var(--text-primary);
-      font-weight: 600;
+      background: var(--fui-subtle-selected);
+      color: var(--fui-fg-1);
+      font-weight: var(--fui-weight-semibold);
 
       &::before {
         content: '';
         position: absolute;
-        left: -12px;
+        left: calc(var(--fui-space-100) * -1);
         top: 50%;
         transform: translateY(-50%);
-        width: 3px;
-        height: 20px;
-        border-radius: 0 3px 3px 0;
-        background: var(--accent);
+        width: var(--fui-stroke-thicker);
+        height: 16px;
+        border-radius: var(--fui-radius-circular);
+        background: var(--fui-brand-bg);
       }
+      .sidebar-rail__icone svg,
       .sidebar-rail__icone i {
-        color: var(--accent);
+        color: var(--fui-brand-fg-1);
       }
     }
     &--inerte {
-      color: var(--text-muted);
+      color: var(--fui-fg-disabled);
       cursor: default;
       &:hover {
         background: transparent;
-        color: var(--text-muted);
+        color: var(--fui-fg-disabled);
       }
-    }
-    &:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: -2px;
     }
   }
 
@@ -267,14 +268,16 @@
     align-items: center;
     justify-content: center;
 
+    svg,
     i {
       font-size: 18px;
       line-height: 1;
-      color: var(--text-secondary);
+      color: var(--fui-fg-3);
     }
   }
+  &__item:hover &__icone svg,
   &__item:hover &__icone i {
-    color: var(--text-primary);
+    color: var(--fui-fg-1);
   }
 
   &__rotulo {
@@ -304,12 +307,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--raio);
-    background: var(--accent);
-    color: #ffffff;
-    font-family: var(--f-ui);
-    font-size: 9px;
-    font-weight: 700;
+    border-radius: var(--fui-radius-circular);
+    background: var(--fui-brand-bg);
+    color: var(--fui-fg-on-brand);
+    font-family: inherit;
+    font-size: var(--fui-fs-100);
+    font-weight: var(--fui-weight-semibold);
     line-height: 1;
   }
 

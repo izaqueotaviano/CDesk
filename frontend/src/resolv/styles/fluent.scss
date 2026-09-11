@@ -1,0 +1,575 @@
+// ============================================================================
+// Fluent 2 — as primitivas do console, em classe.
+//
+// Uma implementação de cada peça, usada pelas quatro telas (Início, lista de
+// tickets, ticket e chat) em vez de cada uma desenhar o próprio botão. Os
+// valores saem TODOS de `--fui-*` (styles/fluent.css); não há hex, raio,
+// sombra nem passo de tipografia escrito aqui.
+//
+// Por que classe e não componente React: as telas do console são SCSS/BEM, e
+// trocar o marcador de cada botão por um componente novo mexeria em JSX,
+// eventos e testes sem necessidade — o pedido é de aparência. Onde já existe
+// componente (cvz/components), ele continua valendo; aqui é o vocabulário do
+// console.
+//
+// Convenção de nome: `.fui-<peça>` + modificadores `--<variante>`, como no
+// Fluent (appearance="primary|secondary|subtle|transparent").
+// ============================================================================
+
+// ---------------------------------------------------------------------------
+// Tipografia — a rampa do Fluent, por nome do design system.
+// ---------------------------------------------------------------------------
+.fui-caption1 {
+  font-size: var(--fui-fs-200);
+  line-height: var(--fui-lh-200);
+  font-weight: var(--fui-weight-regular);
+}
+.fui-caption1-strong {
+  font-size: var(--fui-fs-200);
+  line-height: var(--fui-lh-200);
+  font-weight: var(--fui-weight-semibold);
+}
+.fui-body1 {
+  font-size: var(--fui-fs-300);
+  line-height: var(--fui-lh-300);
+  font-weight: var(--fui-weight-regular);
+}
+.fui-body1-strong {
+  font-size: var(--fui-fs-300);
+  line-height: var(--fui-lh-300);
+  font-weight: var(--fui-weight-semibold);
+}
+.fui-subtitle2 {
+  font-size: var(--fui-fs-400);
+  line-height: var(--fui-lh-400);
+  font-weight: var(--fui-weight-semibold);
+}
+.fui-subtitle1 {
+  font-size: var(--fui-fs-500);
+  line-height: var(--fui-lh-500);
+  font-weight: var(--fui-weight-semibold);
+}
+.fui-title3 {
+  font-family: var(--fui-font-display);
+  font-size: var(--fui-fs-600);
+  line-height: var(--fui-lh-600);
+  font-weight: var(--fui-weight-semibold);
+}
+.fui-title2 {
+  font-family: var(--fui-font-display);
+  font-size: var(--fui-fs-700);
+  line-height: var(--fui-lh-700);
+  font-weight: var(--fui-weight-semibold);
+}
+
+// ---------------------------------------------------------------------------
+// Botão — as quatro aparências do Fluent.
+//
+//   primary      a ação principal da tela (uma por tela)
+//   secondary    ação de igual peso, sem ser A ação — o padrão
+//   subtle       ação de apoio: sem linha, fundo só na interação
+//   transparent  ação terciária: nem fundo na interação, só cor
+//
+// Tamanhos: small 24px, medium 32px (padrão), large 40px.
+// ---------------------------------------------------------------------------
+.fui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--fui-space-80);
+  height: var(--fui-height-medium);
+  padding: 0 var(--fui-space-120);
+  border: var(--fui-stroke-thin) solid var(--fui-stroke-1);
+  border-radius: var(--fui-radius-medium);
+  background: var(--fui-bg-1);
+  color: var(--fui-fg-1);
+  font-family: inherit;
+  font-size: var(--fui-fs-300);
+  line-height: var(--fui-lh-300);
+  font-weight: var(--fui-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--fui-duration-faster) var(--fui-curve-easy-ease),
+    border-color var(--fui-duration-faster) var(--fui-curve-easy-ease),
+    color var(--fui-duration-faster) var(--fui-curve-easy-ease);
+
+  // O ícone do Fluent vem em 16/20/24; num controle de 32px o par é o de 16.
+  svg,
+  .fui-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  &:hover {
+    background: var(--fui-bg-1-hover);
+    border-color: var(--fui-stroke-1);
+  }
+  &:active {
+    background: var(--fui-bg-1-pressed);
+  }
+  &[aria-pressed='true'],
+  &[aria-expanded='true'],
+  &[data-selecionado='true'] {
+    background: var(--fui-subtle-selected);
+    color: var(--fui-brand-fg-1);
+  }
+  &:disabled,
+  &[aria-disabled='true'] {
+    background: var(--fui-bg-disabled);
+    border-color: var(--fui-stroke-disabled);
+    color: var(--fui-fg-disabled);
+    cursor: not-allowed;
+  }
+
+  // --- primary -------------------------------------------------------------
+  &--primary {
+    background: var(--fui-brand-bg);
+    border-color: transparent;
+    color: var(--fui-fg-on-brand);
+
+    &:hover {
+      background: var(--fui-brand-bg-hover);
+      border-color: transparent;
+    }
+    &:active {
+      background: var(--fui-brand-bg-pressed);
+    }
+    &:disabled,
+    &[aria-disabled='true'] {
+      background: var(--fui-bg-disabled);
+      color: var(--fui-fg-disabled);
+    }
+  }
+
+  // --- subtle --------------------------------------------------------------
+  &--subtle {
+    background: transparent;
+    border-color: transparent;
+    color: var(--fui-fg-2);
+
+    &:hover {
+      background: var(--fui-subtle-hover);
+      color: var(--fui-fg-1);
+    }
+    &:active {
+      background: var(--fui-subtle-pressed);
+    }
+    &:disabled,
+    &[aria-disabled='true'] {
+      background: transparent;
+      color: var(--fui-fg-disabled);
+    }
+  }
+
+  // --- transparent ---------------------------------------------------------
+  &--transparent {
+    background: transparent;
+    border-color: transparent;
+    color: var(--fui-fg-2);
+    padding: 0 var(--fui-space-40);
+
+    &:hover {
+      background: transparent;
+      color: var(--fui-brand-fg-1);
+    }
+    &:active {
+      color: var(--fui-brand-bg-pressed);
+    }
+  }
+
+  // --- destrutivo (usa a semântica, não a marca) ---------------------------
+  &--danger {
+    color: var(--fui-danger-fg);
+
+    &:hover {
+      background: var(--fui-danger-bg);
+      border-color: var(--fui-danger-stroke);
+    }
+  }
+
+  // --- tamanhos ------------------------------------------------------------
+  &--sm {
+    height: var(--fui-height-small);
+    padding: 0 var(--fui-space-80);
+    font-size: var(--fui-fs-200);
+    line-height: var(--fui-lh-200);
+
+    svg,
+    .fui-icon {
+      width: 12px;
+      height: 12px;
+    }
+  }
+  &--lg {
+    height: var(--fui-height-large);
+    padding: 0 var(--fui-space-200);
+    font-size: var(--fui-fs-400);
+    line-height: var(--fui-lh-400);
+
+    svg,
+    .fui-icon {
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  // --- só ícone ------------------------------------------------------------
+  &--icone {
+    width: var(--fui-height-medium);
+    padding: 0;
+
+    &.fui-btn--sm {
+      width: var(--fui-height-small);
+    }
+    &.fui-btn--lg {
+      width: var(--fui-height-large);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Badge — o selo do Fluent. `filled` para estado forte, `tint` (padrão) para
+// leitura calma numa lista, `outline` quando o fundo já é colorido.
+// ---------------------------------------------------------------------------
+.fui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fui-space-40);
+  height: 20px;
+  padding: 0 var(--fui-space-80);
+  border: var(--fui-stroke-thin) solid transparent;
+  border-radius: var(--fui-radius-circular);
+  font-size: var(--fui-fs-200);
+  line-height: var(--fui-lh-200);
+  font-weight: var(--fui-weight-semibold);
+  white-space: nowrap;
+
+  // tom neutro (padrão)
+  background: var(--fui-bg-4);
+  border-color: var(--fui-stroke-2);
+  color: var(--fui-fg-2);
+
+  // O ponto existe para o selo não depender SÓ da cor (WCAG 1.4.1).
+  &__ponto {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--fui-radius-circular);
+    background: currentColor;
+    flex-shrink: 0;
+  }
+
+  // Aparência "tint" do Fluent: fundo tênue MAIS a linha da própria família.
+  // Sem a linha, sobre uma página branca o selo lê como texto colorido solto
+  // em vez de selo — que é o que o fundo tênue sozinho faz.
+  &--brand {
+    background: var(--fui-brand-bg-2);
+    border-color: var(--fui-brand-stroke-2);
+    color: var(--fui-brand-fg-1);
+  }
+  &--success {
+    background: var(--fui-success-bg);
+    border-color: var(--fui-success-stroke);
+    color: var(--fui-success-fg);
+  }
+  &--warning {
+    background: var(--fui-warning-bg);
+    border-color: var(--fui-warning-stroke);
+    color: var(--fui-warning-fg);
+  }
+  &--danger {
+    background: var(--fui-danger-bg);
+    border-color: var(--fui-danger-stroke);
+    color: var(--fui-danger-fg);
+  }
+
+  &--outline {
+    background: transparent;
+    border-color: currentColor;
+  }
+  &--filled {
+    border-color: transparent;
+    color: var(--fui-fg-on-brand);
+
+    &.fui-badge--brand {
+      background: var(--fui-brand-bg);
+    }
+    &.fui-badge--success {
+      background: var(--fui-success-bg-static);
+    }
+    &.fui-badge--warning {
+      background: var(--fui-warning-bg-static);
+    }
+    &.fui-badge--danger {
+      background: var(--fui-danger-bg-static);
+    }
+  }
+  &--sm {
+    height: 16px;
+    padding: 0 var(--fui-space-60);
+    font-size: var(--fui-fs-100);
+    line-height: var(--fui-lh-100);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Card / superfície — o Fluent separa por sombra discreta + linha, não por
+// linha sozinha. `--interativo` acrescenta os estados de uma superfície que
+// também é um alvo de clique.
+// ---------------------------------------------------------------------------
+.fui-card {
+  background: var(--fui-bg-1);
+  border: var(--fui-stroke-thin) solid var(--fui-stroke-2);
+  border-radius: var(--fui-radius-large);
+  box-shadow: var(--fui-shadow-2);
+
+  &--plano {
+    box-shadow: none;
+  }
+  &--interativo {
+    cursor: pointer;
+    transition:
+      box-shadow var(--fui-duration-faster) var(--fui-curve-easy-ease),
+      background-color var(--fui-duration-faster) var(--fui-curve-easy-ease);
+
+    &:hover {
+      background: var(--fui-bg-1-hover);
+      box-shadow: var(--fui-shadow-4);
+    }
+    &:active {
+      background: var(--fui-bg-1-pressed);
+      box-shadow: var(--fui-shadow-2);
+    }
+  }
+
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    gap: var(--fui-space-80);
+    padding: var(--fui-space-120) var(--fui-space-160);
+    border-bottom: var(--fui-stroke-thin) solid var(--fui-stroke-3);
+  }
+  &__titulo {
+    flex: 1;
+    min-width: 0;
+    font-size: var(--fui-fs-400);
+    line-height: var(--fui-lh-400);
+    font-weight: var(--fui-weight-semibold);
+    color: var(--fui-fg-1);
+  }
+  &__corpo {
+    padding: var(--fui-space-80) 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Lista de itens dentro de uma superfície (o "List" do Fluent): alvo de linha
+// inteira, com os quatro estados.
+// ---------------------------------------------------------------------------
+.fui-lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: var(--fui-space-120);
+    width: 100%;
+    padding: var(--fui-space-80) var(--fui-space-160);
+    border: 0;
+    background: transparent;
+    text-align: left;
+    color: inherit;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background-color var(--fui-duration-faster) var(--fui-curve-easy-ease);
+
+    &:hover {
+      background: var(--fui-subtle-hover);
+    }
+    &:active {
+      background: var(--fui-subtle-pressed);
+    }
+    &[aria-current='true'],
+    &[data-selecionado='true'] {
+      background: var(--fui-subtle-selected);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Divisor
+// ---------------------------------------------------------------------------
+.fui-divider {
+  height: var(--fui-stroke-thin);
+  background: var(--fui-stroke-2);
+  border: 0;
+  margin: 0;
+
+  &--vertical {
+    width: var(--fui-stroke-thin);
+    height: auto;
+    align-self: stretch;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Avatar (iniciais) com o ponto de presença do Fluent.
+// ---------------------------------------------------------------------------
+.fui-avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--fui-radius-circular);
+  background: var(--identidade, var(--fui-brand-bg-2));
+  color: var(--texto-sobre-identidade);
+  font-size: var(--fui-fs-200);
+  line-height: 1;
+  font-weight: var(--fui-weight-semibold);
+  flex-shrink: 0;
+  user-select: none;
+
+  &--sm {
+    width: 24px;
+    height: 24px;
+    font-size: var(--fui-fs-100);
+  }
+  &--lg {
+    width: 40px;
+    height: 40px;
+    font-size: var(--fui-fs-300);
+  }
+
+  &__presenca {
+    position: absolute;
+    right: -1px;
+    bottom: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: var(--fui-radius-circular);
+    border: 2px solid var(--fui-bg-1);
+
+    &--available {
+      background: var(--presenca-disponivel);
+    }
+    &--away {
+      background: var(--presenca-ausente);
+    }
+    &--offline {
+      background: var(--presenca-offline);
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Barra de ferramentas (Toolbar do Fluent): a faixa de ações acima de uma
+// área de trabalho — busca, filtros, ordenação, visualização.
+// ---------------------------------------------------------------------------
+.fui-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--fui-space-80);
+  flex-wrap: wrap;
+
+  &__grupo {
+    display: flex;
+    align-items: center;
+    gap: var(--fui-space-40);
+  }
+  &__espaco {
+    flex: 1;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Campo de entrada e busca.
+// ---------------------------------------------------------------------------
+.fui-input {
+  display: flex;
+  align-items: center;
+  gap: var(--fui-space-80);
+  height: var(--fui-height-medium);
+  padding: 0 var(--fui-space-120);
+  border: var(--fui-stroke-thin) solid var(--fui-stroke-1);
+  // A linha inferior mais forte é a assinatura do campo no Fluent: ela diz
+  // "dá para digitar aqui" sem precisar de uma moldura pesada.
+  border-bottom-color: var(--fui-stroke-accessible);
+  border-radius: var(--fui-radius-medium);
+  background: var(--fui-bg-1);
+  color: var(--fui-fg-1);
+  font-size: var(--fui-fs-300);
+
+  &:hover {
+    border-color: var(--fui-stroke-accessible);
+  }
+  &:focus-within {
+    border-color: var(--fui-brand-stroke-1);
+    border-bottom-width: var(--fui-stroke-thick);
+    padding-bottom: 1px;
+  }
+
+  input,
+  select {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    outline: none;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: var(--fui-fg-3);
+    flex-shrink: 0;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Estado vazio e esqueleto de carregamento — os dois estados que toda lista
+// desta base precisa mostrar.
+// ---------------------------------------------------------------------------
+.fui-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--fui-space-40);
+  padding: var(--fui-space-240) var(--fui-space-160);
+  text-align: center;
+  color: var(--fui-fg-3);
+  font-size: var(--fui-fs-300);
+  line-height: var(--fui-lh-300);
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: var(--fui-fg-4);
+  }
+}
+
+.fui-skeleton {
+  border-radius: var(--fui-radius-medium);
+  background: linear-gradient(
+    90deg,
+    var(--fui-bg-3) 25%,
+    var(--fui-bg-5) 37%,
+    var(--fui-bg-3) 63%
+  );
+  background-size: 400% 100%;
+  animation: fui-shimmer 1.4s ease infinite;
+}
+
+@keyframes fui-shimmer {
+  from {
+    background-position: 100% 50%;
+  }
+  to {
+    background-position: 0 50%;
+  }
+}

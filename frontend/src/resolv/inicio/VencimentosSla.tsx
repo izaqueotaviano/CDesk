@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
-import { corEstadoSla, textoEstadoSla } from '../tickets/format'
+import { Clock20Regular } from '@fluentui/react-icons'
+import { corEstadoSla, textoEstadoSla, tomSla } from '../tickets/format'
 import { useTicketsList } from '../tickets/useTicketsList'
 
 const LIMITE = 6
@@ -23,28 +24,40 @@ export function VencimentosSla() {
   const linhas = [...(estourados.data?.results ?? []), ...(emRisco.data?.results ?? [])].slice(0, LIMITE)
 
   return (
-    <div className="inicio-lista">
+    <section className="inicio-lista fui-card" aria-labelledby="inicio-vencendo">
       <header className="inicio-lista__cabecalho">
-        <h2>Vencendo na equipe</h2>
-        {!carregando && <span className="inicio-lista__contador">{total}</span>}
+        <Clock20Regular aria-hidden="true" />
+        <h2 id="inicio-vencendo">Vencendo na equipe</h2>
+        {!carregando && (
+          <span className={'fui-badge' + (total > 0 ? ' fui-badge--danger' : '')}>{total}</span>
+        )}
       </header>
       {carregando ? (
         <p className="inicio-lista__vazio">Carregando…</p>
       ) : linhas.length === 0 ? (
         <p className="inicio-lista__vazio">Nada vencendo agora — bom trabalho.</p>
       ) : (
-        <ul className="inicio-lista__itens">
+        <ul className="fui-lista">
           {linhas.map((t) => (
             <li key={t.id}>
-              <button type="button" className="inicio-lista__item" onClick={() => navigate(`/chamados/${t.id}`)}>
-                <span className="inicio-lista__barra" style={{ background: corEstadoSla(t.sla.resolution) }} aria-hidden="true" />
+              <button
+                type="button"
+                className="fui-lista__item inicio-lista__item"
+                onClick={() => navigate(`/chamados/${t.id}`)}
+              >
+                <span
+                  className="inicio-lista__barra"
+                  style={{ background: corEstadoSla(t.sla.resolution) }}
+                  aria-hidden="true"
+                />
                 <span className="inicio-lista__texto">
                   <span className="inicio-lista__assunto">{t.subject}</span>
                   <span className="inicio-lista__meta">
                     {t.reference} · {t.assignee_name ?? 'Sem responsável'}
                   </span>
                 </span>
-                <span className="inicio-lista__sla" style={{ color: corEstadoSla(t.sla.resolution) }}>
+                <span className={`fui-badge fui-badge--${tomSla(t.sla.resolution)}`}>
+                  <span className="fui-badge__ponto" aria-hidden="true" />
                   {textoEstadoSla(t.sla.resolution)}
                 </span>
               </button>
@@ -52,6 +65,6 @@ export function VencimentosSla() {
           ))}
         </ul>
       )}
-    </div>
+    </section>
   )
 }

@@ -77,27 +77,34 @@
      Inter na interface (a mesma pilha do console); JetBrains Mono só em dado
      técnico; a serifa é de UM lugar só — a saudação da Início, como no
      console (resolv/inicio/inicio.scss). */
-  --f-ui: "Inter", -apple-system, system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  --f-display: "Libre Baskerville", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --f-ui: var(--fui-font-base);
+  --f-mono: var(--fui-font-mono);
+  --f-display: var(--fui-font-display);
 
-  --fs-micro:     9.75px;
-  --fs-legenda:   11px;
-  --fs-pequeno:   12.5px;
-  --fs-corpo:     14px;
-  --fs-corpo-lg:  15.75px;
-  --fs-titulo-sm: 17.75px;
-  --fs-titulo:    20px;
-  --fs-titulo-lg: 22.5px;
-  --fs-display:   25.25px;
+  /* A rampa é a do Fluent (fluent.css): 10/12/14/16/20/24/28. Os NOMES são os
+     de sempre — `text-corpo`, `text-titulo`… continuam valendo em ~50
+     arquivos —, só o passo mudou. A escala do Fluent é inteira e com
+     entrelinha fixa por passo, o que alinha texto a controle na grade de 4px;
+     a anterior era fracionária (15,75 / 17,75 / 22,5) e nunca alinhava. */
+  --fs-micro:     var(--fui-fs-100);
+  --fs-legenda:   var(--fui-fs-200);
+  --fs-pequeno:   var(--fui-fs-200);
+  --fs-corpo:     var(--fui-fs-300);
+  --fs-corpo-lg:  var(--fui-fs-400);
+  --fs-titulo-sm: var(--fui-fs-400);
+  --fs-titulo:    var(--fui-fs-500);
+  --fs-titulo-lg: var(--fui-fs-600);
+  --fs-display:   var(--fui-fs-700);
 
   --lh-nenhuma: 1;
   --lh-justa:   1.25;
-  --lh-normal:  1.45;
+  --lh-normal:  1.43;  /* 20/14: a entrelinha de corpo do Fluent */
   --lh-solta:   1.6;
 
-  --ls-titulo:  -0.015em;
-  --ls-display: -0.03em;
+  /* O Fluent não aperta o tracking dos títulos: a Segoe UI Variable já traz
+     o ajuste ótico por tamanho. */
+  --ls-titulo:  0em;
+  --ls-display: 0em;
   --ls-nenhum:  0em;
   --ls-rotulo:  0.05em;
 
@@ -122,8 +129,12 @@
      `--r-total`: é forma, não estilo. `--r-painel` é a exceção nomeada e só
      do shell: o painel de conteúdo apoiado sobre o cromo, igual ao console
      (`--raio-painel`). */
-  --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px; --r-total: 999px;
-  --r-painel: 16px;
+  --r-sm: var(--fui-radius-small);
+  --r-md: var(--fui-radius-medium);   /* controles: botão, campo, selo */
+  --r-lg: var(--fui-radius-large);    /* superfícies: cartão, painel, menu */
+  --r-xl: var(--fui-radius-xlarge);   /* modal, popover grande */
+  --r-total: var(--fui-radius-circular);
+  --r-painel: var(--fui-radius-xlarge);
   --respiro-painel: 12px;
   --borda-fina: 1px;
 
@@ -132,8 +143,8 @@
   --icone-traco: 1.75px;
 
   /* ---------- movimento ---------- */
-  --dur: 150ms;
-  --ease: cubic-bezier(.2, 0, .38, .9);
+  --dur: var(--fui-duration-faster);
+  --ease: var(--fui-curve-easy-ease);
 
   /* ---------- camada ---------- */
   --z-suspenso: 100; --z-fixo: 200; --z-cortina: 300;
@@ -142,8 +153,8 @@
   /* ---------- layout ---------- */
   --sidebar-larga: 240px;
   --sidebar-recolhida: 64px;
-  --alvo-minimo: 24px;
-  --altura-controle: 34px;
+  --alvo-minimo: var(--fui-height-small);
+  --altura-controle: var(--fui-height-medium);  /* 32px — "medium" do Fluent */
 }
 
 /* ============================================================
@@ -151,11 +162,11 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  --canvas:             var(--neutro-50);   /* fundo geral atrás do conteúdo */
-  --superficie:         var(--neutro-0);    /* cartão, campo, modal */
-  --superficie-sutil:   var(--neutro-50);
-  --superficie-elevada: var(--neutro-0);
-  --navegacao:          var(--neutro-100);  /* cromo: sidebar, barra, hover, caixa de ícone */
+  --canvas:             var(--fui-bg-canvas);  /* fundo geral atrás do conteúdo */
+  --superficie:         var(--fui-bg-1);       /* cartão, campo, modal */
+  --superficie-sutil:   var(--fui-bg-2);
+  --superficie-elevada: var(--fui-bg-1);
+  --navegacao:          var(--fui-bg-3);       /* cromo: sidebar, barra, hover */
 
   /* Duas famílias de linha, de propósito (como no console):
      --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
@@ -164,34 +175,36 @@
                     precisa se anunciar como editável; com a linha estrutural
                     o formulário sumia dentro da página
      --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      #e5e7eb;  /* hex fixo: sobre o canvas (#f8f8f7) a linha derivada de preto ficava clara demais */
-  --borda-controle: rgba(0, 0, 0, .14);
-  --borda-campo:    var(--neutro-600);
+  --divisoria:      var(--fui-stroke-2);
+  --borda-controle: var(--fui-stroke-1);
+  --borda-campo:    var(--fui-stroke-1);
 
-  --tinta:            var(--neutro-900);
-  --tinta-secundaria: var(--neutro-700);
-  --tinta-terciaria:  #737373;
-  --texto-cromo:      #333333;  /* texto e ícone sobre o cromo */
+  --tinta:            var(--fui-fg-1);
+  --tinta-secundaria: var(--fui-fg-2);
+  --tinta-terciaria:  var(--fui-fg-3);
+  --texto-cromo:      var(--fui-fg-2);  /* texto e ícone sobre o cromo */
 
-  --acento:       var(--acento-escuro);
-  --acento-hover: var(--acento-escuro-hover);
-  --acento-tinta: var(--acento-escuro);
-  --acento-sobre: var(--neutro-0);
-  --acento-suave: rgba(15, 98, 254, .08);
+  --acento:       var(--fui-brand-bg);
+  --acento-hover: var(--fui-brand-bg-hover);
+  --acento-tinta: var(--fui-brand-fg-1);
+  --acento-sobre: var(--fui-fg-on-brand);
+  --acento-suave: var(--fui-brand-bg-2);
 
-  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .08);
-  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .10);
-  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .10);
+  --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
+  --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
+  --ok:     var(--fui-success-fg);  --ok-suave:     var(--fui-success-bg);
 
-  --hover: rgba(0, 0, 0, .06);
-  --ativo: rgba(0, 0, 0, .10);
+  --hover: var(--fui-subtle-hover);
+  --ativo: var(--fui-subtle-pressed);
 
   /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
      do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
      sombra, e é a mesma do console (--sombra-flutuante). */
-  --elevacao-1: none;
-  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .06);
-  --sobreposicao: rgba(26, 26, 26, .42);  /* véu atrás do modal */
+  /* Elevação volta a existir: no Fluent a superfície se separa do fundo por
+     uma sombra discreta (shadow2/4) E pela linha. O que flutua usa shadow16. */
+  --elevacao-1: var(--fui-shadow-2);
+  --elevacao-3: var(--fui-shadow-16);
+  --sobreposicao: var(--fui-overlay);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
@@ -206,38 +219,39 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  --canvas:             var(--neutro-975);
-  --superficie:         var(--neutro-875);
-  --superficie-sutil:   var(--neutro-975);
-  --superficie-elevada: var(--neutro-850);
-  --navegacao:          var(--neutro-950);
+  /* Os `--fui-*` já viram escuros sozinhos ([data-tema] em fluent.css); o que
+     sobra aqui é só o que NÃO é derivado deles. */
+  --canvas:             var(--fui-bg-canvas);
+  --superficie:         var(--fui-bg-1);
+  --superficie-sutil:   var(--fui-bg-2);
+  --superficie-elevada: var(--fui-bg-1);
+  --navegacao:          var(--fui-bg-2);
 
-  --divisoria:      var(--neutro-800);
-  --borda-controle: #9d8e81;
-  /* No escuro o contraste de campo se ganha CLAREANDO a linha. */
-  --borda-campo:    var(--neutro-500);
+  --divisoria:      var(--fui-stroke-2);
+  --borda-controle: var(--fui-stroke-1);
+  --borda-campo:    var(--fui-stroke-1);
 
-  --tinta:            #ebe0d9;
-  --tinta-secundaria: #cfc5be;
-  --tinta-terciaria:  #a59c96;
-  --texto-cromo:      #ebe0d9;
+  --tinta:            var(--fui-fg-1);
+  --tinta-secundaria: var(--fui-fg-2);
+  --tinta-terciaria:  var(--fui-fg-3);
+  --texto-cromo:      var(--fui-fg-2);
 
-  --acento:       var(--acento-claro);
-  --acento-hover: var(--acento-claro-hover);
-  --acento-tinta: var(--acento-claro);
-  --acento-sobre: var(--acento-tinta-sobre-claro);
-  --acento-suave: rgba(180, 197, 255, .14);
+  --acento:       var(--fui-brand-bg);
+  --acento-hover: var(--fui-brand-bg-hover);
+  --acento-tinta: var(--fui-brand-fg-1);
+  --acento-sobre: var(--fui-fg-on-brand);
+  --acento-suave: var(--fui-brand-bg-2);
 
-  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
-  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
-  --ok:     var(--ok-escuro);      --ok-suave:     rgba(129, 217, 162, .14);
+  --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
+  --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
+  --ok:     var(--fui-success-fg);  --ok-suave:     var(--fui-success-bg);
 
-  --hover: rgba(235, 224, 217, .06);
-  --ativo: rgba(235, 224, 217, .10);
+  --hover: var(--fui-subtle-hover);
+  --ativo: var(--fui-subtle-pressed);
 
-  --elevacao-1: none;
-  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
-  --sobreposicao: rgba(0, 0, 0, .62);
+  --elevacao-1: var(--fui-shadow-2);
+  --elevacao-3: var(--fui-shadow-16);
+  --sobreposicao: var(--fui-overlay);
   --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
 
   --esquema: dark;
@@ -247,39 +261,31 @@
 /* Respeita a preferência do sistema quando ninguém fixou o tema. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
-    --canvas: var(--neutro-975);          --superficie: var(--neutro-875);
-    --superficie-sutil: var(--neutro-975); --superficie-elevada: var(--neutro-850);
-    --navegacao: var(--neutro-950);
-    --divisoria: var(--neutro-800);        --borda-controle: #9d8e81;
-    --borda-campo: var(--neutro-500);
-    --tinta: #ebe0d9;                      --tinta-secundaria: #cfc5be;
-    --tinta-terciaria: #a59c96;            --texto-cromo: #ebe0d9;
-    --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
-    --acento-tinta: var(--acento-claro);
-    --acento-sobre: var(--acento-tinta-sobre-claro);
-    --acento-suave: rgba(180, 197, 255, .14);
-    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
-    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
-    --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);
-    --hover: rgba(235, 224, 217, .06);    --ativo: rgba(235, 224, 217, .10);
-    --elevacao-1: none;
-    --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
-    --sobreposicao: rgba(0, 0, 0, .62);
-    --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
+    --canvas: var(--fui-bg-canvas);        --superficie: var(--fui-bg-1);
+    --superficie-sutil: var(--fui-bg-2);   --superficie-elevada: var(--fui-bg-1);
+    --navegacao: var(--fui-bg-2);
+    --divisoria: var(--fui-stroke-2);      --borda-controle: var(--fui-stroke-1);
+    --borda-campo: var(--fui-stroke-1);
+    --tinta: var(--fui-fg-1);              --tinta-secundaria: var(--fui-fg-2);
+    --tinta-terciaria: var(--fui-fg-3);    --texto-cromo: var(--fui-fg-2);
+    --acento: var(--fui-brand-bg);         --acento-hover: var(--fui-brand-bg-hover);
+    --acento-tinta: var(--fui-brand-fg-1); --acento-sobre: var(--fui-fg-on-brand);
+    --acento-suave: var(--fui-brand-bg-2);
+    --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
+    --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
+    --ok: var(--fui-success-fg);      --ok-suave: var(--fui-success-bg);
+    --hover: var(--fui-subtle-hover); --ativo: var(--fui-subtle-pressed);
+    --elevacao-1: var(--fui-shadow-2);
+    --elevacao-3: var(--fui-shadow-16);
+    --sobreposicao: var(--fui-overlay);
+    --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
     --esquema: dark;
     color-scheme: dark;
   }
 }
 
-/* Foco visível — regra ÚNICA, a mesma do console (mixin focus-ring do cvz:
-   contorno sólido de 2px com folga). Nenhum componente do portal a
-   sobrescreve: o `ring` com alfa a 30–40% que as primitivas desenhavam dava
-   ~1,9:1 sobre branco e reprovava WCAG 1.4.11. */
-:focus-visible {
-  outline: 2px solid var(--acento);
-  outline-offset: 2px;
-  border-radius: var(--r-sm);
-}
+/* Foco visível: a regra única mora em fluent.css (o indicador de duas cores
+   do Fluent). Nada aqui a sobrescreve. */
 
 /* WCAG 2.3.3 / boa prática. */
 @media (prefers-reduced-motion: reduce) {

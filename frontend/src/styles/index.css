@@ -1,6 +1,10 @@
 /* tokens.css primeiro — regra do próprio design system ("Importe antes de
    qualquer outro estilo"; PROMPT-IMPLEMENTACAO.md). */
 @import './tokens.css';
+/* fluent.css DEPOIS de tokens.css: é ele quem define os valores de aparência
+   (cor, forma, tipografia, elevação, foco) que os nomes de tokens.css passam
+   a apontar. Ver o cabeçalho de fluent.css. */
+@import './fluent.css';
 
 @tailwind base;
 @tailwind components;
