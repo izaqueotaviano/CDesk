@@ -1,0 +1,529 @@
+// ============================================================================
+// Mini chat — docado embaixo à direita, fora do fluxo da página. Reaproveita
+// os tokens Resolv (.resolv-scope no próprio root do widget, pra valer também
+// sob o shell cvzdesk) e as classes .cc-* da conversa do console.
+//
+// Três peças, de baixo pra cima: a BARRA (balão + abas), a FILA (popover que
+// o balão abre) e os PAINÉIS (uma conversa expandida cada). O tamanho dos
+// painéis vem de `--minichat-largura`/`--minichat-altura`, que MiniChat.tsx
+// declara no root a partir da preferência do agente (stores/prefs).
+// ============================================================================
+
+.minichat {
+  position: fixed;
+  right: 16px;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none; // só os filhos recebem clique — o container é invisível
+
+  > * {
+    pointer-events: auto;
+  }
+
+  @media (max-width: 899px) {
+    display: none;
+  }
+
+  // ── Painéis ───────────────────────────────────────────────────────────────
+  &__paineis {
+    display: flex;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  &__painel {
+    position: relative;
+    width: var(--minichat-largura, 380px);
+    height: var(--minichat-altura, 500px);
+    max-width: calc(100vw - 32px);
+    max-height: calc(100vh - 80px);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border: 1px solid var(--stroke-hover);
+    border-bottom: none;
+    border-radius: var(--raio) var(--raio) 0 0;
+    box-shadow: 0 -2px 16px var(--sombra-forte);
+    overflow: hidden;
+    font-family: var(--f-ui);
+    color: var(--text-primary);
+
+    // a conversa do console foi feita pra uma coluna larga; aqui aperta
+    .cc-conversa--compacta {
+      // No console a conversa é item de um flex em LINHA e a altura vem do
+      // stretch; aqui ela é item de um flex em COLUNA com altura fixa, e o
+      // `min-height: auto` de flex item faria a lista de mensagens crescer
+      // até o conteúdo e empurrar o compositor pra fora do painel (some no
+      // `overflow: hidden`). Zerado, a lista rola e o compositor fica.
+      flex: 1;
+      min-height: 0;
+
+      .cc-conversa__mensagens {
+        padding: 10px 12px;
+        gap: 10px;
+      }
+      .cc-msg {
+        max-width: 90%;
+      }
+      .cc-conversa__banner,
+      .cc-conversa__erro {
+        padding: 8px 12px;
+        font-size: 12px;
+      }
+      .cc-composer {
+        padding: 8px 12px 10px;
+      }
+      .cc-composer__textarea {
+        min-height: 44px;
+      }
+      .cc-composer__enviar {
+        padding: 6px 12px;
+        font-size: 12px;
+      }
+    }
+  }
+
+  // Alça de redimensionar: o canto superior esquerdo do painel (ele cresce
+  // pra cima e pra esquerda, porque está ancorado embaixo à direita). Fica
+  // sobre o cabeçalho colorido, invisível até o hover/foco — um triângulo
+  // sutil diz "aqui puxa".
+  &__redimensionar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 18px;
+    height: 18px;
+    cursor: nwse-resize;
+    touch-action: none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0 45%, transparent 45%);
+    opacity: 0.6;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+      outline: 2px solid #ffffff;
+      outline-offset: -2px;
+    }
+  }
+
+  // O cabeçalho é pintado pelo atributo `data-tom-chat` (chat.scss, paleta
+  // própria do chat): fundo na cor do atendimento, texto branco. O fallback
+  // aqui só existe pra quando o widget renderiza fora de .novo-shell.
+  &__painel-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 8px 8px 22px; // deixa a alça de redimensionar livre
+    background: var(--text-primary);
+    color: var(--surface);
+  }
+  &__painel-titulo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+
+    strong {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    small {
+      font-size: 11px;
+      opacity: 0.8;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+  &__icone {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 15px;
+
+    &:hover {
+      // O cabeçalho é sempre um tom médio de identidade com texto branco, nos
+      // dois temas — o véu branco funciona nos dois.
+      background: rgba(255, 255, 255, 0.18);
+    }
+    &:focus-visible {
+      outline: 2px solid #ffffff;
+      outline-offset: -2px;
+    }
+  }
+
+  // Menu de três pontos do painel: as ações do console dentro do mini chat.
+  // Abre PARA CIMA e para a esquerda — o painel mora no canto inferior
+  // direito, então um menu que descesse sairia da tela.
+  &__menu {
+    position: relative;
+  }
+  &__menu-painel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 3;
+    width: 260px;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke-hover);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-flutuante);
+    color: var(--text-primary);
+    text-align: left;
+
+    > button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 7px 8px;
+      border: none;
+      border-radius: var(--raio);
+      background: none;
+      color: inherit;
+      font: inherit;
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--hover-soft);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+    }
+    hr {
+      margin: 4px 0;
+      border: none;
+      border-top: 1px solid var(--stroke);
+    }
+  }
+  &__menu-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    margin: 0;
+    padding: 2px 8px 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+
+    strong {
+      font-size: 12px;
+      color: var(--text-primary);
+    }
+  }
+  &__menu-protocolo {
+    margin-top: 2px;
+    font-family: var(--f-mono);
+  }
+
+  // ── Barra: balão + abas ───────────────────────────────────────────────────
+  &__barra {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 8px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke-hover);
+    border-bottom: none;
+    border-radius: var(--raio) var(--raio) 0 0;
+    box-shadow: 0 -2px 12px var(--sombra-suave);
+    font-family: var(--f-ui);
+  }
+
+  // O balão: a porta da fila. Redondo de propósito — é o único elemento
+  // "flutuante" do produto, e a forma o distingue dos botões retos da barra.
+  &__balao {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #ffffff;
+    font-size: 19px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+
+    &:hover {
+      background: var(--accent-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    &--aberto {
+      background: var(--text-primary);
+      color: var(--surface);
+    }
+    // alguém esperando e ainda cabe: pulsa uma vez a cada 2s, pra chamar o
+    // canto do olho sem virar alarme
+    &--atencao {
+      animation: minichat-pulso 2s ease-in-out infinite;
+    }
+  }
+  &__balao-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: grid;
+    place-items: center;
+    border-radius: 9px;
+    border: 2px solid var(--surface-card);
+    background: var(--text-primary);
+    color: var(--surface);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+
+    &--fila {
+      background: var(--away);
+      color: #ffffff;
+    }
+  }
+
+  &__contador {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 6px;
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+  &__aba {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 180px;
+    padding: 4px 10px 4px 4px;
+    border: 1px solid var(--stroke);
+    // a barrinha da esquerda repete a cor do painel — a aba e o cabeçalho
+    // dela são a mesma cor, e a pessoa acha o painel pelo tom
+    border-left: 3px solid var(--tom, var(--stroke));
+    border-radius: var(--raio);
+    background: var(--surface);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--stroke-hover);
+      border-left-color: var(--tom, var(--stroke-hover));
+    }
+    &--aberta {
+      border-color: var(--tom, var(--accent));
+      background: color-mix(in srgb, var(--tom, var(--accent)) 10%, var(--surface-card));
+    }
+  }
+  &__aba-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__avatar {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+
+    // No cabeçalho colorido o avatar é um véu branco — a cor já está no
+    // fundo; repetir a mesma cor no avatar o faria sumir.
+    &--cabecalho {
+      background: rgba(255, 255, 255, 0.22);
+      color: #ffffff;
+    }
+  }
+  &__badge {
+    font-family: var(--f-mono);
+    font-size: 10px;
+    padding: 0 5px;
+    border-radius: var(--raio);
+    background: var(--accent);
+    // Sobre fundo de marca, o texto é o token de superfície (branco no claro,
+    // escuro no escuro): o --accent CLAREIA no tema escuro e branco por cima
+    // cai para 2.45:1.
+    color: var(--surface-card);
+  }
+  &__fila {
+    margin-left: 4px;
+    padding: 4px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: color-mix(in srgb, var(--away) 12%, transparent);
+    color: var(--away);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      background: color-mix(in srgb, var(--away) 20%, transparent);
+    }
+  }
+
+  // ── Fila (popover do balão) ──────────────────────────────────────────────
+  &__fila-painel {
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    max-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke-hover);
+    border-radius: var(--raio);
+    box-shadow: var(--sombra-flutuante);
+    font-family: var(--f-ui);
+    color: var(--text-primary);
+    overflow: hidden;
+  }
+  &__fila-cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--stroke);
+    font-size: 13px;
+
+    .cc-link {
+      margin-left: auto;
+      font-size: 12px;
+    }
+  }
+  &__fila-contador {
+    padding: 0 6px;
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  &__fila-aviso,
+  &__fila-erro,
+  &__fila-vazia {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__fila-erro {
+    color: var(--danger);
+  }
+  &__fila-vazia {
+    padding: 22px 12px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  &__fila-lista {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  &__fila-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 6px 6px 8px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface);
+  }
+  &__fila-texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+  }
+  &__fila-nome {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__fila-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__pegar {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--accent-hover);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+@keyframes minichat-pulso {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--away) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .minichat__balao--atencao {
+    animation: none;
+  }
+}

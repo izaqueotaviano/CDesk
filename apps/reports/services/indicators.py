@@ -249,12 +249,16 @@ def _by_choice(rows, key, choices) -> list[dict]:
 
     Barra que some quando a contagem é zero engana: "não há ticket novo" e "a
     barra não existe" viram a mesma imagem.
+
+    Cada fatia leva a `key` do enum além do rótulo, como os baldes de SLA já
+    levam: é por ela que a tela escolhe a cor da barra (urgente em vermelho,
+    aguardando em âmbar) — rótulo é texto traduzível, chave é contrato.
     """
     counts: dict[str, int] = {}
     for row in rows:
         counts[row[key]] = counts.get(row[key], 0) + 1
     return [
-        {"label": str(label), "value": counts.get(value, 0)}
+        {"key": value, "label": str(label), "value": counts.get(value, 0)}
         for value, label in choices
     ]
 
@@ -323,8 +327,8 @@ def _agent_list(rows, previous_rows, surveys=(), window=None) -> list[dict]:
     for row in rows:
         name = row["assignee__full_name"] or "Sem responsável"
         if row["team__name"]:
-            porAgente = equipes.setdefault(name, {})
-            porAgente[row["team__name"]] = porAgente.get(row["team__name"], 0) + 1
+            por_agente = equipes.setdefault(name, {})
+            por_agente[row["team__name"]] = por_agente.get(row["team__name"], 0) + 1
         if row["sla_resolution_due_at"]:
             prazo.setdefault(name, []).append(0 if row["sla_resolution_breached"] else 1)
         segundos = _seconds_between(row["created_at"], row["first_response_at"])

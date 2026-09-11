@@ -23,7 +23,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.accounts import rbac
+from apps.accounts import assinatura, rbac
 from apps.core.models import TimeStampedModel
 
 
@@ -298,12 +298,32 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     avatar_url = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    # Nasceu se identificando no chat público do site do cliente (modo
+    # público do embed, apps/customers/embed_views.py), não de um convite.
+    # Existe por dois motivos, os dois de honestidade da tela: a listagem de
+    # usuários da empresa precisa dizer que aquilo é um visitante e não um
+    # acesso ao portal que alguém cadastrou, e o status de convite ("pendente"
+    # = tem conta mas nunca definiu senha) seria mentira aqui — visitante NÃO
+    # tem convite nenhum em aberto. Sem senha utilizável e sem
+    # "esqueci minha senha" no produto (ver apps/accounts/admin_api.py
+    # ::reset_password), ele não entra no portal por caminho nenhum enquanto
+    # um admin não o promover de verdade.
+    is_widget_visitor = models.BooleanField(default=False)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     anonymized_at = models.DateTimeField(null=True, blank=True)  # LGPD (D11)
 
     # --- preferências da própria conta (Lacuna 5) ---
     # Editáveis pelo próprio usuário em "Minha conta", nunca pela admin global.
-    signature = models.TextField(blank=True)  # assinatura padrão de resposta
+    # Assinatura do rodapé das respostas, em uma de três formas — ver
+    # `apps/accounts/assinatura.py`, que é quem higieniza e renderiza. O campo
+    # `signature` (texto puro) é o mais antigo dos três e continua sendo o
+    # conteúdo da forma "texto"; `signature_kind` vazio = sem assinatura.
+    signature = models.TextField(blank=True)
+    signature_kind = models.CharField(
+        max_length=10, blank=True, default="", choices=assinatura.FORMAS
+    )
+    signature_html = models.TextField(blank=True)
+    signature_image_url = models.CharField(max_length=300, blank=True)
     ui_language = models.CharField(max_length=10, default="pt-br")
     # Altura da linha nas listagens. VAZIO É "automático", e não um esquecimento:
     # quem atende vive na fila e precisa comparar vários chamados de uma vez

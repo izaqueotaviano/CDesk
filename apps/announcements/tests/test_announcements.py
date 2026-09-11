@@ -1,4 +1,5 @@
-"""Mural: CRUD restrito a admin, audiência, vigência, fixados e dispensa."""
+"""Mural: CRUD restrito a quem tem Perm.ANNOUNCEMENT_MANAGE (admin e
+supervisor), audiência, vigência, fixados e dispensa."""
 
 import datetime as dt
 
@@ -41,6 +42,14 @@ def agente(team):
     )
     AgentTeam.objects.create(user=user, team=team)
     return user
+
+
+@pytest.fixture
+def supervisor(db):
+    return User.objects.create_user(
+        email="supervisor@x.test", full_name="Sara", kind=UserKind.INTERNAL,
+        internal_role=InternalRole.SUPERVISOR,
+    )
 
 
 @pytest.fixture
@@ -123,6 +132,28 @@ class TestCrudPermissions:
         assert resp.status_code == 403
         ann.refresh_from_db()
         assert ann.title == "Intacto"
+
+    def test_supervisor_can_manage(self, api, supervisor):
+        """`Perm.ANNOUNCEMENT_MANAGE` é concedida ao supervisor em
+        `apps/accounts/rbac.py` ("por poder mexer em aviso") — a view segue
+        essa permissão, não um `is_admin` à parte."""
+        resp = api(supervisor).post("/api/v1/announcements/", {
+            "title": "Aviso do supervisor", "body": "y",
+            "starts_at": timezone.now().isoformat(),
+        }, format="json")
+        assert resp.status_code == 201
+        ann = Announcement.objects.get(title="Aviso do supervisor")
+        assert ann.created_by == supervisor
+
+        resp = api(supervisor).patch(f"/api/v1/announcements/{ann.pk}/", {
+            "title": "Editado pelo supervisor",
+        }, format="json")
+        assert resp.status_code == 200
+
+        resp = api(supervisor).delete(f"/api/v1/announcements/{ann.pk}/")
+        assert resp.status_code == 204
+        ann.refresh_from_db()
+        assert ann.is_active is False
 
     def test_write_team_targeting_via_api(self, api, admin, agente, team):
         """O front manda a segmentação nos campos M2M — o endpoint tem de gravar."""

@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
 
 export type LimitPeriod = 'weekly' | 'monthly'
@@ -84,10 +84,41 @@ export interface UsuarioCliente {
   client_role: ClientRole | '' | null
   job_title: string
   phone: string
+  /** Segundo contato. Vem junto de `phone` porque a exigência do backend é
+   *  "pelo menos um dos dois" — ler só o primeiro esconderia metade da regra. */
+  phone_secondary: string
   is_active: boolean
+  /** '' | 'pendente' | 'aceito' — em PORTUGUÊS (`UserAdminSerializer.get_invite_status`).
+   *  Cliente sempre depende de senha, então nunca vem vazio aqui. */
   invite_status: string
   last_login: string | null
   last_seen_at: string | null
+}
+
+/** Cadastro de um usuário de cliente — recorte de escrita de
+ *  `UserAdminSerializer` (apps/accounts/admin_api.py).
+ *
+ *  `kind`, `company` e `internal_role` NÃO entram de propósito: quem cria é a
+ *  rota da empresa, que os fixa a partir da URL e ignora o que vier no corpo.
+ *
+ *  Telefone: o serializer exige PELO MENOS UM entre `phone` e
+ *  `phone_secondary` quando `kind` é cliente — nenhum dos dois é obrigatório
+ *  sozinho. Por isso os dois são opcionais aqui: quem valida "ao menos um" é
+ *  o formulário, com a mesma regra do servidor. */
+export interface UsuarioClienteEscrita {
+  full_name: string
+  email: string
+  client_role: ClientRole
+  job_title?: string
+  phone?: string
+  phone_secondary?: string
+}
+
+/** Edição de um usuário já criado. `email` fica de fora: é a identidade de
+ *  login e o destino do convite — trocá-la no meio de um formulário de
+ *  cadastro é mudar de pessoa sem parecer que mudou. */
+export type UsuarioClienteEdicao = Partial<Omit<UsuarioClienteEscrita, 'email'>> & {
+  is_active?: boolean
 }
 
 export interface ParamsListaEmpresas {
@@ -99,9 +130,7 @@ export interface ParamsListaEmpresas {
 
 function montarQuery(p: ParamsListaEmpresas): string {
   const q = new URLSearchParams()
-  // A API admin não documenta busca textual própria — filtragem por nome
-  // roda no cliente sobre a página carregada (ver useEmpresas). `is_active`
-  // e paginação são os únicos parâmetros reais que valem mandar ao servidor.
+  if (p.q) q.set('q', p.q)
   if (p.is_active !== undefined) q.set('is_active', String(p.is_active))
   q.set('limit', String(p.limit))
   q.set('offset', String(p.offset))
@@ -113,6 +142,9 @@ export function useEmpresas(params: ParamsListaEmpresas) {
     queryKey: ['empresas', params],
     queryFn: () => api.get<Paginado<Empresa>>(`/api/v1/settings/companies/?${montarQuery(params)}`),
     staleTime: 15_000,
+    // evita o pisca-branco ao trocar de página/busca — a tabela antiga fica
+    // visível enquanto a nova página carrega (mesmo padrão da fila de tickets)
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -164,8 +196,75 @@ export function useAtualizarEmpresa(id: number) {
 export function useConvidarUsuario(empresaId: number) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (dados: { email: string; full_name: string; client_role: ClientRole }) =>
+    mutationFn: (dados: UsuarioClienteEscrita) =>
       api.post<UsuarioCliente>(`/api/v1/settings/companies/${empresaId}/users/`, dados),
+    // Invalida a chave da EMPRESA inteira (prefixo), não só a lista de
+    // usuários: `user_count` sai do detalhe da empresa e ficava velho no
+    // cabeçalho depois de convidar alguém.
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId] }),
+  })
+}
+
+/** Edição do cadastro de um usuário de cliente.
+ *
+ *  A rota é a PLANA (`settings/users/<id>/`, `UserAdminViewSet`) e não uma
+ *  sub-rota da empresa: a que fica sob a empresa só lista e cria — não existe
+ *  PATCH lá. `empresaId` entra só para saber qual lista invalidar. */
+export function useAtualizarUsuario(empresaId: number, usuarioId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: UsuarioClienteEdicao) =>
+      api.patch<UsuarioCliente>(`/api/v1/settings/users/${usuarioId}/`, dados),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId, 'usuarios'] }),
+  })
+}
+
+// --------------------------------------------------------------------------
+// Chat embutido (embed-widget) — `@action`s de CompanyAdminViewSet,
+// apps/customers/admin_api.py. Não é aparência (cor/saudação/posição): não
+// existe nenhum campo de tema no backend — é liga/desliga por empresa,
+// origens autorizadas a exibir o iframe (CSP) e a chave que o site do
+// cliente usa pra assinar a sessão.
+// --------------------------------------------------------------------------
+
+export interface ChatEmbed {
+  enabled: boolean
+  /** Modo público: um código só pro site inteiro, sem assinatura por pessoa. */
+  public_enabled: boolean
+  /** `scheme://host[:porta]`, sem caminho — normalizado pelo backend (minúsculo, sem barra final). */
+  origins: string[]
+  rotated_at: string
+  company_slug: string
+  /** O código de instalação, montado pelo backend (é ele que sabe o endereço
+   *  público desta instalação — a SPA pode estar noutro domínio). UM por
+   *  empresa: nada de pessoa entra aqui. */
+  snippet: string
+  /** Endereço do iframe, pra quem prefere embutir na mão em vez do loader. */
+  iframe_url: string
+}
+
+export function useChatEmbed(empresaId: number, habilitado: boolean) {
+  return useQuery({
+    queryKey: ['empresa', empresaId, 'chat-embed'],
+    queryFn: () => api.get<ChatEmbed>(`/api/v1/settings/companies/${empresaId}/chat-embed/`),
+    enabled: habilitado && Number.isFinite(empresaId),
+  })
+}
+
+export function useAtualizarChatEmbed(empresaId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (dados: { enabled?: boolean; public_enabled?: boolean; origins?: string[] }) =>
+      api.patch<ChatEmbed>(`/api/v1/settings/companies/${empresaId}/chat-embed/`, dados),
+    onSuccess: (embed) => qc.setQueryData(['empresa', empresaId, 'chat-embed'], embed),
+  })
+}
+
+/** A chave crua só sai AQUI, uma vez — a leitura (`useChatEmbed`) nunca a devolve. */
+export function useRegenerarSegredoChatEmbed(empresaId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.post<{ secret: string }>(`/api/v1/settings/companies/${empresaId}/chat-embed/regenerate-secret/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['empresa', empresaId, 'chat-embed'] }),
   })
 }

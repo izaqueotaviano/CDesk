@@ -20,7 +20,6 @@ Três responsabilidades, nesta ordem de importância:
 from __future__ import annotations
 
 import re
-import unicodedata
 
 from apps.accounts.models import Team, User, UserKind
 
@@ -61,7 +60,7 @@ def registrar_mencoes(*, message, author) -> list[User]:
     esta linha, não a tela.
     """
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
     from apps.tickets.models import TicketMention, TicketWatcher
 
     if message.is_public or author is None or not author.is_internal:
@@ -106,18 +105,40 @@ def registrar_mencoes(*, message, author) -> list[User]:
         # Vale lembrar o que o model avisa: seguir NÃO dá acesso a ticket
         # restrito; a leitura continua decidida por `is_content_visible_to`.
         TicketWatcher.objects.get_or_create(ticket=ticket, user=user)
+        titulo = f"{author.full_name} mencionou você em {ticket.reference}"
+        # resumo com os nomes trocados (não a marcação crua) — vale tanto
+        # para o sino quanto para o e-mail
+        resumo = resumir(message.body)[:200]
+        url = ticket_url(ticket, user, anchor=f"#mensagem-{message.pk}")
         notify(
             recipient=user,
             kind=NotificationKind.MENTION,
-            title=f"{author.full_name} mencionou você em {ticket.reference}",
-            # o corpo cru traria a marcação (`@[user:12]`) para dentro do sino;
-            # o resumo já sai com os nomes trocados, legível fora do ticket
-            body=resumir(message.body)[:200],
-            # âncora da nota: o sino leva à MENSAGEM, não ao topo do ticket
-            url=f"/tickets/{ticket.pk}#mensagem-{message.pk}",
+            title=titulo,
+            body=resumo,
+            url=url,
             ticket=ticket,
             actor=author,
         )
+        if user.email and quer_email(user, NotificationKind.MENTION):
+            from django.conf import settings
+
+            queue_email(
+                to=user.email,
+                subject=titulo,
+                template="mention",
+                context={
+                    "agent_name": user.full_name,
+                    "author_name": author.full_name,
+                    "reference": ticket.reference,
+                    "resumo": resumo,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                # a mensagem já dedupe por pessoa (get_or_create de menção não
+                # se aplica aqui, mas uma nota só gera uma notificação por
+                # destinatário — ver o teste de menção repetida)
+                dedupe_key=f"mention:{message.pk}:{user.pk}",
+            )
 
     _registrar_no_historico(ticket, author, usuarios, equipes)
     return list(destinatarios.values())
@@ -209,12 +230,6 @@ def resumir(body: str) -> str:
 
 # --------------------------------------------------------------------------- #
 # Autocomplete
-
-
-def normalizar(texto: str) -> str:
-    """Minúsculas e sem acento — `@iza` precisa achar "Izaque" e "Ízaque"."""
-    sem_acento = unicodedata.normalize("NFKD", texto or "")
-    return "".join(c for c in sem_acento if not unicodedata.combining(c)).casefold()
 
 
 def alvos_de_mencao(*, ticket, requester) -> list[dict]:

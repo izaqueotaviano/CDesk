@@ -48,7 +48,7 @@ class TestTriagem:
         assert ticket.team_id == financeiro.pk
         # a triagem fica no histórico
         evento = ticket.status_events.latest("created_at")
-        assert "urgência" in evento.note and "equipe" in evento.note
+        assert "prioridade" in evento.note and "equipe" in evento.note
 
     def test_patch_do_kanban_por_prioridade_e_responsavel(self, api, admin, ana,
                                                           suporte, agente_suporte,

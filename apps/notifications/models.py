@@ -15,11 +15,16 @@ class NotificationKind(models.TextChoices):
     TICKET_OWNER_SET = "ticket_owner_set", "Dono técnico definido"
     TICKET_REPLIED = "ticket_replied", "Ticket respondido"
     TICKET_REOPENED = "ticket_reopened", "Ticket reaberto"
+    # Ciclo de vida visto pelo CLIENTE (o portal): o e-mail de "seu chamado
+    # foi resolvido/encerrado" e o de "sua conversa por chat terminou" — a
+    # regra do portal é avisar por e-mail da abertura ao encerramento.
+    TICKET_CLOSED = "ticket_closed", "Chamado encerrado"
     MENTION = "mention", "Menção"
     SLA_WARNING = "sla_warning", "SLA próximo do limite"
     SLA_BREACHED = "sla_breached", "SLA estourado"
     CHAT_INCOMING = "chat_incoming", "Chat na fila"
     CHAT_CONVERTED = "chat_converted", "Chat virou chamado"
+    CHAT_CLOSED = "chat_closed", "Chat encerrado"
     ANNOUNCEMENT = "announcement", "Aviso"
     ATTACHMENT_BLOCKED = "attachment_blocked", "Anexo bloqueado"
     LGPD_DEADLINE = "lgpd_deadline", "Prazo de pedido LGPD"
@@ -86,6 +91,10 @@ class OutboundEmail(TimeStampedModel):
         PENDING = "pending", "Pendente"
         SENT = "sent", "Enviado"
         FAILED = "failed", "Falhou"
+        # a entrega estava desligada em Configurações → Sistema: registrado,
+        # não enviado, e sem retry — ligar depois não despacha o atrasado
+        # (um código de login de ontem não pode chegar hoje)
+        SKIPPED = "skipped", "Pulado"
 
     to_email = models.EmailField()
     subject = models.CharField(max_length=200)

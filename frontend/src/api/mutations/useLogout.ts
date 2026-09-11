@@ -1,6 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
+import { desconectarCanalPessoal } from '@/realtime/bridge'
+import { useChatUi } from '@/stores/chatUi'
 
 /**
  * A armadilha documentada (docs/10-frontend-novo.md): esquecer o header
@@ -21,6 +23,10 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api.post<void>('/api/v1/auth/logout/'),
     onSuccess: () => {
+      desconectarCanalPessoal()
+      // painéis e rascunhos do mini chat persistem no localStorage — a
+      // próxima pessoa nesta máquina não pode herdá-los
+      useChatUi.getState().limparTudo()
       queryClient.clear()
       navigate('/login', { replace: true })
     },

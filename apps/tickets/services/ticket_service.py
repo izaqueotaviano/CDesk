@@ -56,6 +56,7 @@ def create_ticket(
     category=None,
     order_number: str = "",
     actor=None,
+    with_signature: bool = False,
 ) -> Ticket:
     """Cria o ticket com a primeira mensagem, consumindo cota quando devido.
 
@@ -103,7 +104,10 @@ def create_ticket(
             ticket=ticket, from_status=None, to_status=TicketStatus.NEW, changed_by=actor
         )
         TicketMessage.objects.create(
-            ticket=ticket, author=actor, body=body, is_public=True
+            ticket=ticket, author=actor, body=body, is_public=True,
+            # agente abrindo em nome do cliente assina; o cliente não tem
+            # assinatura para pôr
+            with_signature=bool(with_signature) and actor.is_internal,
         )
         if source == TicketSource.WEB:
             # levanta QuotaExceeded e desfaz tudo se o período está cheio
@@ -113,6 +117,7 @@ def create_ticket(
 
         sla.apply_sla(ticket)
         _email_support_about_new_ticket(ticket)
+        _email_requester_about_new_ticket(ticket)
         # o aviso in-app sai DEPOIS do commit: ele empurra pelo WebSocket, e
         # empurrar de dentro da transação avisaria de um chamado que a cota
         # ainda pode desfazer
@@ -134,7 +139,7 @@ def _notify_team_about_new_ticket(ticket_pk, actor_pk) -> None:
     """
     from apps.accounts.models import AgentTeam, User
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, ticket_url
 
     try:
         ticket = Ticket.objects.select_related("team", "requester", "company").get(
@@ -153,7 +158,7 @@ def _notify_team_about_new_ticket(ticket_pk, actor_pk) -> None:
                 kind=NotificationKind.TICKET_CREATED,
                 title=f"Novo chamado {ticket.reference}",
                 body=f"{ticket.company.name} · {ticket.subject}",
-                url=f"/tickets/{ticket.pk}",
+                url=ticket_url(ticket, agente),
                 ticket=ticket,
             )
     except Exception:  # noqa: BLE001 — aviso não derruba a abertura já commitada
@@ -184,6 +189,106 @@ def _email_support_about_new_ticket(ticket: Ticket) -> None:
     )
 
 
+def _portal_link(caminho: str) -> str:
+    """Endereço absoluto no Painel do Cliente — e-mail precisa de link inteiro."""
+    from django.conf import settings
+
+    return f"{settings.SITE_URL}{caminho}"
+
+
+def _email_requester_about_new_ticket(ticket: Ticket) -> None:
+    """Confirmação de abertura para o CLIENTE.
+
+    A regra do portal é avisar por e-mail da abertura ao encerramento; até
+    aqui o cliente só recebia e-mail de resposta. Sai sob TICKET_CREATED —
+    o mesmo tipo que avisa a equipe in-app —, porque do lado do cliente
+    esse tipo significa exatamente "meu chamado foi aberto", e é o que ele
+    liga ou desliga em Configurações. Só e-mail: aviso in-app do próprio
+    chamado seria ruído (ele acabou de abrir).
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import quer_email, queue_email
+
+    requester = ticket.requester
+    if requester is None or requester.is_internal or not requester.email:
+        return
+    if not quer_email(requester, NotificationKind.TICKET_CREATED):
+        return
+    queue_email(
+        to=requester.email,
+        subject=f"Recebemos seu chamado {ticket.reference}",
+        template="ticket_opened",
+        context={
+            "requester_name": requester.full_name,
+            "reference": ticket.reference,
+            "subject": ticket.subject,
+            "team": ticket.team.name,
+            "link": _portal_link(f"/portal/tickets/{ticket.pk}"),
+        },
+        ticket=ticket,
+        dedupe_key=f"ticket-opened-{ticket.pk}",
+    )
+
+
+def _notify_requester_closed(ticket_pk, *, automatic: bool) -> None:
+    """Avisa o CLIENTE que o chamado terminou — resolvido pelo suporte ou
+    fechado por falta de retorno.
+
+    Roda DEPOIS do commit, pelo mesmo motivo da pesquisa de satisfação: um
+    aviso de fechamento que depois é desfeito é pior que aviso nenhum. Os
+    dois desfechos saem sob TICKET_CLOSED (um interruptor só em
+    Configurações: "encerramento de chamado"), cada canal respeitando a
+    própria preferência. O texto muda: resolvido convida a avaliar e lembra
+    que responder reabre; fechado automaticamente orienta a abrir outro
+    (fechamento automático não reabre — ver `auto_close_stale_pending`).
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
+
+    try:
+        ticket = Ticket.objects.select_related("requester").get(pk=ticket_pk)
+        requester = ticket.requester
+        if requester is None or requester.is_internal:
+            return
+        if automatic:
+            titulo = f"Chamado {ticket.reference} encerrado por falta de retorno"
+            corpo = (
+                "Ficou aguardando seu retorno além do prazo. "
+                "Precisa de ajuda? Abra um novo chamado."
+            )
+            template = "ticket_auto_closed"
+        else:
+            titulo = f"Seu chamado {ticket.reference} foi resolvido"
+            corpo = "Se puder, avalie o atendimento. Responder ao chamado reabre."
+            template = "ticket_resolved"
+        notify(
+            recipient=requester,
+            kind=NotificationKind.TICKET_CLOSED,
+            title=titulo,
+            body=corpo,
+            url=ticket_url(ticket, requester),
+            ticket=ticket,
+        )
+        if requester.email and quer_email(requester, NotificationKind.TICKET_CLOSED):
+            marca = f"{ticket.closed_at:%Y%m%d%H%M%S}" if ticket.closed_at else "sem-data"
+            queue_email(
+                to=requester.email,
+                subject=titulo,
+                template=template,
+                context={
+                    "requester_name": requester.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": _portal_link(f"/portal/tickets/{ticket.pk}"),
+                },
+                ticket=ticket,
+                # reaberto e fechado de novo é outro desfecho: outro e-mail
+                dedupe_key=f"ticket-closed-{ticket.pk}-{marca}",
+            )
+    except Exception:  # noqa: BLE001 — aviso não derruba o fechamento já commitado
+        logger.exception("Falha ao avisar o cliente do fechamento do ticket %s", ticket_pk)
+
+
 def create_from_chat(*, chat, team, actor=None, subject=None, auto=False):
     """Conversão chat→ticket — um dos DOIS pontos de integração do chat v2.
 
@@ -208,25 +313,32 @@ def create_from_chat(*, chat, team, actor=None, subject=None, auto=False):
     - Manual com agente: nasce OPEN atribuído; automática: nasce NEW, sem
       responsável — ninguém chegou a atender.
     """
+    from apps.chat.models import Chat as _Chat
     from apps.chat.models import ChatMessage as _ChatMsg
     from apps.chat.models import ChatStatus as _ChatStatus
     from apps.chat.services import chat_service as _chat_svc
 
-    # quem chama pode estar com uma instância velha (take/close re-buscam
-    # com lock por dentro) — a conversão parte SEMPRE do estado do banco
-    chat.refresh_from_db()
-    existing = getattr(chat, "generated_ticket", None)
-    if existing is not None:
-        return existing
-
-    # mesma regra da criação normal: equipe interna não recebe chamado de
-    # cliente — o ticket sumiria da visão do próprio solicitante
-    if team.internal_only:
-        raise TicketRuleViolation(
-            "Equipe interna não pode receber a conversão de um chat de cliente."
-        )
-
     with transaction.atomic():
+        # Lock a linha do chat: o timeout automático do beat rodando junto
+        # com um clique manual do agente (ou um retry/duplo clique) não pode
+        # deixar as duas chamadas passarem pela checagem de idempotência ao
+        # mesmo tempo. Sem o lock, as duas veem `generated_ticket` vazio e as
+        # duas tentam criar — a segunda estoura `IntegrityError` na
+        # constraint única de `origin_chat` em vez de devolver o ticket que a
+        # primeira já criou. Mesmo padrão de `select_for_update` que
+        # `chat_service.take_chat` usa para "pegar" um chat da fila.
+        chat = _Chat.objects.select_for_update().get(pk=chat.pk)
+        existing = getattr(chat, "generated_ticket", None)
+        if existing is not None:
+            return existing
+
+        # mesma regra da criação normal: equipe interna não recebe chamado de
+        # cliente — o ticket sumiria da visão do próprio solicitante
+        if team.internal_only:
+            raise TicketRuleViolation(
+                "Equipe interna não pode receber a conversão de um chat de cliente."
+            )
+
         if chat.status != _ChatStatus.CLOSED:
             chat.status = _ChatStatus.CLOSED
             chat.closed_at = timezone.now()
@@ -323,7 +435,7 @@ def _notify_chat_converted(*, ticket, client, actor) -> None:
     justamente o caso mais comum de acontecer aqui (conversão automática
     por timeout de fila, ninguém pegou o chat)."""
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify, quer_email, queue_email
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
     if client is None or client.is_internal:
         return
@@ -332,7 +444,7 @@ def _notify_chat_converted(*, ticket, client, actor) -> None:
         kind=NotificationKind.CHAT_CONVERTED,
         title=f"Sua conversa virou o chamado {ticket.reference}",
         body=ticket.subject,
-        url=f"/tickets/{ticket.pk}",
+        url=ticket_url(ticket, client),
         ticket=ticket,
         actor=actor,
     )
@@ -388,6 +500,7 @@ def add_reply(
     resolution_started_at: dt.datetime | None = None,
     resolution_ended_at: dt.datetime | None = None,
     close_note: str = "",
+    with_signature: bool = False,
 ) -> TicketMessage:
     """Adiciona resposta e aplica a transição de status correspondente.
 
@@ -418,6 +531,8 @@ def add_reply(
             body=body,
             is_public=is_public,
             source=MessageSource.WEB,
+            # nota interna nunca leva assinatura, mesmo se a tela pedir
+            with_signature=bool(with_signature) and is_public and author.is_internal,
         )
 
         if author.is_internal:
@@ -478,7 +593,7 @@ def add_reply(
                 _change_status(ticket, new_status, author)
             # o CLIENTE fica sabendo que respondemos — in-app e e-mail. Antes
             # ele só descobria entrando no portal por conta própria.
-            _notify_requester_replied(ticket, author)
+            _notify_requester_replied(ticket, author, com_assinatura=message.with_signature)
             return message
 
         # ---- resposta de cliente: transições automáticas ----
@@ -498,6 +613,18 @@ def add_reply(
                     "resposta e não pode mais ser reaberto. Abra um novo chamado "
                     "para continuar."
                 )
+            # Regra do portal: antes de reabrir, a nota. Só para quem PODE
+            # avaliar (o solicitante); o responsável da empresa respondendo
+            # pelo colega não tem pesquisa para responder, e travá-lo aqui
+            # seria um beco sem saída.
+            survey = getattr(ticket, "survey", None)
+            pendente = (survey is not None and not survey.is_answered
+                        and not survey.is_expired)
+            if author.pk == ticket.requester_id and pendente:
+                raise TicketRuleViolation(
+                    "Avalie o atendimento antes de reabrir o chamado — leva "
+                    "menos de um minuto."
+                )
             _reopen(ticket, author, now)
         else:  # NEW/OPEN: mantém status, mas o agente fica sabendo
             _notify_assignee_replied(ticket, author)
@@ -505,9 +632,17 @@ def add_reply(
 
 
 def assign(*, ticket: Ticket, assignee, actor) -> Ticket:
-    """Atribui o ticket a um agente, com notificação in-app (requisito 8)."""
+    """Atribui o ticket a um agente, com notificação in-app e e-mail
+    (requisito 8) — o agente pode estar de fora do sistema quando o
+    ticket cai nele."""
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import broadcast_ticket_event, notify
+    from apps.notifications.services import (
+        broadcast_ticket_event,
+        notify,
+        quer_email,
+        queue_email,
+        ticket_url,
+    )
 
     if not actor.is_internal:
         raise TicketRuleViolation("Apenas usuários internos atribuem tickets.")
@@ -532,15 +667,33 @@ def assign(*, ticket: Ticket, assignee, actor) -> Ticket:
         changed_by=actor, note=f"atribuído a {assignee.full_name if assignee else '—'}",
     )
     if assignee and assignee.pk not in (previous, actor.pk):
+        titulo = f"Ticket atribuído a você: {ticket.reference}"
+        url = ticket_url(ticket, assignee)
         notify(
             recipient=assignee,
             kind=NotificationKind.TICKET_ASSIGNED,
-            title=f"Ticket atribuído a você: {ticket.reference}",
+            title=titulo,
             body=ticket.subject,
-            url=f"/tickets/{ticket.pk}",
+            url=url,
             ticket=ticket,
             actor=actor,
         )
+        if assignee.email and quer_email(assignee, NotificationKind.TICKET_ASSIGNED):
+            from django.conf import settings
+
+            queue_email(
+                to=assignee.email,
+                subject=titulo,
+                template="ticket_assigned",
+                context={
+                    "agent_name": assignee.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                dedupe_key=f"ticket-assigned:{ticket.pk}:{assignee.pk}:{timezone.now():%Y%m%d%H%M}",
+            )
     broadcast_ticket_event(ticket=ticket, kind="assigned", actor=actor)
     return ticket
 
@@ -556,7 +709,13 @@ def set_owner(*, ticket: Ticket, owner, actor) -> Ticket:
     dois papéis na tela nem no histórico.
     """
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import broadcast_ticket_event, notify
+    from apps.notifications.services import (
+        broadcast_ticket_event,
+        notify,
+        quer_email,
+        queue_email,
+        ticket_url,
+    )
 
     if not actor.is_internal:
         raise TicketRuleViolation("Apenas usuários internos definem o dono técnico.")
@@ -580,15 +739,33 @@ def set_owner(*, ticket: Ticket, owner, actor) -> Ticket:
         changed_by=actor, note=f"dono técnico → {owner.full_name if owner else '—'}",
     )
     if owner and owner.pk not in (previous, actor.pk):
+        titulo = f"Você é o dono técnico de {ticket.reference}"
+        url = ticket_url(ticket, owner)
         notify(
             recipient=owner,
             kind=NotificationKind.TICKET_OWNER_SET,
-            title=f"Você é o dono técnico de {ticket.reference}",
+            title=titulo,
             body=ticket.subject,
-            url=f"/tickets/{ticket.pk}",
+            url=url,
             ticket=ticket,
             actor=actor,
         )
+        if owner.email and quer_email(owner, NotificationKind.TICKET_OWNER_SET):
+            from django.conf import settings
+
+            queue_email(
+                to=owner.email,
+                subject=titulo,
+                template="ticket_owner_set",
+                context={
+                    "agent_name": owner.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                dedupe_key=f"ticket-owner-set:{ticket.pk}:{owner.pk}:{timezone.now():%Y%m%d%H%M}",
+            )
     broadcast_ticket_event(ticket=ticket, kind="owner", actor=actor)
     return ticket
 
@@ -616,7 +793,7 @@ def reclassify(*, ticket: Ticket, actor, priority=None, category=_NAO_INFORMADO,
 
         if priority is not None and priority != ticket.priority:
             ticket.priority = priority
-            mudancas.append(f"urgência → {ticket.get_priority_display()}")
+            mudancas.append(f"prioridade → {ticket.get_priority_display()}")
             campos.append("priority")
 
         if category is not _NAO_INFORMADO and category != ticket.category:
@@ -693,7 +870,7 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
         if macro.priority and macro.priority != ticket.priority:
             ticket.priority = macro.priority
             campos.append("priority")
-            mudancas.append(f"urgência → {ticket.get_priority_display()}")
+            mudancas.append(f"prioridade → {ticket.get_priority_display()}")
         if macro.assignee_id and macro.assignee_id != ticket.assignee_id:
             ticket.assignee_id = macro.assignee_id
             campos.append("assignee")
@@ -708,9 +885,10 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
             mudancas.append(f"etiquetas + {', '.join(sorted(t.name for t in novas))}")
 
         if mudancas:
+            nota = f"aplicou macro «{macro.name}»: " + "; ".join(mudancas)[:150]
             TicketStatusEvent.objects.create(
                 ticket=ticket, from_status=ticket.status, to_status=ticket.status,
-                changed_by=actor, note=f"aplicou macro «{macro.name}»: " + "; ".join(mudancas)[:150],
+                changed_by=actor, note=nota,
             )
     from apps.notifications.services import broadcast_ticket_event
 
@@ -718,13 +896,18 @@ def apply_macro(*, ticket: Ticket, macro, actor) -> Ticket:
     return ticket
 
 
-def _notify_requester_replied(ticket: Ticket, author) -> None:
+def _notify_requester_replied(ticket: Ticket, author, *, com_assinatura: bool = False) -> None:
     """Resposta pública de agente avisa o SOLICITANTE — sino do portal e
     e-mail (cada canal respeitando a preferência da conta). O corpo da
     resposta NÃO vai no e-mail: conteúdo de chamado restrito não pode parar
-    em caixa de entrada; o e-mail convida a abrir o portal."""
+    em caixa de entrada; o e-mail convida a abrir o portal.
+
+    A ASSINATURA de quem respondeu vai — quando a pessoa pediu para incluí-la
+    no envio. Ela não é conteúdo do chamado: é o rodapé de identidade de quem
+    escreveu, e é justamente no e-mail que ela se parece com o que o nome
+    promete (`apps/accounts/assinatura.py`)."""
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify, quer_email, queue_email
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
     requester = ticket.requester
     if requester is None or requester.is_internal or requester.pk == author.pk:
@@ -734,11 +917,21 @@ def _notify_requester_replied(ticket: Ticket, author) -> None:
         kind=NotificationKind.TICKET_REPLIED,
         title=f"Seu chamado {ticket.reference} foi respondido",
         body=ticket.subject,
-        url=f"/tickets/{ticket.pk}",
+        url=ticket_url(ticket, requester),
         ticket=ticket,
         actor=author,
     )
     if requester.email and quer_email(requester, NotificationKind.TICKET_REPLIED):
+        from django.conf import settings
+
+        from apps.accounts import assinatura as assinatura_do_agente
+
+        texto = assinatura_do_agente.render_texto(author) if com_assinatura else ""
+        html = (
+            assinatura_do_agente.render_html(author, base_url=settings.SITE_URL)
+            if com_assinatura
+            else ""
+        )
         queue_email(
             to=requester.email,
             subject=f"Resposta no chamado {ticket.reference}",
@@ -748,6 +941,11 @@ def _notify_requester_replied(ticket: Ticket, author) -> None:
                 "reference": ticket.reference,
                 "subject": ticket.subject,
                 "agent_name": author.full_name,
+                # `assinatura` entra no molde de texto; `assinatura_html` é
+                # retirado do contexto pelo envio e vira a parte rica do
+                # e-mail (ver apps/notifications/tasks.py)
+                "assinatura": f"\n{texto}\n" if texto else "",
+                "assinatura_html": html,
             },
             ticket=ticket,
             # uma resposta = um e-mail; várias na mesma hora não viram rajada
@@ -757,7 +955,7 @@ def _notify_requester_replied(ticket: Ticket, author) -> None:
 
 def _notify_assignee_replied(ticket: Ticket, author) -> None:
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, ticket_url
 
     if ticket.assignee is None:
         return
@@ -766,7 +964,7 @@ def _notify_assignee_replied(ticket: Ticket, author) -> None:
         kind=NotificationKind.TICKET_REPLIED,
         title=f"{author.full_name} respondeu {ticket.reference}",
         body=ticket.subject,
-        url=f"/tickets/{ticket.pk}",
+        url=ticket_url(ticket, ticket.assignee),
         ticket=ticket,
         actor=author,
     )
@@ -846,6 +1044,7 @@ def close_ticket(
         # idem para a franquia de horas: a soma tem de enxergar ESTE
         # fechamento já commitado, senão o mês fecha um chamado atrasado
         transaction.on_commit(lambda: _check_maintenance_overage(ticket.pk, actor.pk))
+        transaction.on_commit(lambda: _notify_requester_closed(ticket.pk, automatic=False))
     from apps.notifications.services import broadcast_ticket_event
 
     broadcast_ticket_event(ticket=ticket, kind="closed", actor=actor)
@@ -1056,6 +1255,9 @@ def auto_close_stale_pending() -> int:
             transaction.on_commit(
                 lambda p=ticket.pk: _open_satisfaction_survey(p)
             )
+            transaction.on_commit(
+                lambda p=ticket.pk: _notify_requester_closed(p, automatic=True)
+            )
         fechados += 1
     return fechados
 
@@ -1138,19 +1340,40 @@ def _reopen(ticket: Ticket, author, now, *, automatic=True):
     sla.restart_resolution_sla(ticket)  # D5: novo prazo de resolução
 
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
     # não avisa quem reabriu a si mesmo (agente reabrindo o próprio chamado)
     if ticket.assignee and ticket.assignee_id != author.pk:
+        titulo = f"Ticket reaberto: {ticket.reference}"
+        corpo = f"{author.full_name}: resposta em ticket fechado."
+        url = ticket_url(ticket, ticket.assignee)
         notify(
             recipient=ticket.assignee,
             kind=NotificationKind.TICKET_REOPENED,
-            title=f"Ticket reaberto: {ticket.reference}",
-            body=f"{author.full_name}: resposta em ticket fechado.",
-            url=f"/tickets/{ticket.pk}",
+            title=titulo,
+            body=corpo,
+            url=url,
             ticket=ticket,
             actor=author,
         )
+        if ticket.assignee.email and quer_email(ticket.assignee, NotificationKind.TICKET_REOPENED):
+            from django.conf import settings
+
+            queue_email(
+                to=ticket.assignee.email,
+                subject=titulo,
+                template="ticket_reopened",
+                context={
+                    "agent_name": ticket.assignee.full_name,
+                    "reference": ticket.reference,
+                    "subject": ticket.subject,
+                    "author_name": author.full_name,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                # cada reabertura é um ciclo de SLA novo (sla_cycle) — e um e-mail novo
+                dedupe_key=f"ticket-reopened:{ticket.pk}:{ticket.sla_cycle}",
+            )
 
 
 # ---------------------------------------------------------------------- #

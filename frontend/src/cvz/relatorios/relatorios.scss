@@ -1,0 +1,545 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+.relatorios-painel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+}
+
+.relatorios-secao__titulo {
+  @include type($fs-title, $w-semibold);
+  color: $text;
+  margin: 0;
+}
+
+// --- filtros (período + equipe) ---------------------------------------------
+
+.relatorios-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-4;
+  flex-wrap: wrap;
+}
+
+.relatorios-periodo {
+  display: inline-flex;
+  border: $border;
+  border-radius: $radius;
+  overflow: hidden;
+}
+
+.relatorios-periodo__botao {
+  @include button-reset;
+  @include type($fs-ui, $w-medium);
+  padding: 0 $sp-4;
+  height: $control-h;
+  color: $text-secondary;
+  border-right: $border;
+  transition: background-color $dur $ease, color $dur $ease;
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &:hover {
+    background-color: $chrome;
+    color: $text;
+  }
+
+  &--ativo,
+  &--ativo:hover {
+    background-color: $blue;
+    color: $text-on-accent;
+  }
+}
+
+// --- KPIs --------------------------------------------------------------------
+
+.relatorios-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $sp-4;
+}
+
+// --- tabelas de resumo (aberto/pendente/resolvido) --------------------------
+
+.relatorios-resumos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: $sp-4;
+  align-items: start;
+}
+
+.relatorios-tabela__wrap {
+  overflow-x: auto;
+  border: $border;
+  border-radius: $radius;
+}
+
+.relatorios-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  @include type($fs-ui, $w-regular);
+
+  caption {
+    @include type($fs-label, $w-medium);
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    text-align: left;
+    padding: $sp-3 $sp-4;
+    background-color: $chrome;
+  }
+
+  th,
+  td {
+    padding: $sp-2 $sp-4;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: $border;
+  }
+
+  th {
+    @include type($fs-label, $w-medium);
+    color: $text-muted;
+  }
+
+  td {
+    color: $text;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.relatorios-delta {
+  @include type($fs-caption, $w-medium);
+
+  &--up {
+    color: $success;
+  }
+  &--down {
+    color: $danger;
+  }
+  &--flat {
+    color: $text-muted;
+  }
+}
+
+// --- distribuições (barras horizontais) -------------------------------------
+
+.relatorios-grade-distribuicoes,
+.relatorios-grade-sla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: $sp-5;
+}
+
+.relatorios-distribuicao__titulo {
+  @include type($fs-label, $w-medium);
+  color: $text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin: 0 0 $sp-3;
+}
+
+.relatorios-distribuicao__vazio {
+  @include type($fs-ui);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-distribuicao__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-distribuicao__linha {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(60px, 2fr) auto;
+  align-items: center;
+  gap: $sp-3;
+}
+
+.relatorios-distribuicao__rotulo {
+  @include type($fs-ui);
+  @include truncate;
+  color: $text;
+}
+
+.relatorios-distribuicao__barra-trilho {
+  height: 8px;
+  border-radius: $radius-pill;
+  background-color: $chrome;
+  overflow: hidden;
+}
+
+// A cor da barra diz o que a barra É, não só que ela existe (Distribuicao.tsx
+// escolhe o modificador). Sem modificador fica o azul de ação — é o fallback
+// de fatia sem chave, não uma sétima cor.
+//
+// Semântica (status, prioridade, SLA) usa os tokens de estado, que já trocam
+// no escuro. A série categórica usa `$identity-text`, não `$identity-fill`:
+// no claro os dois são a mesma cor, mas no escuro o traço fino de 8px sobre
+// o trilho precisa do tom clareado — o preenchimento de avatar (que leva
+// branco em cima) ficaria a 2,4:1 do trilho.
+.relatorios-distribuicao__barra {
+  // É um <span> dentro de outro <span>: o trilho vira bloco por ser filho
+  // do grid, mas a barra continuava inline — e inline ignora width/height.
+  // A cor estava lá; a caixa, não.
+  display: block;
+  height: 100%;
+  border-radius: $radius-pill;
+  background-color: $blue;
+
+  &--neutra  { background-color: $text-muted; }
+  &--sucesso { background-color: $success; }
+  &--atencao { background-color: $away; }
+  &--perigo  { background-color: $danger; }
+
+  @each $i, $cor in $identity-text {
+    &--identidade-#{$i} { background-color: $cor; }
+  }
+}
+
+.relatorios-distribuicao__valor {
+  @include type($fs-ui, $w-medium);
+  color: $text;
+  text-align: right;
+  min-width: 2ch;
+}
+
+// --- linha do tempo (SVG à mão) ----------------------------------------------
+
+.relatorios-linha-do-tempo {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+
+  &--curta {
+    @include type($fs-ui);
+    color: $text-secondary;
+  }
+}
+
+.relatorios-linha-do-tempo__svg {
+  width: 100%;
+  height: 200px;
+}
+
+.relatorios-linha-do-tempo__eixo {
+  stroke: $stroke;
+  stroke-width: 1;
+}
+
+.relatorios-linha-do-tempo__serie {
+  fill: none;
+  stroke-width: 2;
+
+  &--aberto {
+    stroke: $blue;
+  }
+  &--resolvido {
+    stroke: $success;
+  }
+  &--no-prazo {
+    stroke: $success;
+    stroke-dasharray: 4 3;
+    opacity: 0.6;
+  }
+}
+
+.relatorios-linha-do-tempo__rodape {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: $sp-2;
+}
+
+.relatorios-linha-do-tempo__legenda {
+  display: flex;
+  gap: $sp-4;
+  flex-wrap: wrap;
+}
+
+.relatorios-linha-do-tempo__item {
+  @include type($fs-meta);
+  color: $text-secondary;
+  position: relative;
+  padding-left: $sp-4;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 2px;
+    background-color: $text-muted;
+  }
+
+  &--aberto::before {
+    background-color: $blue;
+  }
+  &--resolvido::before {
+    background-color: $success;
+  }
+  &--no-prazo::before {
+    background-color: $success;
+    opacity: 0.6;
+  }
+}
+
+.relatorios-linha-do-tempo__datas {
+  @include type($fs-caption);
+  color: $text-muted;
+  display: flex;
+  gap: $sp-4;
+}
+
+// --- chats por período (barras SVG à mão) -------------------------------------
+// Reaproveita `.relatorios-linha-do-tempo__eixo` (traço da base) e
+// `.relatorios-linha-do-tempo__datas` (rodapé de rótulos) — só o que é
+// específico de barra (retângulo, wrapper, estado curto) entra aqui.
+
+.relatorios-barras-periodo {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+
+  &--curta {
+    @include type($fs-ui);
+    color: $text-secondary;
+  }
+}
+
+.relatorios-barras-periodo__svg {
+  width: 100%;
+  height: 200px;
+}
+
+.relatorios-barras-periodo__barra {
+  fill: $blue;
+}
+
+.relatorios-barras-periodo__rotulos {
+  justify-content: space-between;
+}
+
+// --- satisfação ---------------------------------------------------------------
+
+.relatorios-satisfacao {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-6;
+  flex-wrap: wrap;
+}
+
+.relatorios-satisfacao__resumo {
+  min-width: 180px;
+}
+
+.relatorios-satisfacao__nota {
+  @include type($fs-display, $w-semibold);
+  color: $text;
+}
+
+.relatorios-satisfacao__legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: $sp-1 0 0;
+}
+
+.relatorios-satisfacao__barras {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-2;
+  height: 96px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.relatorios-satisfacao__coluna {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-1;
+  flex: 1;
+  height: 100%;
+}
+
+.relatorios-satisfacao__trilho {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+.relatorios-satisfacao__barra {
+  width: 100%;
+  min-height: 2px;
+  border-radius: $radius $radius 0 0;
+  background-color: $blue;
+}
+
+.relatorios-satisfacao__rotulo {
+  @include type($fs-caption);
+  color: $text-muted;
+}
+
+// --- relatório detalhado -------------------------------------------------------
+
+.relatorios-detalhado {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.relatorios-detalhado__intro {
+  @include type($fs-ui);
+  color: $text-secondary;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.relatorios-detalhado__filtros {
+  display: flex;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.relatorios-detalhado__resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: $sp-4;
+}
+
+.relatorios-detalhado__espera {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-detalhado__csv {
+  width: fit-content;
+  text-decoration: none;
+}
+
+// --- exportação assíncrona (XLSX/PDF) -----------------------------------------
+
+.relatorios-exportacoes {
+  border-top: $border;
+  padding-top: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.relatorios-exportacoes__titulo {
+  @include type($fs-title, $w-semibold);
+  color: $text;
+  margin: 0;
+}
+
+.relatorios-exportacoes__legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-exportacoes__acoes {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.relatorios-exportacoes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-exportacoes__item {
+  display: flex;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  background-color: $chrome;
+}
+
+.relatorios-exportacoes__formato {
+  @include type($fs-ui, $w-medium);
+  color: $text;
+}
+
+.relatorios-exportacoes__quando {
+  @include type($fs-meta);
+  color: $text-muted;
+}
+
+.relatorios-exportacoes__erro {
+  @include type($fs-meta);
+  color: $danger;
+}
+
+.relatorios-exportacoes__baixar {
+  margin-left: auto;
+  text-decoration: none;
+}
+
+@include mobile {
+  .relatorios-satisfacao {
+    align-items: stretch;
+  }
+}
+
+// --- Desfechos ---------------------------------------------------------------
+// KPI simples, sem cartão: nove números lado a lado com moldura em cada um
+// viram uma parede. A hierarquia vem do tamanho, não da borda.
+
+.relatorios-kpi {
+  padding: $sp-3 0;
+  border-top: $border;
+
+  dt {
+    @include type($fs-label, $w-medium);
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  dd {
+    margin: $sp-1 0 0;
+    @include type($fs-display, $w-medium);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  // A mediana ao lado da média: é o par que denuncia o outlier — vê-las
+  // separadas, em telas diferentes, não conta a mesma história.
+  &__apoio {
+    @include type($fs-label, $w-regular);
+    color: $text-muted;
+  }
+}
+
+.relatorios-nota {
+  margin: 0 0 $sp-4;
+  @include type($fs-label, $w-regular);
+  color: $text-muted;
+}

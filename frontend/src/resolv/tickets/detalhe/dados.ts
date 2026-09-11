@@ -1,6 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
-import type { AlvoMencao, Macro, TicketDetalhe } from './tiposDetalhe'
+import type {
+  AgenteAtribuivel,
+  AlvoMencao,
+  DadosFechamento,
+  Macro,
+  TicketDetalhe,
+} from './tiposDetalhe'
 import type { Prioridade, StatusTicket } from '../tipos'
 
 const chaveDetalhe = (id: number) => ['ticket', id] as const
@@ -25,16 +31,27 @@ export interface Categoria {
   slug: string
 }
 
+// `?limit=200` porque o backend pagina em 25 por padrão (PAGE_SIZE,
+// config/settings/base.py) — sem isso, empresa com mais de 25
+// categorias/macros perde as demais em silêncio (o <select> de categoria em
+// PainelPropriedades.tsx não tem paginação, é lista fechada ou nada). Mesmo
+// precedente de cvz/tickets/dados.ts (`useAgentes`, `?limit=500`); 200 já
+// cobre a escala real de categoria/macro sem carregar o catálogo inteiro à
+// toa como 500 faria aqui.
 export function useCategorias() {
   return useQuery({
     queryKey: ['categorias'],
-    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/'),
+    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/?limit=200'),
     staleTime: 300_000,
     select: (d) => (Array.isArray(d) ? d : d.results),
   })
 }
 
-/** Agentes/equipes que podem ser atribuídos — lista inteira, filtrada em memória. */
+/** Quem pode ser @mencionado neste ticket — agentes internos ativos e
+ *  equipes (MentionTargetSerializer, apps/tickets/views.py `mention_targets`).
+ *  NÃO é a lista de quem pode ser Responsável/Dono técnico — ver
+ *  `useAgentesAtribuiveis` logo abaixo, que é a pergunta certa para os dois
+ *  seletores do painel de propriedades. */
 export function useAlvosMencao(id: number) {
   return useQuery({
     queryKey: ['ticket', id, 'mention-targets'],
@@ -43,13 +60,45 @@ export function useAlvosMencao(id: number) {
   })
 }
 
+/** Quem os seletores de Responsável e Dono técnico podem oferecer
+ *  (AssignableAgentSerializer, `GET /tickets/{id}/assignable-agents/`,
+ *  apps/tickets/views.py `assignable_agents`). Pergunta DIFERENTE de
+ *  `useAlvosMencao`: aqui o próprio agente logado JÁ está incluído (é o
+ *  "Assumir" pelo seletor) e agente leve JÁ está excluído (não passa em
+ *  `TICKET_BE_ASSIGNED`) — reusar a lista de menção aqui é o que fazia o
+ *  seletor oferecer gente que a atribuição real recusa com 400. */
+export function useAgentesAtribuiveis(id: number) {
+  return useQuery({
+    queryKey: ['ticket', id, 'assignable-agents'],
+    queryFn: () => api.get<AgenteAtribuivel[]>(`/api/v1/tickets/${id}/assignable-agents/`),
+    staleTime: 60_000,
+  })
+}
+
 export function useMacros() {
   return useQuery({
     queryKey: ['ticket-macros'],
-    queryFn: () => api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/'),
+    queryFn: () =>
+      api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/?limit=200'),
     staleTime: 300_000,
-    select: (d) => (Array.isArray(d) ? d : d.results),
+    select: (d) => (Array.isArray(d) ? d : d.results).filter((m) => m.is_active !== false),
   })
+}
+
+/** Corpo do `POST /tickets/{id}/reply/`. Responder-e-fechar é UMA chamada:
+ *  quando `new_status` é `closed`, os campos de resolução (D4) e a
+ *  justificativa vão juntos (TicketReplySerializer). */
+export interface DadosResposta {
+  body: string
+  is_public: boolean
+  new_status?: StatusTicket
+  resolution_started_at?: string
+  resolution_ended_at?: string
+  close_note?: string
+  /** A assinatura do agente entra no rodapé desta mensagem? Ela NÃO vai no
+   *  `body` — o servidor a desenha a partir do perfil (apps/accounts/assinatura.py). */
+  with_signature?: boolean
+  files?: File[]
 }
 
 /**
@@ -62,27 +111,24 @@ export function useAcoesTicket(id: number) {
   const qc = useQueryClient()
   const gravar = (t: TicketDetalhe) => {
     qc.setQueryData(chaveDetalhe(id), t)
-    qc.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+    // Prefixo `['tickets']`: transferir de equipe ou mexer em etiquetas muda a
+    // fila E as contagens da barra lateral (`['tickets', 'resumo']`).
+    qc.invalidateQueries({ queryKey: ['tickets'] })
   }
 
   const responder = useMutation({
-    mutationFn: (dados: {
-      body: string
-      is_public: boolean
-      new_status?: StatusTicket
-      files?: File[]
-    }) => {
+    mutationFn: (dados: DadosResposta) => {
       // Com anexos vai por multipart (o endpoint reply aceita `files`); sem,
       // JSON puro. O client detecta FormData e ajusta o Content-Type sozinho.
-      if (dados.files && dados.files.length > 0) {
+      const { files, ...json } = dados
+      if (files && files.length > 0) {
         const fd = new FormData()
-        fd.append('body', dados.body)
-        fd.append('is_public', String(dados.is_public))
-        if (dados.new_status) fd.append('new_status', dados.new_status)
-        dados.files.forEach((f) => fd.append('files', f))
+        Object.entries(json).forEach(([k, v]) => {
+          if (v !== undefined) fd.append(k, String(v))
+        })
+        files.forEach((f) => fd.append('files', f))
         return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, fd)
       }
-      const { files: _f, ...json } = dados
       return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, json)
     },
     onSuccess: gravar,
@@ -121,9 +167,47 @@ export function useAcoesTicket(id: number) {
     onSuccess: gravar,
   })
 
+  /** Transferir de equipe é o MESMO PATCH de triagem de prioridade e categoria
+   *  (`partial_update` em apps/tickets/views.py). Quem recusa equipe interna
+   *  para chamado de cliente é o serviço, que também escreve "equipe → X" no
+   *  histórico — a tela manda e mostra o motivo que voltar. */
+  const mudarEquipe = useMutation({
+    mutationFn: (team: number) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { team }),
+    onSuccess: gravar,
+  })
+
+  /** A lista SUBSTITUI o conjunto de etiquetas, e lista vazia limpa — contrato
+   *  do `TicketReclassifySerializer.tags` (apps/tickets/serializers.py). Por
+   *  isso a tela manda sempre o conjunto inteiro, nunca "adicione esta". */
+  const mudarEtiquetas = useMutation({
+    mutationFn: (tags: number[]) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { tags }),
+    onSuccess: gravar,
+  })
+
+  /** Grava só os campos de triagem da macro (categoria/urgência/responsável/
+   *  etiquetas). O texto pronto é responsabilidade do compositor. */
   const aplicarMacro = useMutation({
     mutationFn: (macro_id: number) =>
       api.post<TicketDetalhe>(`/api/v1/tickets/${id}/apply-macro/`, { macro_id }),
+    onSuccess: gravar,
+  })
+
+  /** Fechamento sem resposta ao cliente — mesmo contrato do quadro (D4). */
+  const fechar = useMutation({
+    mutationFn: (dados: DadosFechamento) =>
+      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados),
+    onSuccess: gravar,
+  })
+
+  const editarMensagem = useMutation({
+    mutationFn: ({ mensagemId, body }: { mensagemId: number; body: string }) =>
+      api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`, { body }),
+    onSuccess: gravar,
+  })
+
+  const apagarMensagem = useMutation({
+    mutationFn: (mensagemId: number) =>
+      api.delete<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`),
     onSuccess: gravar,
   })
 
@@ -135,6 +219,11 @@ export function useAcoesTicket(id: number) {
     seguir,
     deixarDeSeguir,
     mudarPrioridade,
+    mudarEquipe,
+    mudarEtiquetas,
     aplicarMacro,
+    fechar,
+    editarMensagem,
+    apagarMensagem,
   }
 }

@@ -6,9 +6,21 @@
   flex-direction: column;
   gap: 20px;
 
+  &__cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  // Único lugar do produto com a serifa de destaque (--f-display) — mesmo
+  // tratamento do título grande do app da Manus (manus.im): serifa só aqui,
+  // peso regular (bold em serifa de texto pesa demais num título já grande),
+  // resto da interface continua em Inter.
   &__titulo {
-    font-size: 20px;
-    font-weight: 600;
+    font-family: var(--f-display);
+    font-size: 26px;
+    font-weight: 400;
     color: var(--text-primary);
     letter-spacing: -0.01em;
   }
@@ -17,13 +29,43 @@
     font-size: 13px;
     color: var(--text-muted);
   }
+  &__fila-estado {
+    color: var(--away);
+    font-weight: 500;
+    &--aberta {
+      color: var(--ok);
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  // Os botões desta barra são componentes do @material/web — altura, forma,
+  // cor, ripple e foco vêm dos tokens em styles/material.css. Aqui não sobra
+  // nada para estilizar; o bloco antigo (fundo, borda, filtro de brilho)
+  // brigaria com o desenho do próprio componente.
+
+  // Duas colunas no desktop (fila de prioridade/vencimentos à esquerda,
+  // chat/equipe à direita); uma coluna abaixo de 900px — mesmo ponto de
+  // quebra do mini chat, que já some nessa largura.
+  &__grade {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+
+    @media (max-width: 899px) {
+      grid-template-columns: 1fr;
+    }
+  }
 
   &__kpis {
     display: flex;
     flex-wrap: wrap;
     background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
     overflow: hidden;
   }
 
@@ -35,7 +77,7 @@
     gap: 6px;
     padding: 20px;
     border: none;
-    border-right: 0.7px solid var(--stroke);
+    border-right: 1px solid var(--stroke);
     border-bottom: 3px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -71,5 +113,274 @@
     &--ok {
       color: var(--ok);
     }
+  }
+
+  // "Resolvidos hoje" — mesmo cartão, mais a variação vs a mesma hora
+  // ontem (apps/reports/services/indicators.py::variation, período "today").
+  &__kpi--tendencia {
+    cursor: default;
+    &:hover {
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+  }
+  &__kpi-delta {
+    font-size: 11px;
+    font-weight: 500;
+    &--up {
+      color: var(--ok);
+    }
+    &--down {
+      color: var(--danger);
+    }
+    &--flat {
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ============================================================================
+// Listas da Início — fila de prioridade, vencimentos de SLA, fila de chat,
+// equipe online. Um cartão por widget, mesma borda/raio do resto do design
+// system; cada linha é o item de verdade (clicável), não um resumo.
+// ============================================================================
+.inicio-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio);
+  min-width: 0;
+
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    h2 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+  &__contador {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  // Text button do Material; aqui só a folga para ele encostar na borda do
+  // cabeçalho sem parecer deslocado.
+  &__ver-tudo {
+    margin-right: -10px;
+  }
+  &__vazio {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 8px 2px;
+  }
+
+  &__itens {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 6px;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      background: var(--surface);
+    }
+    &--chat {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+    }
+  }
+  &__barra {
+    width: 3px;
+    align-self: stretch;
+    border-radius: var(--raio);
+    flex-shrink: 0;
+  }
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  &__assunto {
+    font-size: 13px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__meta {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__sla {
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+.inicio-chat {
+  &__avatar {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  // Filled tonal button do Material.
+  &__pegar {
+    flex-shrink: 0;
+  }
+}
+
+.inicio-online {
+  &__grade {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    list-style: none;
+    margin: 0;
+    padding: 4px 2px;
+  }
+  &__pessoa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 52px;
+  }
+  &__avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-card);
+    &--available {
+      background: var(--presenca-disponivel);
+    }
+    &--away {
+      background: var(--presenca-ausente);
+    }
+  }
+  &__nome {
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+// ============================================================================
+// Mural de avisos — o que a equipe publicou pra essa audiência (fixados
+// primeiro). Uma borda de cor por tipo, mesmo padrão do aviso de erro do
+// Kanban (border + fundo tingido via color-mix).
+// ============================================================================
+.mural-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1px solid var(--stroke);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 13px;
+
+    > svg:first-child {
+      margin-top: 2px;
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+    &--urgent {
+      border-left-color: var(--danger);
+      background: color-mix(in srgb, var(--danger) 6%, var(--surface-card));
+      > svg:first-child {
+        color: var(--danger);
+      }
+    }
+    &--holiday {
+      border-left-color: var(--ok);
+      > svg:first-child {
+        color: var(--ok);
+      }
+    }
+    &--vacation {
+      border-left-color: var(--away);
+      > svg:first-child {
+        color: var(--away);
+      }
+    }
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    strong {
+      display: block;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    p {
+      margin-top: 2px;
+      color: var(--text-secondary);
+    }
+  }
+
+  // Dispensar é um md-icon-button; o alvo de 32px e o ripple vêm dele.
+  &__item md-icon-button {
+    flex-shrink: 0;
+    margin: -4px -6px 0 0;
   }
 }

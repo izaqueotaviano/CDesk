@@ -147,3 +147,23 @@ def endurecimento_de_producao(app_configs, **kwargs):
         ))
 
     return problemas
+
+
+@register(Tags.security, deploy=True)
+def base_de_conhecimento_desligada(app_configs, **kwargs):
+    """GAPS.md item 5: WORDPRESS_KB_ENABLED=False é escolha operacional válida
+    (ninguém confirmou o `rest_base` do post type contra o WordPress real) — mas
+    hoje ela é silenciosa. Sem este aviso, a Central de Ajuda do cliente
+    (frontend/src/portal/ajuda/) sobe vazia em produção sem que ninguém tenha
+    decidido isso conscientemente para aquele ambiente."""
+    problemas = []
+
+    if not settings.WORDPRESS_KB_ENABLED:
+        problemas.append(Warning(
+            "WORDPRESS_KB_ENABLED=False: a Central de Ajuda do cliente sobe vazia.",
+            hint="Confirme o post type e ligue a flag antes de contar com a "
+                 "Central de Ajuda em produção.",
+            id="resolv.W014",
+        ))
+
+    return problemas

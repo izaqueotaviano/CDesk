@@ -89,7 +89,7 @@ class TestBulkPriority:
             "ticket_ids": [t1.pk], "priority": "high",
         }, format="json")
         evento = t1.status_events.latest("id")
-        assert "urgência" in evento.note
+        assert "prioridade" in evento.note
 
 
 class TestBulkClose:

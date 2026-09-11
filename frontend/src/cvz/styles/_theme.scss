@@ -1,76 +1,131 @@
 // =============================================================================
 // TEMA — claro e escuro (cvzdesk)
 //
-// Copiado VERBATIM do MCP cvzdesk (get_tokens) em 2026-09-04.
+// A base veio do MCP cvzdesk (get_tokens, 2026-09-04), mas a PALETA já não é
+// mais a de lá: esta rodada trocou a identidade quente (marrom/#0275DE) pela
+// paleta do produto — azul de ação #0f62fe, neutros frios e cromo #f0f0f0.
+// Editar aqui é o caminho certo agora; recopiar do cvzdesk desfaria a
+// identidade do Resolv.
 //
 // As cores vivem em custom properties para o tema poder trocar em runtime sem
 // recompilar. Os tokens SCSS (_tokens.scss) apontam para cá; nenhum componente
 // lê `--cvz-*` direto — sempre pelo token.
 //
-// O tema escuro usa a paleta do Material Design: rampa de superfícies do
-// Material 3 (baseline dark) e a família Blue do Material para a cor de ação,
-// que no escuro precisa clarear em vez de escurecer para manter contraste.
+// Duas famílias de linha, de propósito:
+//   --cvz-stroke        estrutura (tabela, card, divisória, cromo)
+//   --cvz-field-border  SÓ campo de entrada (input/select/textarea/combobox)
+// A segunda é bem mais escura que a primeira porque campo precisa se anunciar
+// como clicável; usar a mesma linha nos dois deixava o formulário sumir dentro
+// da página.
 // =============================================================================
 
 :root,
 [data-theme='light'] {
   color-scheme: light;
 
-  --cvz-blue:            #0275DE;
-  --cvz-blue-hover:      #0268C4;
-  --cvz-blue-active:     #015AAB;
-  --cvz-blue-tint:       #E9F3FD;
-  --cvz-blue-tint-hover: #DEECFB;
+  --cvz-blue:            #0f62fe;
+  --cvz-blue-hover:      #0043ce;
+  --cvz-blue-active:     #002d9c;
+  --cvz-blue-tint:       #edf5ff;
+  --cvz-blue-tint-hover: #d0e2ff;
 
-  --cvz-surface:         #F9F8F7;
-  --cvz-chrome:          #F5F3F2;
-  --cvz-raised:          #FFFFFF;
-  --cvz-stroke:          #E3E1DF;
-  --cvz-hover:           #E3E1DF;
-  --cvz-hover-soft:      rgba(232, 226, 221, 0.45);
+  // Conteúdo em branco; o cromo (sidebar, barra de abas) é que recua para o
+  // #f0f0f0. `raised` segue branco e se separa do fundo pela LINHA, não por
+  // sombra — a rodada pediu explicitamente para evitar sombra pesada.
+  //
+  // `canvas` é o fundo geral atrás do conteúdo — pintado uma vez em
+  // SuperficieCvz.scss, não nos cards/tabelas/modais em si (que continuam em
+  // `surface`). `chrome`/`canvas` são os dois primeiros tons do app da Manus
+  // (nav e canvas — só referência de VALOR, não código); o card de lá
+  // (#fafafa) não entrou, cartão/tabela seguem em branco puro.
+  --cvz-surface:         #ffffff;
+  --cvz-canvas:          #f8f8f7;
+  --cvz-chrome:          #f0f0f0;
+  --cvz-raised:          #ffffff;
+  // Hex fixo, não mais preto translúcido: sobre o novo `--cvz-canvas`
+  // (#f8f8f7, não mais branco puro) uma borda derivada de preto ficava
+  // clara demais — mesma troca e mesmo motivo do lado resolv
+  // (resolv/styles/tokens.scss). `--cvz-field-border`, abaixo, é outra
+  // família e não muda.
+  --cvz-stroke:          #e5e7eb;
+  --cvz-field-border:    #7d7d7d;
+  --cvz-hover:           #e6e6e6;
+  --cvz-hover-soft:      rgba(26, 26, 26, 0.04);
 
-  --cvz-text:            #3b3532;
-  --cvz-text-hover:      #2c2724;
-  --cvz-text-secondary:  #79706a;
-  --cvz-text-muted:      #a79e97;
+  --cvz-text:            #1a1a1a;
+  --cvz-text-hover:      #101010;
+  --cvz-text-secondary:  #4d4d4d;
+  --cvz-text-muted:      #737373;
   --cvz-text-on-color:   #ffffff;
   --cvz-text-on-accent:  #ffffff;
 
   --cvz-danger:          #b3261e;
   --cvz-danger-hover:    #9c211a;
-  --cvz-danger-tint:     #F9EBEA;
+  --cvz-danger-tint:     #fdeceb;
   --cvz-success:         #1d7a4c;
-  --cvz-success-tint:    #EAF3EE;
+  --cvz-success-tint:    #e9f4ee;
   --cvz-away:            #8a5d0f;
-  --cvz-away-tint:       #F7F1E4;
+  --cvz-away-tint:       #f8f1e3;
 
-  --cvz-avatar-bg:       #c9c0ba;
-  --cvz-overlay:         rgba(59, 53, 50, 0.38);
+  // Identidade — o que distingue "esta pessoa" de "aquela" (avatar) e "este
+  // plano" de "aquele" (Tag). Paleta à parte da semântica: nenhum é azul,
+  // verde, âmbar ou vermelho. Os MESMOS seis valores de resolv/styles/
+  // tokens.scss (--identidade-*) e styles/tokens.css (--avatar-c*); o hash
+  // que escolhe é ui/identidade.ts. Todos AA com texto branco em cima e AA
+  // como texto sobre as superfícies claras (pior par: 4,7:1).
+  --cvz-identity-1:      #5B5FC7;  // violeta
+  --cvz-identity-2:      #0B6F78;  // petróleo
+  --cvz-identity-3:      #3D6E8C;  // aço
+  --cvz-identity-4:      #9E5439;  // terracota
+  --cvz-identity-5:      #4B5768;  // ardósia
+  --cvz-identity-6:      #A23E7B;  // magenta
+  // Texto na cor (Tag sobre tint): no claro é a própria cor.
+  --cvz-identity-1-text: var(--cvz-identity-1);
+  --cvz-identity-2-text: var(--cvz-identity-2);
+  --cvz-identity-3-text: var(--cvz-identity-3);
+  --cvz-identity-4-text: var(--cvz-identity-4);
+  --cvz-identity-5-text: var(--cvz-identity-5);
+  --cvz-identity-6-text: var(--cvz-identity-6);
+  --cvz-overlay:         rgba(26, 26, 26, 0.38);
 
-  --cvz-shadow-sm: 0 1px 2px rgba(59, 53, 50, 0.08);
-  --cvz-shadow-md: 0 6px 20px rgba(59, 53, 50, 0.12);
-  --cvz-shadow-lg: 0 24px 64px rgba(59, 53, 50, 0.22);
+  --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14);
 
-  --cvz-chrome-glass: rgba(245, 243, 242, 0.72);
+  --cvz-chrome-glass: rgba(240, 240, 240, 0.72);
   --cvz-on-accent-soft: rgba(255, 255, 255, 0.16);
 }
 
 // -----------------------------------------------------------------------------
-// Escuro — Material Design
+// Escuro
 // -----------------------------------------------------------------------------
+// Superfícies do Material 3 (baseline dark) mantidas — já batem com os
+// tone-stops oficiais (surface/-container-low/-container/-container-high).
+// O azul agora é o role `primary` REAL do M3 (não aproximação): calculado
+// via @material/material-color-utilities (DynamicScheme/SchemeTonalSpot, a
+// mesma classe do Material Theme Builder do Google) a partir do #0f62fe —
+// tom 80 dá #b4c5ff, mais claro que a aproximação manual anterior e com
+// contraste maior (9,6–10,9:1 como texto, contra os 7,4:1 de antes).
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --cvz-blue:            #90CAF9;  // Material Blue 200
-  --cvz-blue-hover:      #A6D4FA;
-  --cvz-blue-active:     #64B5F6;  // Material Blue 300
-  --cvz-blue-tint:       #172a3d;
-  --cvz-blue-tint-hover: #1e344a;
+  --cvz-blue:            #b4c5ff;
+  --cvz-blue-hover:      #d3dcff;
+  --cvz-blue-active:     #98a9e4;
+  --cvz-blue-tint:       #334478;  // M3 primary-container (tom 30)
+  --cvz-blue-tint-hover: #3f5085;
 
   --cvz-surface:         #141218;  // M3 surface
+  // Sem referência escura no material desta rodada — mesma extrapolação do
+  // lado resolv (tokens.scss): entre o chrome e o corpo, mantendo a ordem
+  // chrome < canvas < corpo < cartão dos dois temas.
+  --cvz-canvas:          #18161b;
   --cvz-chrome:          #1D1B20;  // M3 surface-container-low
   --cvz-raised:          #211F26;  // M3 surface-container
   --cvz-stroke:          #49454F;  // M3 outline-variant
+  // Campo continua um degrau acima da linha estrutural, como no claro — só
+  // que subindo (mais claro), porque aqui o contraste se ganha clareando.
+  --cvz-field-border:    #8d8d8d;
   --cvz-hover:           #2B2930;  // M3 surface-container-high
   --cvz-hover-soft:      rgba(230, 224, 233, 0.08);
 
@@ -79,23 +134,38 @@
   --cvz-text-secondary:  #CAC4D0;  // M3 on-surface-variant
   --cvz-text-muted:      #938F99;  // M3 outline
   --cvz-text-on-color:   #E6E0E9;
-  --cvz-text-on-accent:  #003258;  // texto sobre Blue 200 — M3 on-primary dark
+  --cvz-text-on-accent:  #1B2D60;  // M3 on-primary (tom 20) sobre o novo --cvz-blue
 
-  --cvz-danger:          #F2B8B5;  // M3 error dark
-  --cvz-danger-hover:    #F7CFCD;
-  --cvz-danger-tint:     #3B2223;
-  --cvz-success:         #81C784;  // Material Green 300
-  --cvz-success-tint:    #1B2E20;
-  --cvz-away:            #FFD54F;  // Material Amber 300
-  --cvz-away-tint:       #332B14;
+  // error/success/warning pela MESMA metodologia e MESMA cor-fonte do resto
+  // do produto (#b3261e/#1d7a4c/#8a5d0f — as mesmas de --danger/--ok/--away
+  // em resolv/styles/tokens.scss e styles/tokens.css). Antes o success/away
+  // daqui eram cores genéricas do Material (Green 300 / Amber 300),
+  // desconectadas do hue da marca — essa inconsistência foi corrigida.
+  --cvz-danger:          #FFB4AB;  // M3 error (tom 80)
+  --cvz-danger-hover:    #FFD3CD;
+  // error-container (tom 30): mais vívido que o wash sutil de antes de
+  // propósito — o croma-alvo da paleta de erro do M3 é bem mais alto que o
+  // de primary, então o container de erro é propositalmente mais saturado.
+  --cvz-danger-tint:     #93000A;
+  --cvz-success:         #81D9A2;  // retonado (HCT, tom 80) do hue/chroma de #1d7a4c
+  --cvz-success-tint:    #00522F;  // container (tom 30)
+  --cvz-away:            #F7BC68;  // retonado (HCT, tom 80) do hue/chroma de #8a5d0f
+  --cvz-away-tint:       #624000;  // container (tom 30)
 
-  --cvz-avatar-bg:       #4A4458;  // M3 surface-variant dark
+  // Identidade: o preenchimento não muda (tons médios, branco em cima segue
+  // AA); só o TEXTO clareia — mesmos valores de resolv/styles/tokens.scss.
+  --cvz-identity-1-text: #7C81EB;
+  --cvz-identity-2-text: #4597A0;
+  --cvz-identity-3-text: #6191B1;
+  --cvz-identity-4-text: #C87658;
+  --cvz-identity-5-text: #808C9F;
+  --cvz-identity-6-text: #D266A5;
   --cvz-overlay:         rgba(0, 0, 0, 0.62);
 
   --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --cvz-shadow-md: 0 6px 20px rgba(0, 0, 0, 0.5);
-  --cvz-shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6);
+  --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
 
   --cvz-chrome-glass: rgba(29, 27, 32, 0.72);
-  --cvz-on-accent-soft: rgba(0, 50, 88, 0.18);
+  --cvz-on-accent-soft: rgba(27, 45, 96, 0.18);
 }

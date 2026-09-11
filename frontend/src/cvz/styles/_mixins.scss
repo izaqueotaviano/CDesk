@@ -128,7 +128,10 @@ $_type-lh-map: (
   @include type($fs-ui);
   height: $control-h;
   padding: 0 $sp-3;
-  border: $border;
+  // `$border-field`, não `$border`: campo tem linha própria, mais escura (ver
+  // _tokens.scss). É este mixin que faz a regra valer em TODO campo do design
+  // system de uma vez — quem escrever borda de input à mão foge do contrato.
+  border: $border-field;
   border-radius: $radius;
   background-color: $raised;
   color: $text;

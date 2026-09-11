@@ -325,11 +325,13 @@ class TestPasswordReset:
         assert resp.status_code == 403
 
     def test_refused_for_google_only_account(self, api, admin, agente, settings):
-        # com o Google ligado, um interno não tem senha nenhuma pra redefinir
+        # com o Google ligado E configurado (as duas — ver login_por_google_ativo),
+        # um interno não tem senha nenhuma pra redefinir
         settings.AUTHENTICATION_BACKENDS = [
             "django.contrib.auth.backends.ModelBackend",
             "allauth.account.auth_backends.AuthenticationBackend",
         ]
+        settings.GOOGLE_OAUTH_ALLOWED_DOMAINS = ["x.test"]
         resp = api(admin).post(self.URL.format(agente.pk))
         assert resp.status_code == 400
 
@@ -369,7 +371,8 @@ class TestPasswordReset:
             format="json",
         )
         assert login_resp.status_code == 200
-        assert "two_factor" in login_resp.json()  # segue pro 2FA normalmente
+        # a verificação em duas etapas é opcional: sem ela, a senha nova já entra
+        assert login_resp.json()["email"] == cliente.email
 
 
 class TestCompanyConfig:
@@ -499,7 +502,11 @@ class TestNotificationPreferences:
         client = api(agente)
         data = client.get("/api/v1/notification-preferences/").json()
         assert data["in_app"]["sla_warning"] is True
-        assert data["email"]["sla_warning"] is False
+        # E-mail também começa LIGADO: quem nunca abriu esta tela recebe os
+        # avisos, e é o que `services.quer_email()` sempre fez. A tela dizia
+        # "desligado" e o serviço mandava assim mesmo — a paridade dos dois
+        # defaults está travada em `notifications.TestPreferenciaPadrao`.
+        assert data["email"]["sla_warning"] is True
 
         resp = client.put("/api/v1/notification-preferences/",
                           {"in_app": {"sla_warning": False}}, format="json")

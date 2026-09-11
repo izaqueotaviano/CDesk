@@ -1,0 +1,110 @@
+// O editor de texto rico (CKEditor 5) embrulhado em `.editor-conteudo`.
+//
+// Só re-teima o que muda mais a olho: fundo, borda, texto, o estado "ativo"
+// de um botão da barra (negrito ligado etc.) e o placeholder. O CKEditor
+// tem dezenas de variáveis `--ck-color-*` internas e várias delas são
+// valores fixos, não derivados das "base" — perseguir cada uma seria
+// re-implementar o tema dele. Isto cobre o que salta aos olhos no escuro
+// sem tentar imitar pixel a pixel.
+
+.editor-conteudo {
+  --ck-border-radius: var(--raio);
+  --ck-focus-ring: var(--anel-foco);
+
+  .ck.ck-editor__main > .ck-editor__editable {
+    min-height: 260px;
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  // A barra "gruda" longe do topo da coluna estreita do painel do chamado
+  // sem isto — aqui ela fica junto do editor, como num processador de texto.
+  .ck.ck-toolbar {
+    border-radius: var(--raio) var(--raio) 0 0;
+  }
+  .ck.ck-editor__main > .ck-editor__editable {
+    border-radius: 0 0 var(--raio) var(--raio);
+  }
+
+}
+
+// O reset do Tailwind (`@layer base`) zera título e lista em toda a
+// aplicação — sem isto, escolher "Heading 1" na barra não muda NADA na
+// tela, porque o CKEditor conta com o navegador (ou a página hospedeira) pra
+// estilizar `<h2>`/`<ul>`, e nem `ckeditor5.css` nem `ckeditor5-content.css`
+// fazem isso por conta própria.
+//
+// FORA de `.editor-conteudo` de propósito: `.ck-content` é a classe que o
+// próprio CKEditor põe na área editável, mas é também a classe que
+// `EditorNota.tsx` acrescenta na leitura da lixeira (`ck-content
+// editor-nota__corpo-lido`) — pra herdar de graça o que o `ckeditor5.css`
+// JÁ estiliza sozinho (marca-texto, lista de tarefas, sub/sobrescrito) sem
+// copiar regra nenhuma, e pra herdar TAMBÉM o que só existe aqui (título,
+// lista, alinhamento, recuo). Editar e ler viram o mesmo CSS, não dois
+// que alguém tem de lembrar de manter iguais.
+.ck-content {
+  h2, h3, h4 {
+    margin: 14px 0 6px;
+    font-weight: 600;
+  }
+  h2 { font-size: 15px; }
+  h3 { font-size: 14px; }
+  h4 { font-size: 13px; }
+  ul, ol {
+    margin: 0 0 8px;
+    padding-left: 20px;
+  }
+  li { margin: 2px 0; }
+  blockquote {
+    margin: 8px 0;
+    padding-left: 10px;
+    border-left: 2px solid var(--accent);
+    color: var(--text-secondary);
+  }
+  a {
+    color: var(--accent);
+    text-decoration: underline;
+  }
+  strong { font-weight: 600; }
+
+  // Classe fixa, não o `style="text-align:…"` que o plugin usa por padrão —
+  // ver a docstring de `EditorConteudo.tsx` pro porquê (allowlist do
+  // backend fecha em cima de nome de classe, não em cima de CSS livre).
+  &.align-left, .align-left { text-align: left; }
+  &.align-center, .align-center { text-align: center; }
+  &.align-right, .align-right { text-align: right; }
+  &.align-justify, .align-justify { text-align: justify; }
+
+  // Três degraus fixos de recuo de parágrafo (`indentBlock.classes` no
+  // componente) — mesma allowlist, mesmo raciocínio.
+  .indent-1 { margin-left: 24px; }
+  .indent-2 { margin-left: 48px; }
+  .indent-3 { margin-left: 72px; }
+}
+
+// Mesmo par de seletores de resolv/styles/tokens.scss: a escolha explícita
+// primeiro, o `prefers-color-scheme` como fallback só até `useTema` montar.
+html[data-tema='escuro'] .resolv-scope .editor-conteudo {
+  --ck-color-base-foreground: var(--surface-alt);
+  --ck-color-base-background: var(--surface-card);
+  --ck-color-base-border: var(--stroke);
+  --ck-color-base-text: var(--text-primary);
+  --ck-color-button-default-hover-background: var(--surface-alt);
+  --ck-color-button-on-background: var(--tom-acento);
+  --ck-color-button-on-color: var(--accent);
+  --ck-color-engine-placeholder-text: var(--text-secondary);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema]) .resolv-scope .editor-conteudo {
+    --ck-color-base-foreground: var(--surface-alt);
+    --ck-color-base-background: var(--surface-card);
+    --ck-color-base-border: var(--stroke);
+    --ck-color-base-text: var(--text-primary);
+    --ck-color-button-default-hover-background: var(--surface-alt);
+    --ck-color-button-on-background: var(--tom-acento);
+    --ck-color-button-on-color: var(--accent);
+    --ck-color-engine-placeholder-text: var(--text-secondary);
+  }
+}

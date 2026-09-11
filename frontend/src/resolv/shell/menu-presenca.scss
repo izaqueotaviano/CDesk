@@ -1,0 +1,273 @@
+// Menu de presença — dropdown do avatar na zona utilitária da Sidebar (Fase
+// 2; antes vivia na Topbar, que não existe mais). O posicionamento, a sombra
+// e o fechamento vêm do Popover genérico da cvzdesk (mesmo caminho que
+// notificacoes.scss faz) — a DIREÇÃO do painel (abre pra direita, não pra
+// baixo) é sobrescrita em sidebar.scss, junto dos outros itens da zona.
+//
+// Cor sempre por token: `--presenca-disponivel`/`--presenca-ausente`/
+// `--presenca-offline` são as três presenças (tokens.scss — família à parte
+// de `--ok`/`--away`, que já servem o SLA em outra cor). O `--gatilho` vive
+// fora do painel, mas nasce do mesmo bloco (o `&__` do SCSS concatena, não
+// aninha) para os dois lados da mesma peça ficarem juntos.
+
+.menu-presenca {
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+
+  // ── Gatilho (na Sidebar, fora do painel) ──
+  // Linha inteira com avatar + nome quando a barra está expandida; quando ela
+  // recolhe, sidebar.scss encolhe isto para 40×40 e esconde o nome. O layout
+  // segue o dos itens de navegação de propósito: é a mesma coluna.
+  &__gatilho {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+    width: 100%;
+    min-height: 40px;
+    padding: 0 6px;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    font-family: var(--f-ui);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+
+  &__avatar {
+    position: relative;
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--surface-card); // contraste sobre o accent, sem #fff cru
+    user-select: none;
+  }
+
+  // Visível com a barra expandida; sidebar.scss esconde quando ela recolhe
+  // (aí não cabe, e o nome continua no `aria-label`/`title` do gatilho).
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--texto-cromo);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Selo sobreposto no canto do avatar — mesma ideia do badge de não-lidas
+  // de notificacoes.scss, só que para o estado da MUTAÇÃO de presença
+  // (salvando/erro), não uma contagem.
+  &__girando,
+  &__alerta {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--surface-alt);
+    font-size: 10px;
+  }
+  &__girando {
+    color: var(--text-muted);
+    animation: menu-presenca-girar 0.9s linear infinite;
+  }
+  &__alerta {
+    color: var(--danger);
+  }
+
+  // Só para leitor de tela: a mutação termina com o menu fechado, então o
+  // resultado precisa ser anunciado sem ocupar espaço no Topbar.
+  &__anuncio {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  // ── Ponto de presença (usado no avatar e em cada opção) ──
+  &__ponto {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: var(--text-muted);
+
+    &--available {
+      background: var(--presenca-disponivel);
+    }
+    &--away {
+      background: var(--presenca-ausente);
+    }
+    &--offline {
+      background: var(--presenca-offline);
+    }
+    // /auth/me/ ainda carregando: cinza de traço, para não afirmar um status
+    // que ainda não sabemos (verde fixo era exatamente o bug de antes).
+    &--desconhecida {
+      background: var(--stroke-hover);
+    }
+  }
+
+  // No avatar o ponto é uma marca sobreposta, com anel para destacar do fundo.
+  // O recorte é uma borda POR FORA (box-shadow), não por dentro: com
+  // `border` os 2px comiam o ponto e sobravam 6px de cor num avatar de 30 —
+  // pequeno demais para ser lido de relance. Mesma proporção (~1/3) e mesma
+  // técnica da bolinha do console (`.cc-avatar__ponto`).
+  &__avatar &__ponto {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 11px;
+    height: 11px;
+    box-shadow: 0 0 0 2px var(--surface-alt);
+  }
+
+  // ── Painel ──
+  &__cabecalho {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px 10px;
+    border-bottom: 1px solid var(--stroke);
+
+    strong {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    span {
+      font-size: 11px;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  &__opcoes {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0 2px;
+  }
+
+  &__opcao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 32px;
+    padding: 7px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+
+    > i {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    &:hover:not(:disabled) {
+      background: var(--surface-alt);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+
+    // A opção atual não fica marcada só pela cor: o peso e o traço à esquerda
+    // sobrevivem a daltonismo e a tema escuro.
+    &--atual {
+      font-weight: 600;
+      background: var(--surface-alt);
+      box-shadow: inset 2px 0 0 var(--accent);
+
+      > i {
+        color: var(--accent);
+      }
+    }
+  }
+
+  &__erro {
+    margin: 2px 0 0;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--danger);
+  }
+
+  &__separador {
+    height: 1px;
+    margin: 6px 0;
+    background: var(--stroke);
+  }
+
+  &__conta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    min-height: 32px;
+    padding: 7px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-align: left;
+    cursor: pointer;
+
+    > i {
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+}
+
+@keyframes menu-presenca-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}

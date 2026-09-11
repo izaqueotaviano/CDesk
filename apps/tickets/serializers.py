@@ -10,6 +10,7 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.accounts import assinatura
 from apps.accounts.models import Team
 from apps.tickets.models import (
     Service,
@@ -63,7 +64,14 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ["id", "name", "slug", "visibility", "order"]
+        # `internal_only` entra porque o seletor de TRANSFERIR equipe (o painel
+        # do detalhe) precisa saber quais equipes podem receber chamado de
+        # cliente: sem isso a tela oferece a equipe interna, o agente confirma a
+        # transferência e só então toma 400 de
+        # `ticket_service` ("Equipe interna não pode receber chamado de
+        # cliente."). Não é dado sensível — `TeamViewSet.get_queryset` já
+        # esconde a equipe inteira de quem é cliente.
+        fields = ["id", "name", "slug", "visibility", "order", "internal_only"]
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -135,6 +143,7 @@ class TicketMessageSerializer(serializers.ModelSerializer):
     mentions = serializers.SerializerMethodField()
     is_deleted = serializers.BooleanField(read_only=True)
     can_edit = serializers.SerializerMethodField()
+    signature_html = serializers.SerializerMethodField()
 
     class Meta:
         model = TicketMessage
@@ -146,7 +155,23 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             # correção silenciosa numa conversa que o cliente já leu não é
             # correção, é reescrita
             "edited_at", "is_deleted", "can_edit",
+            # rodapé desta mensagem, renderizado do perfil do autor
+            "signature_html",
         ]
+
+    def get_signature_html(self, obj) -> str:
+        """A assinatura do autor, ou vazio.
+
+        Vem montada do servidor porque é ela que carrega HTML: a tela só
+        precisa desenhar, e o que ela desenha já passou pelo higienizador
+        (`apps/accounts/assinatura.py`). Nota interna não leva assinatura —
+        ninguém assina um bilhete para a própria equipe.
+        """
+        if not obj.with_signature or not obj.is_public or obj.author_id is None:
+            return ""
+        if obj.deleted_at is not None:
+            return ""
+        return assinatura.render_html(obj.author)
 
     @extend_schema_field(MentionSerializer(many=True))
     def get_mentions(self, obj) -> list:
@@ -505,6 +530,9 @@ class TicketCreateSerializer(serializers.Serializer):
     )
     # interno abrindo em nome de um cliente (source=INTERNAL, isento de cota — F-C)
     requester_id = serializers.IntegerField(required=False)
+    # "incluir minha assinatura" (só faz efeito para quem é interno; ver
+    # `TicketReplySerializer` para o porquê do default False)
+    with_signature = serializers.BooleanField(default=False)
 
 
 def _agentes_ativos():
@@ -537,6 +565,10 @@ class TicketReclassifySerializer(serializers.Serializer):
 class TicketReplySerializer(serializers.Serializer):
     body = serializers.CharField()
     is_public = serializers.BooleanField(default=True)
+    # "incluir minha assinatura" do compositor. Default False: quem chama a
+    # API sem dizer nada (integração, script) não passa a assinar em nome de
+    # ninguém sem pedir.
+    with_signature = serializers.BooleanField(default=False)
     # obrigatório para resposta pública de agente; proibido para cliente
     new_status = serializers.ChoiceField(
         choices=TicketStatus.choices, required=False, allow_null=True
@@ -567,6 +599,22 @@ class MentionTargetSerializer(serializers.Serializer):
     email = serializers.CharField(allow_blank=True)
     avatar_url = serializers.CharField(allow_blank=True)
     group = serializers.ChoiceField(choices=["ticket", "equipe", "outros", "equipes"])
+
+
+class AssignableAgentSerializer(serializers.Serializer):
+    """Um item do seletor de Responsável/Dono técnico.
+
+    Mesmos 4 campos de `MentionTargetSerializer` (id/name/email/avatar_url) —
+    de propósito, para o front consumir as duas listas com o mesmo tipo
+    TypeScript. Sem `type` nem `group`: esta lista é só de gente (nunca
+    equipe), então não há o que discriminar nem agrupar
+    (apps/tickets/services/atribuicao.py::agentes_atribuiveis).
+    """
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.CharField(allow_blank=True)
+    avatar_url = serializers.CharField(allow_blank=True)
 
 
 class TicketMessageEditSerializer(serializers.Serializer):

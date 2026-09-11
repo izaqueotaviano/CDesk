@@ -15,6 +15,7 @@ Regras:
 from __future__ import annotations
 
 import hashlib
+import math
 
 import magic
 from django.conf import settings
@@ -64,18 +65,46 @@ def limits():
         )
 
 
+def _tamanho_legivel(quantidade_bytes: int, *, para_cima: bool = False) -> str:
+    """Tamanho em texto para o usuário final.
+
+    A razão de existir é a mensagem de recusa: ela sai da API como
+    `{"files": "..."}` (apps/tickets/views.py) e é exibida crua na tela, então
+    precisa dizer QUANTO veio e QUAL é o teto. A divisão inteira fixa em KB/MB
+    que estava aqui escrevia "tem 0 KB; o limite é 0 MB" sempre que os números
+    não caíam na unidade escolhida — verdadeiro e inútil.
+
+    `para_cima` existe porque arredondar tudo do mesmo jeito produz uma recusa
+    que se contradiz: um arquivo de 10 MB + 1 byte contra um limite de 10 MB
+    virava "tem 10 MB; o limite por arquivo é 10 MB". Quem estoura o limite
+    normalmente estoura por pouco, então essa era justamente a faixa mais
+    provável. O TAMANHO ENVIADO arredonda para cima e o LIMITE para baixo: cada
+    um erra para o lado que mantém a frase verdadeira, e os dois números nunca
+    colidem quando o arquivo de fato passou do teto.
+    """
+    for unidade, fator in (("MB", 1024 * 1024), ("KB", 1024)):
+        if quantidade_bytes >= fator:
+            decimos = quantidade_bytes / fator * 10
+            decimos = math.ceil(decimos) if para_cima else math.floor(decimos)
+            valor = f"{decimos / 10:.1f}".rstrip("0").rstrip(".")
+            return f"{valor.replace('.', ',')} {unidade}"
+    return f"{quantidade_bytes} bytes"
+
+
 def validate_upload(upload, *, already_uploaded_bytes: int = 0) -> str:
     """Valida e devolve o MIME detectado. Levanta AttachmentRejected."""
     max_file, max_msg, _ = limits()
 
     if upload.size > max_file:
         raise AttachmentRejected(
-            f"'{upload.name}' tem {upload.size // 1024} KB; o limite por arquivo "
-            f"é {max_file // 1024 // 1024} MB."
+            f"'{upload.name}' tem {_tamanho_legivel(upload.size, para_cima=True)}; "
+            f"o limite por arquivo é {_tamanho_legivel(max_file)}."
         )
     if already_uploaded_bytes + upload.size > max_msg:
         raise AttachmentRejected(
-            f"O total de anexos ultrapassa {max_msg // 1024 // 1024} MB por mensagem."
+            f"O total de anexos "
+            f"({_tamanho_legivel(already_uploaded_bytes + upload.size, para_cima=True)}) "
+            f"ultrapassa o limite de {_tamanho_legivel(max_msg)} por mensagem."
         )
 
     name = (upload.name or "").lower()
@@ -98,16 +127,22 @@ def checksum(upload) -> str:
     return digest.hexdigest()
 
 
-def attach_to_message(*, message, uploads, uploaded_by) -> list[TicketAttachment]:
-    """Valida o lote inteiro antes de gravar qualquer arquivo.
+def validar_uploads(uploads) -> list[tuple]:
+    """Confere o lote INTEIRO — contagem, tamanho somado e tipo — sem gravar nada.
 
-    Validar tudo primeiro evita a mensagem ficar com metade dos anexos quando
-    o terceiro arquivo é recusado.
+    Devolve os pares `(upload, mime)` já com o MIME real farejado e levanta
+    `AttachmentRejected` no primeiro problema.
 
-    D19: o anexo nasce em quarentena (`pending`) e a varredura é agendada
-    **após o commit** — antes disso o worker poderia buscar uma linha que ainda
-    não existe. Com o antivírus desligado o registro nasce `skipped`, que é a
-    verdade ("não verificado"), e não `clean`.
+    Está separada de `attach_to_message` porque `apps/tickets/views.py` precisa
+    recusar o anexo ANTES de criar o chamado ou a mensagem: `create_ticket` abre
+    e fecha a própria transação (ATOMIC_REQUESTS=False,
+    config/settings/base.py), então o 400 que só vinha na hora de gravar o anexo
+    deixava o chamado nascido; a tela lia 400 como "não criou", o agente
+    reenviava e nascia um chamado duplicado.
+
+    Chamar isto é de graça e sem efeito colateral — a varredura antivírus só é
+    agendada em `attach_to_message`, pós-commit —, por isso a view pode conferir
+    antes e deixar `attach_to_message` conferir de novo na hora de gravar.
     """
     _, _, max_files = limits()
     if len(uploads) > max_files:
@@ -116,11 +151,29 @@ def attach_to_message(*, message, uploads, uploaded_by) -> list[TicketAttachment
         )
 
     total = 0
-    validated = []
+    validados = []
     for upload in uploads:
         mime = validate_upload(upload, already_uploaded_bytes=total)
         total += upload.size
-        validated.append((upload, mime))
+        validados.append((upload, mime))
+    return validados
+
+
+def attach_to_message(*, message, uploads, uploaded_by) -> list[TicketAttachment]:
+    """Valida o lote inteiro antes de gravar qualquer arquivo.
+
+    Validar tudo primeiro evita a mensagem ficar com metade dos anexos quando
+    o terceiro arquivo é recusado. A regra em si mora em `validar_uploads`, que
+    a view chama antes de criar o chamado — aqui ela é reaplicada porque este
+    serviço continua sendo a única porta de gravação (é chamado direto por
+    testes e pela importação, sem passar por view nenhuma).
+
+    D19: o anexo nasce em quarentena (`pending`) e a varredura é agendada
+    **após o commit** — antes disso o worker poderia buscar uma linha que ainda
+    não existe. Com o antivírus desligado o registro nasce `skipped`, que é a
+    verdade ("não verificado"), e não `clean`.
+    """
+    validated = validar_uploads(uploads)
 
     scanning = settings.CLAMAV_ENABLED
     initial = ScanStatus.PENDING if scanning else ScanStatus.SKIPPED

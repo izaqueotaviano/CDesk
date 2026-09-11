@@ -163,9 +163,11 @@ reports ───────┘
 
 ### Autenticação
 
-- **Internos** (admin/supervisor/agente): Google OAuth via `django-allauth` ou
-  `social-auth-app-django`, com `google_sub` guardado no `User` e domínio de e-mail
-  restrito (allowlist). Senha marcada como inutilizável.
+- **Internos** (admin/supervisor/agente): as duas portas ficam abertas — Google
+  OAuth via `django-allauth` (`google_sub` guardado no `User`, domínio de e-mail
+  restrito por allowlist, `apps/accounts/adapters.py`) OU e-mail + senha por
+  convite do admin, igual ao cliente. Quem nasce só pelo Google fica com senha
+  inutilizável; quem é convidado por e-mail ganha senha de verdade.
 - **Clientes**: e-mail + senha, com hasher padrão do Django, rate limit no login,
   fluxo de convite (o cliente não se auto-cadastra — é criado vinculado à empresa).
 - Sessões separadas por backend; um mesmo `User` nunca é os dois (constraint de banco).

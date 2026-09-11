@@ -1,3 +1,4 @@
+import { indiceDeIdentidade } from '@/ui/identidade';
 import './Avatar.scss';
 
 export type Presence = 'available' | 'away' | 'offline';
@@ -41,6 +42,8 @@ export function Avatar({
     'avatar',
     `avatar--${size}`,
     `avatar--on-${ringOn}`,
+    // cor por hash do nome — o mesmo hash do portal e do shell resolv
+    `avatar--identity-${indiceDeIdentidade(name)}`,
     presence ? `avatar--${presence}` : '',
   ]
     .filter(Boolean)

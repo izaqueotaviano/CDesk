@@ -1,0 +1,48 @@
+/*
+ * Tela de login — o que não cabe em utilitário do Tailwind.
+ *
+ * O desenho é o de uma planta baixa (referência: a tela de cadastro da
+ * Relume): formulário à ESQUERDA sobre o canvas, painel de marca à direita
+ * com grade de 64px, e uma moldura de linhas finas em volta do formulário
+ * cujos braços passam dos cantos. Nada de cor literal aqui — tudo sai de
+ * `--acento`/`--divisoria`/`--canvas` (styles/tokens.css), então o tema
+ * escuro acompanha sem um segundo conjunto de regras.
+ */
+
+/* A moldura: quatro linhas de 1px que se cruzam PASSANDO dos cantos, como
+   marca de corte de planta baixa. Um elemento só, quatro camadas de
+   background — sem oito divs vazios no DOM só pra desenhar risco.
+   A geometria em dois passos: o RETÂNGULO respira 44px acima/abaixo e 24px
+   dos lados do formulário; os BRAÇOS passam dele mais 60px na vertical e
+   110px na horizontal. Daí o `inset` somar os dois (44+60, 24+110) e cada
+   linha ficar posicionada à distância do braço dentro da caixa. */
+.login-moldura {
+  position: absolute;
+  inset: -104px -134px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--divisoria) 0 0) 50% 60px / 100% 1px no-repeat,
+    linear-gradient(var(--divisoria) 0 0) 50% calc(100% - 60px) / 100% 1px no-repeat,
+    linear-gradient(var(--divisoria) 0 0) 110px 50% / 1px 100% no-repeat,
+    linear-gradient(var(--divisoria) 0 0) calc(100% - 110px) 50% / 1px 100% no-repeat;
+}
+
+/* O painel da marca: tinta do acento + grade de 64px. `color-mix` sobre o
+   próprio `--acento` (e não um azul cravado) é o que faz o painel escurecer
+   junto no tema escuro, onde o acento vira #b4c5ff. */
+.login-painel {
+  --tinta-do-painel: color-mix(in srgb, var(--acento) 17%, var(--canvas));
+  --linha-da-grade: color-mix(in srgb, var(--acento) 22%, transparent);
+  background-color: var(--tinta-do-painel);
+  background-image:
+    linear-gradient(var(--linha-da-grade) 1px, transparent 1px),
+    linear-gradient(90deg, var(--linha-da-grade) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center;
+}
+
+/* Com foto do admin, a grade sai de cena: a imagem já é o fundo, e a grade
+   por cima dela vira sujeira. */
+.login-painel--foto {
+  background-image: none;
+}

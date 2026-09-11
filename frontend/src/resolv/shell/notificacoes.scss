@@ -1,0 +1,199 @@
+// Painel de notificações — dropdown do sino no Topbar. Usa o Popover
+// genérico da base cvzdesk (frontend/src/cvz/components/Popover), então as
+// classes aqui são só o CONTEÚDO — o posicionamento/fechamento é do Popover.
+
+.painel-notif {
+  width: 340px;
+  max-height: 420px;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-card);
+
+  &__badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    background: var(--danger);
+    // No escuro --danger clareia para salmão (tokens.scss:78) e branco por cima
+    // reprova o AA. --surface-card é a mesma regra que menu-presenca.scss:51 já
+    // usa sobre o accent — no claro continua sendo branco puro, no escuro
+    // escurece junto com o resto.
+    color: var(--surface-card);
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 14px;
+    text-align: center;
+    border-radius: var(--raio);
+  }
+
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--stroke);
+    font-size: 13px;
+    color: var(--text-primary);
+
+    button {
+      border: none;
+      background: none;
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      &:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+    }
+  }
+
+  &__lista {
+    overflow-y: auto;
+  }
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 14px;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-family: var(--f-ui);
+
+    &:last-child {
+      border-bottom: none;
+    }
+    &:hover {
+      background: var(--surface-alt);
+    }
+    > i:first-child {
+      margin-top: 2px;
+      font-size: 15px;
+      color: var(--text-muted);
+    }
+    &--nao-lida > i:first-child {
+      color: var(--accent);
+    }
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    strong {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  }
+  &__corpo {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  &__tempo {
+    font-size: 11px;
+    color: var(--text-muted);
+  }
+
+  &__ponto {
+    flex-shrink: 0;
+    margin-top: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  &__vazio {
+    padding: 24px 14px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  // Rodapé: liga/desliga a notificação do sistema operacional. Fica preso ao
+  // fim do painel (a lista rola por cima), porque é ajuste, não conteúdo.
+  &__avisos {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-primary);
+
+    small {
+      display: block;
+      margin-top: 1px;
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    &--bloqueado {
+      display: block;
+      margin: 0;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+  }
+
+  // Chave de dois estados. É um <button role="switch">, não uma caixa de
+  // seleção: o estado é aplicado na hora, não ao salvar um formulário.
+  &__chave {
+    flex-shrink: 0;
+    // 24px é o alvo mínimo do WCAG 2.5.8 — a chave é mais larga que alta, e é
+    // a altura que corre risco.
+    width: 40px;
+    height: 24px;
+    padding: 3px;
+    border: 1px solid var(--stroke-hover);
+    border-radius: 999px;
+    background: var(--surface-alt);
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    &--ligada {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  }
+
+  &__chave-bolinha {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    // Branco fixo é correto aqui: a bolinha corre sobre --accent quando ligada
+    // e sobre a superfície clara quando desligada; nos dois casos, e nos dois
+    // temas, é o contraste que separa a bolinha do trilho.
+    background: #fff;
+    box-shadow: 0 1px 2px var(--sombra-suave);
+    transition: transform 0.15s ease;
+  }
+
+  &__chave--ligada &__chave-bolinha {
+    transform: translateX(16px);
+  }
+}

@@ -1,5 +1,8 @@
 /* tokens.css primeiro — regra do próprio design system ("Importe antes de
    qualquer outro estilo"; PROMPT-IMPLEMENTACAO.md). */
+/* material.css ANTES de tokens.css: é ele quem define os papéis
+   (--md-sys-color-*) para os quais os nomes de tokens.css apontam. */
+@import './material.css';
 @import './tokens.css';
 
 @tailwind base;
@@ -50,5 +53,28 @@
   [data-tema='escuro'] .pilula--etapa,
   [data-tema='escuro'] .etiqueta {
     color: oklch(from var(--etapa, var(--acento)) 85% c h);
+  }
+  /*
+   * Assinatura de mensagem: o HTML vem do perfil do agente, já higienizado
+   * pelo servidor (apps/accounts/assinatura.py). Estas regras existem porque
+   * o conteúdo é INJETADO — utilitária do Tailwind não alcança um `<table>`
+   * que a tela não escreveu. É só contenção: cabe na largura, links no
+   * acento, tabela sem espaçamento fantasma. O resto (cor, fonte) é o que a
+   * pessoa escolheu na assinatura dela.
+   */
+  .assinatura-mensagem :is(img, table) {
+    max-width: 100%;
+  }
+  .assinatura-mensagem table {
+    border-collapse: collapse;
+  }
+  .assinatura-mensagem a {
+    color: var(--acento);
+  }
+  .assinatura-mensagem :is(p, div) {
+    margin: 0;
+  }
+  .assinatura-mensagem :is(p, div) + :is(p, div) {
+    margin-top: 4px;
   }
 }

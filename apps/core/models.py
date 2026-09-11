@@ -4,6 +4,8 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 
+from apps.core.email_template import TEMPLATE_HTML_PADRAO
+
 
 class TimeStampedModel(models.Model):
     """Base de todos os models de negócio: carimbo de criação e atualização."""
@@ -71,8 +73,8 @@ class SystemConfig(TimeStampedModel):
 
     Antes destes campos viverem aqui, cada um era uma variável de ambiente: mudar
     o limite de anexo exigia deploy. Isso é aceitável para segredo e endereço de
-    serviço, e errado para número que a operação ajusta — o limite de anexo e o
-    tempo de abandono do chat mudam com o uso, não com a infraestrutura.
+    serviço, e errado para número que a operação ajusta — o limite de anexo
+    muda com o uso, não com a infraestrutura.
 
     As settings do Django continuam existindo como **piso de fallback**: se a
     linha ainda não foi criada (banco novo, migration recém-aplicada), o sistema
@@ -100,6 +102,44 @@ class SystemConfig(TimeStampedModel):
         ),
     )
 
+
+    # --- Entrega de e-mail ---
+    # A operação liga/desliga a saída de e-mail e aponta o SMTP daqui, sem
+    # deploy. Host vazio = o backend das settings (console em dev, o que o
+    # ambiente definir em produção). Desligado = o outbox registra o e-mail
+    # como pulado e nada sai — inclusive código de login, então a tela avisa.
+    # A senha fica em texto no banco, como ficaria numa variável de
+    # ambiente: o que a protege é o acesso ao banco, não este campo.
+    email_enabled = models.BooleanField(
+        default=True, verbose_name="Enviar e-mails",
+    )
+    smtp_host = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Servidor SMTP"
+    )
+    smtp_port = models.PositiveIntegerField(default=587, verbose_name="Porta")
+    smtp_username = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Usuário"
+    )
+    smtp_password = models.CharField(max_length=200, blank=True, default="", verbose_name="Senha")
+    smtp_use_tls = models.BooleanField(default=True, verbose_name="STARTTLS")
+    smtp_use_ssl = models.BooleanField(default=False, verbose_name="SSL")
+    email_from = models.CharField(
+        max_length=200, blank=True, default="", verbose_name="Remetente",
+        help_text="Ex.: Suporte Acme <suporte@acme.com.br>. Vazio usa o das settings.",
+    )
+    email_html_template = models.TextField(
+        blank=True, default=TEMPLATE_HTML_PADRAO, verbose_name="Modelo HTML dos e-mails",
+        help_text="Vazio manda só o texto. Marcadores: {{assunto}}, {{conteudo}}, {{ano}}.",
+    )
+
+    # --- Segurança ---
+    # A verificação em duas etapas é OPCIONAL por conta (cada pessoa liga a
+    # sua em "Minha conta"/Configurações). Com isto ligado, vira obrigatória:
+    # quem não configurou nada recebe o código por e-mail no login.
+    two_factor_required = models.BooleanField(
+        default=False,
+        verbose_name="Exigir verificação em duas etapas de todos os usuários",
+    )
 
     # --- Pesquisa de satisfação ---
     csat_enabled = models.BooleanField(
@@ -203,3 +243,36 @@ class SystemConfig(TimeStampedModel):
             config, _ = cls.objects.get_or_create(pk=1)
             cache.set(cls.CACHE_KEY, config, 300)
         return config
+
+
+class LoginBranding(TimeStampedModel):
+    """O painel da tela de login, por público — textos e imagem que o admin
+    edita em Configurações → Tela de login. Uma linha por público; o padrão
+    de fábrica está em `core/branding.py` e vale enquanto a linha não existe.
+    """
+
+    class Audience(models.TextChoices):
+        CLIENTE = "cliente", "Portal do cliente"
+        EQUIPE = "equipe", "Painel da equipe"
+
+    audience = models.CharField(max_length=10, choices=Audience.choices, unique=True)
+    brand_name = models.CharField("Nome da marca", max_length=80, blank=True)
+    headline = models.CharField("Chamada", max_length=160, blank=True)
+    subtitle = models.CharField("Subtítulo", max_length=240, blank=True)
+    highlights = models.JSONField("Destaques", default=list, blank=True)
+    # arquivo em MEDIA_ROOT/marca, recodificado por nós (ver branding.py)
+    image_name = models.CharField(max_length=80, blank=True, default="")
+
+    class Meta:
+        verbose_name = "marca da tela de login"
+        verbose_name_plural = "marcas da tela de login"
+
+    def __str__(self):
+        return f"Tela de login — {self.get_audience_display()}"
+
+    @classmethod
+    def for_audience(cls, audience: str) -> "LoginBranding":
+        from apps.core.branding import PADRAO
+
+        obj, _ = cls.objects.get_or_create(audience=audience, defaults=PADRAO[audience])
+        return obj

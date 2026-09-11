@@ -141,10 +141,22 @@ atualizar_codigo() {
 }
 
 preparar_env() {
-  [ -f .env ] && return 0
-  passo "Criando .env a partir do exemplo"
-  cp .env.example .env
-  ok ".env criado."
+  if [ ! -f .env ]; then
+    passo "Criando .env a partir do exemplo"
+    cp .env.example .env
+    ok ".env criado."
+  fi
+
+  # DATABASE_URL/REDIS_URL do .env.example apontam para os nomes de serviço
+  # do Docker Compose ("db", "redis") — só resolvem dentro da rede que o
+  # próprio Compose cria. No modo nativo não existe essa rede: a API cairia
+  # em "failed to resolve host" na primeira migração. Reescreve para
+  # 127.0.0.1 sempre que ainda apontar para lá — inclusive num .env que já
+  # existia (self-heal de uma subida nativa anterior que rodou sem isto).
+  if [ "$MODO" = "nativo" ]; then
+    sed -i -E 's#^(DATABASE_URL=postgres://[^@]+@)db(:)#\1127.0.0.1\2#' .env
+    sed -i -E 's#^(REDIS_URL=redis://)redis(:)#\1127.0.0.1\2#' .env
+  fi
 }
 
 # Roda um comando do manage.py onde ele mora em cada modo: dentro do container
@@ -237,6 +249,42 @@ api_no_ar() {
   [ -n "$code" ] && [ "$code" != "000" ]
 }
 
+# ClamAV só existe como serviço do compose ("clamav" no CLAMAV_HOST). No modo
+# nativo esse nome não resolve, e o efeito é silencioso e total: o anexo SOBE
+# (201), fica em quarentena esperando uma varredura que nunca vem, tenta cinco
+# vezes, vira `error` — e o fail-closed do D19 o mantém bloqueado para sempre.
+# Da tela, isso se lê como "não dá para enviar anexo nenhum".
+#
+# A saída honesta é desligar a varredura nesta execução: o anexo nasce
+# `skipped` ("não verificado"), que é exatamente o que o modelo já documenta
+# para este caso — e nunca `clean`, que seria mentir. Só vale para o processo
+# que este script sobe; nada é escrito no .env, e produção segue fail-closed.
+CLAMAV_ARGS=""
+avaliar_clamav() {
+  local host porta
+  host=$(sed -n 's/^CLAMAV_HOST=//p' .env 2>/dev/null | tail -1)
+  porta=$(sed -n 's/^CLAMAV_PORT=//p' .env 2>/dev/null | tail -1)
+  host=${host:-clamav}
+  porta=${porta:-3310}
+  # a varredura já está desligada no .env: nada a fazer
+  case "$(sed -n 's/^CLAMAV_ENABLED=//p' .env 2>/dev/null | tail -1)" in
+    0|false|False|no) return 0 ;;
+  esac
+  # No Docker o daemon é um profile opcional: só existe se alguém pediu.
+  if [ "$MODO" = "docker" ]; then
+    docker compose ps --services --status running 2>/dev/null | grep -qx clamav && return 0
+  elif (exec 3<>"/dev/tcp/$host/$porta") 2>/dev/null; then
+    exec 3<&- 2>/dev/null || true
+    return 0
+  fi
+  CLAMAV_ARGS="0"
+  # Persiste no .env também: quem sobe a API por fora deste script (IDE,
+  # `manage.py runserver`) herdaria o 1 e cairia na mesma quarentena eterna.
+  sed -i -E 's#^CLAMAV_ENABLED=.*#CLAMAV_ENABLED=0#' .env
+  aviso "ClamAV não responde em $host:$porta — anexos entram como “não verificados”."
+  aviso "Gravei CLAMAV_ENABLED=0 no .env. Em produção a varredura continua obrigatória."
+}
+
 subir_api_nativa() {
   if api_no_ar; then
     ok "API já no ar."
@@ -251,6 +299,7 @@ subir_api_nativa() {
   # pasta inteira do projeto — sem o recorte ele vigiaria .venv e
   # node_modules, dezenas de milhares de arquivos que nunca mudam.
   ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+    [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
     nohup "$VENV/bin/uvicorn" config.asgi:application --host 0.0.0.0 --port 8000 \
       --reload --reload-dir apps --reload-dir config \
       >"$API_LOG" 2>&1 & )
@@ -271,6 +320,7 @@ subir_jobs_nativos() {
     ok "Worker já no ar."
   else
     ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+      [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
       nohup "$VENV/bin/celery" -A config worker -Q default,reports -l info \
         >"$WORKER_LOG" 2>&1 & )
     ok "Worker no ar."
@@ -303,6 +353,7 @@ parar_backend_nativo() {
 
 subir_backend_nativo() {
   passo "Subindo backend nativo (PostgreSQL, Redis, API)"
+  avaliar_clamav
   subir_postgres
   preparar_banco
   subir_redis
@@ -326,6 +377,8 @@ esperar_backend_nativo() {
 
 subir_backend_docker() {
   passo "Subindo backend (banco, Redis, API, worker)"
+  # antes do `up`: o .env corrigido é o que os containers vão ler
+  avaliar_clamav
   docker compose up -d
   ok "Containers no ar."
 }
@@ -358,6 +411,10 @@ migrar() {
   passo "Aplicando migrações do banco"
   manage migrate --no-input >/dev/null
   ok "Banco em dia."
+  # Anexos que ficaram presos numa subida anterior (esperando um ClamAV que
+  # não existia) — com a varredura desligada, viram "não verificado". Sem
+  # isto o anexo antigo continuaria bloqueado mesmo depois da correção.
+  manage liberar_quarentena >/dev/null 2>&1 || true
 }
 
 # semeia só quando o banco está vazio: rodar de novo por cima não estraga nada,
@@ -378,6 +435,17 @@ semear_se_vazio() {
         >/dev/null 2>&1; then
       passo "Sem conversas de chat — criando as de demonstração"
       manage seed_demo >/dev/null 2>&1 || true
+    fi
+    # Mesmo raciocínio para os CADASTROS que o seed cria e que nasceram depois
+    # deste banco: `seed_defaults` só rodava em banco vazio, então quem já
+    # tinha o sistema instalado ficava sem os motivos de encerramento e abria
+    # "Encerrar" com um seletor vazio. O comando é idempotente
+    # (`update_or_create`) — rodar de novo só preenche o que falta.
+    if ! manage shell -c \
+        "import sys; from apps.chat.models import ChatCloseReason; sys.exit(0 if ChatCloseReason.objects.exists() else 1)" \
+        >/dev/null 2>&1; then
+      passo "Cadastros novos desde a última versão — atualizando"
+      manage seed_defaults >/dev/null 2>&1 || true
     fi
     return 0
   fi
@@ -462,8 +530,15 @@ subir_frontend() {
       morrer "A porta 5174 continua ocupada por outro processo. Feche-o e rode de novo."
     fi
   fi
-  if [ ! -d "$FRONT_DIR/node_modules" ]; then
-    passo "Instalando dependências do frontend (só na primeira vez — demora um pouco)"
+  # A pasta existir não basta: "atualizar_codigo" já rodou o `git pull` antes
+  # daqui, e um `package.json` com dependência nova (ex.: a rodada que trouxe
+  # o CKEditor) deixa `node_modules` presente mas incompleto — o Vite só
+  # avisa disso na cara de quem abre a tela, com "Failed to resolve import".
+  # `-nt` (newer than) é a mesma ideia do `preparar_venv` (que confere um
+  # import de verdade em vez de só a pasta existir): se o lockfile mudou
+  # depois da última instalação, node_modules está desatualizado.
+  if [ ! -d "$FRONT_DIR/node_modules" ] || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]; then
+    passo "Instalando dependências do frontend (pode demorar um pouco)"
     ( cd "$FRONT_DIR" && npm install --no-audit --no-fund ) \
       || morrer "npm install falhou — veja a mensagem acima."
     ok "Dependências instaladas."

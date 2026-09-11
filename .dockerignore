@@ -1,0 +1,50 @@
+# O que a imagem do backend (Dockerfile) NÃO precisa. Sem este arquivo, o
+# `COPY . .` do Dockerfile arrasta tudo isso pra dentro da imagem — inclusive
+# `frontend/node_modules`, que pode já existir na máquina de quem builda
+# (`./resolv` roda `npm install` fora do Docker, no host) e carrega binários
+# nativos por plataforma (ex.: @rolldown/binding-darwin-arm64) grandes o
+# bastante para estourar o disco virtual do Docker Desktop no meio do build.
+# A imagem do backend não roda Node nenhum — o frontend é servido pelo Vite
+# direto no host, fora de container.
+
+.git/
+.github/
+
+# frontend inteiro: a imagem do backend não o usa (nem em dev nem em prod —
+# ver docs/15-deploy-producao.md, o front é outro deploy)
+frontend/
+
+# ambiente Python local — a imagem cria o dela própria
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+htmlcov/
+.coverage
+
+# segredo e dado local — nunca dentro da imagem
+.env
+.env.*
+!.env.example
+
+# artefatos locais que não fazem sentido dentro do container
+db.sqlite3
+media/
+staticfiles/
+dump.rdb
+.DS_Store
+.idea/
+.vscode/
+.api.log
+.worker.log
+.beat.log
+.cache/
+
+# docs e scratch não mudam o que a imagem roda
+docs/
+*.md
+!README.md

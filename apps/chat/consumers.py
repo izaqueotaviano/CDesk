@@ -82,12 +82,30 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                 },
             )
 
+        elif msg_type == "delivered":
+            # O DESTINATÁRIO confirma que a mensagem chegou no aparelho dele.
+            # É o único jeito honesto de o remetente ver "entregue": o
+            # servidor sabe que gravou, não que alguém recebeu.
+            ids = [i for i in (content.get("ids") or []) if isinstance(i, int)]
+            marcados = await self._persist_delivered(ids)
+            if marcados:
+                await self.channel_layer.group_send(
+                    self.group, {"type": "chat.message_delivered", "ids": marcados}
+                )
+
         elif msg_type == "message":
             body = (content.get("body") or "").strip()
             if not body:
                 await self.send_json({"type": "error", "detail": "Mensagem vazia."})
                 return
-            payload = await self._persist_message(body)
+            bruto = content.get("reply_to")
+            citada = bruto if isinstance(bruto, int) else None
+            # só interno escreve nota interna: o cliente pedindo isso não
+            # esconderia a própria mensagem dele de ninguém
+            nota = bool(content.get("is_internal_note")) and self.user.is_internal
+            payload = await self._persist_message(
+                body, reply_to_id=citada, is_internal_note=nota
+            )
             if payload is None:
                 await self.send_json(
                     {"type": "error",
@@ -98,23 +116,48 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             await self.channel_layer.group_send(
                 self.group, {"type": "chat.message", **payload}
             )
-            await self._badge_counterpart(payload)
+            # nota interna não vira notificação no celular do cliente — seria
+            # o vazamento pela porta dos fundos, com o texto na prévia
+            if not nota:
+                await self._badge_counterpart(payload)
 
     # ------------------------------------------------------------------ #
     # Eventos do grupo → cliente
     # ------------------------------------------------------------------ #
 
+    def _esconder(self, event) -> bool:
+        """A trava da NOTA INTERNA no socket.
+
+        `group_send` fala com a sala inteira, e a sala tem o cliente dentro.
+        Esta é a segunda metade do par: a primeira é
+        `chat_service.mensagens_visiveis`, que cobre o REST. Sem as duas, uma
+        nota interna que o REST esconde chegaria pelo tempo real assim mesmo.
+        """
+        return bool(event.get("is_internal_note")) and not self.user.is_internal
+
     async def chat_message(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message"})
 
     async def chat_message_edited(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message_edited"})
 
     async def chat_message_deleted(self, event):
+        if self._esconder(event):
+            return
         await self.send_json({k: v for k, v in event.items() if k != "type"}
                              | {"type": "message_deleted"})
+
+    async def chat_message_delivered(self, event):
+        await self.send_json({"type": "message_delivered", "ids": event["ids"]})
+
+    async def chat_message_read(self, event):
+        await self.send_json({"type": "message_read", "ids": event["ids"]})
 
     async def chat_typing(self, event):
         await self.send_json({k: v for k, v in event.items() if k != "type"}
@@ -164,7 +207,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         return User.objects.filter(pk=user_id, kind=UserKind.CLIENT, is_active=True).first()
 
     @database_sync_to_async
-    def _persist_message(self, body):
+    def _persist_message(self, body, reply_to_id=None, is_internal_note=False):
         from apps.chat.models import Chat, ChatMessage
         from apps.chat.serializers import ChatMessageSerializer
         from apps.chat.services.chat_service import can_send
@@ -172,8 +215,26 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         chat = Chat.objects.get(pk=self.chat_id)
         if not can_send(self.user, chat):
             return None
-        msg = ChatMessage.objects.create(chat=chat, author=self.user, body=body)
+        citada = None
+        if reply_to_id is not None:
+            # do PRÓPRIO chat: um id qualquer vazaria o trecho citado de uma
+            # conversa de outro cliente dentro do preview
+            citada = chat.messages.filter(
+                pk=reply_to_id, deleted_at__isnull=True
+            ).first()
+        msg = ChatMessage.objects.create(
+            chat=chat, author=self.user, body=body, reply_to=citada,
+            is_internal_note=is_internal_note,
+        )
         return dict(ChatMessageSerializer(msg, context={"user": self.user}).data)
+
+    @database_sync_to_async
+    def _persist_delivered(self, ids):
+        from apps.chat.models import Chat
+        from apps.chat.services import chat_service
+
+        chat = Chat.objects.get(pk=self.chat_id)
+        return chat_service.marcar_entregues(chat=chat, actor=self.user, ids=ids)
 
     @database_sync_to_async
     def _counterpart_id(self):

@@ -1,0 +1,300 @@
+import { Link } from 'react-router-dom'
+import { IconArrowRight, IconClock, IconHeadset, IconMessageCircle, IconMessagePlus, IconPlus, IconStar, IconTicket, type Icon } from '@tabler/icons-react'
+import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
+import { useMe } from '@/api/queries/useMe'
+import { useChatsRecentes, useContagemChatsAtivos } from '../api/chats'
+import { useAvaliacoesPendentesTicket, useContagemAbas, useTicketsRecentes } from '../api/tickets'
+import { cn } from '../lib/cn'
+import { dataHora, primeiroNome, relativo, useAgora } from '../lib/formato'
+import { CartaoTicket, EsqueletoCartaoTicket } from '../tickets/componentes'
+import { Alert } from '../ui/alert'
+import { Badge } from '../ui/badge'
+import { Button, buttonVariants } from '../ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { EstadoVazio } from '../ui/estado-vazio'
+import { Skeleton } from '../ui/skeleton'
+import { MuralAvisos } from './MuralAvisos'
+
+interface CartaoResumoProps {
+  rotulo: string
+  valor: number | undefined
+  icone: Icon
+  para: string
+  /** Realce quando a bola está com a pessoa. */
+  destaque?: boolean
+  ajuda?: string
+}
+
+/** Cartão de número, no desenho do `.inicio-stat` do console: linha, não sombra; o destaque é a cor do número. */
+function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: CartaoResumoProps) {
+  const ativo = destaque && (valor ?? 0) > 0
+  return (
+    <Link
+      to={para}
+      className={cn(
+        'group flex flex-col gap-3 rounded-md border border-divisoria bg-superficie p-5 transition-[border-color] hover:border-borda-controle',
+        ativo && 'border-alerta/40',
+      )}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-pequeno font-medio text-tinta-secundaria">{rotulo}</span>
+        <span className={cn('grid size-8 place-items-center rounded-md bg-navegacao text-tinta-secundaria', ativo && 'bg-alerta-suave text-alerta')}>
+          <Icone className="size-4" aria-hidden="true" />
+        </span>
+      </div>
+      {valor === undefined ? (
+        <Skeleton className="h-8 w-12" />
+      ) : (
+        <span className={cn('font-mono text-display font-medio leading-nenhuma text-tinta', ativo && 'text-alerta')}>{valor}</span>
+      )}
+      <span className="flex items-center gap-1 text-legenda text-tinta-terciaria">
+        {ajuda ?? 'Ver'}
+        <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+      </span>
+    </Link>
+  )
+}
+
+const ROTULO_CHAT: Record<Chat['status'], { rotulo: string; tom: 'acento' | 'ok' | 'neutro' }> = {
+  queued: { rotulo: 'Na fila', tom: 'acento' },
+  active: { rotulo: 'Em atendimento', tom: 'ok' },
+  closed: { rotulo: 'Encerrada', tom: 'neutro' },
+}
+
+function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
+  const s = ROTULO_CHAT[chat.status]
+  return (
+    <Link
+      to={`/portal/chat?chat=${chat.id}`}
+      className="group flex items-center gap-3 rounded-md border border-divisoria bg-superficie p-4 transition-[border-color] hover:border-borda-controle"
+    >
+      <span className="grid size-9 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
+        <IconHeadset className="size-4" aria-hidden="true" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-corpo font-medio group-hover:text-acento">
+          {chat.agent_name ? `Conversa com ${chat.agent_name}` : 'Aguardando um atendente'}
+        </span>
+        <span className="block truncate text-legenda text-tinta-secundaria">
+          {chat.last_message_preview ?? 'Sem mensagens ainda'}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-col items-end gap-1">
+        {chat.rating_pending ? (
+          <Badge variant="alerta" ponto>
+            Avaliação pendente
+          </Badge>
+        ) : (
+          <Badge variant={s.tom} ponto>
+            {s.rotulo}
+          </Badge>
+        )}
+        <span className="text-legenda text-tinta-terciaria">{relativo(chat.queued_at, agoraMs)}</span>
+      </span>
+    </Link>
+  )
+}
+
+/**
+ * Início do Painel do Cliente: o que precisa de você, o que está com o
+ * suporte, e os dois atalhos que importam. Um alerta sobe quando há
+ * avaliação pendente — é a regra que trava o próximo chat. O estado da fila
+ * de chat vem na saudação (como na Início do console): a pessoa sabe ANTES
+ * de clicar se vai falar com alguém agora ou não.
+ */
+export function PaginaInicio() {
+  const { data: me } = useMe()
+  const agora = useAgora()
+  const contagens = useContagemAbas()
+  const chatsAtivos = useContagemChatsAtivos()
+  const config = useConfigChat()
+  const { data: chatsPendentes } = usePendingRatings()
+  const { data: ticketsPendentes } = useAvaliacoesPendentesTicket()
+  const recentes = useTicketsRecentes(5)
+  const chats = useChatsRecentes(5)
+
+  const aguardandoSuporte =
+    contagens['aguardando-suporte'] === undefined || contagens['em-andamento'] === undefined
+      ? undefined
+      : contagens['aguardando-suporte'] + contagens['em-andamento']
+  const pendentesChat = chatsPendentes?.length ?? 0
+  const pendentesTicket = ticketsPendentes?.length ?? 0
+  const avaliacoesPendentes =
+    chatsPendentes === undefined && ticketsPendentes === undefined ? undefined : pendentesChat + pendentesTicket
+
+  const filaAberta = config.data?.queue_open
+  const filaFechada = filaAberta === false
+  const voltaAs = config.data?.queue_opens_at ? dataHora(config.data.queue_opens_at) : null
+  // Dois motivos travam o chat, e a pessoa precisa saber qual: a avaliação
+  // pendente (dela) ou o horário (do suporte).
+  const motivoChatTravado =
+    pendentesChat > 0
+      ? 'Avalie o último chat para iniciar outro'
+      : filaFechada
+        ? `Fora do horário de atendimento por chat${voltaAs ? ` — volta ${voltaAs}` : ''}`
+        : null
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          {/* A serifa de UM lugar só, como no console: `--f-display`, 26px, peso 400. */}
+          <h1 className="font-display text-[26px] font-normal leading-tight text-tinta">
+            {me ? `Olá, ${primeiroNome(me.full_name)}` : <Skeleton className="h-7 w-40" />}
+          </h1>
+          <p className="mt-1 text-pequeno text-tinta-secundaria">
+            {me?.company_name ? `${me.company_name} · ` : ''}Acompanhe seus chamados e fale com o suporte.
+            {filaAberta != null && (
+              <>
+                {' · '}
+                <span className={cn('font-medio', filaAberta ? 'text-ok' : 'text-tinta-terciaria')}>
+                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? ` — volta ${voltaAs}` : ''}`}
+                </span>
+              </>
+            )}
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link to="/portal/tickets/novo" className={buttonVariants({ variant: 'default' })}>
+            <IconPlus /> Abrir ticket
+          </Link>
+          {motivoChatTravado ? (
+            <Button variant="secondary" disabled title={motivoChatTravado}>
+              <IconMessagePlus /> Iniciar chat
+            </Button>
+          ) : (
+            <Link to="/portal/chat" className={buttonVariants({ variant: 'secondary' })}>
+              <IconMessagePlus /> Iniciar chat
+            </Link>
+          )}
+        </div>
+      </header>
+
+      <MuralAvisos />
+
+      {pendentesChat > 0 && (
+        <Alert
+          variant="warning"
+          titulo="Você tem uma avaliação de chat pendente"
+          acao={
+            <Link to="/portal/chat" className={buttonVariants({ size: 'sm' })}>
+              Avaliar agora
+            </Link>
+          }
+        >
+          Avalie a última conversa para poder iniciar um novo chat. Leva menos de um minuto.
+        </Alert>
+      )}
+      {pendentesTicket > 0 && (
+        <Alert
+          variant="info"
+          titulo={pendentesTicket === 1 ? 'Um chamado resolvido aguarda sua avaliação' : `${pendentesTicket} chamados resolvidos aguardam sua avaliação`}
+          acao={
+            <Link to={`/portal/tickets/${ticketsPendentes![0].ticket_id}`} className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+              Avaliar {ticketsPendentes![0].reference}
+            </Link>
+          }
+        >
+          Sua nota ajuda o suporte a melhorar.
+        </Alert>
+      )}
+
+      <section aria-label="Resumo" className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+        <CartaoResumo
+          rotulo="Aguardando seu retorno"
+          valor={contagens['aguardando-voce']}
+          icone={IconClock}
+          para="/portal/tickets?aba=aguardando-voce"
+          destaque
+          ajuda="Responder"
+        />
+        <CartaoResumo
+          rotulo="Aguardando suporte"
+          valor={aguardandoSuporte}
+          icone={IconTicket}
+          para="/portal/tickets?aba=aguardando-suporte"
+          ajuda={contagens['em-andamento'] ? `${contagens['em-andamento']} em andamento` : undefined}
+        />
+        <CartaoResumo rotulo="Chats ativos" valor={chatsAtivos.data} icone={IconMessageCircle} para="/portal/chat" />
+        <CartaoResumo
+          rotulo="Avaliações pendentes"
+          valor={avaliacoesPendentes}
+          icone={IconStar}
+          para={pendentesChat > 0 ? '/portal/chat' : '/portal/historico'}
+          destaque
+          ajuda="Avaliar"
+        />
+      </section>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Tickets recentes</CardTitle>
+            <Link to="/portal/tickets" className="text-pequeno font-medio text-acento hover:underline">
+              Ver todos
+            </Link>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {recentes.isLoading ? (
+              [0, 1, 2].map((i) => <EsqueletoCartaoTicket key={i} />)
+            ) : recentes.data && recentes.data.length > 0 ? (
+              recentes.data.map((t) => <CartaoTicket key={t.id} ticket={t} agoraMs={agora} compacto />)
+            ) : (
+              <EstadoVazio
+                icone={IconTicket}
+                titulo="Nenhum ticket ainda"
+                descricao="Quando precisar de ajuda, abra um ticket — você acompanha tudo por aqui."
+                acao={
+                  <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
+                    <IconPlus /> Abrir ticket
+                  </Link>
+                }
+              />
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex-row items-center justify-between">
+            <CardTitle>Conversas recentes</CardTitle>
+            <Link to="/portal/chat" className="text-pequeno font-medio text-acento hover:underline">
+              Ver todas
+            </Link>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {chats.isLoading ? (
+              [0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center gap-3 rounded-md border border-divisoria p-4">
+                  <Skeleton className="size-9 rounded-total" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-1/2" />
+                    <Skeleton className="h-3 w-3/4" />
+                  </div>
+                </div>
+              ))
+            ) : chats.data && chats.data.length > 0 ? (
+              chats.data.map((c) => <LinhaChat key={c.id} chat={c} agoraMs={agora} />)
+            ) : (
+              <EstadoVazio
+                icone={IconMessageCircle}
+                titulo="Nenhuma conversa ainda"
+                descricao={
+                  filaFechada
+                    ? `O chat está fechado agora${voltaAs ? ` — volta ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
+                    : 'O chat é o caminho mais rápido para uma dúvida curta, dentro do horário de atendimento.'
+                }
+                acao={
+                  motivoChatTravado ? undefined : (
+                    <Link to="/portal/chat" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+                      <IconMessagePlus /> Iniciar chat
+                    </Link>
+                  )
+                }
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

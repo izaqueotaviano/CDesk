@@ -13,7 +13,6 @@ pytestmark = pytest.mark.django_db
 class TestEditar:
     def test_autor_edita_a_propria_mensagem(self, ana, chat_da_ana):
         msg = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")
-        resp_json = None
         from rest_framework.test import APIClient
         api = APIClient()
         api.force_authenticate(user=ana)
@@ -84,8 +83,9 @@ class TestApagar:
         assert msg.body == "segredo"
 
     def test_apaga_os_anexos_junto(self, ana, chat_da_ana):
-        from apps.chat.models import ChatFile, ChatScanStatus
         from django.core.files.base import ContentFile
+
+        from apps.chat.models import ChatFile, ChatScanStatus
 
         msg = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="segue o print")
         f = ChatFile(message=msg, filename="a.png", content_type="image/png",
@@ -107,6 +107,7 @@ class TestContextoDoSerializer:
 
     def test_context_request(self, ana, chat_da_ana):
         from rest_framework.test import APIRequestFactory
+
         from apps.chat.serializers import ChatMessageSerializer
 
         msg = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")

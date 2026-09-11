@@ -26,7 +26,8 @@ class TestFacetas:
         resp = api(agente_suporte).get("/api/v1/tickets/facets/")
         assert resp.status_code == 200
         corpo = resp.json()
-        assert {o["value"] for o in corpo["status"]} == {"new", "open", "pending_customer", "closed"}
+        status_values = {"new", "open", "pending_customer", "closed"}
+        assert {o["value"] for o in corpo["status"]} == status_values
         assert {o["value"] for o in corpo["priority"]} == {"low", "normal", "high", "urgent"}
         # o único ticket criado nasce "new" e "normal" (default) — o resto é 0
         assert _por_valor(corpo["status"])["new"] == 1

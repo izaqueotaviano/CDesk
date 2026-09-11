@@ -23,7 +23,10 @@ import {
   type Column,
 } from '@/cvz/components'
 import { ApiError } from '@/api/client'
+import { useMe } from '@/api/queries/useMe'
 import { ModalConvidarUsuario } from './ModalConvidarUsuario'
+import { ModalUsuario } from './ModalUsuario'
+import { PainelChatEmbed } from './PainelChatEmbed'
 import {
   useAtualizarEmpresa,
   useEmpresa,
@@ -31,6 +34,7 @@ import {
   useUsuariosDaEmpresa,
   type EmpresaEscrita,
   type LimitPeriod,
+  type UsuarioCliente,
 } from './dados'
 import './clientes.scss'
 
@@ -84,6 +88,10 @@ export function PaginaDetalheEmpresa() {
   const navigate = useNavigate()
   const { push } = useToast()
 
+  const { data: me } = useMe()
+  // `IsInternalReadAdminWrite`: interno lê a empresa, só admin escreve. Sem
+  // isto o agente preenchia o formulário inteiro para levar 403 no "Salvar".
+  const podeEditar = (me?.permissions ?? []).includes('settings.manage')
   const { data: empresa, isLoading, isError, error, refetch } = useEmpresa(id)
   const { data: planos } = usePlanos()
   const atualizar = useAtualizarEmpresa(id)
@@ -92,6 +100,11 @@ export function PaginaDetalheEmpresa() {
   const [novoDominio, setNovoDominio] = useState('')
   const [abaAtiva, setAbaAtiva] = useState('geral')
   const [modalConvidarAberto, setModalConvidarAberto] = useState(false)
+  // Quem está aberto na ficha, e em que modo. Um estado só (e não um par
+  // "usuário" + "modo" solto) porque os dois só fazem sentido juntos.
+  const [fichaUsuario, setFichaUsuario] = useState<
+    { usuario: UsuarioCliente; modo: 'ver' | 'editar' } | null
+  >(null)
   const [erro, setErro] = useState<string | null>(null)
 
   // Só inicializa o form quando a empresa chega — depois disso, edições locais
@@ -135,7 +148,7 @@ export function PaginaDetalheEmpresa() {
     }
   }
 
-  const colunasUsuarios: Column<NonNullable<typeof usuarios>[number]>[] = [
+  const colunasUsuarios: Column<UsuarioCliente>[] = [
     {
       key: 'full_name',
       header: 'Nome',
@@ -155,14 +168,33 @@ export function PaginaDetalheEmpresa() {
       render: (u) => <Tag tone="blue">{u.client_role === 'owner' ? 'Responsável' : 'Usuário'}</Tag>,
     },
     {
+      key: 'phone',
+      header: 'Telefone',
+      mobile: 'meta',
+      // O primeiro, ou o secundário quando só ele existe — o cadastro exige um
+      // dos dois, então mostrar só `phone` deixava linha com traço em quem tem
+      // telefone cadastrado.
+      render: (u) => u.phone || u.phone_secondary || '—',
+    },
+    {
       key: 'invite_status',
       header: 'Convite',
       mobile: 'meta',
-      render: (u) => (
-        <Tag tone={u.invite_status === 'accepted' ? 'success' : 'neutral'}>
-          {u.invite_status === 'accepted' ? 'Aceito' : u.invite_status || 'Pendente'}
-        </Tag>
-      ),
+      // O backend responde em português ('aceito'/'pendente'/'visitante', ver
+      // `UserAdminSerializer.get_invite_status`); comparar com 'accepted'
+      // fazia todo mundo aparecer como pendente, inclusive quem já entrou.
+      //
+      // 'visitante' é quem se identificou no chat público do site (não houve
+      // convite nenhum) — em tom neutro de propósito: não é uma pendência
+      // pra alguém resolver, é como aquela pessoa entrou.
+      render: (u) =>
+        u.invite_status === 'visitante' ? (
+          <Tag>Visitante do chat</Tag>
+        ) : (
+          <Tag tone={u.invite_status === 'aceito' ? 'success' : 'away'}>
+            {u.invite_status === 'aceito' ? 'Aceito' : 'Pendente'}
+          </Tag>
+        ),
     },
     {
       key: 'status',
@@ -172,6 +204,23 @@ export function PaginaDetalheEmpresa() {
         <Tag tone={u.is_active ? 'success' : 'neutral'} dot>
           {u.is_active ? 'Ativo' : 'Inativo'}
         </Tag>
+      ),
+    },
+    {
+      key: 'acoes',
+      header: '',
+      mobile: 'meta',
+      render: (u) => (
+        <div className="clientes-acoes">
+          <Button variant="ghost" size="sm" onClick={() => setFichaUsuario({ usuario: u, modo: 'ver' })}>
+            Ver
+          </Button>
+          {podeEditar && (
+            <Button variant="ghost" size="sm" onClick={() => setFichaUsuario({ usuario: u, modo: 'editar' })}>
+              Editar
+            </Button>
+          )}
+        </div>
       ),
     },
   ]
@@ -250,7 +299,10 @@ export function PaginaDetalheEmpresa() {
               id: 'geral',
               label: 'Visão geral',
               content: (
-                <>
+                // <fieldset disabled> em vez de `disabled` campo a campo: são
+                // uma dúzia de controles (inclusive os "x" dos domínios) e
+                // esquecer um deles é deixar uma edição que o servidor recusa.
+                <fieldset className="clientes-form" disabled={!podeEditar}>
                   <FormSection title="Identificação">
                     <FormRow columns={2}>
                       <TextInput
@@ -363,12 +415,18 @@ export function PaginaDetalheEmpresa() {
 
                   {erro && <p className="clientes-erro-form">{erro}</p>}
 
-                  <FormActions>
-                    <Button onClick={salvar} disabled={atualizar.isPending}>
-                      {atualizar.isPending ? 'Salvando…' : 'Salvar alterações'}
-                    </Button>
-                  </FormActions>
-                </>
+                  {podeEditar ? (
+                    <FormActions>
+                      <Button onClick={salvar} disabled={atualizar.isPending}>
+                        {atualizar.isPending ? 'Salvando…' : 'Salvar alterações'}
+                      </Button>
+                    </FormActions>
+                  ) : (
+                    <p className="clientes-meta--espacada">
+                      Só administradores podem alterar o cadastro da empresa.
+                    </p>
+                  )}
+                </fieldset>
               ),
             },
             {
@@ -377,11 +435,13 @@ export function PaginaDetalheEmpresa() {
               count: empresa.user_count,
               content: (
                 <>
-                  <FormActions>
-                    <Button Icon={IconUserPlus} variant="tertiary" onClick={() => setModalConvidarAberto(true)}>
-                      Convidar usuário
-                    </Button>
-                  </FormActions>
+                  {podeEditar && (
+                    <FormActions>
+                      <Button Icon={IconUserPlus} variant="tertiary" onClick={() => setModalConvidarAberto(true)}>
+                        Convidar usuário
+                      </Button>
+                    </FormActions>
+                  )}
                   <DataTable
                     rows={usuarios ?? []}
                     columns={colunasUsuarios}
@@ -391,6 +451,11 @@ export function PaginaDetalheEmpresa() {
                   />
                 </>
               ),
+            },
+            {
+              id: 'chat-embed',
+              label: 'Chat embutido',
+              content: <PainelChatEmbed empresaId={id} habilitado={abaAtiva === 'chat-embed'} />,
             },
           ]}
           onChange={setAbaAtiva}
@@ -402,6 +467,18 @@ export function PaginaDetalheEmpresa() {
         open={modalConvidarAberto}
         onClose={() => setModalConvidarAberto(false)}
       />
+
+      {/* Montado só com alguém selecionado: assim a ficha nasce já semeada
+          com o usuário certo, sem estado de formulário a ressincronizar. */}
+      {fichaUsuario && (
+        <ModalUsuario
+          empresaId={id}
+          usuario={fichaUsuario.usuario}
+          modoInicial={fichaUsuario.modo}
+          podeEditar={podeEditar}
+          onClose={() => setFichaUsuario(null)}
+        />
+      )}
     </>
   )
 }

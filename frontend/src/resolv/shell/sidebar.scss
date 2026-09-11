@@ -1,135 +1,434 @@
-// Sidebar Rail — 56px, só ícones + tooltip CSS. Portada da referência.
+// Sidebar do shell — expandida (240px), recolhida (54px) e gaveta (tela
+// pequena).
+//
+// A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
+// shell.scss, na raiz, porque quem se mexe junto é o conteúdo — o corpo lê a
+// mesma variável para o próprio recuo e nunca fica por baixo da barra em
+// nenhum dos dois estados. Aqui ficam só a aparência e o layout interno.
+// (O fallback de 240px cobre a barra renderizada fora do shell, como no teste.)
+//
+// Sem borda vertical à direita: a separação já vem da diferença de fundo
+// (cromo #f0f0f0 contra o painel de conteúdo), e a linha por cima disso
+// engrossava a moldura à toa. As linhas horizontais que existem — abaixo do
+// cabeçalho e acima do rodapé — marcam as zonas, não a borda.
 .sidebar-rail {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 56px;
-  background: var(--surface-alt);
-  border-right: 0.7px solid var(--stroke);
+  z-index: 100;
+  width: var(--largura-sidebar, 240px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 16px 0;
-  z-index: 100;
-  gap: 4px;
+  background: var(--surface-alt);
+  color: var(--texto-cromo);
+  transition: width 0.15s ease;
 
-  &__logo {
-    width: 36px;
+  // ── Cabeçalho: marca + alternador ─────────────────────────────────────────
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    height: 52px;
+    padding: 0 8px 0 12px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  &__marca {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
     height: 36px;
+    padding: 0 4px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: inherit;
+    font-family: var(--f-ui);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+
+  // Caixa fixa de 32px em volta da marca: é o que centraliza o logo no rail
+  // recolhido e mantém o nome alinhado ao lado dele no expandido.
+  &__logo {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 20px;
-    cursor: pointer;
-    border-radius: 2px;
-
-    &-mark {
-      width: 22px;
-      height: auto;
-      color: var(--text-primary);
-      transition: color 0.15s ease;
-    }
-    &:hover &-mark {
-      color: var(--accent);
-    }
   }
 
-  &__sep {
-    width: 24px;
-    height: 0.7px;
-    background: var(--stroke);
-    margin: 8px 0;
+  &__logo-mark {
+    width: 20px;
+    height: auto;
+    color: var(--text-primary);
+  }
+
+  &__marca-nome {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__alternar {
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
-  }
-
-  &__nav {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    flex: 1;
-  }
-
-  &__item {
-    position: relative;
-    width: 40px;
-    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
     border: none;
+    border-radius: var(--raio);
     background: transparent;
-    border-radius: 2px;
-    cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
     color: var(--text-secondary);
+    cursor: pointer;
 
     i {
-      font-size: 16px;
-      line-height: 1;
+      font-size: 17px;
     }
+    &:hover {
+      background: var(--stroke);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
+
+  // Recolhida: o alternador desce pra uma linha própria abaixo da marca.
+  &__linha-alternar {
+    display: flex;
+    justify-content: center;
+    padding: 6px 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  // ── Busca ─────────────────────────────────────────────────────────────────
+  // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
+  // central que ele abre. Um <input> aqui teria dois lugares para digitar a
+  // mesma coisa.
+  &__busca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    margin: 12px 12px 4px;
+    padding: 0 8px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+
+    i {
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    // Sem borda, o hover precisa de outro sinal — mesmo fundo que o item de
+    // navegação usa (var(--stroke)) em vez de escurecer uma borda que não
+    // existe mais.
+    &:hover {
+      background: var(--stroke);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 1px;
+    }
+  }
+
+  &__busca-rotulo {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  &__busca-atalho {
+    flex-shrink: 0;
+    padding: 2px 5px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
+  // ── Navegação ─────────────────────────────────────────────────────────────
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-height: 0;
+    padding: 8px 12px;
+    overflow-y: auto;
+    // A rolagem é da lista, não da barra: com 11 itens mais as zonas fixas,
+    // uma janela baixa cortaria o rodapé (conta e tema) se a barra inteira
+    // rolasse junto.
+    overflow-x: hidden;
+  }
+
+  &__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 36px;
+    padding: 0 10px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--texto-cromo);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
 
     &:hover {
       background: var(--stroke);
       color: var(--text-primary);
     }
+    // Ativo: fundo tingido da cor de ação + a barrinha vertical na borda
+    // esquerda (a marca de "você está aqui" das barras laterais de navegador
+    // e editor). A barrinha fica FORA do padding da lista, encostada na
+    // borda do rail, por isso o `left` negativo.
     &--ativo {
-      background: var(--stroke);
+      background: var(--sidebar-ativo);
       color: var(--text-primary);
-      &:hover {
-        background: var(--stroke-subtle);
+      font-weight: 600;
+
+      &::before {
+        content: '';
+        position: absolute;
+        left: -12px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 20px;
+        border-radius: 0 3px 3px 0;
+        background: var(--accent);
+      }
+      .sidebar-rail__icone i {
+        color: var(--accent);
       }
     }
     &--inerte {
-      opacity: 0.55;
+      color: var(--text-muted);
       cursor: default;
       &:hover {
         background: transparent;
-        color: var(--text-secondary);
+        color: var(--text-muted);
       }
     }
+    &:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: -2px;
+    }
+  }
 
-    // tooltip CSS puro
-    &::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      background: var(--text-primary);
-      color: #fff;
-      font-family: var(--f-ui);
-      font-size: 12px;
-      font-weight: 500;
+  // Caixa do ícone: tem tamanho fixo para os rótulos alinharem numa coluna só,
+  // e é ela (não o botão inteiro) que ancora o selo — senão, com a barra
+  // expandida, o selo ia parar na ponta direita da linha.
+  &__icone {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 18px;
       line-height: 1;
-      padding: 6px 10px;
-      border-radius: 2px;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-50%) translateX(-4px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
-      z-index: 200;
+      color: var(--text-secondary);
     }
-    &::before {
-      content: '';
-      position: absolute;
-      left: calc(100% + 5px);
-      top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-      border-right-color: var(--text-primary);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 200;
+  }
+  &__item:hover &__icone i {
+    color: var(--text-primary);
+  }
+
+  &__rotulo {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__em-breve {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  // Selo de conversas sobre o ícone de Chats — a contagem vive onde a pessoa
+  // olha para achar o chat, sem ocupar uma linha própria.
+  &__badge {
+    position: absolute;
+    top: -4px;
+    right: -7px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--raio);
+    background: var(--accent);
+    color: #ffffff;
+    font-family: var(--f-ui);
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  // ── Zona utilitária (rodapé) ──────────────────────────────────────────────
+  &__zona-utilitaria {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 8px 12px 10px;
+    border-top: 1px solid var(--stroke);
+    width: 100%;
+
+    // Os painéis destes itens nascem pensados para uma barra HORIZONTAL —
+    // abrem para baixo (Popover.scss: `top: calc(100% + 4px)`). Numa coluna
+    // colada na borda esquerda isso jogaria o painel para fora da tela;
+    // reancorado para abrir à DIREITA e crescer para CIMA (`bottom: 0`), que é
+    // o único sentido que nunca estoura — estes são os itens mais próximos do
+    // rodapé da janela.
+    .popover {
+      display: block;
+      width: 100%;
     }
-    &:hover::after,
-    &:hover::before {
-      opacity: 1;
+    .popover__panel {
+      top: auto;
+      bottom: 0;
+      left: calc(100% + 4px);
+      right: auto;
     }
-    &:hover::after {
-      transform: translateY(-50%) translateX(0);
+  }
+
+  // ── Recolhida ─────────────────────────────────────────────────────────────
+  // Tudo que é texto sai; o que sobra centraliza. Nada de tooltip em
+  // pseudo-elemento: o nome vem do `title` nativo (fora do documento, não
+  // empurra nem cobre conteúdo).
+  &--recolhida {
+    .sidebar-rail__topo {
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar-rail__marca {
+      flex: none;
+      width: 40px;
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar-rail__marca-nome,
+    .sidebar-rail__busca-rotulo,
+    .sidebar-rail__busca-atalho,
+    .sidebar-rail__rotulo,
+    .sidebar-rail__em-breve,
+    .menu-presenca__nome {
+      display: none;
+    }
+    .sidebar-rail__busca {
+      width: 40px;
+      margin: 8px auto 0;
+      justify-content: center;
+      padding: 0;
+      background: transparent;
+      color: var(--texto-cromo);
+
+      &:hover {
+        background: var(--stroke);
+      }
+    }
+    .sidebar-rail__nav {
+      align-items: center;
+      padding: 8px 0;
+    }
+    .sidebar-rail__item,
+    .menu-presenca__gatilho {
+      width: 40px;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+      min-height: 40px;
+    }
+    // Sem espaço pra barrinha à esquerda do ícone: o ativo se diz pelo fundo
+    // e pela cor do ícone.
+    .sidebar-rail__item--ativo::before {
+      display: none;
+    }
+    .sidebar-rail__zona-utilitaria {
+      align-items: center;
+      padding: 8px 0 10px;
+      // A linha divisória acompanha a largura do rail em vez de atravessar a
+      // barra inteira: colada nas bordas ela virava um traço largo demais para
+      // 64px.
+      margin: 0 12px;
+      width: auto;
+    }
+  }
+}
+
+// ── Gaveta (tela pequena) ───────────────────────────────────────────────────
+// Abaixo de 768px a barra sai do fluxo de vez: o corpo não recua (shell.scss
+// zera `--largura-sidebar`) e ela entra por cima do conteúdo, com véu, quando
+// o botão de menu da barra de abas pede. Fechada, fica fora da tela E
+// `visibility: hidden` — some da ordem de tabulação sem precisar desmontar.
+.sidebar-veu {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--veu);
+}
+
+@media (max-width: 767px) {
+  .sidebar-rail--gaveta {
+    width: min(280px, 85vw);
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: var(--sombra-flutuante);
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+
+    &.sidebar-rail--gaveta-aberta {
+      transform: none;
+      visibility: visible;
+      transition: transform 0.2s ease, visibility 0s;
     }
   }
 }

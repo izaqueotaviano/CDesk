@@ -1,3 +1,13 @@
+> ⚠️ **Este README é histórico — congelado desde a importação deste
+> repositório (commit `47fc759`, 2026-09-04) e nunca atualizado depois
+> disso.** Descreve a base ANTES da migração para o shell "Resolv"
+> (`src/resolv/`), que é o design system em uso hoje (ver `src/routes.tsx`).
+> Coisas que este arquivo dá como certas já mudaram no código: o Kanban tem
+> drag-and-drop, e Web Widget/Light Agents (citados aqui como fora de
+> escopo) já existem. Se você está chegando agora nesta pasta, trate isto
+> como registro do que foi decidido uma vez — não como o estado atual —, e
+> confira sempre no código antes de confiar numa afirmação específica.
+
 # resolv — frontend
 
 Base do frontend novo. Backend é [`../README.md`](../README.md) — comece por

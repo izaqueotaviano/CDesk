@@ -10,6 +10,8 @@ Toda leitura parte de `chat_service.visible_chats(user)` — mesma disciplina
 anti-vazamento dos tickets, vigiada pelo teste estrutural.
 """
 
+import datetime as dt
+
 from django.db.models import Avg, Count, DurationField, ExpressionWrapper, F, Q
 from django.http import FileResponse, Http404, HttpResponse
 from django.utils import timezone
@@ -27,6 +29,7 @@ from rest_framework.views import APIView
 from apps.accounts.models import Team, User
 from apps.chat.models import (
     BannedWord,
+    ChatCloseReason,
     ChatConfig,
     ChatMessage,
     ChatScanStatus,
@@ -35,10 +38,10 @@ from apps.chat.models import (
 )
 from apps.chat.serializers import (
     BannedWordSerializer,
+    ChatCloseReasonSerializer,
     ChatConfigSerializer,
     ChatLinkSerializer,
     ChatMessageEditSerializer,
-    ClientQuickReplySerializer,
     ChatMessageSerializer,
     ChatReportRowSerializer,
     ChatSerializer,
@@ -48,18 +51,20 @@ from apps.chat.serializers import (
     ChatTimelineSerializer,
     ChatTimelineSessionSerializer,
     ClientChatConfigSerializer,
+    ClientQuickReplySerializer,
     CloseSerializer,
     ConvertSerializer,
     RateSerializer,
+    ReopenSerializer,
     TransferSerializer,
 )
-from apps.tickets.admin_api import TicketMacroSerializer
-from apps.tickets.models import TicketMacro
-from apps.tickets.services import transcript
-from apps.chat.services import chat_service
+from apps.chat.services import chat_service, metrics
 from apps.chat.services.attachments import AttachmentRejected, attach_to_chat_message
 from apps.chat.services.chat_service import ChatRuleViolation
 from apps.core.permissions import IsAuthenticatedReadAdminWrite, IsInternalReadAdminWrite
+from apps.tickets.admin_api import TicketMacroSerializer
+from apps.tickets.models import TicketMacro
+from apps.tickets.services import transcript
 
 
 @extend_schema(parameters=[OpenApiParameter(
@@ -91,18 +96,52 @@ class ChatViewSet(viewsets.GenericViewSet):
     # Listagem e abertura
     # ------------------------------------------------------------------ #
 
+    #: Como a lista de FINALIZADOS pode ser ordenada. Lista fechada de
+    #: propósito: `order_by` com string livre do cliente ordena por qualquer
+    #: coluna do modelo — inclusive as que o serializer esconde.
+    ORDENACOES = {
+        "recentes": ["-closed_at", "-queued_at"],
+        "antigos": ["closed_at", "queued_at"],
+        # duração e espera não são colunas: saem de diferenças entre
+        # carimbos, anotadas na consulta (ver abaixo)
+        "duracao": ["-duracao"],
+        "duracao_asc": ["duracao"],
+        "espera": ["-espera"],
+        "nota": ["-rating__service_score", "-closed_at"],
+        "nota_asc": ["rating__service_score", "-closed_at"],
+    }
+
     @extend_schema(parameters=[
         OpenApiParameter("status", str, description="queued | active | closed"),
-        OpenApiParameter("q", str, description="busca por cliente, empresa ou nome do chat"),
+        OpenApiParameter("q", str, description=(
+            "busca por cliente, empresa, nome do chat, e-mail, telefone, "
+            "protocolo (#id) ou conteúdo das mensagens"
+        )),
         OpenApiParameter("mine", str, description="'1' = só os chats do agente logado"),
         OpenApiParameter("client", int, description="id do cliente — as conversas dele"),
+        OpenApiParameter("agent", int, description="finalizados: quem atendeu"),
+        OpenApiParameter("reason", int, description="finalizados: id do motivo de encerramento"),
+        OpenApiParameter("tag", int, description="finalizados: id da etiqueta"),
+        OpenApiParameter("category", int, description="finalizados: id do assunto/categoria"),
+        OpenApiParameter("rating", str, description=(
+            "finalizados: 'sem' (não avaliados), ou nota mínima 0-10"
+        )),
+        OpenApiParameter("desde", str, description=(
+            "finalizados: encerrados a partir de (AAAA-MM-DD)"
+        )),
+        OpenApiParameter("ate", str, description="finalizados: encerrados até (AAAA-MM-DD)"),
+        OpenApiParameter("ordering", str, description=(
+            "recentes | antigos | duracao | duracao_asc | espera | nota | nota_asc"
+        )),
     ])
     def list(self, request):
-        qs = self.get_queryset().order_by("-queued_at")
+        qs = self.get_queryset()
         if st := request.query_params.get("status"):
             qs = qs.filter(status=st)
         if request.query_params.get("mine") == "1" and request.user.is_internal:
             qs = qs.filter(agent=request.user)
+        qs = self._filtros_de_finalizados(request, qs)
+        qs = self._ordenar(request, qs)
         # "todas as conversas desta pessoa" — o que o agente abre ao lado da
         # conversa atual. Não precisa de guarda extra: para o cliente o
         # queryset já é só o dele, então filtrar por outro id devolve vazio.
@@ -112,13 +151,67 @@ class ChatViewSet(viewsets.GenericViewSet):
             qs = qs.filter(client_id=int(cliente))
         if term := request.query_params.get("q"):
             filtro = (Q(client__full_name__icontains=term)
-                      | Q(company__name__icontains=term))
+                      | Q(company__name__icontains=term)
+                      | Q(client__email__icontains=term)
+                      | Q(client__phone__icontains=term))
+            # protocolo: o id do atendimento, com ou sem "#"
+            if (protocolo := term.strip().lstrip("#")).isdigit():
+                filtro |= Q(pk=int(protocolo))
             if request.user.is_internal:
                 filtro |= Q(name__icontains=term)  # nome interno: só interno busca
-            qs = qs.filter(filtro)
+                # conteúdo das mensagens (item 2 do brief). Só para interno:
+                # o cliente já vê apenas as próprias conversas, e varrer o
+                # corpo delas não acrescenta nada a ele. Mensagem apagada
+                # fica de fora — o texto sumiu da tela, não pode voltar pela
+                # busca.
+                filtro |= Q(messages__body__icontains=term,
+                            messages__deleted_at__isnull=True)
+            qs = qs.filter(filtro).distinct()
         page = self.paginate_queryset(qs)
         ser = self.get_serializer(page, many=True)
         return self.get_paginated_response(ser.data)
+
+    def _filtros_de_finalizados(self, request, qs):
+        """Os recortes da aba Finalizados (item 2 do brief).
+
+        Todos opcionais e combináveis; nenhum deles alarga o que a pessoa
+        pode ver — `visible_chats` já recortou isso antes, e filtrar sobre um
+        queryset já restrito não tem como devolver o chat de outra empresa.
+        """
+        p = request.query_params
+        if (agente := p.get("agent")) and agente.isdigit():
+            qs = qs.filter(agent_id=int(agente))
+        if (motivo := p.get("reason")) and motivo.isdigit():
+            qs = qs.filter(close_reason_id=int(motivo))
+        if (tag := p.get("tag")) and tag.isdigit():
+            qs = qs.filter(tags__id=int(tag))
+        if (cat := p.get("category")) and cat.isdigit():
+            qs = qs.filter(category_id=int(cat))
+        if nota := p.get("rating"):
+            if nota == "sem":
+                qs = qs.filter(rating__isnull=True)
+            elif nota.isdigit():
+                qs = qs.filter(rating__service_score__gte=int(nota))
+        # Período pelo dia local de quem pergunta, não pelo UTC do servidor:
+        # "encerrados hoje" tem de bater com o calendário de quem lê a tela.
+        if desde := _data(p.get("desde")):
+            qs = qs.filter(closed_at__gte=_inicio_do_dia(desde))
+        if ate := _data(p.get("ate")):
+            qs = qs.filter(closed_at__lt=_inicio_do_dia(ate + dt.timedelta(days=1)))
+        return qs
+
+    def _ordenar(self, request, qs):
+        """Ordenação da lista. Fora do dicionário, a ordem é a de sempre
+        (fila primeiro pelo mais antigo esperando; o resto, mais recente)."""
+        escolha = request.query_params.get("ordering")
+        campos = self.ORDENACOES.get(escolha or "")
+        if campos is None:
+            return qs.order_by("-queued_at")
+        if any("duracao" in c for c in campos):
+            qs = qs.annotate(duracao=F("closed_at") - F("accepted_at"))
+        if any("espera" in c for c in campos):
+            qs = qs.annotate(espera=F("accepted_at") - F("queued_at"))
+        return qs.order_by(*campos)
 
     def retrieve(self, request, pk=None):
         return Response(self.get_serializer(self._get_chat()).data)
@@ -152,12 +245,68 @@ class ChatViewSet(viewsets.GenericViewSet):
             raise PermissionDenied("Campos de atendimento são internos.")
         if chat.agent_id != request.user.pk and not request.user.is_admin:
             raise PermissionDenied("Só quem está atendendo edita o atendimento.")
+        antes = {c: getattr(chat, c) for c in ("name", "category_id", "priority", "assignee_id")}
+        tags_antes = sorted(t.name for t in chat.tags.all())
         ser = self.get_serializer(chat, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
         ser.save()
         if "tags" in request.data:
             chat.tags.set(request.data.get("tags") or [])
+        # Item 12 do brief: etiqueta tem HISTÓRICO de alteração. Sem isto,
+        # "quem tirou a etiqueta de urgente?" não tem resposta — e é a
+        # pergunta que aparece justamente quando alguém tirou.
+        chat.refresh_from_db()
+        tags_depois = sorted(t.name for t in chat.tags.all())
+        mudou = {
+            campo: [antes[campo], getattr(chat, campo)]
+            for campo in antes
+            if antes[campo] != getattr(chat, campo)
+        }
+        if tags_antes != tags_depois:
+            mudou["tags"] = [tags_antes, tags_depois]
+        if mudou:
+            chat_service.auditar(
+                chat=chat, actor=request.user, action="update",
+                summary=f"Atendimento editado: {', '.join(mudou)}",
+                changes=mudou,
+            )
         return Response(self.get_serializer(chat).data)
+
+    @action(detail=False, methods=["get"])
+    def clients(self, request):
+        """A caixa de entrada do console, agrupada POR CLIENTE.
+
+        Uma linha por pessoa em vez de uma por abertura — com cinquenta
+        clientes e várias aberturas cada, a lista por abertura é a que
+        ninguém navega. O agrupamento é de apresentação: cada `Chat`
+        continua sendo uma linha no banco, com o próprio SLA e a própria
+        avaliação.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("A caixa de entrada por cliente é do console.")
+        return Response(chat_service.caixa_de_entrada(request.user))
+
+    @action(detail=False, methods=["get"])
+    def metrics(self, request):
+        """Como foram os atendimentos do período — espera, duração, desfecho
+        e nota. Só interno: são números de operação, não do titular.
+
+        O recorte é por ENCERRAMENTO, não por abertura: as medidas só existem
+        depois que o chat fecha, e contar pela abertura deixaria o mês passado
+        mudando de valor conforme conversas antigas vão terminando.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Métricas do atendimento são internas.")
+
+        desde = _data(request.query_params.get("desde")) or (
+            timezone.now() - timezone.timedelta(days=30)
+        )
+        ate = _data(request.query_params.get("ate"))
+        ate = _inicio_do_dia(ate) + timezone.timedelta(days=1) if ate else timezone.now()
+        agente = None
+        if (aid := request.query_params.get("agent")) and aid.isdigit():
+            agente = int(aid)
+        return Response(metrics.metricas(desde=_inicio_do_dia(desde), ate=ate, agente=agente))
 
     @action(detail=False, methods=["get"], url_path="pending-ratings")
     def pending_ratings(self, request):
@@ -195,8 +344,46 @@ class ChatViewSet(viewsets.GenericViewSet):
         a pedido de quem lê.
         """
         chat = self._get_chat()
-        base = chat.messages.select_related("author").prefetch_related("files")
+        base = chat_service.mensagens_visiveis(
+            chat.messages.select_related("author", "reply_to", "reply_to__author")
+            .prefetch_related("files"),
+            request.user,
+        )
         qs = base.order_by("id")
+
+        # Busca DENTRO da conversa. Roda no servidor porque o navegador só
+        # conhece o pedaço que já rolou — numa conversa de semanas, procurar
+        # no que está na tela responde "não achei" para algo que existe.
+        if termo := (request.query_params.get("q") or "").strip():
+            achados = base.filter(
+                body__icontains=termo, deleted_at__isnull=True
+            ).order_by("id")
+            return Response({
+                "results": ChatMessageSerializer(
+                    achados, many=True, context={"request": request}
+                ).data,
+            })
+
+        # Janela ao redor de UMA mensagem: é como se pula para um resultado
+        # da busca que ficou fora do trecho carregado — sem isto, clicar num
+        # achado antigo obrigaria a baixar a conversa inteira até ele.
+        if alvo := request.query_params.get("around"):
+            if not alvo.isdigit():
+                raise ValidationError({"around": "Informe o id da mensagem."})
+            raio = request.query_params.get("radius", "25")
+            raio = int(raio) if str(raio).isdigit() and 0 < int(raio) <= 100 else 25
+            centro = int(alvo)
+            antes = list(
+                base.filter(id__lte=centro).order_by("-id").values_list("id", flat=True)[: raio + 1]
+            )
+            depois = list(
+                base.filter(id__gt=centro).order_by("id").values_list("id", flat=True)[:raio]
+            )
+            janela = base.filter(id__in=antes + depois).order_by("id")
+            return Response(
+                ChatMessageSerializer(janela, many=True, context={"request": request}).data
+            )
+
         if after := request.query_params.get("after"):
             if not after.isdigit():
                 raise ValidationError({"after": "Informe o id da última mensagem."})
@@ -218,9 +405,69 @@ class ChatViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
         chat = self._get_chat()
-        updated = chat.messages.filter(read_at__isnull=True, is_system=False)\
-            .exclude(author=request.user).update(read_at=timezone.now())
+        pendentes = chat_service.mensagens_visiveis(
+            chat.messages.filter(read_at__isnull=True, is_system=False),
+            request.user,
+        ).exclude(author=request.user)
+        ids = list(pendentes.values_list("id", flat=True))
+        updated = chat.messages.filter(id__in=ids).update(read_at=timezone.now()) if ids else 0
+        # O indicador de "lida" é do REMETENTE, e ele pode estar com a
+        # conversa aberta agora — sem este aviso o tique só mudaria no
+        # próximo refetch, que é quando ninguém está mais olhando.
+        if ids:
+            chat_service._sala(chat.pk, {"type": "chat.message_read", "ids": ids})
         return Response({"marked_read": updated})
+
+    @action(detail=True, methods=["get"])
+    def export(self, request, pk=None):
+        """PDF de UM atendimento, para quem atende.
+
+        `?notes=1` leva as notas internas junto — e só para quem é interno,
+        porque é a mesma regra do resto: o cliente não vê nota nem por esta
+        porta. Com notas, o documento se identifica como interno no rodapé e
+        cada nota leva o selo escrito; o arquivo sai do sistema e ninguém
+        controla para onde vai depois.
+
+        Fica na trilha de auditoria (`AuditAction.EXPORT`) porque exportar
+        uma conversa inteira é justamente o que alguém quer poder revisar
+        depois — inclusive se as notas foram junto.
+        """
+        chat = self._get_chat()
+        com_notas = (
+            str(request.query_params.get("notes", "")).lower() in ("1", "true", "on")
+            and request.user.is_internal
+        )
+        base = chat.messages.select_related("author").prefetch_related("files")
+        if not com_notas:
+            base = base.filter(is_internal_note=False)
+        mensagens = list(chat_service.mensagens_visiveis(base, request.user).order_by("id"))
+        try:
+            pdf, nome = transcript.atendimento_pdf(
+                chat, mensagens, para=request.user, com_notas=com_notas
+            )
+        except RuntimeError as exc:
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
+
+        chat_service.auditar(
+            chat=chat, actor=request.user, action="export",
+            summary=f"Transcrição exportada{' COM notas internas' if com_notas else ''}",
+            changes={"com_notas": com_notas, "mensagens": len(mensagens)},
+        )
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return resp
+
+    @action(detail=True, methods=["get"])
+    def media(self, request, pk=None):
+        """Anexos e links DESTE atendimento — o painel lateral da conversa."""
+        chat = self._get_chat()
+        arquivos, links = chat_service.chat_media(chat, request.user)
+        return Response({
+            "files": ChatTimelineFileSerializer(
+                arquivos, many=True, context={"request": request}
+            ).data,
+            "links": ChatLinkSerializer(links, many=True).data,
+        })
 
     @action(detail=True, methods=["post"],
             parser_classes=[JSONParser, MultiPartParser, FormParser])
@@ -235,8 +482,20 @@ class ChatViewSet(viewsets.GenericViewSet):
         if not uploads:
             raise ValidationError({"files": "Envie ao menos um arquivo."})
 
+        citada = None
+        if bruto := request.data.get("reply_to"):
+            # a citação tem de ser deste chat: aceitar um id qualquer deixaria
+            # vazar o trecho de uma conversa de outro cliente no preview
+            citada = chat.messages.filter(pk=bruto, deleted_at__isnull=True).first()
+        # nota interna só existe para quem é interno — o cliente mandando
+        # `is_internal_note=true` não esconderia a própria mensagem dele
+        nota = (
+            str(request.data.get("is_internal_note", "")).lower() in ("1", "true", "on")
+            and request.user.is_internal
+        )
         message = ChatMessage.objects.create(
             chat=chat, author=request.user, body=request.data.get("body", "").strip(),
+            reply_to=citada, is_internal_note=nota,
         )
         try:
             attach_to_chat_message(message=message, uploads=uploads, uploaded_by=request.user)
@@ -301,7 +560,10 @@ class ChatViewSet(viewsets.GenericViewSet):
         if para is None:
             raise ValidationError({"agent_id": "Agente não encontrado."})
         try:
-            chat = chat_service.transfer(chat=chat, actor=request.user, to_agent=para)
+            chat = chat_service.transfer(
+                chat=chat, actor=request.user, to_agent=para,
+                note=ser.validated_data.get("note", ""),
+            )
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(self.get_serializer(chat).data)
@@ -311,10 +573,28 @@ class ChatViewSet(viewsets.GenericViewSet):
         chat = self._get_chat()
         ser = CloseSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        motivo = None
+        if (rid := ser.validated_data.get("reason_id")) is not None:
+            # só motivo ATIVO entra num encerramento novo; os desativados
+            # seguem legíveis nos atendimentos que já os usaram
+            motivo = ChatCloseReason.objects.filter(pk=rid, is_active=True).first()
+            if motivo is None:
+                raise ValidationError({"reason_id": "Motivo de encerramento não encontrado."})
+        # Encerramento do cliente COM avaliação: uma transação só no serviço —
+        # o chat só fica encerrado se a nota gravar (item 1 do brief).
+        avaliacao = None
+        if ser.validated_data.get("service_score") is not None:
+            avaliacao = {
+                "service_score": ser.validated_data["service_score"],
+                "resolution_score": ser.validated_data["resolution_score"],
+                "justification": ser.validated_data.get("justification", ""),
+            }
         try:
             chat = chat_service.close_chat(
                 chat=chat, actor=request.user,
                 agent_score=ser.validated_data.get("agent_score"),
+                reason=motivo, note=ser.validated_data.get("note", ""),
+                rating=avaliacao,
             )
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
@@ -323,8 +603,12 @@ class ChatViewSet(viewsets.GenericViewSet):
     @action(detail=True, methods=["post"])
     def reopen(self, request, pk=None):
         chat = self._get_chat()
+        ser = ReopenSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
         try:
-            chat = chat_service.reopen(chat=chat, actor=request.user)
+            chat = chat_service.reopen(
+                chat=chat, actor=request.user, note=ser.validated_data.get("note", ""),
+            )
         except ChatRuleViolation as exc:
             # corpo montado à mão para levar o `code` (fora_do_expediente)
             return Response(
@@ -448,6 +732,54 @@ TIMELINE_PADRAO = 60
 TIMELINE_MAX = 200
 
 
+def _data(valor: str | None) -> dt.date | None:
+    """"AAAA-MM-DD" → date. Texto inválido vira `None` (o filtro some) em vez
+    de 400: um parâmetro de recorte digitado errado não deve derrubar a
+    listagem inteira."""
+    if not valor:
+        return None
+    try:
+        return dt.date.fromisoformat(valor)
+    except ValueError:
+        return None
+
+
+def _inicio_do_dia(dia: dt.date) -> dt.datetime:
+    """Meia-noite DAQUELE dia no fuso da aplicação — o filtro de período
+    precisa bater com o calendário de quem lê, não com o UTC do banco."""
+    return timezone.make_aware(dt.datetime.combine(dia, dt.time.min))
+
+
+def _dono_da_conversa(request):
+    """De QUEM é a conversa contínua que está sendo pedida.
+
+    Sem `?client=`, é a de quem pede — o portal, como sempre. Com
+    `?client=<id>`, é a daquele cliente, e só interno pode pedir: é a visão
+    do console, onde o agente vê todas as aberturas da mesma pessoa numa
+    thread só.
+
+    Interno SEM `?client=` continua sendo 403 pelo motivo de sempre: "todas
+    as minhas sessões" não quer dizer nada para quem atende várias pessoas,
+    e `visible_chats` devolveria a conversa de todo mundo numa resposta só.
+    """
+    alvo = request.query_params.get("client")
+    if not alvo:
+        _so_cliente(request.user)
+        return request.user
+
+    if not request.user.is_internal:
+        raise PermissionDenied("A conversa de outra pessoa não é sua para ler.")
+    if not str(alvo).isdigit():
+        raise ValidationError({"client": "Informe o id do cliente."})
+
+    from apps.accounts.models import User, UserKind
+
+    cliente = User.objects.filter(pk=int(alvo), kind=UserKind.CLIENT).first()
+    if cliente is None:
+        raise NotFound("Cliente não encontrado.")
+    return cliente
+
+
 def _so_cliente(user):
     """A conversa contínua é do cliente.
 
@@ -496,13 +828,14 @@ class ChatTimelineView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        _so_cliente(request.user)
+        dono = _dono_da_conversa(request)
         mensagens, tem_anteriores = chat_service.timeline(
-            request.user,
+            dono,
             before=_inteiro(request.query_params, "before"),
             limit=_inteiro(request.query_params, "limit", maximo=TIMELINE_MAX)
             or TIMELINE_PADRAO,
             q=(request.query_params.get("q") or "").strip(),
+            para=request.user,
         )
         # as sessões que aparecem NESTE recorte — não todas as do cliente:
         # quem carregou as 60 últimas mensagens não precisa do resumo de um
@@ -517,6 +850,7 @@ class ChatTimelineView(APIView):
         })
 
 
+@extend_schema(responses={(200, "application/pdf"): OpenApiTypes.BINARY})
 class ChatTimelineExportView(APIView):
     """A conversa contínua do cliente em PDF.
 
@@ -536,7 +870,7 @@ class ChatTimelineExportView(APIView):
         try:
             pdf, nome = transcript.chat_pdf(mensagens, sessoes, para=request.user)
         except RuntimeError as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
         resp = HttpResponse(pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{nome}"'
         return resp
@@ -645,6 +979,21 @@ class BannedWordViewSet(viewsets.ModelViewSet):
 
     queryset = BannedWord.objects.order_by("word")
     serializer_class = BannedWordSerializer
+    permission_classes = [IsInternalReadAdminWrite]
+
+
+class ChatCloseReasonViewSet(viewsets.ModelViewSet):
+    """Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+    admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+    A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+    do motivo antigo para filtrar e para escrever a legenda de um atendimento
+    que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+    — e o backend recusa encerrar com motivo inativo (ver `close`).
+    """
+
+    queryset = ChatCloseReason.objects.all()
+    serializer_class = ChatCloseReasonSerializer
     permission_classes = [IsInternalReadAdminWrite]
 
 

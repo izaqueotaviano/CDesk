@@ -11,6 +11,7 @@ from rest_framework.validators import UniqueValidator
 from apps.chat.models import (
     BannedWord,
     Chat,
+    ChatCloseReason,
     ChatConfig,
     ChatFile,
     ChatMessage,
@@ -43,15 +44,18 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     files = ChatFileSerializer(many=True, read_only=True)
     is_deleted = serializers.SerializerMethodField()
     can_edit = serializers.SerializerMethodField()
+    reply_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatMessage
         fields = ["id", "author_name", "author_is_internal", "body",
-                  "is_system", "sent_at", "read_at", "files",
+                  "is_system", "is_internal_note",
+                  "sent_at", "read_at", "delivered_at", "files",
                   # espelha TicketMessageSerializer: a tela precisa saber que
                   # o texto mudou depois de enviado, e só oferece editar/
                   # apagar onde o backend deixaria de verdade
-                  "edited_at", "is_deleted", "can_edit"]
+                  "edited_at", "is_deleted", "can_edit",
+                  "reply_to", "reply_preview"]
 
     def get_author_name(self, obj) -> str:
         return obj.author.full_name if obj.author else "Sistema"
@@ -65,6 +69,40 @@ class ChatMessageSerializer(serializers.ModelSerializer):
 
     def get_is_deleted(self, obj) -> bool:
         return obj.deleted_at is not None
+
+    @extend_schema_field(
+        {
+            "type": "object",
+            "nullable": True,
+            "properties": {
+                "id": {"type": "integer"},
+                "author_name": {"type": "string"},
+                "excerpt": {"type": "string"},
+                "is_deleted": {"type": "boolean"},
+                "has_files": {"type": "boolean"},
+            },
+        }
+    )
+    def get_reply_preview(self, obj):
+        """O trecho citado, montado no SERVIDOR.
+
+        Não é o front que recorta: a mensagem citada pode ter saído da janela
+        que ele carregou (uma resposta a algo de três dias atrás), e mandá-lo
+        buscar cada original de volta seria uma requisição por citação. Vem
+        junto, já censurado e já aparado.
+        """
+        alvo = obj.reply_to
+        if alvo is None:
+            return None
+        apagada = alvo.deleted_at is not None
+        corpo = "" if apagada else chat_service.censor(alvo.body)
+        return {
+            "id": alvo.pk,
+            "author_name": alvo.author.full_name if alvo.author else "Sistema",
+            "excerpt": corpo[:160],
+            "is_deleted": apagada,
+            "has_files": alvo.files.exists(),
+        }
 
     def get_can_edit(self, obj) -> bool:
         """Mesma regra de `chat_service._pode_mexer_na_mensagem` — quem vê o
@@ -116,6 +154,13 @@ class ChatTimelineSessionSerializer(serializers.ModelSerializer):
 
     agent_name = serializers.CharField(source="agent.full_name", default=None)
     rating = ChatRatingSerializer(read_only=True)
+    #: O motivo e o chamado gerado fecham a frase do marcador: quando o
+    #: atendimento virou chamado, é o protocolo do chamado que a pessoa
+    #: procura depois, não o número do chat.
+    close_reason_name = serializers.CharField(
+        source="close_reason.name", read_only=True, default=None
+    )
+    ticket_reference = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -123,7 +168,14 @@ class ChatTimelineSessionSerializer(serializers.ModelSerializer):
         # atendimentos precisa dizer QUANDO um começou e terminou, não só
         # quem atendeu — "Meus chats" (LinhaChat, portal) já mostra isso,
         # e aqui é o mesmo dado, só que por sessão dentro da conversa.
-        fields = ["id", "status", "queued_at", "closed_at", "agent_name", "rating"]
+        fields = [
+            "id", "status", "queued_at", "closed_at", "agent_name", "rating",
+            "close_reason_name", "ticket_reference",
+        ]
+
+    def get_ticket_reference(self, obj) -> str | None:
+        ticket = getattr(obj, "generated_ticket", None)
+        return ticket.reference if ticket else None
 
 
 class ChatTimelineFileSerializer(ChatFileSerializer):
@@ -177,6 +229,25 @@ class ChatTimelineMediaSerializer(serializers.Serializer):
 _EDITAVEIS_DO_CHAT = ("name", "category", "priority", "assignee")
 
 
+class ChatCloseReasonSerializer(serializers.ModelSerializer):
+    """O cadastro de motivos. `slug` é gerado do nome quando não vem — quem
+    cadastra escreve "Sem resposta", não "sem-resposta"."""
+
+    slug = serializers.SlugField(required=False, allow_blank=True)
+
+    class Meta:
+        model = ChatCloseReason
+        fields = ["id", "name", "slug", "requires_note", "is_active", "order"]
+
+    def validate(self, attrs):
+        from django.utils.text import slugify
+
+        if not attrs.get("slug"):
+            nome = attrs.get("name") or getattr(self.instance, "name", "")
+            attrs["slug"] = slugify(nome)[:50]
+        return attrs
+
+
 class ChatSerializer(serializers.ModelSerializer):
     client_id = serializers.IntegerField(read_only=True)
     client_name = serializers.CharField(source="client.full_name", read_only=True)
@@ -198,8 +269,24 @@ class ChatSerializer(serializers.ModelSerializer):
     rating_pending = serializers.BooleanField(read_only=True)
     ticket_id = serializers.SerializerMethodField()
     ticket_reference = serializers.SerializerMethodField()
+    #: Disponibilidade do CLIENTE — "ele ainda está na tela?" é a pergunta
+    #: que decide se vale esperar a resposta ou encerrar. Some para o próprio
+    #: cliente no `to_representation` (ele não precisa saber de si mesmo).
+    client_presence = serializers.CharField(source="client.presence", read_only=True)
+    #: Disponibilidade de QUEM ATENDE — o espelho da de cima, e este vai para
+    #: os dois lados: "o Samuel ainda está aí?" é a pergunta do cliente que
+    #: decide se ele espera a resposta ou volta depois.
+    agent_presence = serializers.CharField(
+        source="agent.presence", read_only=True, default=None
+    )
     # nota interna do agente — NUNCA sai para o cliente (ver to_representation)
     agent_score = serializers.IntegerField(read_only=True, allow_null=True)
+    # motivo/observação/quem encerrou — a observação é INTERNA (some no
+    # to_representation para o cliente, junto com a nota do agente)
+    close_reason_name = serializers.CharField(
+        source="close_reason.name", read_only=True, default=None
+    )
+    closed_by_name = serializers.SerializerMethodField()
     ws_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -212,8 +299,11 @@ class ChatSerializer(serializers.ModelSerializer):
             "category", "category_name", "priority", "assignee", "assignee_name",
             "tag_ids",
             "queued_at", "accepted_at", "closed_at", "reopen_count",
+            "close_reason", "close_reason_name", "close_note",
+            "closed_automatically", "closed_by_name",
             "agent_score", "timeout_converted",
             "unread_count", "last_message_preview",
+            "client_presence", "agent_presence",
             "rating", "rating_pending", "ticket_id", "ticket_reference",
             "ws_url",
         ]
@@ -226,8 +316,17 @@ class ChatSerializer(serializers.ModelSerializer):
             # o que é interno morre aqui: nota do agente sobre o cliente e o
             # nome interno do chat (o cliente só o vê se virar ticket/assunto)
             data.pop("agent_score", None)
+            # observação de encerramento é anotação de operação, não recado:
+            # o cliente vê QUE encerrou, não o que a equipe escreveu sobre
+            data.pop("close_note", None)
+            # a presença é para quem ATENDE decidir se espera; devolvê-la ao
+            # próprio cliente seria contar a ele o que já sabe de si
+            data.pop("client_presence", None)
             data["name"] = ""
         return data
+
+    def get_closed_by_name(self, obj) -> str | None:
+        return obj.closed_by.full_name if obj.closed_by else None
 
     def get_client_avatar(self, obj) -> str | None:
         return obj.client.avatar_url or None
@@ -246,11 +345,18 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def get_unread_count(self, obj) -> int:
         user = self.context["request"].user
-        return obj.messages.filter(read_at__isnull=True, is_system=False)\
-            .exclude(author=user).count()
+        return chat_service.mensagens_visiveis(
+            obj.messages.filter(read_at__isnull=True, is_system=False), user
+        ).exclude(author=user).count()
 
     def get_last_message_preview(self, obj) -> str | None:
-        last = obj.messages.filter(is_system=False).order_by("-id").first()
+        # a prévia é o lugar mais fácil de esquecer: ela aparece na LISTA, não
+        # na conversa, e uma nota interna vazando ali chegaria ao cliente sem
+        # ninguém abrir nada
+        user = self.context["request"].user
+        last = chat_service.mensagens_visiveis(
+            obj.messages.filter(is_system=False), user
+        ).order_by("-id").first()
         if last is None:
             return None
         if last.body:
@@ -282,11 +388,51 @@ class RateSerializer(serializers.Serializer):
 
 
 class CloseSerializer(serializers.Serializer):
+    """Entrada do encerramento. Motivo e observação são opcionais AQUI e a
+    obrigatoriedade real (motivo que exige nota) mora no serviço — é lá que
+    o `requires_note` do cadastro é lido, com o valor corrente."""
+
     agent_score = serializers.IntegerField(required=False, allow_null=True, default=None)
+    reason_id = serializers.IntegerField(required=False, allow_null=True, default=None)
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
+    #: A avaliação do CLIENTE, quando ele é quem encerra: encerrar e avaliar
+    #: viram uma operação só (ver `close_chat`). Os três campos andam juntos —
+    #: mandar nota sem a outra nota é erro de quem chama, não meio caminho.
+    service_score = serializers.IntegerField(required=False, allow_null=True, default=None)
+    resolution_score = serializers.IntegerField(
+        required=False, allow_null=True, default=None
+    )
+    justification = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=1000
+    )
+
+    def validate(self, attrs):
+        atendimento = attrs.get("service_score")
+        resolucao = attrs.get("resolution_score")
+        if (atendimento is None) != (resolucao is None):
+            raise serializers.ValidationError(
+                "Avaliação incompleta: as duas notas (atendimento e resolução) "
+                "vêm juntas ou nenhuma vem."
+            )
+        return attrs
 
 
 class TransferSerializer(serializers.Serializer):
     agent_id = serializers.IntegerField()
+    #: observação INTERNA de quem transfere ("cliente quer falar de fatura").
+    #: Vai para a auditoria, nunca para a conversa.
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
+
+
+class ReopenSerializer(serializers.Serializer):
+    #: por que está reabrindo — interno, entra na trilha de auditoria
+    note = serializers.CharField(
+        required=False, allow_blank=True, default="", max_length=2000
+    )
 
 
 class ConvertSerializer(serializers.Serializer):
@@ -386,6 +532,7 @@ class ChatConfigSerializer(serializers.ModelSerializer):
             "score_min", "score_max", "low_score_threshold",
             "default_team", "default_team_name",
             "queue_open", "queue_opens_at",
+            "inactivity_warning_minutes", "inactivity_close_minutes",
         ]
 
     def _fila(self):
@@ -415,6 +562,22 @@ class ChatConfigSerializer(serializers.ModelSerializer):
         if not (minimo <= gatilho <= maximo):
             raise serializers.ValidationError(
                 {"low_score_threshold": "O gatilho da justificativa precisa caber na escala."}
+            )
+
+        # Avisar DEPOIS de encerrar não existe: o chat já fechou quando o
+        # relógio do aviso o alcança, e o aviso nunca chegaria a ninguém.
+        aviso = data.get(
+            "inactivity_warning_minutes",
+            getattr(self.instance, "inactivity_warning_minutes", 0),
+        )
+        fechar = data.get(
+            "inactivity_close_minutes",
+            getattr(self.instance, "inactivity_close_minutes", 0),
+        )
+        if aviso and fechar and aviso >= fechar:
+            raise serializers.ValidationError(
+                {"inactivity_warning_minutes":
+                 "O aviso precisa vir antes do encerramento — use um tempo menor."}
             )
         return data
 

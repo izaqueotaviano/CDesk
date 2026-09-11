@@ -47,6 +47,7 @@ from apps.tickets.models import (
 )
 from apps.tickets.serializers import (
     SLA_AT_RISK_MINUTES,
+    AssignableAgentSerializer,
     BulkAssignSerializer,
     BulkCloseSerializer,
     BulkPrioritySerializer,
@@ -66,13 +67,18 @@ from apps.tickets.serializers import (
     TicketReplySerializer,
 )
 from apps.tickets.services import (
+    atribuicao,
     mentions,
     response_estimate,
     satisfaction,
     ticket_service,
     transcript,
 )
-from apps.tickets.services.attachments import AttachmentRejected, attach_to_message
+from apps.tickets.services.attachments import (
+    AttachmentRejected,
+    attach_to_message,
+    validar_uploads,
+)
 from apps.tickets.services.satisfaction import SurveyClosed
 from apps.tickets.services.ticket_service import TicketRuleViolation
 
@@ -379,6 +385,18 @@ class TicketViewSet(viewsets.GenericViewSet):
             if requester is None:
                 raise ValidationError({"requester_id": "Cliente não encontrado."})
 
+        # O anexo é conferido ANTES de criar o chamado. `create_ticket` abre e
+        # fecha a própria transação (ATOMIC_REQUESTS=False,
+        # config/settings/base.py): recusar o arquivo só na hora de gravá-lo
+        # deixava o chamado nascido e devolvia 400 — a tela lia "não criou", o
+        # agente reenviava e o chamado saía duplicado.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             ticket = ticket_service.create_ticket(
                 requester=requester,
@@ -389,6 +407,7 @@ class TicketViewSet(viewsets.GenericViewSet):
                 category=data.get("category"),
                 order_number=data.get("order_number", ""),
                 actor=request.user,
+                with_signature=data.get("with_signature", False),
             )
         except QuotaExceeded as exc:
             # 422 com dados para a mensagem clara exigida pelo requisito
@@ -408,8 +427,12 @@ class TicketViewSet(viewsets.GenericViewSet):
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
-        # anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado
-        if uploads := request.FILES.getlist("files"):
+        # Anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado.
+        # A conferência acontece de novo aqui dentro: `attach_to_message`
+        # (apps/tickets/services/attachments.py) é a dona da regra e a única
+        # porta de gravação — a chamada lá em cima é só antecipação, barata e
+        # sem efeito colateral.
+        if uploads:
             primeira = ticket.messages.order_by("id").first()
             try:
                 attach_to_message(
@@ -507,7 +530,7 @@ class TicketViewSet(viewsets.GenericViewSet):
             pdf, nome = transcript.ticket_pdf(ticket, para=request.user)
         except RuntimeError as exc:
             # extra ausente: falha explícita, nunca um PDF vazio
-            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
         resp = HttpResponse(pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{nome}"'
         return resp
@@ -528,6 +551,26 @@ class TicketViewSet(viewsets.GenericViewSet):
         alvos = mentions.alvos_de_mencao(ticket=ticket, requester=request.user)
         return Response(MentionTargetSerializer(alvos, many=True).data)
 
+    @action(detail=True, methods=["get"], url_path="assignable-agents",
+            pagination_class=None)
+    def assignable_agents(self, request, pk=None):
+        """Quem os seletores de Responsável e Dono técnico podem oferecer.
+
+        Pergunta DIFERENTE da de `mention_targets` — ver o porquê completo em
+        `services/atribuicao.py`. Resumo: aqui o requester PRECISA aparecer
+        (é o "Assumir" pelo seletor) e agente leve NÃO aparece (não passa em
+        `assign()`/`set_owner()`, que exigem `Perm.TICKET_BE_ASSIGNED`).
+
+        `self.get_object()` só para 404 fora do escopo — igual a
+        `mention_targets`, a lista em si não depende do ticket (nem tem
+        recorte por equipe: `services/atribuicao.agentes_atribuiveis`).
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Atribuição é recurso interno.")
+        self.get_object()
+        agentes = atribuicao.agentes_atribuiveis()
+        return Response(AssignableAgentSerializer(agentes, many=True).data)
+
     @action(detail=True, methods=["post"],
             parser_classes=[JSONParser, MultiPartParser, FormParser])
     def reply(self, request, pk=None):
@@ -539,6 +582,18 @@ class TicketViewSet(viewsets.GenericViewSet):
         if not request.user.is_internal and data.get("new_status"):
             raise ValidationError({"new_status": "Cliente não escolhe status."})
 
+        # Mesmo motivo do `create`: o anexo é conferido antes de gravar a
+        # mensagem. `add_reply` já muda o status, notifica e conta SLA em
+        # transação própria; recusar o arquivo depois disso deixava a resposta
+        # publicada e pedia "tente de novo" — cada retentativa gravava outra
+        # mensagem na thread.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             message = ticket_service.add_reply(
                 ticket=ticket,
@@ -549,12 +604,14 @@ class TicketViewSet(viewsets.GenericViewSet):
                 resolution_started_at=data.get("resolution_started_at"),
                 resolution_ended_at=data.get("resolution_ended_at"),
                 close_note=data.get("close_note", ""),
+                with_signature=data.get("with_signature", False),
             )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
         # anexos entram na mesma requisição: validação em lote antes de gravar
-        if uploads := request.FILES.getlist("files"):
+        # (repetida de propósito — ver o comentário na conferência acima)
+        if uploads:
             try:
                 attach_to_message(
                     message=message, uploads=uploads, uploaded_by=request.user

@@ -1,0 +1,57 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+.auditoria-tabela__wrap {
+  overflow-x: auto;
+  border: $border;
+  border-radius: $radius;
+}
+
+.auditoria-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  @include type($fs-ui, $w-regular);
+
+  th,
+  td {
+    padding: $sp-3 $sp-4;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: $border;
+  }
+  th {
+    @include type($fs-label, $w-medium);
+    color: $text-muted;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: $chrome;
+  }
+  td {
+    color: $text;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.lgpd-revisao__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.lgpd-revisao__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  @include type($fs-ui, $w-regular);
+}

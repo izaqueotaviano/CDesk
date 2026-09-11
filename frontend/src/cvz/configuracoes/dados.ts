@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
+import { chaves as chavesChat, type ConfigChat } from '@/api/chat'
 
 function lista<T>(d: Paginado<T> | T[]): T[] {
   return Array.isArray(d) ? d : d.results
@@ -222,6 +223,268 @@ export function useAtualizarEquipeCfg(id: number) {
   return useMutation({
     mutationFn: (d: EquipeCfgEscrita) => api.patch<EquipeCfg>(`/api/v1/settings/teams/${id}/`, d),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-equipes'] }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Agentes — a tela "Equipes e agentes" de verdade (apps/accounts/admin_api.py:
+// TeamAdminViewSet.roster + UserAdminViewSet). Recorte de `UserAdminSerializer`
+// só com o que a tela usa; a escrita de cadastro (nome/telefone/papel) segue
+// pelo endpoint plano `settings/users/<id>/`, mas nenhuma tela ainda precisa
+// dela — as ações aqui são as administrativas (convite, senha, 2FA, sessões,
+// desativar) que só existiam no /admin/ cru do Django.
+// ---------------------------------------------------------------------------
+
+export type Metodo2FA = '' | 'email' | 'totp'
+
+export interface AgenteCfg {
+  id: number
+  email: string
+  full_name: string
+  kind: 'internal' | 'client'
+  internal_role: string | null
+  client_role: string | null
+  company: number | null
+  company_name: string | null
+  job_title: string
+  phone: string
+  phone_secondary: string
+  is_active: boolean
+  last_login: string | null
+  last_seen_at: string | null
+  anonymized_at: string | null
+  // '' | 'pendente' | 'aceito' — vazio é quem entra só por Google (ver
+  // `precisa_de_convite` no backend); os outros dois só existem quando a
+  // conta depende de senha.
+  invite_status: string
+  team_ids: number[]
+  two_factor_method: Metodo2FA
+  avatar_url: string
+  custom_role: number | null
+  custom_role_name: string | null
+  ticket_scope: string
+  /** Assinatura do rodapé das respostas — mesmas regras do self-service em
+   *  Minha conta (`apps/accounts/assinatura.py`). `signature_render` é o
+   *  bloco pronto, já higienizado, que a prévia desenha. */
+  signature: string
+  signature_kind: '' | 'texto' | 'html' | 'imagem'
+  signature_html: string
+  signature_image_url: string
+  signature_render: string
+}
+
+/** Uma equipe do roster, já com quem a atende — é `EquipeCfg` mais o que só
+ *  `TeamAdminViewSet.roster` devolve (a listagem `settings/teams/` sozinha
+ *  não traz `agents`). */
+export interface EquipeRosterCfg extends EquipeCfg {
+  agents: AgenteCfg[]
+}
+
+export interface RosterCfg {
+  teams: EquipeRosterCfg[]
+  unassigned: AgenteCfg[]
+}
+
+export function useRosterCfg() {
+  return useQuery({
+    queryKey: ['cfg-roster'],
+    queryFn: () => api.get<RosterCfg>('/api/v1/settings/teams/roster/'),
+    staleTime: 30_000,
+  })
+}
+
+/** Toda mutação sobre um agente pode mudar como ele aparece no roster (papel,
+ *  convite, 2FA, ativo) — e várias também mudam `useAgentes()` (o diretório
+ *  que alimenta seletor de responsável em tickets), que só lista quem está
+ *  ativo. Um só invalidador evita esquecer a segunda lista numa mutação nova. */
+function useInvalidarRoster() {
+  const qc = useQueryClient()
+  return () => {
+    qc.invalidateQueries({ queryKey: ['cfg-roster'] })
+    qc.invalidateQueries({ queryKey: ['agentes'] })
+  }
+}
+
+/** `user` vincula alguém que já existe (interno, de qualquer equipe); os
+ *  demais campos criam um agente novo já lotado nesta equipe — os dois
+ *  caminhos que `TeamAdminViewSet.add_agent` aceita no mesmo corpo. */
+export type AdicionarAgenteEscrita =
+  | { user: number }
+  | { full_name: string; email: string; internal_role?: string; phone?: string }
+
+export function useAdicionarAgenteCfg(equipeId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (d: AdicionarAgenteEscrita) =>
+      api.post<AgenteCfg>(`/api/v1/settings/teams/${equipeId}/agents/`, d),
+    onSuccess: invalidar,
+  })
+}
+
+/** Reenvia o convite de definição de senha — o mesmo problema que fazia um
+ *  agente ficar "com cara de pronto" e trancado pra fora do sistema. */
+export function useReenviarConviteAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ invited: string }>(`/api/v1/settings/users/${userId}/invite/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** A senha nova só existe nesta resposta — quem chama repassa e descarta. */
+export function useResetarSenhaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ password: string }>(`/api/v1/settings/users/${userId}/reset-password/`),
+    onSuccess: invalidar,
+  })
+}
+
+export function useResetar2faAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.post<{ method: Metodo2FA }>(`/api/v1/settings/users/${userId}/reset-2fa/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Desativar é soft-delete no backend (`is_active=False`) — o DELETE do
+ *  recurso, não uma action à parte. */
+export function useDesativarAgenteCfg(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<void>(`/api/v1/settings/users/${userId}/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Troca o avatar de OUTRA pessoa — o gêmeo admin de `POST me/avatar/`
+ *  (`AvatarUploadView`), para o caso comum de um admin ajudar alguém a
+ *  trocar a própria foto por telefone ou chat. O backend recodifica o
+ *  arquivo (ver `avatars.guardar`) e devolve o agente já com a `avatar_url`
+ *  nova — não precisa de um PATCH separado depois. */
+export function useEnviarAvatarAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<AgenteCfg>(`/api/v1/settings/users/${userId}/avatar/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+/** Assinatura de OUTRO agente: o mesmo PATCH do cadastro, e o mesmo upload
+ *  multipart do self-service. Quem monta assinatura para o time costuma ser
+ *  o admin — é o pedido "coloca a minha aí" que chega por chat. */
+export function useSalvarAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (dados: {
+      signature_kind: AgenteCfg['signature_kind']
+      signature: string
+      signature_html: string
+    }) => api.patch<AgenteCfg>(`/api/v1/settings/users/${userId}/`, dados),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEnviarImagemAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<AgenteCfg>(`/api/v1/settings/users/${userId}/assinatura-imagem/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useRemoverImagemAssinaturaAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<AgenteCfg>(`/api/v1/settings/users/${userId}/assinatura-imagem/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Volta às iniciais — o gêmeo admin de `DELETE me/avatar/`. */
+export function useRemoverAvatarAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: () => api.delete<AgenteCfg>(`/api/v1/settings/users/${userId}/avatar/`),
+    onSuccess: invalidar,
+  })
+}
+
+/** Substitui o conjunto INTEIRO de equipes do agente — `set_teams` não é
+ *  incremental, então quem chama manda a lista final (todas as equipes que
+ *  o agente deve atender depois de salvar), nunca um delta. */
+export function useDefinirEquipesAgente(userId: number) {
+  const invalidar = useInvalidarRoster()
+  return useMutation({
+    mutationFn: (teamIds: number[]) =>
+      api.put<{ team_ids: number[] }>(`/api/v1/settings/users/${userId}/teams/`, { team_ids: teamIds }),
+    onSuccess: invalidar,
+  })
+}
+
+export interface EventoAcessoAgente {
+  kind: string
+  kind_label: string
+  ip: string
+  browser: string
+  created_at: string
+  success: boolean
+}
+
+export interface SessaoAgente {
+  key: string
+  browser: string
+  ip: string
+  user_agent: string
+  started_at: string | null
+  expires_at: string
+  current: boolean
+}
+
+/** Mesma forma de `apps.accounts.sessions.access_history_payload` — só muda
+ *  de quem é a conta (aqui, qualquer agente; no self-service, sempre `me`). */
+export interface HistoricoAcessoAgente {
+  events: EventoAcessoAgente[]
+  logins: EventoAcessoAgente[]
+  sessions: SessaoAgente[]
+  session_limit: number
+}
+
+function chaveHistoricoAgente(userId: number) {
+  return ['cfg-acesso-agente', userId] as const
+}
+
+export function useHistoricoAcessoAgente(userId: number, habilitado: boolean) {
+  return useQuery({
+    queryKey: chaveHistoricoAgente(userId),
+    queryFn: () => api.get<HistoricoAcessoAgente>(`/api/v1/settings/users/${userId}/access-history/`),
+    enabled: habilitado && Number.isFinite(userId) && userId > 0,
+    staleTime: 10_000,
+  })
+}
+
+export function useRevogarTodasSessoesAgente(userId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: () => api.delete<void>(`/api/v1/settings/users/${userId}/sessions/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAgente(userId) }),
+  })
+}
+
+export function useRevogarSessaoAgente(userId: number) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (key: string) => api.delete<void>(`/api/v1/settings/users/${userId}/sessions/${key}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: chaveHistoricoAgente(userId) }),
   })
 }
 
@@ -499,6 +762,20 @@ export interface SistemaCfg {
   auto_close_warning_message: string
   csat_enabled: boolean
   csat_expires_days: number
+  /** Exigir verificação em duas etapas de todos (senão é opcional por conta). */
+  two_factor_required: boolean
+  // entrega de e-mail — a senha nunca volta; `smtp_password_set` diz se há uma
+  email_enabled: boolean
+  smtp_host: string
+  smtp_port: number
+  smtp_username: string
+  smtp_password_set: boolean
+  smtp_use_tls: boolean
+  smtp_use_ssl: boolean
+  email_from: string
+  email_html_template: string
+  /** O modelo de fábrica, para o botão "restaurar padrão". */
+  email_html_template_default: string
   updated_at: string
 }
 export type SistemaCfgEscrita = Partial<
@@ -506,8 +783,10 @@ export type SistemaCfgEscrita = Partial<
     SistemaCfg,
     | 'attachment_max_bytes' | 'attachment_max_files_per_message' | 'attachment_max_bytes_per_message'
     | 'auto_close_pending_hours' | 'auto_close_message' | 'auto_close_warning_hours'
-    | 'auto_close_warning_message' | 'csat_enabled' | 'csat_expires_days'
-  >
+    | 'auto_close_warning_message' | 'csat_enabled' | 'csat_expires_days' | 'two_factor_required'
+    | 'email_enabled' | 'smtp_host' | 'smtp_port' | 'smtp_username' | 'smtp_use_tls' | 'smtp_use_ssl'
+    | 'email_from' | 'email_html_template'
+  > & { smtp_password: string }
 >
 
 export function useSistemaCfg() {
@@ -522,5 +801,136 @@ export function useAtualizarSistemaCfg() {
   return useMutation({
     mutationFn: (d: SistemaCfgEscrita) => api.put<SistemaCfg>('/api/v1/settings/system/', d),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-sistema'] }),
+  })
+}
+/** Manda um e-mail agora pela configuração SALVA — o jeito de conferir o SMTP
+ *  antes de um cliente ficar sem código de login. O erro do servidor de
+ *  e-mail volta em `detail`. */
+export function useEnviarEmailTeste() {
+  return useMutation({
+    mutationFn: (to: string) => api.post<{ sent: true; to: string }>('/api/v1/settings/system/test-email/', { to }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Moderação do chat (BannedWord) — a palavra vira **** na EXIBIÇÃO, para os
+// dois lados; o banco guarda o original, então a lista vale retroativamente
+// (apps/chat/models.py). Só lista/cria/apaga: não existe "editar" — corrigir
+// uma palavra é apagar e cadastrar de novo.
+// ---------------------------------------------------------------------------
+
+export interface PalavraBanida {
+  id: number
+  word: string
+}
+
+export function usePalavrasBanidas() {
+  return useQuery({
+    queryKey: ['cfg-moderacao'],
+    queryFn: () => api.get<Paginado<PalavraBanida> | PalavraBanida[]>('/api/v1/chat/banned-words/?limit=500'),
+    select: lista,
+    staleTime: 60_000,
+  })
+}
+export function useCriarPalavraBanida() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (word: string) => api.post<PalavraBanida>('/api/v1/chat/banned-words/', { word }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-moderacao'] }),
+  })
+}
+export function useExcluirPalavraBanida() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: number) => api.delete(`/api/v1/chat/banned-words/${id}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['cfg-moderacao'] }),
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Tela de login (marca): textos e imagem do painel, por público. A leitura
+// pública é `@/api/branding`; aqui é a escrita do admin.
+// ---------------------------------------------------------------------------
+
+import type { MarcaLogin, MarcaLoginEscrita, PublicoLogin } from '@/api/branding'
+import { chaveMarcaLogin } from '@/api/branding'
+
+export interface MarcaLoginAdmin {
+  cliente: MarcaLogin
+  equipe: MarcaLogin
+  defaults: Record<PublicoLogin, Pick<MarcaLogin, 'brand_name' | 'headline' | 'subtitle' | 'highlights'>>
+}
+
+export function useMarcaLoginAdmin() {
+  return useQuery({
+    queryKey: ['cfg-marca-login'],
+    queryFn: () => api.get<MarcaLoginAdmin>('/api/v1/settings/branding/login/'),
+    staleTime: 60_000,
+  })
+}
+
+function useInvalidarMarca() {
+  const qc = useQueryClient()
+  return () => {
+    qc.invalidateQueries({ queryKey: ['cfg-marca-login'] })
+    qc.invalidateQueries({ queryKey: chaveMarcaLogin })
+  }
+}
+
+export function useAtualizarMarcaLogin(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: (d: MarcaLoginEscrita) => api.put<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/`, d),
+    onSuccess: invalidar,
+  })
+}
+
+export function useEnviarImagemMarca(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: (arquivo: File) => {
+      const fd = new FormData()
+      fd.append('file', arquivo)
+      return api.post<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/image/`, fd)
+    },
+    onSuccess: invalidar,
+  })
+}
+
+export function useRemoverImagemMarca(publico: PublicoLogin) {
+  const invalidar = useInvalidarMarca()
+  return useMutation({
+    mutationFn: () => api.delete<MarcaLogin>(`/api/v1/settings/branding/login/${publico}/image/`),
+    onSuccess: invalidar,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// Chat (ChatConfig, singleton) — GET/PUT /api/v1/chat/config/. A LEITURA é a
+// mesma do console e do mini chat (`useConfigChat`, chave `chaves.config` em
+// @/api/chat): salvar aqui atualiza o teto de atendimentos que eles mostram
+// sem F5. Só admin escreve (a view recusa o resto com 403).
+// ---------------------------------------------------------------------------
+
+export type ChatCfgEscrita = Partial<{
+  welcome_message: string
+  queue_timeout_minutes: number
+  max_chats_per_agent: number
+  score_min: number
+  score_max: number
+  low_score_threshold: number
+  default_team: number | null
+  inactivity_warning_minutes: number
+  inactivity_close_minutes: number
+}>
+
+export function useAtualizarChatCfg() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (d: ChatCfgEscrita) => api.put<ConfigChat>('/api/v1/chat/config/', d),
+    onSuccess: (config) => {
+      qc.setQueryData(chavesChat.config, config)
+      qc.invalidateQueries({ queryKey: chavesChat.config })
+    },
   })
 }

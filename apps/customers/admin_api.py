@@ -2,7 +2,7 @@
 
 import re
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
@@ -167,6 +167,9 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
     # user_count por annotate; quota_usage/maintenance_usage seguem por linha
     # (COUNT/SUM do período) — aceitável na escala de dezenas de empresas, é o
     # próximo ponto a revisar se a lista crescer muito.
+    #
+    # `queryset` só para o SCHEMA — em runtime quem manda é `get_queryset()`,
+    # logo abaixo (o mesmo padrão de `apps.customers.views.CompanyViewSet`).
     queryset = (
         Company.objects.select_related("plan")
         .annotate(user_count=Count("users"))
@@ -174,6 +177,30 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
     )
     serializer_class = CompanyAdminSerializer
     permission_classes = [IsInternalReadAdminWrite]
+
+    def get_queryset(self):
+        qs = (
+            Company.objects.select_related("plan")
+            .annotate(user_count=Count("users"))
+            .order_by("name")
+        )
+        ativo = self.request.query_params.get("is_active")
+        if ativo is not None:
+            # o front manda "true"/"false" (String(boolean)) — sem isso o
+            # filtro de status da tela era só decoração, a lista nunca mudava
+            qs = qs.filter(is_active=ativo.lower() == "true")
+        if termo := self.request.query_params.get("q", "").strip():
+            # domínio via subquery (`id__in`), não `Q(domains__domain=...)`:
+            # um JOIN ali fanaria o `Count("users")` acima (empresa com 2
+            # usuários e 2 domínios batendo a busca contaria 4).
+            dominios = CompanyDomain.objects.filter(domain__icontains=termo).values("company_id")
+            qs = qs.filter(
+                Q(name__icontains=termo)
+                | Q(legal_name__icontains=termo)
+                | Q(slug__icontains=termo)
+                | Q(id__in=dominios)
+            )
+        return qs
 
     def perform_destroy(self, instance):
         # LGPD (D11): empresa nunca é apagada — desativa, e anonimiza sob pedido
@@ -243,9 +270,11 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
         if request.method == "PATCH":
             if not IsAdmin().has_permission(request, self):
                 return Response({"detail": IsAdmin.message}, status=403)
-            if "enabled" in request.data:
-                embed.enabled = bool(request.data["enabled"])
-                embed.save(update_fields=["enabled"])
+            campos = [c for c in ("enabled", "public_enabled") if c in request.data]
+            if campos:
+                for campo in campos:
+                    setattr(embed, campo, bool(request.data[campo]))
+                embed.save(update_fields=campos)
             if "origins" in request.data:
                 origins = request.data.get("origins")
                 if not isinstance(origins, list):
@@ -288,10 +317,21 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
             [CompanyChatEmbedOrigin(embed=embed, origin=o) for o in limpas - existentes]
         )
 
-    @staticmethod
-    def _serialize_embed(embed) -> dict:
+    def _serialize_embed(self, embed) -> dict:
+        """Inclui o CÓDIGO DE INSTALAÇÃO pronto — montado aqui, e não no
+        front, porque quem sabe o endereço público desta instalação é o
+        servidor que está respondendo (a SPA pode estar noutro domínio, e o
+        snippet precisa apontar pro Django). Um por empresa, sempre o mesmo:
+        o que varia por pessoa é a identificação DENTRO da janelinha, não o
+        código colado no site."""
+        base = self.request.build_absolute_uri("/").rstrip("/")
+        slug = embed.company.slug
         return {
             "enabled": embed.enabled,
+            "public_enabled": embed.public_enabled,
             "origins": list(embed.origins.order_by("origin").values_list("origin", flat=True)),
             "rotated_at": embed.rotated_at.isoformat(),
+            "company_slug": slug,
+            "snippet": f'<script src="{base}/embed/widget.js?company={slug}" async></script>',
+            "iframe_url": f"{base}/embed/chat/?company={slug}",
         }

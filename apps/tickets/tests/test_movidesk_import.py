@@ -191,6 +191,27 @@ class TestImportacao:
         assert em_atendimento.status == TicketStatus.OPEN
         assert em_atendimento.priority == TicketPriority.URGENT
 
+    def test_equipe_vem_do_ticket_e_a_escolhida_e_so_o_padrao(self, importar, suporte):
+        """`ownerTeam` do Movidesk manda: equipe de mesmo nome recebe o chamado,
+        a que não existe é criada, e só o ticket sem equipe cai na padrão."""
+        comercial = Team.objects.create(name="Comercial", slug="comercial")
+        amostra = [
+            {**AMOSTRA[0], "ownerTeam": "comercial"},  # existe (caixa diferente)
+            {**AMOSTRA[1], "ownerTeam": "Infra e Redes"},  # não existe: cria
+            {**AMOSTRA[2]},  # sem equipe: padrão
+        ]
+        report = importar(amostra)
+
+        assert Ticket.objects.get(reference="MD-5001").team == comercial
+        criada = Ticket.objects.get(reference="MD-4002").team
+        assert criada.name == "Infra e Redes" and criada.slug == "infra-e-redes"
+        assert Ticket.objects.get(reference="MD-6003").team == suporte
+        assert report.teams == ["Infra e Redes"]
+        assert "equipes criadas: 1" in report.as_lines()
+        # reimportar não cria a equipe de novo
+        importar(amostra)
+        assert Team.objects.filter(name="Infra e Redes").count() == 1
+
     def test_fechado_sem_data_recebe_a_data_de_abertura(self, importar):
         """MD-4002 é "Cancelado" sem `resolvedIn` nem `closedIn`."""
         importar()

@@ -23,6 +23,7 @@ from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from rest_framework.test import APIClient
 
+from apps.accounts.admin_api import login_por_google_ativo
 from apps.accounts.models import AgentTeam, InternalRole, User, UserKind
 from apps.customers.models import Company, Plan
 from apps.notifications.models import OutboundEmail
@@ -250,3 +251,32 @@ class TestTrocarPropriaSenha:
         assert resp.status_code == 200
         # mesma sessão, request novo: continua autenticada
         assert client.get("/api/v1/auth/me/").status_code == 200
+
+
+class TestLoginPorGoogleAtivo:
+    """As DUAS condições importam — backend registrado sozinho não basta
+    (é exatamente o bug que este arquivo documenta no topo, versão nova:
+    religar o allauth em código sem configurar a allowlist trancaria o
+    agente para fora de novo, só que agora com `invite_status` mentindo
+    que está tudo bem)."""
+
+    def test_sem_allauth_no_backend_esta_desligado(self, settings):
+        settings.AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend"]
+        settings.GOOGLE_OAUTH_ALLOWED_DOMAINS = ["x.test"]
+        assert login_por_google_ativo() is False
+
+    def test_com_allauth_mas_allowlist_vazia_continua_desligado(self, settings):
+        settings.AUTHENTICATION_BACKENDS = [
+            "django.contrib.auth.backends.ModelBackend",
+            "allauth.account.auth_backends.AuthenticationBackend",
+        ]
+        settings.GOOGLE_OAUTH_ALLOWED_DOMAINS = []
+        assert login_por_google_ativo() is False
+
+    def test_com_as_duas_coisas_esta_ligado(self, settings):
+        settings.AUTHENTICATION_BACKENDS = [
+            "django.contrib.auth.backends.ModelBackend",
+            "allauth.account.auth_backends.AuthenticationBackend",
+        ]
+        settings.GOOGLE_OAUTH_ALLOWED_DOMAINS = ["x.test"]
+        assert login_por_google_ativo() is True

@@ -1,6 +1,13 @@
+import nh3
 from rest_framework import serializers
 
 from apps.knowledge.models import Article
+
+#: Tags a mais que a allowlist padrão do nh3 não traz e um artigo de ajuda
+#: usa (figura com legenda, destaque em bloco). Tudo o que NÃO está na
+#: allowlist sai — `<script>`, `<style>`, `<iframe>`, `on*=` e `javascript:`
+#: inclusive, que é o ponto.
+_TAGS_PERMITIDAS = nh3.ALLOWED_TAGS | {"figure", "figcaption", "mark"}
 
 
 class ArticleListSerializer(serializers.ModelSerializer):
@@ -27,11 +34,36 @@ class ArticleListSerializer(serializers.ModelSerializer):
 
 
 class ArticleDetailSerializer(ArticleListSerializer):
-    body_html = serializers.CharField(read_only=True)
+    body_html = serializers.SerializerMethodField()
     related = serializers.SerializerMethodField()
 
     class Meta(ArticleListSerializer.Meta):
         fields = ArticleListSerializer.Meta.fields + ["body_html", "related"]
+
+    def get_body_html(self, obj) -> str:
+        """O HTML do WordPress, higienizado na SAÍDA.
+
+        O corpo é gravado cru pela sincronização (é o `content.rendered` do
+        WordPress) e agora é renderizado no navegador — inclusive no portal
+        do cliente. Um WordPress comprometido é o jeito mais comum de um
+        site desses virar vetor: bastaria um `<script>` num artigo para
+        rodar código na sessão de quem lê.
+
+        A limpeza mora aqui, e não na sincronização, de propósito: assim
+        vale também para as linhas que já estavam no banco antes desta
+        regra existir, sem depender de uma re-sincronização ter acontecido.
+        `nh3` é Rust (microssegundos) — o custo por request é irrelevante
+        perto da garantia.
+        """
+        if not obj.body_html:
+            return ""
+        return nh3.clean(
+            obj.body_html,
+            tags=_TAGS_PERMITIDAS,
+            # link de artigo abre fora do sistema: sem `noopener` a página
+            # de destino ganha `window.opener` da aba do portal
+            link_rel="noopener noreferrer",
+        )
 
     def get_related(self, obj) -> list:
         """Mesma categoria, até 4 — o limite que o mock de referência usa."""

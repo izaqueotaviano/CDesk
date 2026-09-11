@@ -17,13 +17,19 @@ from pathlib import Path
 APPS_DIR = Path(__file__).resolve().parents[3] / "apps"
 
 # modelos com fronteira de tenant (empresa/equipe) que nunca podem ser
-# lidos crus na camada de request
-TENANT_MODELS = {"Ticket", "Chat"}
+# lidos crus na camada de request.
+#
+# `Note` entra aqui apesar de a fronteira dela não ser a empresa, e sim o
+# DONO: a nota é pessoal (apps/notes/models.py), e ler o manager cru numa
+# view devolveria a anotação privada de outra pessoa — a mesma categoria de
+# falha, com o mesmo remédio (`selectors.visible_notes(user)`).
+TENANT_MODELS = {"Ticket", "Chat", "Note"}
 
 # camadas de leitura sancionadas: aqui o manager cru é o ponto de entrada legítimo
 ALLOWED = {
     APPS_DIR / "tickets" / "selectors.py",
     APPS_DIR / "chat" / "services" / "chat_service.py",
+    APPS_DIR / "notes" / "selectors.py",
     # comando de management: `./manage.py configurar_equipe_convertize` apaga
     # TUDO de propósito (ambiente de demo virando equipe real) — não é uma
     # leitura que devolve dado a cliente algum, é um `.all().delete()`

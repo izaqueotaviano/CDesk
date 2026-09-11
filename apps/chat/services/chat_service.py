@@ -12,10 +12,12 @@ verdade; o WebSocket transporta o que o banco já registrou.
 from __future__ import annotations
 
 import datetime as dt
+import logging
 import re
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.contrib.contenttypes.models import ContentType
 from django.core.cache import cache
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -29,7 +31,40 @@ from apps.chat.models import (
     ChatStatus,
 )
 
+logger = logging.getLogger(__name__)
+
 GRUPO_AGENTES = "chat_agentes"  # todo interno conectado escuta a fila aqui
+
+
+def auditar(*, chat: Chat, actor, action: str, summary: str, changes: dict | None = None):
+    """Grava o evento do chat na trilha de auditoria GERAL (`audit.AuditLog`).
+
+    Trilha própria do chat seria uma segunda tabela append-only com as mesmas
+    colunas e a mesma disciplina — e a tela de Auditoria teria de aprender a
+    juntar duas fontes. `AuditLog` é genérico (GenericForeignKey), já é
+    append-only de verdade (`AppendOnlyModel` barra update/delete de linha) e
+    já entra no expurgo de retenção da LGPD. O chat só precisava passar a
+    escrever nela.
+
+    Nunca derruba a operação que auditou: um erro aqui (banco de auditoria
+    indisponível, content type ausente numa migração pela metade) não pode
+    desfazer um encerramento que já aconteceu — some no log da aplicação, e o
+    atendimento segue. O inverso (perder o encerramento para salvar o log)
+    seria pior.
+    """
+    from apps.audit.models import AuditLog
+
+    try:
+        AuditLog.objects.create(
+            actor=actor if (actor is not None and getattr(actor, "pk", None)) else None,
+            action=action,
+            content_type=ContentType.objects.get_for_model(Chat),
+            object_id=str(chat.pk),
+            changes=changes or {},
+            summary=summary[:250],
+        )
+    except Exception:  # noqa: BLE001 — auditoria não derruba atendimento
+        logger.warning("auditoria do chat %s falhou (%s)", chat.pk, action, exc_info=True)
 
 
 class ChatRuleViolation(Exception):
@@ -118,6 +153,24 @@ def visible_chats(user):
     if user.is_internal:
         return qs
     return qs.filter(client=user)
+
+
+def mensagens_visiveis(qs, user):
+    """O filtro de NOTA INTERNA — o único lugar que decide o que o cliente vê.
+
+    Existe como função, e não como um `if user.is_internal` repetido, porque
+    é assim que um vazamento destes acontece de verdade: a sétima consulta a
+    mensagens é escrita meses depois, por outra pessoa, e ninguém lembra da
+    condição. Aqui, esquecer é impossível de um jeito silencioso — ou a
+    consulta passa por esta função, ou ela não filtra nada e isso salta aos
+    olhos na revisão.
+
+    O socket é o outro caminho por onde a nota poderia escapar, e ele tem a
+    mesma trava no `chat_message` do consumer.
+    """
+    if user is not None and getattr(user, "is_internal", False):
+        return qs
+    return qs.filter(is_internal_note=False)
 
 
 def can_send(user, chat: Chat) -> bool:
@@ -253,7 +306,12 @@ def _mensagens_do_cliente(client):
     """
     return (
         ChatMessage.objects.filter(chat__in=visible_chats(client))
-        .select_related("author", "chat", "chat__agent", "chat__rating")
+        .select_related(
+            "author", "chat", "chat__agent", "chat__rating",
+            # o marcador entre atendimentos diz o motivo do encerramento e o
+            # chamado que saiu dali — sem isto seriam duas consultas por sessão
+            "chat__close_reason", "chat__generated_ticket",
+        )
         .prefetch_related("files")
     )
 
@@ -316,7 +374,7 @@ def delete_message(*, message: ChatMessage, actor) -> ChatMessage:
 
 
 def timeline(client, *, before: int | None = None, limit: int | None = None,
-             q: str = "") -> tuple[list, bool]:
+             q: str = "", para=None) -> tuple[list, bool]:
     """As mensagens de todas as sessões do cliente e se ainda há anteriores.
 
     Mesmo contrato de recorte do `messages/` de um chat, de propósito —
@@ -327,7 +385,11 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     tela se vale desenhar o "carregar mensagens anteriores": contar o total
     de uma conversa de meses para exibir um botão seria caro à toa.
     """
-    base = _mensagens_do_cliente(client)
+    # `client` é DE QUEM é a conversa; `para` é QUEM está lendo. Eram a
+    # mesma pessoa enquanto a conversa contínua existia só no portal; agora
+    # o console também a usa, e é a segunda que decide o que aparece — o
+    # agente enxerga as notas internas, o cliente não.
+    base = mensagens_visiveis(_mensagens_do_cliente(client), para or client)
     qs = base.order_by("id")
     if q:
         qs = qs.filter(body__icontains=q)
@@ -350,6 +412,166 @@ def timeline(client, *, before: int | None = None, limit: int | None = None,
     return mensagens, anteriores.exists()
 
 
+def caixa_de_entrada(agente) -> list[dict]:
+    """A lista do console agrupada POR CLIENTE, não por abertura.
+
+    Uma linha por pessoa, ordenada pela atividade mais recente — o formato
+    de caixa de entrada que todo mensageiro usa. Com cinquenta clientes e
+    várias aberturas cada, uma linha por abertura vira uma lista que ninguém
+    navega, e a mesma pessoa aparece cinco vezes sem relação visível entre
+    elas.
+
+    O agrupamento é de APRESENTAÇÃO. Cada `Chat` continua sendo uma linha no
+    banco, com o próprio SLA, a própria avaliação e o próprio ciclo — nada
+    disso muda. O que muda é que a tela do agente pergunta "com quem estou
+    falando" em vez de "que aberturas existem".
+
+    A fila (quem ainda não foi pego) NÃO entra aqui: ela é uma lista de
+    trabalho a fazer, não uma conversa em andamento, e some assim que
+    alguém pega. Continua na sua própria seção.
+    """
+    from django.contrib.auth import get_user_model
+    from django.db.models import Count, Max, OuterRef, Subquery
+
+    ultima = (
+        ChatMessage.objects.filter(chat__client=OuterRef("client"), is_system=False)
+        .order_by("-id")
+        .values("body")[:1]
+    )
+    linhas = (
+        visible_chats(agente)
+        .exclude(status=ChatStatus.QUEUED)
+        .values("client")
+        .annotate(
+            atividade=Max("messages__sent_at"),
+            aberturas=Count("pk", distinct=True),
+            # a abertura mais recente da pessoa: sem nenhuma viva, é nela que
+            # a thread abre (em leitura) — a conversa não pode sumir da tela
+            # só porque o último atendimento foi encerrado
+            ultima_abertura=Max("pk"),
+            previa=Subquery(ultima),
+        )
+        .order_by("-atividade")
+    )
+
+    por_cliente = {ligacao["client"]: ligacao for ligacao in linhas}
+    if not por_cliente:
+        return []
+
+    clientes = {
+        u.pk: u
+        for u in get_user_model().objects.filter(pk__in=por_cliente).select_related("company")
+    }
+
+    # A sessão ABERTA de cada cliente (no máximo uma, pela constraint
+    # `uniq_chat_aberto_por_login`) — é ela que decide se dá para escrever.
+    abertas = {
+        c.client_id: c
+        for c in visible_chats(agente).filter(status=ChatStatus.ACTIVE)
+    }
+
+    resultado = []
+    for cid, dados in por_cliente.items():
+        cliente = clientes.get(cid)
+        if cliente is None:
+            continue
+        aberta = abertas.get(cid)
+        resultado.append({
+            "client_id": cid,
+            "client_name": cliente.full_name,
+            "client_avatar": cliente.avatar_url or None,
+            "client_presence": cliente.presence,
+            "company_name": cliente.company.name if cliente.company else "",
+            "last_activity": dados["atividade"],
+            "last_message_preview": (dados["previa"] or "")[:120],
+            "sessions": dados["aberturas"],
+            # o chat vivo, quando existe: é nele que a mensagem nova entra
+            "open_chat_id": aberta.pk if aberta else None,
+            "last_chat_id": dados["ultima_abertura"],
+            "open_agent_id": aberta.agent_id if aberta else None,
+            "unread": _nao_lidas_do_cliente(agente, cid),
+        })
+    return resultado
+
+
+def _nao_lidas_do_cliente(agente, client_id: int) -> int:
+    """Não lidas somadas de TODAS as aberturas — a linha é uma só, o contador
+    também tem de ser."""
+    return (
+        mensagens_visiveis(
+            ChatMessage.objects.filter(
+                chat__in=visible_chats(agente).filter(client_id=client_id),
+                read_at__isnull=True,
+                is_system=False,
+            ),
+            agente,
+        )
+        .exclude(author=agente)
+        .count()
+    )
+
+
+def chat_media(chat, user=None) -> tuple[list, list]:
+    """Anexos e links DESTE atendimento — o painel lateral da conversa.
+
+    Irmão de `timeline_media`, que faz o mesmo para todas as sessões do
+    cliente. São dois porque o recorte é a pergunta: no painel da conversa
+    interessa "o que passou por AQUI"; na conversa contínua, "o que essa
+    pessoa já mandou algum dia".
+
+    Os links continuam saindo do servidor pelo mesmo motivo de lá — no
+    navegador só se acha o que já foi rolado até a tela.
+    """
+    arquivos = list(
+        ChatFile.objects.filter(
+            message__in=mensagens_visiveis(chat.messages.all(), user)
+        )
+        .select_related("message", "message__chat")
+        .order_by("-message__sent_at")
+    )
+
+    links = []
+    vistos = set()
+    mensagens = (
+        mensagens_visiveis(chat.messages.select_related("author"), user)
+        .filter(is_system=False, deleted_at__isnull=True)
+        .exclude(body="")
+        .order_by("-id")
+    )
+    for msg in mensagens:
+        for url in extrair_links(censor(msg.body)):
+            if url in vistos:
+                continue
+            vistos.add(url)
+            links.append({
+                "url": url,
+                "chat_id": msg.chat_id,
+                "message_id": msg.id,
+                "sent_at": msg.sent_at,
+                "author_name": msg.author.full_name if msg.author else "Sistema",
+            })
+    return arquivos, links
+
+
+def marcar_entregues(*, chat, actor, ids: list[int]) -> list[int]:
+    """Carimba a entrega das mensagens que o destinatário acabou de receber.
+
+    Só o OUTRO lado entrega: carimbar a própria mensagem como entregue seria
+    o remetente confirmando a si mesmo. E só a primeira vez conta — o
+    `delivered_at__isnull=True` evita que uma reconexão empurre o horário
+    para frente e faça a entrega parecer mais recente do que foi.
+    """
+    if not ids:
+        return []
+    alvo = chat.messages.filter(
+        id__in=ids[:200], delivered_at__isnull=True, is_system=False
+    ).exclude(author=actor)
+    marcados = list(alvo.values_list("id", flat=True))
+    if marcados:
+        chat.messages.filter(id__in=marcados).update(delivered_at=timezone.now())
+    return marcados
+
+
 def timeline_media(client) -> tuple[list, list]:
     """Anexos e links de TODAS as sessões do cliente — o painel do chat.
 
@@ -369,7 +591,7 @@ def timeline_media(client) -> tuple[list, list]:
     links = []
     vistos = set()
     mensagens = (
-        _mensagens_do_cliente(client)
+        mensagens_visiveis(_mensagens_do_cliente(client), client)
         .filter(is_system=False)
         .exclude(body="")
         .order_by("-id")
@@ -414,12 +636,14 @@ def take_chat(*, chat: Chat, agent) -> Chat:
             chat=chat, is_system=True,
             body=f"{agent.full_name} entrou na conversa.",
         )
+    auditar(chat=chat, actor=agent, action="assign",
+            summary=f"{agent.full_name} aceitou o atendimento.")
     _sala(chat.pk, {"type": "chat.accepted", "agent_name": agent.full_name})
     _agentes({"type": "chat.taken", "chat_id": chat.pk, "agent_id": agent.pk})
     return chat
 
 
-def transfer(*, chat: Chat, actor, to_agent) -> Chat:
+def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
     """Passa o atendimento direto pro outro agente — sem novo "pegar".
 
     Quem pode: o agente da conversa ou um admin. O cliente é avisado por
@@ -451,6 +675,16 @@ def transfer(*, chat: Chat, actor, to_agent) -> Chat:
             body=(f"Atendimento transferido de {de.full_name} para {to_agent.full_name}."
                   if de else f"{to_agent.full_name} assumiu a conversa."),
         )
+        # A observação de quem transferiu é INTERNA: vai para a trilha de
+        # auditoria (abaixo), não para a conversa — o cliente lê a mensagem
+        # de sistema acima, e só ela.
+    auditar(
+        chat=chat, actor=actor, action="assign",
+        summary=(f"Transferido para {to_agent.full_name}"
+                 + (f" — {note.strip()}" if note.strip() else "")),
+        changes={"agent": [de.full_name if de else None, to_agent.full_name],
+                 "note": ["", note.strip()] if note.strip() else {}},
+    )
     _sala(chat.pk, {"type": "chat.transferred", "agent_name": to_agent.full_name})
     _pessoal(to_agent.pk, {
         "kind": "chat_transferred", "chat_id": chat.pk,
@@ -459,32 +693,156 @@ def transfer(*, chat: Chat, actor, to_agent) -> Chat:
     return chat
 
 
-def close_chat(*, chat: Chat, actor, agent_score: int | None = None) -> Chat:
-    """Encerra — cliente ou agente (a confirmação de "tem certeza?" é do
-    front; aqui já chega decidido). Nota do agente sobre o cliente é interna
-    e só o lado interno grava."""
+def close_chat(*, chat: Chat, actor, agent_score: int | None = None,
+               reason=None, note: str = "", automatic: bool = False,
+               rating: dict | None = None) -> Chat:
+    """Encerra — cliente, agente ou o próprio sistema (inatividade/expediente).
+
+    A confirmação de "tem certeza?" é do front; aqui já chega decidido. Nota do
+    agente sobre o cliente é interna e só o lado interno grava.
+
+    `reason`/`note` são o motivo de encerramento (`ChatCloseReason`) e a
+    observação INTERNA de quem encerrou — o cliente não vê nenhum dos dois. O
+    motivo que se declara `requires_note` cobra a observação aqui, no serviço:
+    o seletor do front esconde o campo quando não precisa, mas quem garante é
+    o backend (esconder no front não é validação).
+
+    `automatic=True` marca fechamento sem gente do outro lado. `actor` fica
+    `None` nesse caso: `closed_by` é "quem clicou", e ninguém clicou.
+
+    `rating` (só o CLIENTE manda) encerra e avalia numa transação só. É o que
+    faz valer o "só finaliza depois que a avaliação for salva com sucesso" do
+    brief: a avaliação grava com o chat já CLOSED dentro da transação, e se
+    ela falhar TUDO desfaz — o chat continua aberto, e a pessoa tenta de novo
+    com o que digitou ainda na tela. Encerrar primeiro e avaliar depois, em
+    duas chamadas, deixaria a janela onde o chat fecha e a nota se perde.
+
+    Quando quem encerra é o AGENTE (ou o sistema), não há avaliação aqui: o
+    cliente não está necessariamente na tela. A nota fica pendente e o portal
+    a cobra na próxima vez que ele entrar — é o que `rating_pending` e
+    `pending_ratings` já sustentam.
+
+    Idempotente por lock: dois cliques simultâneos disputam o
+    `select_for_update`, o segundo encontra CLOSED e é recusado — nunca dois
+    encerramentos no mesmo chat.
+    """
     with transaction.atomic():
         chat = Chat.objects.select_for_update().get(pk=chat.pk)
         if chat.status == ChatStatus.CLOSED:
             raise ChatRuleViolation("Este chat já está encerrado.")
+        if reason is not None and reason.requires_note and not note.strip():
+            raise ChatRuleViolation(
+                f'O motivo "{reason.name}" pede uma observação interna.'
+            )
         chat.status = ChatStatus.CLOSED
         chat.closed_at = timezone.now()
-        chat.closed_by = actor
-        campos = ["status", "closed_at", "closed_by", "updated_at"]
-        if actor.is_internal and agent_score is not None:
+        chat.closed_by = None if automatic else actor
+        chat.closed_automatically = automatic
+        chat.close_reason = reason
+        chat.close_note = note.strip()
+        campos = ["status", "closed_at", "closed_by", "closed_automatically",
+                  "close_reason", "close_note", "updated_at"]
+        if actor is not None and actor.is_internal and agent_score is not None:
             _validar_nota(agent_score)
             chat.agent_score = agent_score
             campos.append("agent_score")
         chat.save(update_fields=campos)
         ChatMessage.objects.create(chat=chat, is_system=True, body="Conversa encerrada.")
-    _sala(chat.pk, {"type": "chat.closed", "by_internal": actor.is_internal})
+        if rating is not None:
+            if actor is None or actor.is_internal:
+                raise ChatRuleViolation("Só o cliente avalia o próprio atendimento.")
+            # dentro da MESMA transação: `rate` exige CLOSED e já é essa a
+            # situação aqui. Se levantar, o encerramento desfaz junto.
+            rate(chat=chat, client=actor, **rating)
+        transaction.on_commit(lambda: _notify_client_closed(chat.pk))
+    quem = "automaticamente" if automatic else (
+        actor.full_name if actor is not None else "sistema"
+    )
+    auditar(
+        chat=chat, actor=None if automatic else actor, action="status_change",
+        summary=(f"Encerrado {quem}"
+                 + (f" — {reason.name}" if reason is not None else "")),
+        changes={
+            "status": [ChatStatus.ACTIVE, ChatStatus.CLOSED],
+            "close_reason": [None, reason.slug if reason is not None else None],
+            "automatic": [False, automatic],
+        },
+    )
+    _sala(chat.pk, {
+        "type": "chat.closed",
+        "by_internal": bool(actor is not None and actor.is_internal),
+    })
     _agentes({"type": "chat.taken", "chat_id": chat.pk, "agent_id": 0})  # some da fila
     return chat
 
 
-def reopen(*, chat: Chat, actor) -> Chat:
+def _notify_client_closed(chat_pk: int) -> None:
+    """Avisa o CLIENTE que a conversa terminou — quem encerrou não importa.
+
+    O que a pessoa precisa saber é o que vem depois: a avaliação ficou
+    pendente (e é ela que libera o próximo chat), ou onde reler a conversa.
+    Sai sob CHAT_CLOSED, cada canal com a própria preferência da conta —
+    é o interruptor "chat encerrado" das Configurações do portal. Conversão
+    em ticket não passa por aqui: ela fecha o chat direto e tem o próprio
+    aviso (`chat_converted`). Depois do commit, como todo aviso: um
+    encerramento desfeito não pode ter sido anunciado.
+    """
+    from apps.notifications.models import NotificationKind
+    from apps.notifications.services import notify, quer_email, queue_email
+
+    try:
+        chat = Chat.objects.select_related("client", "agent").get(pk=chat_pk)
+        client = chat.client
+        if client is None or client.is_internal:
+            return
+        com_agente = f" com {chat.agent.full_name}" if chat.agent else ""
+        pendente = chat.rating_pending
+        titulo = "Sua conversa por chat foi encerrada"
+        proximo_passo = (
+            "Avalie o atendimento pelo portal — é rápido, e é o que libera o próximo chat."
+            if pendente
+            else "A conversa continua disponível para leitura no portal."
+        )
+        notify(
+            recipient=client,
+            kind=NotificationKind.CHAT_CLOSED,
+            title=titulo,
+            body=proximo_passo,
+            url=f"/portal/chat?chat={chat.pk}",
+        )
+        if client.email and quer_email(client, NotificationKind.CHAT_CLOSED):
+            from django.conf import settings
+
+            marca = f"{chat.closed_at:%Y%m%d%H%M%S}" if chat.closed_at else "sem-data"
+            queue_email(
+                to=client.email,
+                subject=titulo,
+                template="chat_closed",
+                context={
+                    "client_name": client.full_name,
+                    "com_agente": com_agente,
+                    "proximo_passo": proximo_passo,
+                    "link": f"{settings.SITE_URL}/portal/chat?chat={chat.pk}",
+                },
+                # reaberto e encerrado de novo é outro atendimento: outro e-mail
+                dedupe_key=f"chat-closed-{chat.pk}-{marca}",
+            )
+    except Exception:  # noqa: BLE001 — aviso não derruba o encerramento já commitado
+        logger.exception("Falha ao avisar o cliente do encerramento do chat %s", chat_pk)
+
+
+def reopen(*, chat: Chat, actor, note: str = "") -> Chat:
     """Reabre um fechado mantendo o histórico — volta pra FILA GERAL (não
-    necessariamente pro mesmo agente), com o relógio do timeout zerado."""
+    necessariamente pro mesmo agente), com o relógio do timeout zerado.
+
+    `note` é o motivo da reabertura (interno). O protocolo NÃO muda: reabrir
+    é a continuação do mesmo atendimento, e é por isso que `reopen_count`
+    existe — o relatório separa os ciclos sem precisar de um chat novo.
+
+    A avaliação do ciclo anterior fica de pé: `ChatRating` é OneToOne do chat,
+    então o cliente não avalia duas vezes o mesmo atendimento (critério 2 do
+    aceite) mesmo passando por vários ciclos de reabertura.
+    """
     with transaction.atomic():
         chat = Chat.objects.select_for_update().get(pk=chat.pk)
         if chat.status != ChatStatus.CLOSED:
@@ -502,12 +860,13 @@ def reopen(*, chat: Chat, actor) -> Chat:
                     "Abra um ticket e a equipe responde assim que o expediente começar.",
                     code="fora_do_expediente",
                 )
-            # reabrir conta como "chat novo" pro bloqueio de avaliação — mas o
-            # PRÓPRIO chat pendente pode ser reaberto (é uma forma de retomar)
-            pendentes = pending_ratings(actor).exclude(pk=chat.pk)
-            if pendentes.exists():
+            # reabrir conta como "chat novo" pro bloqueio de avaliação — e o
+            # PRÓPRIO chat pendente também: a regra é "antes de reabrir, a
+            # nota" (decisão de produto; antes o próprio podia ser retomado)
+            if pending_ratings(actor).exists():
                 raise ChatRuleViolation(
-                    "Você tem atendimento sem avaliação. Avalie antes de reabrir."
+                    "Avalie o atendimento antes de reabrir a conversa.",
+                    code="rating_pending",
                 )
             outro_vivo = Chat.objects.filter(
                 client=actor, status__in=[ChatStatus.QUEUED, ChatStatus.ACTIVE]
@@ -534,15 +893,28 @@ def reopen(*, chat: Chat, actor) -> Chat:
         chat.accepted_at = None
         chat.closed_at = None
         chat.closed_by = None
+        # o encerramento anterior deixa de valer — o motivo do ciclo velho
+        # fica na auditoria, não pendurado num chat que está de novo aberto
+        chat.close_reason = None
+        chat.close_note = ""
+        chat.closed_automatically = False
         chat.queued_at = timezone.now()
         chat.reopen_count += 1
         chat.save(update_fields=[
             "status", "agent", "accepted_at", "closed_at", "closed_by",
+            "close_reason", "close_note", "closed_automatically",
             "queued_at", "reopen_count", "updated_at",
         ])
         ChatMessage.objects.create(
             chat=chat, is_system=True, body="Conversa reaberta — aguardando atendimento.",
         )
+    auditar(
+        chat=chat, actor=actor, action="status_change",
+        summary=(f"Reaberto por {actor.full_name}"
+                 + (f" — {note.strip()}" if note.strip() else "")),
+        changes={"status": [ChatStatus.CLOSED, ChatStatus.QUEUED],
+                 "reopen_count": [chat.reopen_count - 1, chat.reopen_count]},
+    )
     transaction.on_commit(lambda: _avisar_fila(chat))
     return chat
 
@@ -558,8 +930,6 @@ def rate(*, chat: Chat, client, service_score: int, resolution_score: int,
         raise ChatRuleViolation("Só quem foi atendido avalia.")
     if chat.status != ChatStatus.CLOSED:
         raise ChatRuleViolation("A avaliação abre quando o chat encerra.")
-    if hasattr(chat, "rating"):
-        raise ChatRuleViolation("Este chat já foi avaliado.")
 
     _validar_nota(service_score)
     _validar_nota(resolution_score)
@@ -571,10 +941,29 @@ def rate(*, chat: Chat, client, service_score: int, resolution_score: int,
                 "Nota abaixo de "
                 f"{config.low_score_threshold} pede uma justificativa."
             )
-    return ChatRating.objects.create(
-        chat=chat, service_score=service_score,
-        resolution_score=resolution_score, justification=justification.strip(),
+    # Duplo envio (clique duplo, retry do cliente depois de um timeout que na
+    # verdade gravou) não pode virar duas avaliações. O `hasattr` sozinho tem
+    # janela de corrida entre a checagem e o insert; quem fecha de verdade é o
+    # OneToOne no banco — o IntegrityError vira a mesma recusa de negócio.
+    if hasattr(chat, "rating"):
+        raise ChatRuleViolation("Este chat já foi avaliado.")
+    try:
+        with transaction.atomic():
+            avaliacao = ChatRating.objects.create(
+                chat=chat, service_score=service_score,
+                resolution_score=resolution_score,
+                justification=justification.strip(),
+            )
+    except IntegrityError as erro:
+        raise ChatRuleViolation("Este chat já foi avaliado.") from erro
+    auditar(
+        chat=chat, actor=client, action="create",
+        summary=(f"Avaliado: atendimento {service_score}, "
+                 f"resolução {resolution_score}"),
+        changes={"service_score": [None, service_score],
+                 "resolution_score": [None, resolution_score]},
     )
+    return avaliacao
 
 
 def apply_macro(*, chat: Chat, macro, actor) -> Chat:
@@ -617,10 +1006,19 @@ def _validar_nota(valor: int):
 # ---------------------------------------------------------------------- #
 
 def _group_send(group: str, event: dict) -> None:
+    """Broadcast pelo channel layer — TRANSPORTE, não verdade. A operação
+    (pegar, encerrar, converter…) já foi gravada quando chega aqui; se o
+    Redis estiver fora do ar, o que se perde é o aviso ao vivo, e o front
+    recupera por REST (`refetchInterval` das listas, `?after=` da sala).
+    Deixar a exceção subir devolvia 500 a uma ação que tinha dado certo."""
     layer = get_channel_layer()
     if layer is None:
         return
-    async_to_sync(layer.group_send)(group, event)
+    try:
+        async_to_sync(layer.group_send)(group, event)
+    except Exception:  # noqa: BLE001 — qualquer falha do layer é só perda do aviso
+        logger.warning("channel layer indisponível — evento %s para %s não foi entregue",
+                       event.get("type"), group, exc_info=True)
 
 
 def _sala(chat_id: int, event: dict) -> None:

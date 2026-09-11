@@ -31,36 +31,44 @@ module.exports = {
         navegacao:   'var(--navegacao)',
         divisoria:   'var(--divisoria)',
         'borda-controle': 'var(--borda-controle)',
+        // Linha de CAMPO (input/select/textarea) — mais escura que a
+        // estrutural, como no console (`--borda-campo` / `$border-field`).
+        'borda-campo': 'var(--borda-campo)',
         tinta: {
           DEFAULT:     'var(--tinta)',
           secundaria:  'var(--tinta-secundaria)',
           terciaria:   'var(--tinta-terciaria)',
+          cromo:       'var(--texto-cromo)',
         },
         acento: {
           DEFAULT: 'var(--acento)',
+          hover:   'var(--acento-hover)',
           suave:   'var(--acento-suave)',
           sobre:   'var(--acento-sobre)',
         },
         perigo: { DEFAULT: 'var(--perigo)', suave: 'var(--perigo-suave)' },
         alerta: { DEFAULT: 'var(--alerta)', suave: 'var(--alerta-suave)' },
         ok:     { DEFAULT: 'var(--ok)',     suave: 'var(--ok-suave)' },
+        sobreposicao: 'var(--sobreposicao)',
 
-        // primitivos — use só quando o valor não puder seguir o tema
+        // primitivos — use só quando o valor não puder seguir o tema.
+        // A rampa é a do console (ver tokens.css); a quente antiga saiu.
+        // 800/850/875/950/975 (degraus escuros) pelos roles de escala do
+        // Material 3 — têm que ficar IDÊNTICOS aos mesmos primitivos em
+        // src/styles/tokens.css (--neutro-*), que é quem documenta o porquê.
         neutro: {
-          0: '#ffffff', 25: '#fffbf8', 50: '#f8f4f1', 100: '#f1ece8',
-          200: '#e8e2dd', 300: '#c9c0ba', 400: '#a79e97', 500: '#9a918a',
-          600: '#79706a', 700: '#635c57', 800: '#3b3532', 850: '#332e2b',
-          875: '#2c2825', 900: '#262220', 950: '#211e1c', 975: '#1b1917',
-        },
-        avatar: {
-          c1: '#3f6dd6', c2: '#8a5cd4', c3: '#127f60',
-          c4: '#b4531f', c5: '#9a2f52', c6: '#2f6f86',
+          0: '#ffffff', 25: '#fafafa', 50: '#f8f8f7', 100: '#f0f0f0',
+          200: '#e6e6e6', 300: '#cfcfcf', 400: '#a8a8a8', 500: '#8d8d8d',
+          600: '#7d7d7d', 700: '#4d4d4d', 800: '#50453a', 850: '#241f1a',
+          875: '#201b16', 900: '#1a1a1a', 950: '#120d09', 975: '#17130e',
         },
       },
 
       fontFamily: {
-        ui:   ['Segoe UI Variable Text', 'Segoe UI', 'Inter', '-apple-system', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
+        ui:      ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
+        mono:    ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
+        // Serifa de UM lugar só (saudação da Início), como `--f-display` no console.
+        display: ['Libre Baskerville', 'ui-serif', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
       },
 
       // escala base 14px razão 1,125
@@ -85,11 +93,19 @@ module.exports = {
         3: '12px', 3.5: '14px', 4: '16px', 5: '20px', 6: '24px',
         8: '32px', 10: '40px', 11: '44px', 16: '64px',
         'icone-sm': '12px', 'icone-md': '16px', 'icone-lg': '20px', 'icone-xl': '24px',
-        'sidebar-larga': '256px', 'sidebar-recolhida': '56px',
-        'alvo-minimo': '24px', 'altura-controle': '32px',
+        'sidebar-larga': '240px', 'sidebar-recolhida': '64px',
+        'alvo-minimo': '24px', 'altura-controle': '34px',
+        'respiro-painel': 'var(--respiro-painel)',
       },
 
-      borderRadius: { sm: '4px', md: '6px', lg: '8px', xl: '12px', total: '999px' },
+      // Um raio só (2px) — sm/md/lg/xl continuam existindo por NOME porque
+      // 50 arquivos os usam, mas todos resolvem pro mesmo valor (tokens.css).
+      // `total` é forma (avatar, interruptor, ponto), não estilo; `painel` é
+      // a exceção do shell, como `--raio-painel` no console.
+      borderRadius: {
+        sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)', xl: 'var(--r-xl)',
+        total: 'var(--r-total)', painel: 'var(--r-painel)',
+      },
       borderWidth:  { DEFAULT: '1px', fina: '1px' },
 
       boxShadow: {
@@ -100,8 +116,8 @@ module.exports = {
         interno: 'inset 0 0 0 1px currentColor',
       },
 
-      transitionDuration:       { DEFAULT: '180ms', padrao: '180ms' },
-      transitionTimingFunction: { DEFAULT: 'cubic-bezier(.33,0,.67,1)', padrao: 'cubic-bezier(.33,0,.67,1)' },
+      transitionDuration:       { DEFAULT: '150ms', padrao: '150ms' },
+      transitionTimingFunction: { DEFAULT: 'cubic-bezier(.2,0,.38,.9)', padrao: 'cubic-bezier(.2,0,.38,.9)' },
 
       zIndex: {
         suspenso: '100', fixo: '200', cortina: '300',

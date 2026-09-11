@@ -33,7 +33,7 @@ SECURE_REDIRECT_EXEMPT = [r"^health/?$"]  # o health check do orquestrador é HT
 # desfazer rápido.
 SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", 60 * 60 * 24 * 365)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=True)
+SECURE_HSTS_PRELOAD = env.bool("SECURE_HSTS_PRELOAD", default=False)
 
 # --------------------------------------------------------------------------- #
 # Cookies e sessão
