@@ -124,6 +124,42 @@
     }
   }
 
+  // Densidade — o par com `.tickets-tabela--confortavel` (mesma folha, mais
+  // abaixo). Contorno em vez de preenchido: são duas opções de MESMO peso
+  // (nenhuma é "a ação" como Novo chamado), então nem uma pede a cor de marca.
+  &__densidade {
+    display: flex;
+    height: 34px;
+    padding: 2px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+  }
+  &__densidade-btn {
+    width: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: calc(var(--raio) - 2px);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    i {
+      font-size: 15px;
+    }
+    &:hover {
+      color: var(--text-secondary);
+    }
+    // Marcado: mesmo par cor+fundo que `__sort--ativo` usa em qualquer
+    // coluna ordenada — "isto está em uso agora" não é só uma cor, o ícone
+    // já muda de desenho (linhas juntas/espaçadas) junto com o estado.
+    &[aria-pressed='true'] {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+
   &__search {
     display: flex;
     align-items: center;
@@ -548,6 +584,22 @@
     text-transform: uppercase;
     color: var(--text-muted);
     white-space: nowrap;
+  }
+
+  // Densidade (stores/prefs.ts, alternador em PaginaListaTickets.tsx): o
+  // padrão acima (40/44px) não muda — só o modificador acrescenta altura,
+  // mesmo incremento de +8px que o DataTable do cvz usa entre seus estados.
+  //
+  // `&.tickets-tabela--confortavel` (duas classes no MESMO elemento — o
+  // `<table>` recebe as duas juntas, ver TicketsTable.tsx), não
+  // `&--confortavel` (que geraria só `.tickets-tabela--confortavel` sozinho):
+  // o `tbody td` "base" mora mais ABAIXO nesta folha com a mesma
+  // especificidade de um seletor de uma classe só, e ganharia por ordem — a
+  // segunda classe aqui é o que garante a vitória, esteja este bloco antes
+  // ou depois do outro.
+  &.tickets-tabela--confortavel {
+    thead th { height: 44px; }
+    tbody td { height: 52px; }
   }
 
   &__sort {

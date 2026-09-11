@@ -16,6 +16,42 @@
     border-bottom: $border;
   }
 
+  // `toolbar` é o que a página manda (raro — hoje nenhuma passa); o
+  // alternador de densidade é da própria DataTable e mora à parte, senão um
+  // toolbar vazio (`undefined`) deixaria `justify-content: space-between`
+  // sem o QUE separar e o alternador ia para a ESQUERDA, não a direita.
+  &__toolbar-conteudo {
+    display: flex;
+    align-items: center;
+    gap: $sp-3;
+    min-width: 0;
+  }
+
+  &__densidade {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  // `.icon-btn` (a classe compartilhada) também fixa `color`; o composto
+  // (duas classes, sem espaço) garante que esta cor vence a dele
+  // independentemente da ordem de import dos dois `.scss` no bundle.
+  &__densidade-btn.icon-btn {
+    color: $text-muted;
+
+    &:hover { color: $text-secondary; }
+
+    // Estado marcado: mesmo par cor+fundo que `__sort--active` já usa para
+    // "isto está em uso agora" — não é cor sozinha (WCAG 1.4.1), o ícone
+    // troca de desenho (junto/espaçado) junto com o estado.
+    &.data-table__densidade-btn--ativo {
+      color: $text;
+      background-color: $chrome;
+    }
+  }
+
   // Barra de lote substitui a toolbar — mesma altura, sem salto de layout.
   &__batch {
     display: flex;

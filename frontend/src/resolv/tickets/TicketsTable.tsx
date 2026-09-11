@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
+import { usePrefs } from '@/stores/prefs'
 import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
   COR_PRIORIDADE,
@@ -69,6 +70,10 @@ export function TicketsTable({
   onAbrir,
   agoraMs,
 }: Props) {
+  // Mesma preferência global do admin (stores/prefs.ts) — 'compacta' é o que
+  // esta tabela já renderizava antes de existir alternador nenhum, então
+  // ninguém vê a linha mudar de altura sem ter escolhido isso.
+  const confortavel = usePrefs((s) => s.densidade) === 'confortavel'
   const campoAtual = ordering.replace(/^-/, '')
   const desc = ordering.startsWith('-')
   // A caixa do cabeçalho age sobre a PÁGINA (as linhas renderizadas), nunca
@@ -95,7 +100,7 @@ export function TicketsTable({
 
   return (
     <div className="tickets-tabela__wrap">
-      <table className="tickets-tabela">
+      <table className={'tickets-tabela' + (confortavel ? ' tickets-tabela--confortavel' : '')}>
         <thead>
           <tr>
             <th className="col-check">

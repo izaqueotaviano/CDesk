@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAgentes } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import { usePrefs } from '@/stores/prefs'
 import { mensagemDeErro } from './detalhe/linhaDoTempo'
 import { useAcoesEmLote, type ResultadoLote } from './dados'
 import { ROTULO_PRIORIDADE } from './format'
@@ -66,6 +67,8 @@ const ROTULO_VIEW: Record<string, string> = {
 export function PaginaListaTickets() {
   const navigate = useNavigate()
   const { data: me } = useMe()
+  const densidade = usePrefs((s) => s.densidade)
+  const setDensidade = usePrefs((s) => s.setDensidade)
 
   // Item 18: view/busca/ordering/offset vivem na URL, não em useState solto —
   // mesmo padrão de cvz/configuracoes, portal/chat, portal/historico e
@@ -307,6 +310,32 @@ export function PaginaListaTickets() {
             >
               <i className="ti ti-refresh" />
             </button>
+            {/* Densidade (stores/prefs.ts): a mesma preferência que o
+                DataTable do cvz já expõe — uma tabela só, um alternador só,
+                a escolha vale nas duas telas. 'compacta' é o que esta tabela
+                já mostrava antes de existir alternador nenhum (lista.scss). */}
+            <div className="lista-tickets__densidade" role="group" aria-label="Densidade da tabela">
+              <button
+                type="button"
+                className="lista-tickets__densidade-btn"
+                aria-label="Tabela padrão"
+                title="Tabela padrão"
+                aria-pressed={densidade === 'compacta'}
+                onClick={() => setDensidade('compacta')}
+              >
+                <i className="ti ti-baseline-density-small" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="lista-tickets__densidade-btn"
+                aria-label="Tabela confortável (linhas mais espaçadas)"
+                title="Tabela confortável"
+                aria-pressed={densidade === 'confortavel'}
+                onClick={() => setDensidade('confortavel')}
+              >
+                <i className="ti ti-baseline-density-large" aria-hidden="true" />
+              </button>
+            </div>
             <div className="lista-tickets__search">
               <i className="ti ti-search" />
               {/* Item 15: só tinha `placeholder` — some assim que a pessoa

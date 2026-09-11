@@ -1,11 +1,23 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { usePrefs, type Densidade } from '@/stores/prefs';
+import { IconButton } from '../Button/Button';
 import { Checkbox } from '../Checkbox/Checkbox';
 import { SkeletonRow } from '../Progress/Progress';
-import { IconSortAsc, IconSortDesc, IconSortNone } from '../icons';
+import { IconRowsCompact, IconRowsRelaxed, IconSortAsc, IconSortDesc, IconSortNone } from '../icons';
 import './DataTable.scss';
 
 export type SortDirection = 'asc' | 'desc';
 export type TableDensity = 'compact' | 'default' | 'relaxed';
+
+/** 'compacta' é o que a tabela já renderiza sem modificador nenhum
+ *  (`density='default'`, $row-h — 40px); 'confortavel' é o modificador
+ *  `relaxed` que a folha já sabe desenhar ($row-h-relaxed — 48px, com mais
+ *  respiro vertical). O terceiro estado do componente (`compact`, 32px)
+ *  fica de fora do alternador — é mais denso que o que qualquer tela deste
+ *  admin já mostrou, e não é o que "padrão vs. confortável" está pedindo. */
+function densidadeParaTableDensity(d: Densidade): TableDensity {
+  return d === 'confortavel' ? 'relaxed' : 'default';
+}
 
 export interface SortState {
   key: string;
@@ -40,6 +52,13 @@ export interface DataTableProps<T> {
   toolbar?: ReactNode;
   onRowClick?: (row: T) => void;
   empty?: ReactNode;
+  /**
+   * Força uma densidade fixa e ESCONDE o alternador — a tabela para de
+   * seguir a preferência de quem usa. Reservado para um cenário onde a
+   * página, não a pessoa, decide (um resumo embutido sem espaço de sobra,
+   * por exemplo). Omita para o caso comum: a tabela lê `usePrefs().densidade`
+   * sozinha e mostra o alternador que grava nela.
+   */
   density?: TableDensity;
   /** Mostra esqueleto no lugar das linhas. */
   loading?: boolean;
@@ -61,7 +80,7 @@ export function DataTable<T>({
   toolbar,
   onRowClick,
   empty = 'Nada por aqui.',
-  density = 'default',
+  density: densityProp,
   loading = false,
   loadingRows = 5,
   defaultSort,
@@ -72,6 +91,15 @@ export function DataTable<T>({
   const [internalSort, setInternalSort] = useState<SortState | null>(
     defaultSort ?? null,
   );
+
+  // Densidade controlada (prop explícita) ou pela preferência global — as
+  // mesmas duas formas que `sort`/`sortProp` já usam duas linhas acima. Sem
+  // prop, a tabela mostra o alternador; com prop, ela obedece a página e o
+  // alternador some (ver comentário de `density` em DataTableProps).
+  const densidade = usePrefs((s) => s.densidade);
+  const setDensidade = usePrefs((s) => s.setDensidade);
+  const density = densityProp ?? densidadeParaTableDensity(densidade);
+  const densidadeEhGlobal = densityProp === undefined;
 
   // Controlado quando `sort` é passado; não controlado caso contrário.
   const sort = sortProp !== undefined ? sortProp : internalSort;
@@ -144,7 +172,37 @@ export function DataTable<T>({
           </div>
         </div>
       ) : (
-        toolbar && <div className="data-table__toolbar">{toolbar}</div>
+        <div className="data-table__toolbar">
+          <div className="data-table__toolbar-conteudo">{toolbar}</div>
+          {densidadeEhGlobal && (
+            <div className="data-table__densidade" role="group" aria-label="Densidade da tabela">
+              <IconButton
+                Icon={IconRowsCompact}
+                label="Tabela padrão"
+                size="sm"
+                bare
+                aria-pressed={densidade === 'compacta'}
+                className={
+                  'data-table__densidade-btn' +
+                  (densidade === 'compacta' ? ' data-table__densidade-btn--ativo' : '')
+                }
+                onClick={() => setDensidade('compacta')}
+              />
+              <IconButton
+                Icon={IconRowsRelaxed}
+                label="Tabela confortável (linhas mais espaçadas)"
+                size="sm"
+                bare
+                aria-pressed={densidade === 'confortavel'}
+                className={
+                  'data-table__densidade-btn' +
+                  (densidade === 'confortavel' ? ' data-table__densidade-btn--ativo' : '')
+                }
+                onClick={() => setDensidade('confortavel')}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       <table className="data-table__table">

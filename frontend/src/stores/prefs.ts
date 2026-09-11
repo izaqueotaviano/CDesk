@@ -26,6 +26,13 @@ export const LIMITES_MINICHAT = {
 
 interface PrefsState {
   tema: Tema
+  /** 'compacta' é bit-a-bit o que qualquer tabela do produto já renderiza
+   *  hoje sem esta preferência (DataTable.tsx: `density='default'`, 40px;
+   *  TicketsTable: 44px fixo) — o padrão aqui PRECISA ser esse mesmo valor.
+   *  Até esta preferência ganhar consumidor de verdade ela não tinha efeito
+   *  nenhum; a partir de agora tem, e ninguém escolheu nada ainda na
+   *  primeira visita — um default diferente do que já está na tela seria
+   *  mudar a aparência de toda tabela do admin sem ninguém ter pedido. */
   densidade: Densidade
   /** Sidebar em modo rail (só ícones). Preferência de quem usa, não estado de
    *  tela: quem trabalha em monitor pequeno recolhe uma vez e espera achar
@@ -78,7 +85,7 @@ export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
       tema: 'sistema',
-      densidade: 'confortavel',
+      densidade: 'compacta',
       sidebarRecolhida: false,
       miniChat: TAMANHOS_MINICHAT.medio,
       setTema: (tema) => {

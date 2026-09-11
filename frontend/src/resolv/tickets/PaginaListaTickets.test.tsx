@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { usePrefs } from '@/stores/prefs'
 import { PaginaListaTickets } from './PaginaListaTickets'
 
 /** Mostra caminho + querystring do MemoryRouter — só usado pelos testes do
@@ -316,5 +317,39 @@ describe('PaginaListaTickets — a busca distingue "sem resultado" de "view vazi
     fireEvent.click(screen.getByRole('button', { name: 'Limpar busca' }))
 
     expect(await screen.findByText('Nenhum ticket nesta visualização.')).toBeInTheDocument()
+  })
+})
+
+describe('PaginaListaTickets — alternador de densidade (stores/prefs.ts)', () => {
+  afterEach(() => {
+    // Singleton de módulo persistido (mesmo padrão de Sidebar.test.tsx) —
+    // sem devolver ao padrão, a escolha de um teste vaza para o seguinte.
+    usePrefs.setState({ densidade: 'compacta' })
+  })
+
+  it('clicar em "Tabela confortável" grava a preferência e marca o botão certo', async () => {
+    montar()
+    await screen.findByText('T-0007')
+
+    const padrao = screen.getByRole('button', { name: 'Tabela padrão' })
+    const confortavel = screen.getByRole('button', { name: /Tabela confortável/ })
+    expect(padrao).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(confortavel)
+
+    expect(usePrefs.getState().densidade).toBe('confortavel')
+    expect(confortavel).toHaveAttribute('aria-pressed', 'true')
+    expect(padrao).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('a escolha de outra tela (ex.: o admin) já chega marcada aqui — é a mesma preferência', async () => {
+    usePrefs.setState({ densidade: 'confortavel' })
+    montar()
+    await screen.findByText('T-0007')
+
+    expect(screen.getByRole('button', { name: /Tabela confortável/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
   })
 })

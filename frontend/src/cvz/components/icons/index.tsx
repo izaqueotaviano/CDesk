@@ -289,6 +289,15 @@ export const IconItalic = (p: IconProps) => base(<path d="M11 4h6M7 20h6M14 4l-4
 export const IconList = (p: IconProps) =>
   base(<path d="M8 6h13M8 12h13M8 18h13M4 6h.01M4 12h.01M4 18h.01" />, p)
 
+// Densidade de tabela: o mesmo pictograma do DataTable (linhas horizontais),
+// só que a distância ENTRE elas é o próprio ícone — junto (padrão, mais
+// linhas cabem) vs. espaçado (confortável).
+export const IconRowsCompact = (p: IconProps) =>
+  base(<path d="M4 4h16M4 9h16M4 14h16M4 19h16" />, p)
+
+export const IconRowsRelaxed = (p: IconProps) =>
+  base(<path d="M4 5h16M4 12h16M4 19h16" />, p)
+
 export const IconLink = (p: IconProps) =>
   base(
     <>

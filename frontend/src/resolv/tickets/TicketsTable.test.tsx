@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { usePrefs } from '@/stores/prefs'
 import { TicketsTable } from './TicketsTable'
 import type { EstadoSla, TicketLinha } from './tipos'
 
@@ -215,5 +216,27 @@ describe('TicketsTable — urgência e cadeado têm nome pra leitor de tela (ite
     montar({ linhas: [linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 })] })
 
     expect(screen.queryByText(/Equipe restrita/)).not.toBeInTheDocument()
+  })
+})
+
+describe('TicketsTable — densidade (stores/prefs.ts)', () => {
+  afterEach(() => {
+    // A preferência é um singleton de módulo persistido (mesmo padrão de
+    // Sidebar.test.tsx) — sem devolver ao padrão, a escolha de um teste vaza
+    // para o seguinte.
+    usePrefs.setState({ densidade: 'compacta' })
+  })
+
+  it('sem escolha, a tabela renderiza como sempre renderizou — sem o modificador', () => {
+    montar()
+
+    expect(screen.getByRole('table')).not.toHaveClass('tickets-tabela--confortavel')
+  })
+
+  it('com "confortável" escolhida em qualquer tela, a linha ganha mais altura aqui também', () => {
+    usePrefs.setState({ densidade: 'confortavel' })
+    montar()
+
+    expect(screen.getByRole('table')).toHaveClass('tickets-tabela--confortavel')
   })
 })
