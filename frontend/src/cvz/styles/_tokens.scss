@@ -123,7 +123,7 @@ $sp-7: 48px; $sp-8: 64px;
 // --- tipografia --------------------------------------------------------------
 $f-ui:      var(--f-ui, 'Inter', -apple-system, system-ui, sans-serif);
 $f-mono:    var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
-$f-display: var(--f-display, 'Libre Baskerville', ui-serif, Georgia, serif);
+$f-display: var(--f-display, Roboto, Inter, system-ui, sans-serif);
 
 $w-light:    300; // texto corrido
 $w-regular:  400;

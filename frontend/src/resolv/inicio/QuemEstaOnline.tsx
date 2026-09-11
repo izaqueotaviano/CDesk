@@ -1,7 +1,7 @@
-import { PeopleTeam20Regular } from '@fluentui/react-icons'
 import { useAgentes } from '@/cvz/tickets/dados'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
+import { Icone } from '../shell/Icone'
 
 const ROTULO_PRESENCA: Record<string, string> = {
   available: 'Disponível',
@@ -20,26 +20,26 @@ export function QuemEstaOnline() {
   const online = (agentes ?? []).filter((a) => a.kind === 'internal' && a.presence !== 'offline')
 
   return (
-    <section className="inicio-lista fui-card" aria-labelledby="inicio-equipe">
-      <header className="inicio-lista__cabecalho">
-        <PeopleTeam20Regular aria-hidden="true" />
+    <section className="inicio-secao" aria-labelledby="inicio-equipe">
+      <header className="inicio-secao__cabecalho">
+        <Icone nome="groups" />
         <h2 id="inicio-equipe">Equipe agora</h2>
-        <span className="fui-badge">{online.length}</span>
+        <span className="md-badge">{online.length}</span>
       </header>
       {online.length === 0 ? (
-        <p className="inicio-lista__vazio">Ninguém mais online agora.</p>
+        <p className="inicio-secao__vazio">Ninguém mais online agora.</p>
       ) : (
-        <ul className="inicio-online__grade">
+        <ul className="inicio-online">
           {online.map((a) => (
             <li
               key={a.id}
               className="inicio-online__pessoa"
               title={`${a.full_name} · ${ROTULO_PRESENCA[a.presence] ?? a.presence}`}
             >
-              <span className="fui-avatar" {...identidadeDe(a.full_name)}>
+              <span className="md-avatar" {...identidadeDe(a.full_name)}>
                 {iniciais(a.full_name)}
                 <span
-                  className={`fui-avatar__presenca fui-avatar__presenca--${a.presence}`}
+                  className={`md-avatar__presenca md-avatar__presenca--${a.presence}`}
                   aria-hidden="true"
                 />
               </span>

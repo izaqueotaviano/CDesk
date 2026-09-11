@@ -1,127 +1,139 @@
 // ============================================================================
-// Início — Fluent 2.
+// Início — Material Design 3, na densidade da casa.
 //
-// A página é só composição: quem desenha botão, selo, cartão, lista, avatar e
-// esqueleto são as primitivas de `resolv/styles/fluent.scss`. O que sobra aqui
-// é o layout da página e as três peças que só existem nela (a faixa de
-// indicadores, a grade de listas e o mural de avisos).
+// A página é só composição: quem desenha botão, badge, lista, avatar e
+// esqueleto são as primitivas de `resolv/styles/md3.scss`. O que sobra aqui é
+// o layout e as três peças que só existem nesta tela — a faixa de
+// indicadores, a seção de trabalho e o banner de avisos.
 //
-// Nenhum valor literal: tudo sai de `--fui-*` (styles/fluent.css).
+// Nenhum valor literal: tudo sai de `--md-*` / `--control-height-*`
+// (styles/md3.css). E nenhum CARD: a Início é feita de seções sobre a
+// superfície, separadas por divisor e por espaço.
 // ============================================================================
 
 .inicio {
-  padding: var(--fui-space-240);
+  padding: var(--md-space-24);
   display: flex;
   flex-direction: column;
-  gap: var(--fui-space-160);
+  gap: var(--md-space-24);
   max-width: 1440px; // linha de leitura: acima disso a grade só estica à toa
 
   @media (max-width: 599px) {
-    padding: var(--fui-space-160);
-    gap: var(--fui-space-120);
+    padding: var(--md-space-16);
+    gap: var(--md-space-16);
   }
 
   // ── Cabeçalho da página ───────────────────────────────────────────────────
-  // Título → contexto → ações, na ordem que o briefing pede. A linha embaixo
-  // é o divisor de cabeçalho de página do Fluent: separa sem pesar.
+  // Nome → contexto → ações. Sem barra de cabeçalho: o título se apoia na
+  // própria superfície e só o divisor de baixo separa da faixa seguinte.
   &__cabecalho {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
-    gap: var(--fui-space-160);
+    gap: var(--md-space-16);
     flex-wrap: wrap;
-    padding-bottom: var(--fui-space-160);
-    border-bottom: var(--fui-stroke-thin) solid var(--fui-stroke-2);
+    padding-bottom: var(--md-space-16);
+    border-bottom: var(--md-borda) solid var(--md-outline-variant);
   }
 
   &__titulo {
-    font-family: var(--fui-font-display);
-    font-size: var(--fui-fs-700); // Title2
-    line-height: var(--fui-lh-700);
-    font-weight: var(--fui-weight-semibold);
-    color: var(--fui-fg-1);
     margin: 0;
-
-    @media (max-width: 599px) {
-      font-size: var(--fui-fs-600);
-      line-height: var(--fui-lh-600);
-    }
+    font-size: var(--md-fs-title-large);
+    line-height: var(--md-lh-title-large);
+    letter-spacing: var(--md-ls-title-large);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface);
   }
 
   &__sub {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: var(--fui-space-80);
-    margin-top: var(--fui-space-40);
-    font-size: var(--fui-fs-300);
-    line-height: var(--fui-lh-300);
-    color: var(--fui-fg-3);
+    gap: var(--md-space-8);
+    margin: var(--md-space-4) 0 0;
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    letter-spacing: var(--md-ls-body-small);
+    color: var(--md-on-surface-variant);
   }
 
   &__acoes {
     display: flex;
-    gap: var(--fui-space-80);
+    gap: var(--md-space-8);
     flex-shrink: 0;
   }
 
   // ── Faixa de indicadores ──────────────────────────────────────────────────
-  // Uma superfície só, segmentada por linha — não seis cartões. Cada segmento
-  // é um alvo de clique com os estados do Fluent (hover, pressed, focus).
-  &__kpis {
-    display: flex;
-    flex-wrap: wrap;
-    overflow: hidden; // as pontas dos segmentos respeitam o raio do cartão
+  // Números soltos sobre a superfície, separados por divisor vertical. Cada um
+  // é um alvo de clique com os estados do M3; o bloco de tendência não é
+  // clicável e por isso não tem estado nenhum.
+  // A faixa é uma GRADE, não uma fila que quebra: com `flex-wrap` a segunda
+  // fileira herdava as larguras da primeira e os divisores caíam em lugares
+  // que não correspondiam a nada. Com número fixo de colunas por faixa de
+  // tela, o divisor sempre cai entre duas colunas.
+  &__metricas {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    margin: 0 calc(var(--md-space-12) * -1);
 
-    // No celular a faixa vira grade de duas colunas: sete segmentos em fila
-    // única viravam sete linhas de uma coluna só, e a leitura de relance
-    // (que é a razão da faixa existir) se perdia.
+    @media (max-width: 1099px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      row-gap: var(--md-space-16);
+    }
     @media (max-width: 599px) {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      // Sete números em fila única viravam sete linhas de uma coluna só e a
+      // leitura de relance (que é a razão da faixa existir) se perdia.
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      margin: 0;
     }
   }
 
-  &__kpi {
-    flex: 1 1 150px;
-    min-width: 140px;
+  &__metrica {
+    min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: var(--fui-space-20);
-    padding: var(--fui-space-120) var(--fui-space-160);
+    gap: var(--md-space-2);
+    padding: var(--md-space-4) var(--md-space-12);
     border: 0;
-    border-right: var(--fui-stroke-thin) solid var(--fui-stroke-3);
+    border-left: var(--md-borda) solid var(--md-outline-variant);
+    border-radius: var(--radius-default);
     background: transparent;
     text-align: left;
     font-family: inherit;
     cursor: pointer;
-    transition: background-color var(--fui-duration-faster) var(--fui-curve-easy-ease);
+    transition: background-color var(--md-dur-curta-2) var(--md-ease-padrao);
 
-    &:last-child {
-      border-right: 0;
+    // quem abre a fileira não leva divisor à esquerda — muda com a contagem
+    // de colunas de cada faixa
+    &:nth-child(7n + 1) {
+      border-left: 0;
     }
 
+    @media (max-width: 1099px) {
+      &:nth-child(7n + 1) {
+        border-left: var(--md-borda) solid var(--md-outline-variant);
+      }
+      &:nth-child(4n + 1) {
+        border-left: 0;
+      }
+    }
     @media (max-width: 599px) {
-      // na grade, quem fecha a linha é a coluna par — e todos ganham a linha
-      // de baixo, menos os da última fileira
-      border-bottom: var(--fui-stroke-thin) solid var(--fui-stroke-3);
-
-      &:nth-child(2n) {
-        border-right: 0;
+      &:nth-child(4n + 1) {
+        border-left: var(--md-borda) solid var(--md-outline-variant);
       }
-      &:last-child,
-      &:nth-last-child(2):nth-child(2n + 1) {
-        border-bottom: 0;
+      &:nth-child(2n + 1) {
+        border-left: 0;
       }
     }
+
     &:hover {
-      background: var(--fui-subtle-hover);
+      background: var(--md-state-layer-hover);
     }
     &:active {
-      background: var(--fui-subtle-pressed);
+      background: var(--md-state-layer-pressed);
     }
-    // o bloco de tendência não é clicável: sem cursor, sem estado
-    &--tendencia {
+
+    &--inerte {
       cursor: default;
 
       &:hover,
@@ -131,164 +143,177 @@
     }
   }
 
-  &__kpi-rotulo {
-    font-size: var(--fui-fs-200);
-    line-height: var(--fui-lh-200);
-    font-weight: var(--fui-weight-regular);
-    color: var(--fui-fg-3);
-  }
-
-  &__kpi-valor {
-    font-family: var(--fui-font-display);
-    font-size: var(--fui-fs-600); // Title3
-    line-height: var(--fui-lh-600);
-    font-weight: var(--fui-weight-semibold);
-    color: var(--fui-fg-1);
+  &__metrica-valor {
+    font-size: var(--md-fs-headline-small);
+    line-height: var(--md-lh-headline-small);
+    letter-spacing: var(--md-ls-headline-small);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface);
     font-variant-numeric: tabular-nums;
 
     &--accent {
-      color: var(--fui-brand-fg-1);
+      color: var(--md-primary);
     }
     &--danger {
-      color: var(--fui-danger-fg);
+      color: var(--md-error);
     }
     &--ok {
-      color: var(--fui-success-fg);
+      color: var(--md-success);
     }
   }
 
-  &__kpi-esqueleto {
+  &__metrica-esqueleto {
     display: block;
     width: 2ch;
-    height: var(--fui-lh-600);
+    height: var(--md-lh-headline-small);
   }
 
-  &__kpi-delta {
+  &__metrica-rotulo {
+    display: flex;
+    align-items: center;
+    gap: var(--md-space-6);
+    flex-wrap: wrap;
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    letter-spacing: var(--md-ls-body-small);
+    color: var(--md-on-surface-variant);
+  }
+
+  &__metrica-delta {
     display: inline-flex;
     align-items: center;
-    gap: var(--fui-space-20);
-    font-size: var(--fui-fs-200);
-    line-height: var(--fui-lh-200);
-    color: var(--fui-fg-3);
+    gap: var(--md-space-2);
+    color: var(--md-on-surface-faint);
 
     svg {
-      width: 12px;
-      height: 12px;
+      width: 14px;
+      height: 14px;
     }
-    &--sobe {
-      color: var(--fui-success-fg);
+    // os sufixos são os que `direcaoVariacao` devolve (up/down/flat) — o
+    // par anterior estava em português e por isso nunca casava
+    &--up {
+      color: var(--md-success);
     }
-    &--desce {
-      color: var(--fui-danger-fg);
-
-      svg {
-        transform: scaleY(-1);
-      }
+    &--down {
+      color: var(--md-error);
     }
   }
 
-  // ── Grade das listas ──────────────────────────────────────────────────────
-  // Duas colunas no desktop, uma abaixo de 900px (o mesmo ponto em que o mini
-  // chat some). As listas têm alturas diferentes: `align-items: start` evita
-  // que a curta estique para acompanhar a longa.
+  // ── Grade de trabalho ─────────────────────────────────────────────────────
+  // Duas colunas de peso diferente: a da esquerda é o trabalho (fila pessoal e
+  // SLA), a da direita é apoio (chat e equipe) — e por isso é mais estreita.
+  // Abaixo de 1100px vira uma coluna só, na mesma ordem de leitura.
   &__grade {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1.85fr) minmax(280px, 1fr);
     align-items: start;
-    gap: var(--fui-space-160);
+    gap: var(--md-space-32);
 
-    @media (max-width: 899px) {
+    @media (max-width: 1099px) {
       grid-template-columns: 1fr;
+      gap: var(--md-space-24);
     }
+  }
+
+  &__coluna {
+    display: flex;
+    flex-direction: column;
+    gap: var(--md-space-24);
+    min-width: 0;
   }
 }
 
 // ============================================================================
-// Lista de trabalho (os quatro cartões da grade)
+// Seção de trabalho — cabeçalho, divisor, linhas. NÃO é card.
 // ============================================================================
-.inicio-lista {
+.inicio-secao {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  min-width: 0;
 
   &__cabecalho {
     display: flex;
     align-items: center;
-    gap: var(--fui-space-80);
-    padding: var(--fui-space-120) var(--fui-space-160);
-    border-bottom: var(--fui-stroke-thin) solid var(--fui-stroke-3);
+    gap: var(--md-space-8);
+    min-height: var(--control-height-sm);
+    padding-bottom: var(--md-space-8);
+    border-bottom: var(--md-borda) solid var(--md-outline-variant);
 
     h2 {
       flex: 1;
       min-width: 0;
       margin: 0;
-      font-size: var(--fui-fs-400); // Subtitle2
-      line-height: var(--fui-lh-400);
-      font-weight: var(--fui-weight-semibold);
-      color: var(--fui-fg-1);
+      font-size: var(--md-fs-title-medium);
+      line-height: var(--md-lh-title-medium);
+      letter-spacing: var(--md-ls-title-medium);
+      font-weight: var(--md-peso-medio);
+      color: var(--md-on-surface);
     }
 
     > svg {
-      width: 20px;
-      height: 20px;
-      color: var(--fui-fg-3);
+      color: var(--md-on-surface-variant);
       flex-shrink: 0;
     }
   }
 
-  // "Ver console" — ação terciária do cabeçalho (Transparent Button)
-  &__ver-tudo {
-    margin-right: calc(var(--fui-space-40) * -1);
+  // "Ver console" — ação terciária do cabeçalho (Text Button)
+  &__acao {
+    margin-right: calc(var(--md-space-12) * -1);
   }
 
   &__item {
-    // as primitivas já dão alvo, estados e alinhamento; aqui só o ritmo
-    padding-top: var(--fui-space-80);
-    padding-bottom: var(--fui-space-80);
+    // a primitiva já dá alvo, estados e alinhamento; aqui só o ritmo e as
+    // linhas internas, que são mais tênues que o divisor do cabeçalho
+    min-height: 52px;
+    padding-left: 0;
+    padding-right: var(--md-space-8);
+    border-bottom: var(--md-borda) solid var(--md-outline-faint);
+    border-radius: var(--radius-default);
 
-    &--chat {
+    &--inerte {
       cursor: default;
 
-      &:hover,
-      &:active {
-        background: transparent;
+      &::before {
+        content: none;
       }
     }
   }
 
-  // Prioridade (ou estado de SLA): barra fina arredondada à esquerda da linha.
-  // Continua sendo cor, mas nunca sozinha — o `title` diz o nome, e o selo à
-  // direita repete o estado em texto.
+  // Prioridade (ou estado de SLA): barra fina à esquerda da linha. Continua
+  // sendo cor, mas nunca sozinha — o `title` diz o nome e o badge à direita
+  // repete o estado em texto.
   &__barra {
     width: 3px;
     align-self: stretch;
     min-height: 28px;
-    border-radius: var(--fui-radius-circular);
+    border-radius: var(--radius-default);
     flex-shrink: 0;
   }
 
   &__texto {
     display: flex;
     flex-direction: column;
-    gap: var(--fui-space-20);
+    gap: var(--md-space-2);
     min-width: 0;
     flex: 1;
   }
 
   &__assunto {
-    font-size: var(--fui-fs-300);
-    line-height: var(--fui-lh-300);
-    font-weight: var(--fui-weight-semibold);
-    color: var(--fui-fg-1);
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+    letter-spacing: var(--md-ls-body-medium);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
 
   &__meta {
-    font-size: var(--fui-fs-200);
-    line-height: var(--fui-lh-200);
-    color: var(--fui-fg-3);
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    letter-spacing: var(--md-ls-body-small);
+    color: var(--md-on-surface-variant);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -296,37 +321,36 @@
 
   &__vazio {
     margin: 0;
-    padding: var(--fui-space-200) var(--fui-space-160);
-    text-align: center;
-    font-size: var(--fui-fs-300);
-    line-height: var(--fui-lh-300);
-    color: var(--fui-fg-3);
+    padding: var(--md-space-24) 0;
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+    letter-spacing: var(--md-ls-body-medium);
+    color: var(--md-on-surface-variant);
   }
 }
 
 // ── "Equipe agora": grade de pessoas, não lista de linhas ────────────────────
 .inicio-online {
-  &__grade {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--fui-space-160);
-    list-style: none;
-    margin: 0;
-    padding: var(--fui-space-160);
-  }
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--md-space-16);
+  list-style: none;
+  margin: 0;
+  padding: var(--md-space-16) 0 0;
 
   &__pessoa {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--fui-space-40);
-    width: 64px;
+    gap: var(--md-space-4);
+    width: 56px;
   }
 
   &__nome {
-    font-size: var(--fui-fs-200);
-    line-height: var(--fui-lh-200);
-    color: var(--fui-fg-2);
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    letter-spacing: var(--md-ls-body-small);
+    color: var(--md-on-surface-variant);
     max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -335,52 +359,52 @@
 }
 
 // ============================================================================
-// Mural de avisos — MessageBar do Fluent 2.
+// Mural de avisos — o banner do M3.
 //
-// Retângulo com raio médio, fundo tênue da intenção, uma linha de cor à
-// esquerda, ícone da intenção, corpo e dispensar. Fundo tênue (e não cheio)
-// porque o aviso mora no topo da página o tempo todo: em cor cheia ele
-// competiria com o cabeçalho toda vez.
+// Superfície de container, uma linha de cor à esquerda para a intenção, ícone,
+// corpo e a ação de dispensar. Container tênue (e não cor cheia) porque o
+// aviso mora no topo da página o tempo todo: em cor cheia ele competiria com
+// o cabeçalho toda vez.
 // ============================================================================
 .mural-avisos {
   display: flex;
   flex-direction: column;
-  gap: var(--fui-space-80);
+  gap: var(--md-space-8);
 
   &__item {
     display: flex;
     align-items: flex-start;
-    gap: var(--fui-space-120);
-    padding: var(--fui-space-120) var(--fui-space-160);
-    border: var(--fui-stroke-thin) solid var(--fui-stroke-2);
-    border-left: var(--fui-stroke-thicker) solid var(--fui-brand-bg);
-    border-radius: var(--fui-radius-medium);
-    background: var(--fui-bg-2);
+    gap: var(--md-space-12);
+    padding: var(--md-space-12) var(--md-space-16);
+    border: var(--md-borda) solid var(--md-outline-variant);
+    border-left: 3px solid var(--md-primary);
+    border-radius: var(--radius-default);
+    background: var(--md-surface-container-low);
 
     > svg {
-      width: 20px;
-      height: 20px;
+      color: var(--md-primary);
       flex-shrink: 0;
-      color: var(--fui-brand-fg-1);
       margin-top: 1px;
     }
 
-    // intenções: a mesma peça, trocando a cor da linha e do ícone
+    // intenções: a mesma peça, trocando a cor da linha, do ícone e do fundo
     &--urgent {
-      border-left-color: var(--fui-danger-bg-static);
-      background: var(--fui-danger-bg);
+      border-left-color: var(--md-error);
+      background: var(--md-error-container);
+      color: var(--md-on-error-container);
 
       > svg {
-        color: var(--fui-danger-fg);
+        color: var(--md-error);
       }
     }
     &--holiday,
     &--vacation {
-      border-left-color: var(--fui-warning-bg-static);
-      background: var(--fui-warning-bg);
+      border-left-color: var(--md-warning);
+      background: var(--md-warning-container);
+      color: var(--md-on-warning-container);
 
       > svg {
-        color: var(--fui-warning-fg);
+        color: var(--md-warning);
       }
     }
   }
@@ -391,17 +415,20 @@
 
     strong {
       display: block;
-      font-size: var(--fui-fs-300);
-      line-height: var(--fui-lh-300);
-      font-weight: var(--fui-weight-semibold);
-      color: var(--fui-fg-1);
+      font-size: var(--md-fs-body-medium);
+      line-height: var(--md-lh-body-medium);
+      letter-spacing: var(--md-ls-body-medium);
+      font-weight: var(--md-peso-medio);
+      color: inherit;
     }
 
     p {
-      margin: var(--fui-space-20) 0 0;
-      font-size: var(--fui-fs-300);
-      line-height: var(--fui-lh-300);
-      color: var(--fui-fg-2);
+      margin: var(--md-space-2) 0 0;
+      font-size: var(--md-fs-body-medium);
+      line-height: var(--md-lh-body-medium);
+      letter-spacing: var(--md-ls-body-medium);
+      color: inherit;
+      opacity: 0.86;
     }
   }
 }

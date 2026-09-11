@@ -1,13 +1,15 @@
-import '@fontsource/inter/300.css'
+// Roboto é a fonte do Material Design 3 — vem empacotada, não de CDN. Três
+// pesos bastam: 400 (corpo), 500 (title/label do M3) e 700 (reforço pontual).
+import '@fontsource/roboto/400.css'
+import '@fontsource/roboto/500.css'
+import '@fontsource/roboto/700.css'
+// Inter continua como reserva da pilha (--md-font) para quem já a tinha em
+// cache, e é a fonte do Painel do Cliente.
 import '@fontsource/inter/400.css'
 import '@fontsource/inter/500.css'
 import '@fontsource/inter/600.css'
-import '@fontsource/inter/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
-// Serif de destaque — só a saudação da Início usa (--f-display); um peso
-// já basta, o corpo da interface inteira continua em Inter.
-import '@fontsource/libre-baskerville/400.css'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'

@@ -77,36 +77,38 @@
      Inter na interface (a mesma pilha do console); JetBrains Mono só em dado
      técnico; a serifa é de UM lugar só — a saudação da Início, como no
      console (resolv/inicio/inicio.scss). */
-  --f-ui: var(--fui-font-base);
-  --f-mono: var(--fui-font-mono);
-  --f-display: var(--fui-font-display);
+  --f-ui: var(--md-font);
+  --f-mono: var(--md-font-mono);
+  /* `--f-display` não é mais uma serifa: o M3 faz destaque com a MESMA
+     família num corpo maior. O nome fica porque ~50 arquivos o usam. */
+  --f-display: var(--md-font);
 
-  /* A rampa é a do Fluent (fluent.css): 10/12/14/16/20/24/28. Os NOMES são os
-     de sempre — `text-corpo`, `text-titulo`… continuam valendo em ~50
-     arquivos —, só o passo mudou. A escala do Fluent é inteira e com
-     entrelinha fixa por passo, o que alinha texto a controle na grade de 4px;
+  /* A rampa é a do Material 3 (md3.css), com o topo podado: 11/12/14/16/22/24.
+     Os NOMES são os de sempre — `text-corpo`, `text-titulo`… continuam valendo
+     em ~50 arquivos —, só o passo mudou. A escala do M3 é inteira e leva
+     entrelinha fixa por degrau, o que alinha texto a controle na grade de 4px;
      a anterior era fracionária (15,75 / 17,75 / 22,5) e nunca alinhava. */
-  --fs-micro:     var(--fui-fs-100);
-  --fs-legenda:   var(--fui-fs-200);
-  --fs-pequeno:   var(--fui-fs-200);
-  --fs-corpo:     var(--fui-fs-300);
-  --fs-corpo-lg:  var(--fui-fs-400);
-  --fs-titulo-sm: var(--fui-fs-400);
-  --fs-titulo:    var(--fui-fs-500);
-  --fs-titulo-lg: var(--fui-fs-600);
-  --fs-display:   var(--fui-fs-700);
+  --fs-micro:     var(--md-fs-label-small);   /* 11 */
+  --fs-legenda:   var(--md-fs-body-small);    /* 12 */
+  --fs-pequeno:   var(--md-fs-body-small);    /* 12 */
+  --fs-corpo:     var(--md-fs-body-medium);   /* 14 — corpo padrão */
+  --fs-corpo-lg:  var(--md-fs-body-large);    /* 16 */
+  --fs-titulo-sm: var(--md-fs-title-medium);  /* 16 — título de bloco */
+  --fs-titulo:    var(--md-fs-title-large);   /* 22 — título de página */
+  --fs-titulo-lg: var(--md-fs-headline-small);/* 24 */
+  --fs-display:   var(--md-fs-headline-small);/* 24 — o maior em uso corrente */
 
   --lh-nenhuma: 1;
-  --lh-justa:   1.25;
-  --lh-normal:  1.43;  /* 20/14: a entrelinha de corpo do Fluent */
+  --lh-justa:   1.27;  /* 28/22: a entrelinha de title-large */
+  --lh-normal:  1.43;  /* 20/14: a entrelinha de body-medium */
   --lh-solta:   1.6;
 
-  /* O Fluent não aperta o tracking dos títulos: a Segoe UI Variable já traz
-     o ajuste ótico por tamanho. */
-  --ls-titulo:  0em;
-  --ls-display: 0em;
+  /* No M3 o tracking é POSITIVO e faz parte do degrau (a Roboto foi desenhada
+     assim). Título grande vai em zero; corpo e rótulo abrem um pouco. */
+  --ls-titulo:  var(--md-ls-title-large);
+  --ls-display: var(--md-ls-headline-small);
   --ls-nenhum:  0em;
-  --ls-rotulo:  0.05em;
+  --ls-rotulo:  var(--md-ls-label-medium);
 
   --fw-normal: 400;
   --fw-medio:  500;
@@ -129,22 +131,23 @@
      `--r-total`: é forma, não estilo. `--r-painel` é a exceção nomeada e só
      do shell: o painel de conteúdo apoiado sobre o cromo, igual ao console
      (`--raio-painel`). */
-  --r-sm: var(--fui-radius-small);
-  --r-md: var(--fui-radius-medium);   /* controles: botão, campo, selo */
-  --r-lg: var(--fui-radius-large);    /* superfícies: cartão, painel, menu */
-  --r-xl: var(--fui-radius-xlarge);   /* modal, popover grande */
-  --r-total: var(--fui-radius-circular);
-  --r-painel: var(--fui-radius-xlarge);
+  --r-sm: var(--radius-default);
+  --r-md: var(--radius-default);   /* controles: botão, campo, selo */
+  --r-lg: var(--radius-default);   /* superfícies: cartão, painel, menu */
+  --r-xl: var(--radius-default);   /* modal, popover grande */
+  --r-total: var(--md-radius-full);
+  --r-painel: var(--radius-default);
   --respiro-painel: 12px;
   --borda-fina: 1px;
 
   /* ---------- ícone ---------- */
-  --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
+  /* A grade do Material Symbols é 24; 20 é o par do controle de 40px. */
+  --icone-sm: 16px; --icone-md: 18px; --icone-lg: 20px; --icone-xl: 24px;
   --icone-traco: 1.75px;
 
   /* ---------- movimento ---------- */
-  --dur: var(--fui-duration-faster);
-  --ease: var(--fui-curve-easy-ease);
+  --dur: var(--md-dur-curta-2);
+  --ease: var(--md-ease-padrao);
 
   /* ---------- camada ---------- */
   --z-suspenso: 100; --z-fixo: 200; --z-cortina: 300;
@@ -153,8 +156,8 @@
   /* ---------- layout ---------- */
   --sidebar-larga: 240px;
   --sidebar-recolhida: 64px;
-  --alvo-minimo: var(--fui-height-small);
-  --altura-controle: var(--fui-height-medium);  /* 32px — "medium" do Fluent */
+  --alvo-minimo: var(--control-height-sm);      /* 36px */
+  --altura-controle: var(--control-height-md);  /* 40px — o padrão do projeto */
 }
 
 /* ============================================================
@@ -162,11 +165,11 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  --canvas:             var(--fui-bg-canvas);  /* fundo geral atrás do conteúdo */
-  --superficie:         var(--fui-bg-1);       /* cartão, campo, modal */
-  --superficie-sutil:   var(--fui-bg-2);
-  --superficie-elevada: var(--fui-bg-1);
-  --navegacao:          var(--fui-bg-3);       /* cromo: sidebar, barra, hover */
+  --canvas:             var(--md-surface);            /* fundo geral atrás do conteúdo */
+  --superficie:         var(--md-surface-container-lowest);       /* cartão, campo, modal */
+  --superficie-sutil:   var(--md-surface-container);
+  --superficie-elevada: var(--md-surface-container-lowest);
+  --navegacao:          var(--md-surface-container);  /* cromo: sidebar, barra, hover */
 
   /* Duas famílias de linha, de propósito (como no console):
      --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
@@ -175,36 +178,35 @@
                     precisa se anunciar como editável; com a linha estrutural
                     o formulário sumia dentro da página
      --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      var(--fui-stroke-2);
-  --borda-controle: var(--fui-stroke-1);
-  --borda-campo:    var(--fui-stroke-1);
+  --divisoria:      var(--md-outline-variant);
+  --borda-controle: var(--md-outline);
+  --borda-campo:    var(--md-outline);
 
-  --tinta:            var(--fui-fg-1);
-  --tinta-secundaria: var(--fui-fg-2);
-  --tinta-terciaria:  var(--fui-fg-3);
-  --texto-cromo:      var(--fui-fg-2);  /* texto e ícone sobre o cromo */
+  --tinta:            var(--md-on-surface);
+  --tinta-secundaria: var(--md-on-surface-variant);
+  --tinta-terciaria:  var(--md-on-surface-faint);
+  --texto-cromo:      var(--md-on-surface-variant);  /* texto e ícone sobre o cromo */
 
-  --acento:       var(--fui-brand-bg);
-  --acento-hover: var(--fui-brand-bg-hover);
-  --acento-tinta: var(--fui-brand-fg-1);
-  --acento-sobre: var(--fui-fg-on-brand);
-  --acento-suave: var(--fui-brand-bg-2);
+  --acento:       var(--md-primary);
+  --acento-hover: var(--md-primary-hover);
+  --acento-tinta: var(--md-primary);
+  --acento-sobre: var(--md-on-primary);
+  --acento-suave: var(--md-primary-container);
 
-  --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
-  --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
-  --ok:     var(--fui-success-fg);  --ok-suave:     var(--fui-success-bg);
+  --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
+  --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
+  --ok:     var(--md-success);  --ok-suave:     var(--md-success-container);
 
-  --hover: var(--fui-subtle-hover);
-  --ativo: var(--fui-subtle-pressed);
+  --hover: var(--md-state-layer-hover);
+  --ativo: var(--md-state-layer-pressed);
 
-  /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
-     do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
-     sombra, e é a mesma do console (--sombra-flutuante). */
-  /* Elevação volta a existir: no Fluent a superfície se separa do fundo por
-     uma sombra discreta (shadow2/4) E pela linha. O que flutua usa shadow16. */
-  --elevacao-1: var(--fui-shadow-2);
-  --elevacao-3: var(--fui-shadow-16);
-  --sobreposicao: var(--fui-overlay);  /* véu atrás do modal */
+  /* Elevação com moderação, como o M3 pede: o que separa superfície aqui é o
+     TOM (surface-container-*) e a LINHA. O nível 1 é quase imperceptível e
+     serve de reforço; o nível 3 é para o que de fato flutua (menu, diálogo,
+     popover). */
+  --elevacao-1: var(--md-elev-1);
+  --elevacao-3: var(--md-elev-3);
+  --sobreposicao: var(--md-scrim);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
@@ -219,40 +221,44 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  /* Os `--fui-*` já viram escuros sozinhos ([data-tema] em fluent.css); o que
-     sobra aqui é só o que NÃO é derivado deles. */
-  --canvas:             var(--fui-bg-canvas);
-  --superficie:         var(--fui-bg-1);
-  --superficie-sutil:   var(--fui-bg-2);
-  --superficie-elevada: var(--fui-bg-1);
-  --navegacao:          var(--fui-bg-2);
+  /* Os papéis `--md-*` já viram escuros sozinhos ([data-tema] em md3.css); o
+     que sobra aqui é só o que NÃO é derivado deles. */
+  /* No escuro os papéis de superfície do M3 trocam de ORDEM: o mais escuro
+     (surface-container-lowest) é o cromo, e o conteúdo sobe de tom. É assim
+     que a hierarquia do claro (cromo < canvas < superfície < elevado) se
+     mantém espelhada — no M3 quem sobe de nível clareia, não escurece. */
+  --canvas:             var(--md-surface-container-low);
+  --superficie:         var(--md-surface-container);
+  --superficie-sutil:   var(--md-surface-container-high);
+  --superficie-elevada: var(--md-surface-container-high);
+  --navegacao:          var(--md-surface);
 
-  --divisoria:      var(--fui-stroke-2);
-  --borda-controle: var(--fui-stroke-1);
-  --borda-campo:    var(--fui-stroke-1);
+  --divisoria:      var(--md-outline-variant);
+  --borda-controle: var(--md-outline);
+  --borda-campo:    var(--md-outline);
 
-  --tinta:            var(--fui-fg-1);
-  --tinta-secundaria: var(--fui-fg-2);
-  --tinta-terciaria:  var(--fui-fg-3);
-  --texto-cromo:      var(--fui-fg-2);
+  --tinta:            var(--md-on-surface);
+  --tinta-secundaria: var(--md-on-surface-variant);
+  --tinta-terciaria:  var(--md-on-surface-faint);
+  --texto-cromo:      var(--md-on-surface-variant);
 
-  --acento:       var(--fui-brand-bg);
-  --acento-hover: var(--fui-brand-bg-hover);
-  --acento-tinta: var(--fui-brand-fg-1);
-  --acento-sobre: var(--fui-fg-on-brand);
-  --acento-suave: var(--fui-brand-bg-2);
+  --acento:       var(--md-primary);
+  --acento-hover: var(--md-primary-hover);
+  --acento-tinta: var(--md-primary);
+  --acento-sobre: var(--md-on-primary);
+  --acento-suave: var(--md-primary-container);
 
-  --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
-  --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
-  --ok:     var(--fui-success-fg);  --ok-suave:     var(--fui-success-bg);
+  --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
+  --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
+  --ok:     var(--md-success);  --ok-suave:     var(--md-success-container);
 
-  --hover: var(--fui-subtle-hover);
-  --ativo: var(--fui-subtle-pressed);
+  --hover: var(--md-state-layer-hover);
+  --ativo: var(--md-state-layer-pressed);
 
-  --elevacao-1: var(--fui-shadow-2);
-  --elevacao-3: var(--fui-shadow-16);
-  --sobreposicao: var(--fui-overlay);
-  --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
+  --elevacao-1: var(--md-elev-1);
+  --elevacao-3: var(--md-elev-3);
+  --sobreposicao: var(--md-scrim);
+  --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
 
   --esquema: dark;
   color-scheme: dark;
@@ -261,31 +267,32 @@
 /* Respeita a preferência do sistema quando ninguém fixou o tema. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-tema="claro"]) {
-    --canvas: var(--fui-bg-canvas);        --superficie: var(--fui-bg-1);
-    --superficie-sutil: var(--fui-bg-2);   --superficie-elevada: var(--fui-bg-1);
-    --navegacao: var(--fui-bg-2);
-    --divisoria: var(--fui-stroke-2);      --borda-controle: var(--fui-stroke-1);
-    --borda-campo: var(--fui-stroke-1);
-    --tinta: var(--fui-fg-1);              --tinta-secundaria: var(--fui-fg-2);
-    --tinta-terciaria: var(--fui-fg-3);    --texto-cromo: var(--fui-fg-2);
-    --acento: var(--fui-brand-bg);         --acento-hover: var(--fui-brand-bg-hover);
-    --acento-tinta: var(--fui-brand-fg-1); --acento-sobre: var(--fui-fg-on-brand);
-    --acento-suave: var(--fui-brand-bg-2);
-    --perigo: var(--fui-danger-fg);   --perigo-suave: var(--fui-danger-bg);
-    --alerta: var(--fui-warning-fg);  --alerta-suave: var(--fui-warning-bg);
-    --ok: var(--fui-success-fg);      --ok-suave: var(--fui-success-bg);
-    --hover: var(--fui-subtle-hover); --ativo: var(--fui-subtle-pressed);
-    --elevacao-1: var(--fui-shadow-2);
-    --elevacao-3: var(--fui-shadow-16);
-    --sobreposicao: var(--fui-overlay);
+    --canvas: var(--md-surface-container-low);        --superficie: var(--md-surface-container);
+    --superficie-sutil: var(--md-surface-container-high);
+    --superficie-elevada: var(--md-surface-container-high);
+    --navegacao: var(--md-surface);
+    --divisoria: var(--md-outline-variant);      --borda-controle: var(--md-outline);
+    --borda-campo: var(--md-outline);
+    --tinta: var(--md-on-surface);              --tinta-secundaria: var(--md-on-surface-variant);
+    --tinta-terciaria: var(--md-on-surface-faint);    --texto-cromo: var(--md-on-surface-variant);
+    --acento: var(--md-primary);         --acento-hover: var(--md-primary-hover);
+    --acento-tinta: var(--md-primary); --acento-sobre: var(--md-on-primary);
+    --acento-suave: var(--md-primary-container);
+    --perigo: var(--md-error);   --perigo-suave: var(--md-error-container);
+    --alerta: var(--md-warning);  --alerta-suave: var(--md-warning-container);
+    --ok: var(--md-success);      --ok-suave: var(--md-success-container);
+    --hover: var(--md-state-layer-hover); --ativo: var(--md-state-layer-pressed);
+    --elevacao-1: var(--md-elev-1);
+    --elevacao-3: var(--md-elev-3);
+    --sobreposicao: var(--md-scrim);
     --esqueleto: linear-gradient(90deg, rgba(255,255,255,.06), rgba(255,255,255,.12), rgba(255,255,255,.06));
     --esquema: dark;
     color-scheme: dark;
   }
 }
 
-/* Foco visível: a regra única mora em fluent.css (o indicador de duas cores
-   do Fluent). Nada aqui a sobrescreve. */
+/* Foco visível: a regra única mora em md3.css (anel de 3px na cor primária,
+   deslocado 2px). Nada aqui a sobrescreve. */
 
 /* WCAG 2.3.3 / boa prática. */
 @media (prefers-reduced-motion: reduce) {

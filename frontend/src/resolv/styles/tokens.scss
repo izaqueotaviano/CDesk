@@ -21,12 +21,12 @@
   // serifa de UM lugar só (saudação da Início, ver inicio.scss) — referência:
   // o título grande do app da Manus (manus.im), que mistura serifa só no
   // destaque com a mesma pilha sans nativa no resto da interface.
-  --f-ui: var(--fui-font-base);
-  --f-mono: var(--fui-font-mono);
-  // `--f-display` era a serifa de UM lugar (a saudação da Início). No Fluent
-  // o destaque de título é a mesma família num corpo maior (Segoe UI Variable
-  // Display) — a serifa saiu com a redação do Fluent 2, não por capricho.
-  --f-display: var(--fui-font-display);
+  --f-ui: var(--md-font);
+  --f-mono: var(--md-font-mono);
+  // `--f-display` era a serifa de UM lugar (a saudação da Início). No Material
+  // 3 o destaque de título é a MESMA família num corpo maior — a serifa saiu
+  // junto com a adoção do M3, não por capricho.
+  --f-display: var(--md-font);
 
   // ── Superfícies ──
   // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em
@@ -39,43 +39,43 @@
   // primeiros tons do app da Manus (nav e canvas); o card de lá (#fafafa)
   // não entrou — o pedido original já tinha fixado cartão/tabela em branco
   // puro, e isso não mudou.
-  --surface: var(--fui-bg-1);
-  --surface-alt: var(--fui-bg-3);
-  --surface-card: var(--fui-bg-1);
-  --surface-canvas: var(--fui-bg-canvas);
+  --surface: var(--md-surface-container-lowest);
+  --surface-alt: var(--md-surface-container);
+  --surface-card: var(--md-surface-container-lowest);
+  --surface-canvas: var(--md-surface);
   // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
   // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
   // branco puro) uma borda derivada de preto ficava clara demais. Mesma
   // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
   // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
-  --stroke: var(--fui-stroke-2);
-  --stroke-hover: var(--fui-stroke-1);
-  --stroke-subtle: var(--fui-stroke-3);
+  --stroke: var(--md-outline-variant);
+  --stroke-hover: var(--md-outline);
+  --stroke-subtle: var(--md-outline-faint);
 
   // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
   // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
   // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
   // o formulário sumir dentro da página.
-  --borda-campo: var(--fui-stroke-1);
+  --borda-campo: var(--md-outline);
 
   // ── Texto ──
   // Fonte: o mesmo material de referência do fundo (app da Manus) —
   // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
   // saem daqui (ver conferência de WCAG no commit).
-  --text-primary: var(--fui-fg-1);
-  --text-secondary: var(--fui-fg-2);
-  --text-muted: var(--fui-fg-3);
+  --text-primary: var(--md-on-surface);
+  --text-secondary: var(--md-on-surface-variant);
+  --text-muted: var(--md-on-surface-faint);
   // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
-  --texto-cromo: var(--fui-fg-2);
+  --texto-cromo: var(--md-on-surface-variant);
   // Fundo do item ATIVO da sidebar — cinza neutro sólido, não o tom do
   // accent. Token à parte de `--tom-acento` (que seria o óbvio a reusar)
   // porque esse já pinta uma dúzia de lugares fora da sidebar (tickets,
   // notas) que continuam no tom de accent; só o item ativo do rail troca de
   // leitura. No escuro ele volta a ser `--tom-acento` — a troca pedida foi só
   // para o claro.
-  --sidebar-ativo: var(--fui-subtle-selected);
+  --sidebar-ativo: var(--md-state-layer-selected);
 
   // ── Identidade ──
   // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
@@ -144,42 +144,42 @@
   // ── Semânticas ──
   // #0f62fe sobre branco dá 5.05:1 (passa AA como texto) e branco sobre ele dá
   // os mesmos 5.05:1 — é por isso que o botão primário pode escrever em branco.
-  --accent: var(--fui-brand-bg);
-  --accent-hover: var(--fui-brand-bg-hover);
-  --accent-active: var(--fui-brand-bg-pressed);
-  --danger: var(--fui-danger-fg);
-  --ok: var(--fui-success-fg);
-  --away: var(--fui-warning-fg);
+  --accent: var(--md-primary);
+  --accent-hover: var(--md-primary-hover);
+  --accent-active: var(--md-primary-pressed);
+  --danger: var(--md-error);
+  --ok: var(--md-success);
+  --away: var(--md-warning);
 
   // ── Tons (washes de fundo e de borda) ──
   // Derivados por color-mix do próprio token semântico: cada um é a semântica
   // com alfa, então acompanham a troca de tema (e a de paleta) sozinhos —
   // rgba() cru aqui era exatamente o que quebrava no escuro.
-  --tom-acento: var(--fui-brand-bg-2);
-  --tom-acento-forte: var(--fui-brand-bg-2-hover);
-  --tom-acento-borda: var(--fui-brand-stroke-2);
-  --tom-ok: var(--fui-success-bg);
-  --tom-alerta-borda: var(--fui-warning-stroke);
-  --tom-perigo: var(--fui-danger-bg);
+  --tom-acento: var(--md-primary-container);
+  --tom-acento-forte: var(--md-secondary-container);
+  --tom-acento-borda: var(--md-primary-container);
+  --tom-ok: var(--md-success-container);
+  --tom-alerta-borda: var(--md-warning-container);
+  --tom-perigo: var(--md-error-container);
 
   // As duas exceções da família: cremes SÓLIDOS, não o --away diluído. O --away
   // do claro é um âmbar escuro (#8a5d0f) e diluí-lo dá bege acinzentado, não
   // este creme — por isso os dois têm valor próprio por tema (ver a paleta
   // escura abaixo, onde viram wash e param de brilhar).
-  --tom-alerta: var(--fui-warning-bg); // pílula de SLA em risco
-  --tom-nota: var(--fui-warning-bg); // fundo da nota interna
+  --tom-alerta: var(--md-warning-container); // pílula de SLA em risco
+  --tom-nota: var(--md-warning-container); // fundo da nota interna
 
   // ── Raio ──
   // Um raio só na interface inteira. Quem precisa de círculo de verdade
   // (avatar, ponto de presença) usa 50% direto — é forma, não estilo.
-  --raio: var(--fui-radius-medium);
+  --raio: var(--radius-default);
   // Exceção nomeada, e só do CROMO do shell: as abas no estilo de navegador
   // (barra-de-abas.scss) e o painel de conteúdo que flutua sobre o cromo
   // (shell.scss) dependem da curva — a junção côncava entre a aba ativa e o
   // painel É o desenho, e a 2px ela some. Botão, campo, card, modal continuam
   // em `--raio`; nada fora do shell lê estes dois.
-  --raio-aba: var(--fui-radius-xlarge);
-  --raio-painel: var(--fui-radius-xlarge);
+  --raio-aba: var(--radius-default);
+  --raio-painel: var(--radius-default);
   // Respiro entre o painel e a borda da janela (direita e baixo), o mesmo que
   // faz o painel parecer um cartão apoiado no cromo em vez de colado nele.
   --respiro-painel: 12px;
@@ -187,10 +187,10 @@
   // ── Foco ──
   // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em
   // toda a base e quem usa não deveria ter que lembrar do "0 0 0 2px".
-  // O indicador de foco do Fluent: linha interna clara + externa escura (ou o
-  // inverso no tema escuro). Não depende da cor da marca, então continua
-  // visível sobre o próprio botão primário — que era o buraco do anel antigo.
-  --anel-foco: 0 0 0 1px var(--fui-stroke-focus-1), 0 0 0 3px var(--fui-stroke-focus-2);
+  // O indicador de foco do M3: anel na cor primária, com um vão da própria
+  // superfície entre o controle e o anel. É esse vão que faz o anel continuar
+  // visível em cima do botão primário, que já é azul.
+  --anel-foco: 0 0 0 2px var(--surface), 0 0 0 5px var(--md-primary);
   --anel-foco-alerta: var(--anel-foco);
 
   // ── Elevação e véus ──
@@ -200,12 +200,13 @@
   // é feita por LINHA nesta base, não por sombra.
   --sombra-suave: rgba(0, 0, 0, 0.06);
   --sombra-forte: rgba(0, 0, 0, 0.12);
-  // Elevação do Fluent: cartão em shadow2/4, o que flutua em shadow16.
-  --sombra-cartao: var(--fui-shadow-2);
-  --sombra-elevada: var(--fui-shadow-4);
-  --sombra-flutuante: var(--fui-shadow-16);
-  --veu: var(--fui-overlay);
-  --veu-suave: var(--fui-scrim);
+  // Elevação do M3, usada com moderação: card no nível 1 (quase
+  // imperceptível, é a linha que separa) e o que flutua no nível 3.
+  --sombra-cartao: var(--md-elev-1);
+  --sombra-elevada: var(--md-elev-2);
+  --sombra-flutuante: var(--md-elev-3);
+  --veu: var(--md-scrim);
+  --veu-suave: var(--md-scrim);
 
   color-scheme: light;
   font-family: var(--f-ui);
@@ -231,15 +232,22 @@
   color-scheme: dark;
 
   // Quase tudo já virou escuro sozinho: `--surface`, `--stroke`, `--text-*`,
-  // `--accent` e os tons apontam para `--fui-*`, e o Fluent troca esses
-  // valores no próprio `[data-tema='escuro']` (styles/fluent.css). O que
+  // `--accent` e os tons apontam para `--md-*`, e o Material 3 troca esses
+  // valores no próprio `html[data-tema='escuro']` (styles/md3.css). O que
   // sobra aqui é o que NÃO é derivado deles.
 
-  // No escuro o cromo é o fundo mais escuro da tela, e o texto dele volta a
-  // ser o texto principal (um cinza médio ali seria ilegível).
-  --surface-alt: var(--fui-bg-2);
-  --texto-cromo: var(--fui-fg-1);
-  --sidebar-ativo: var(--fui-subtle-selected);
+  // No escuro o cromo é o fundo mais escuro da tela (`surface`, o tom 6 do
+  // M3), e o texto dele volta a ser o texto principal — um cinza médio ali
+  // seria ilegível. O conteúdo, ao contrário do claro, SOBE de tom: no M3
+  // quem está mais acima na hierarquia clareia, e é essa subida
+  // (surface → container-low → container) que separa cromo, painel e cartão
+  // sem precisar de sombra nenhuma.
+  --surface: var(--md-surface-container);
+  --surface-card: var(--md-surface-container);
+  --surface-canvas: var(--md-surface-container-low);
+  --surface-alt: var(--md-surface);
+  --texto-cromo: var(--md-on-surface);
+  --sidebar-ativo: var(--md-state-layer-selected);
 
   // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e branco
   // em cima segue AA sobre qualquer fundo. Só o TEXTO clareia.
@@ -250,8 +258,7 @@
   --identidade-5-texto: #808c9f;
   --identidade-6-texto: #d266a5;
 
-  // Sombra preta e muito mais opaca vem do Fluent (--fui-shadow-*); o véu
-  // acompanha.
+  // Sombra preta e muito mais opaca vem do M3 (--md-elev-*); o véu acompanha.
   --sombra-suave: rgba(0, 0, 0, 0.45);
   --sombra-forte: rgba(0, 0, 0, 0.62);
 }

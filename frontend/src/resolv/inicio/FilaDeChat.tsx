@@ -1,8 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { Chat20Regular } from '@fluentui/react-icons'
 import { useFilaChat, usePegarChat } from '@/api/chat'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
+import { Icone } from '../shell/Icone'
 
 const LIMITE = 4
 
@@ -21,42 +21,42 @@ export function FilaDeChat() {
   const naFila = fila ?? []
 
   return (
-    <section className="inicio-lista fui-card" aria-labelledby="inicio-chat-fila">
-      <header className="inicio-lista__cabecalho">
-        <Chat20Regular aria-hidden="true" />
+    <section className="inicio-secao" aria-labelledby="inicio-chat-fila">
+      <header className="inicio-secao__cabecalho">
+        <Icone nome="forum" />
         <h2 id="inicio-chat-fila">Chat na fila</h2>
         {!isLoading && (
-          <span className={'fui-badge' + (naFila.length > 0 ? ' fui-badge--brand' : '')}>
+          <span className={'md-badge' + (naFila.length > 0 ? ' md-badge--brand' : '')}>
             {naFila.length}
           </span>
         )}
         <button
           type="button"
-          className="fui-btn fui-btn--transparent fui-btn--sm inicio-lista__ver-tudo"
+          className="md-btn md-btn--texto md-btn--sm inicio-secao__acao"
           onClick={() => navigate('/chat')}
         >
           Ver console
         </button>
       </header>
       {isLoading ? (
-        <p className="inicio-lista__vazio">Carregando…</p>
+        <p className="inicio-secao__vazio">Carregando…</p>
       ) : naFila.length === 0 ? (
-        <p className="inicio-lista__vazio">Ninguém esperando agora.</p>
+        <p className="inicio-secao__vazio">Ninguém esperando agora.</p>
       ) : (
-        <ul className="fui-lista">
+        <ul className="md-lista">
           {naFila.slice(0, LIMITE).map((c) => (
             <li key={c.id}>
-              <div className="fui-lista__item inicio-lista__item inicio-lista__item--chat">
-                <span className="fui-avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
+              <div className="md-lista__item inicio-secao__item inicio-secao__item--inerte">
+                <span className="md-avatar" aria-hidden="true" {...identidadeDe(c.client_name)}>
                   {iniciais(c.client_name)}
                 </span>
-                <span className="inicio-lista__texto">
-                  <span className="inicio-lista__assunto">{c.client_name}</span>
-                  <span className="inicio-lista__meta">{c.company_name}</span>
+                <span className="inicio-secao__texto">
+                  <span className="inicio-secao__assunto">{c.client_name}</span>
+                  <span className="inicio-secao__meta">{c.company_name}</span>
                 </span>
                 <button
                   type="button"
-                  className="fui-btn fui-btn--sm"
+                  className="md-btn md-btn--tonal md-btn--sm"
                   disabled={pegar.isPending}
                   onClick={() =>
                     pegar.mutate(c.id, { onSuccess: (chat) => navigate(`/chat?chat=${chat.id}`) })

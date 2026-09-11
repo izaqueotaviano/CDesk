@@ -1,0 +1,435 @@
+/* ============================================================================
+   md3.css — Material Design 3 (Material You), em versão compacta e corporativa.
+
+   É a ÚNICA fonte de verdade visual do produto: cor, forma, tipografia,
+   elevação, altura de controle, state layer e movimento saem daqui. Os nomes
+   que o resto da base já usava (--acento, --surface, --raio, --fs-*…) apenas
+   APONTAM para estes tokens — ver styles/tokens.css e resolv/styles/tokens.scss.
+   Mudar aparência é mudar aqui; nenhuma tela repete valor literal.
+
+   ── As três adaptações que este projeto faz sobre o M3 ────────────────────
+   O M3 padrão é grande, muito arredondado e espaçado. Este é um sistema de
+   atendimento: a tela fica aberta o dia inteiro e precisa de densidade. Onde
+   o padrão do M3 conflita com as regras abaixo, VALEM AS REGRAS ABAIXO.
+
+   1. FORMA — raio de 2px em praticamente tudo (`--radius-default`). Botão,
+      campo, select, menu, card, diálogo, tooltip, chip, tabela, painel,
+      busca, composer. Sem pílula, sem 12/16/20/24px. As duas exceções são
+      forma, não estilo: avatar de pessoa e interruptor (switch), que seguem
+      circulares (`--md-radius-full`).
+   2. ALTURA — nenhum controle comum passa de 44px
+      (`--control-height-sm/md/lg` = 36/40/44). Vale para controle
+      INTERATIVO; container de conteúdo, card, mensagem e linha de tabela
+      crescem com o conteúdo.
+   3. TIPOGRAFIA — a escala do M3 com o topo podado: o maior tamanho de uso
+      corrente é headline-small (24px), e o título de página é title-large
+      (22px). Display existe mas não se usa em tela de trabalho.
+
+   ── Cor ───────────────────────────────────────────────────────────────────
+   As paletas tonais foram geradas no espírito do HCT (o espaço de cor do M3:
+   tom = L* do CIELAB, matiz e croma constantes, com gamut mapping por
+   redução de croma). A âncora é o AZUL QUE O SISTEMA JÁ USA, #0f62fe, que
+   tem L* 47 — ele é o `primary` do tema claro, e todos os demais papéis
+   (containers, on-colors, tema escuro) descem do mesmo matiz (262°). Nada
+   de trocar a marca por um azul de referência do Google.
+
+   Os neutros têm croma quase zero de propósito (3 milésimos): a identidade
+   do produto é cinza + um azul, não "tudo levemente azulado".
+
+   `success` e `warning` não existem no M3 (que só tem `error`); aqui são
+   extensões declaradas, construídas pelo mesmo método, porque a fila de
+   atendimento precisa dizer "no prazo" e "em risco".
+
+   ── Tema ──────────────────────────────────────────────────────────────────
+   O tema vive no atributo `data-tema` do <html> ("claro" | "escuro", ou
+   ausente = segue o sistema). Os papéis trocam de tom; os NOMES nunca mudam,
+   então nenhum componente troca de seletor por causa do tema.
+   ============================================================================ */
+
+:root {
+  /* ── Paletas de referência (tonal palettes) ──────────────────────────────
+     Matéria-prima. Em tela use os PAPÉIS (--md-primary, --md-surface…), nunca
+     um tom cru: é o papel que troca sozinho entre claro e escuro. */
+  /* primary — matiz 262°, croma do #0f62fe */
+  --md-ref-primary-0: #000000; --md-ref-primary-4: #000a31; --md-ref-primary-6: #000f3d; --md-ref-primary-10: #00164e;
+  --md-ref-primary-12: #001a58; --md-ref-primary-17: #00226e; --md-ref-primary-20: #00287d; --md-ref-primary-22: #002c86;
+  --md-ref-primary-24: #00308f; --md-ref-primary-30: #003bad; --md-ref-primary-40: #0050e2; --md-ref-primary-50: #226dff;
+  --md-ref-primary-60: #528dff; --md-ref-primary-70: #7dabff; --md-ref-primary-80: #a9c8ff; --md-ref-primary-87: #c7dbff;
+  --md-ref-primary-90: #d4e4ff; --md-ref-primary-92: #dce9ff; --md-ref-primary-94: #e5eeff; --md-ref-primary-95: #eaf1ff;
+  --md-ref-primary-96: #edf4ff; --md-ref-primary-98: #f6f9ff; --md-ref-primary-100: #ffffff;
+  /* secondary — mesmo matiz, croma baixa (apoio, seleção) */
+  --md-ref-secondary-0: #000000; --md-ref-secondary-4: #060e1d; --md-ref-secondary-6: #0b1423; --md-ref-secondary-10: #131c2c;
+  --md-ref-secondary-12: #161f30; --md-ref-secondary-17: #202a3c; --md-ref-secondary-20: #273142; --md-ref-secondary-22: #2b3548;
+  --md-ref-secondary-24: #2f3a4c; --md-ref-secondary-30: #3c475a; --md-ref-secondary-40: #535f73; --md-ref-secondary-50: #6c778c;
+  --md-ref-secondary-60: #8592a7; --md-ref-secondary-70: #9facc2; --md-ref-secondary-80: #bbc7de; --md-ref-secondary-87: #cddbf2;
+  --md-ref-secondary-90: #d6e4fb; --md-ref-secondary-92: #dce8ff; --md-ref-secondary-94: #e5eeff; --md-ref-secondary-95: #eaf1ff;
+  --md-ref-secondary-96: #edf4ff; --md-ref-secondary-98: #f6faff; --md-ref-secondary-100: #ffffff;
+  /* tertiary — matiz +60°, para acento de terceira ordem */
+  --md-ref-tertiary-10: #36003d; --md-ref-tertiary-20: #4f1858; --md-ref-tertiary-30: #683070; --md-ref-tertiary-40: #82498b;
+  --md-ref-tertiary-80: #f0b1f9; --md-ref-tertiary-90: #fad7ff;
+  /* neutral — superfícies e texto */
+  --md-ref-neutral-0: #000000; --md-ref-neutral-4: #0d0e10; --md-ref-neutral-6: #131315; --md-ref-neutral-10: #1b1b1d;
+  --md-ref-neutral-12: #1f2021; --md-ref-neutral-17: #292a2b; --md-ref-neutral-20: #303032; --md-ref-neutral-22: #343436;
+  --md-ref-neutral-24: #38393b; --md-ref-neutral-30: #464648; --md-ref-neutral-40: #5e5f60; --md-ref-neutral-50: #767779;
+  --md-ref-neutral-60: #8f9092; --md-ref-neutral-70: #aaacad; --md-ref-neutral-80: #c5c7c8; --md-ref-neutral-87: #d9dadc;
+  --md-ref-neutral-90: #e1e2e5; --md-ref-neutral-92: #e7e9eb; --md-ref-neutral-94: #ecedf0; --md-ref-neutral-95: #eff1f3;
+  --md-ref-neutral-96: #f2f4f6; --md-ref-neutral-98: #f8fafc; --md-ref-neutral-100: #ffffff;
+  /* neutral-variant — linhas, contornos e texto secundário */
+  --md-ref-nv-0: #000000; --md-ref-nv-4: #0c0e12; --md-ref-nv-6: #111417; --md-ref-nv-10: #191c1f;
+  --md-ref-nv-12: #1d1f23; --md-ref-nv-17: #272a2e; --md-ref-nv-20: #2e3035; --md-ref-nv-22: #323439;
+  --md-ref-nv-24: #37393e; --md-ref-nv-30: #44474b; --md-ref-nv-40: #5c5e63; --md-ref-nv-50: #75777c;
+  --md-ref-nv-60: #8e9195; --md-ref-nv-70: #a9abb1; --md-ref-nv-80: #c4c7cc; --md-ref-nv-87: #d7dbe0;
+  --md-ref-nv-90: #dfe3e8; --md-ref-nv-92: #e5e9ee; --md-ref-nv-94: #eaeef3; --md-ref-nv-95: #eef1f6;
+  --md-ref-nv-96: #f0f3f9; --md-ref-nv-98: #f6faff; --md-ref-nv-100: #ffffff;
+  /* error (M3) + success/warning (extensões deste projeto) */
+  --md-ref-error-0: #000000; --md-ref-error-4: #270000; --md-ref-error-6: #320000; --md-ref-error-10: #410000;
+  --md-ref-error-12: #490000; --md-ref-error-17: #5d0001; --md-ref-error-20: #690001; --md-ref-error-22: #710001;
+  --md-ref-error-24: #7a0002; --md-ref-error-30: #940003; --md-ref-error-40: #b4271f; --md-ref-error-50: #d2473a;
+  --md-ref-error-60: #f16354; --md-ref-error-70: #ff8a7a; --md-ref-error-80: #ffb3a8; --md-ref-error-87: #ffcec7;
+  --md-ref-error-90: #ffdbd5; --md-ref-error-92: #ffe1dd; --md-ref-error-94: #ffeae6; --md-ref-error-95: #ffede9;
+  --md-ref-error-96: #fff0ee; --md-ref-error-98: #fff7f6; --md-ref-error-100: #ffffff;
+  --md-ref-success-0: #000000; --md-ref-success-4: #001203; --md-ref-success-6: #001804; --md-ref-success-10: #002107;
+  --md-ref-success-12: #002709; --md-ref-success-17: #00310e; --md-ref-success-20: #003912; --md-ref-success-22: #003f14;
+  --md-ref-success-24: #004416; --md-ref-success-30: #00521d; --md-ref-success-40: #146c2e; --md-ref-success-50: #358647;
+  --md-ref-success-60: #51a260; --md-ref-success-70: #6cbd7a; --md-ref-success-80: #87d994; --md-ref-success-87: #9aeda7;
+  --md-ref-success-90: #a3f5af; --md-ref-success-92: #a9fbb5; --md-ref-success-94: #b7ffc0; --md-ref-success-95: #c4ffcc;
+  --md-ref-success-96: #d2ffd7; --md-ref-success-98: #eaffec; --md-ref-success-100: #ffffff;
+  --md-ref-warning-0: #000000; --md-ref-warning-4: #1b0a00; --md-ref-warning-6: #220f00; --md-ref-warning-10: #2e1500;
+  --md-ref-warning-12: #331900; --md-ref-warning-17: #422100; --md-ref-warning-20: #4c2700; --md-ref-warning-22: #512b00;
+  --md-ref-warning-24: #572f00; --md-ref-warning-30: #6b3b00; --md-ref-warning-40: #8d4f00; --md-ref-warning-50: #a86827;
+  --md-ref-warning-60: #c58243; --md-ref-warning-70: #e29c5e; --md-ref-warning-80: #feb879; --md-ref-warning-87: #ffd1ab;
+  --md-ref-warning-90: #ffdcc0; --md-ref-warning-92: #ffe3cd; --md-ref-warning-94: #ffeada; --md-ref-warning-95: #ffeddf;
+  --md-ref-warning-96: #fff2e7; --md-ref-warning-98: #fff9f3; --md-ref-warning-100: #ffffff;
+
+  /* ── Forma ───────────────────────────────────────────────────────────────
+     A regra de raio do projeto, e ela ganha do padrão do M3. */
+  --radius-default: 2px;       /* nome pedido no briefing, é este que vale */
+  --md-radius: var(--radius-default);
+  --md-radius-full: 9999px;    /* só avatar de pessoa e interruptor */
+  --md-borda: 1px;             /* espessura de linha em toda a interface */
+
+  /* ── Altura de controle ──────────────────────────────────────────────────
+     Teto de 44px. Vale para CONTROLE interativo; container de conteúdo,
+     card, mensagem e linha de tabela crescem com o conteúdo. */
+  --control-height-sm: 36px;   /* toolbar, botão de ícone, chip de ação */
+  --control-height-md: 40px;   /* padrão: botão, campo, select */
+  --control-height-lg: 44px;   /* ação principal, busca, campo em destaque */
+  --md-height-sm: var(--control-height-sm);
+  --md-height-md: var(--control-height-md);
+  --md-height-lg: var(--control-height-lg);
+  /* Alvo de toque mínimo (WCAG 2.5.8 e M3): quando o controle é visualmente
+     menor que isto, a área clicável é esticada com ::after — nunca o desenho. */
+  --md-alvo-minimo: 44px;
+
+  /* ── Tipografia ──────────────────────────────────────────────────────────
+     Roboto é a fonte do Material; vem empacotada (@fontsource/roboto), não
+     de CDN. Inter fica de reserva porque já estava carregada. JetBrains Mono
+     continua só em dado técnico (id, referência, atalho).
+
+     Escala do M3 com o topo podado — ver o cabeçalho. Cada degrau leva
+     tamanho, entrelinha e tracking juntos: no M3 o tracking faz parte do
+     degrau, não é enfeite. */
+  --md-font: Roboto, Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    system-ui, sans-serif;
+  --md-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+
+  --md-fs-display-small: 36px;   --md-lh-display-small: 44px;   --md-ls-display-small: 0;
+  --md-fs-headline-small: 24px;  --md-lh-headline-small: 32px;  --md-ls-headline-small: 0;
+  --md-fs-title-large: 22px;     --md-lh-title-large: 28px;     --md-ls-title-large: 0;
+  --md-fs-title-medium: 16px;    --md-lh-title-medium: 24px;    --md-ls-title-medium: .009375em;
+  --md-fs-title-small: 14px;     --md-lh-title-small: 20px;     --md-ls-title-small: .00714em;
+  --md-fs-body-large: 16px;      --md-lh-body-large: 24px;      --md-ls-body-large: .03125em;
+  --md-fs-body-medium: 14px;     --md-lh-body-medium: 20px;     --md-ls-body-medium: .01786em;
+  --md-fs-body-small: 12px;      --md-lh-body-small: 16px;      --md-ls-body-small: .03333em;
+  --md-fs-label-large: 14px;     --md-lh-label-large: 20px;     --md-ls-label-large: .00714em;
+  --md-fs-label-medium: 12px;    --md-lh-label-medium: 16px;    --md-ls-label-medium: .04167em;
+  --md-fs-label-small: 11px;     --md-lh-label-small: 16px;     --md-ls-label-small: .04545em;
+
+  --md-peso-regular: 400;
+  --md-peso-medio: 500;   /* peso dos title/label no M3 */
+  --md-peso-forte: 600;   /* reforço pontual (número de indicador) */
+
+  /* ── Espaço ──────────────────────────────────────────────────────────────
+     Grade de 4px do Material. Os nomes são o valor em px para não haver
+     dúvida na hora de ler o CSS. */
+  --md-space-2: 2px;   --md-space-4: 4px;   --md-space-6: 6px;
+  --md-space-8: 8px;   --md-space-12: 12px; --md-space-16: 16px;
+  --md-space-20: 20px; --md-space-24: 24px; --md-space-32: 32px;
+  --md-space-40: 40px; --md-space-48: 48px;
+
+  /* ── State layer (M3) ────────────────────────────────────────────────────
+     No M3 o estado NÃO é uma cor nova: é uma camada da cor de CONTEÚDO do
+     componente, com opacidade fixa, por cima do fundo dele. Por isso o mesmo
+     valor serve em botão, linha de tabela e item de menu. */
+  --md-state-hover: .08;
+  --md-state-focus: .10;
+  --md-state-pressed: .10;
+  --md-state-dragged: .16;
+  --md-state-selected: .12;   /* seleção persistente (linha, item de navegação) */
+  --md-disabled-conteudo: .38;
+  --md-disabled-container: .12;
+
+  /* State layers já compostas, para quem não pode pintar uma camada por cima
+     (fundo de linha de tabela, item de menu, hover de botão). Resolvem contra
+     o tema vigente sozinhas: `--md-on-surface` muda no <html> e o color-mix é
+     calculado no ponto de uso. */
+  --md-state-layer-hover: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  --md-state-layer-pressed: color-mix(in srgb, var(--md-on-surface) 10%, transparent);
+  --md-state-layer-selected: color-mix(in srgb, var(--md-primary) 12%, transparent);
+  --md-state-layer-selected-hover: color-mix(in srgb, var(--md-primary) 18%, transparent);
+  /* Botão preenchido: no M3 o estado é a cor de CONTEÚDO por cima do
+     container — por isso o primário CLAREIA no hover, não escurece. */
+  --md-primary-hover: color-mix(in srgb, var(--md-on-primary) 8%, var(--md-primary));
+  --md-primary-pressed: color-mix(in srgb, var(--md-on-primary) 10%, var(--md-primary));
+  --md-error-hover: color-mix(in srgb, var(--md-on-error) 8%, var(--md-error));
+
+  /* ── Movimento (M3 motion) ───────────────────────────────────────────── */
+  --md-dur-curta-1: 50ms;   --md-dur-curta-2: 100ms;
+  --md-dur-curta-3: 150ms;  --md-dur-curta-4: 200ms;
+  --md-dur-media-1: 250ms;  --md-dur-media-2: 300ms;
+  --md-ease-padrao: cubic-bezier(.2, 0, 0, 1);
+  --md-ease-sai: cubic-bezier(.3, 0, 1, 1);
+  --md-ease-entra: cubic-bezier(0, 0, 0, 1);
+}
+
+/* ============================================================================
+   Papéis de cor — tema claro
+   ============================================================================ */
+:root,
+html[data-tema='claro'] {
+  /* primary é literalmente o azul que o sistema já usava (L* 47) — não o tom
+     40 da rampa. O resto da família desce do mesmo matiz. */
+  --md-primary: #0f62fe;
+  --md-on-primary: #ffffff;
+  --md-primary-container: var(--md-ref-primary-90);
+  --md-on-primary-container: var(--md-ref-primary-10);
+  --md-primary-fixed-dim: var(--md-ref-primary-80);
+  --md-inverse-primary: var(--md-ref-primary-80);
+
+  --md-secondary: var(--md-ref-secondary-40);
+  --md-on-secondary: #ffffff;
+  --md-secondary-container: var(--md-ref-secondary-90);
+  --md-on-secondary-container: var(--md-ref-secondary-10);
+
+  --md-tertiary: var(--md-ref-tertiary-40);
+  --md-on-tertiary: #ffffff;
+  --md-tertiary-container: var(--md-ref-tertiary-90);
+  --md-on-tertiary-container: var(--md-ref-tertiary-10);
+
+  --md-error: var(--md-ref-error-40);
+  --md-on-error: #ffffff;
+  --md-error-container: var(--md-ref-error-90);
+  --md-on-error-container: var(--md-ref-error-10);
+
+  --md-success: var(--md-ref-success-40);
+  --md-on-success: #ffffff;
+  --md-success-container: var(--md-ref-success-90);
+  --md-on-success-container: var(--md-ref-success-10);
+
+  --md-warning: var(--md-ref-warning-40);
+  --md-on-warning: #ffffff;
+  --md-warning-container: var(--md-ref-warning-90);
+  --md-on-warning-container: var(--md-ref-warning-10);
+
+  /* Superfícies. A hierarquia do M3 é por TOM, não por sombra — é assim que
+     a interface fica com pouca sombra e mesmo assim com profundidade. */
+  --md-surface: var(--md-ref-neutral-98);
+  --md-surface-dim: var(--md-ref-neutral-87);
+  --md-surface-bright: var(--md-ref-neutral-98);
+  --md-surface-container-lowest: var(--md-ref-neutral-100);
+  --md-surface-container-low: var(--md-ref-neutral-96);
+  --md-surface-container: var(--md-ref-neutral-94);
+  --md-surface-container-high: var(--md-ref-neutral-92);
+  --md-surface-container-highest: var(--md-ref-neutral-90);
+
+  --md-on-surface: var(--md-ref-neutral-10);
+  --md-on-surface-variant: var(--md-ref-nv-30);
+  /* Extensão: terceiro nível de texto (metadado, legenda). O M3 só tem dois,
+     e dois não bastam numa linha de tabela com assunto + solicitante + data. */
+  --md-on-surface-faint: var(--md-ref-nv-40);
+
+  --md-outline: var(--md-ref-nv-50);          /* contorno de campo, divisor forte */
+  --md-outline-variant: var(--md-ref-nv-80);  /* divisor padrão, borda de card */
+  /* Extensão: linha interna, dentro de um bloco que já tem borda. */
+  --md-outline-faint: var(--md-ref-nv-90);
+
+  --md-inverse-surface: var(--md-ref-neutral-20);
+  --md-inverse-on-surface: var(--md-ref-neutral-95);
+  --md-scrim: rgb(0 0 0 / .32);
+  --md-shadow: 0 0 0;  /* canal RGB da sombra, usado nas elevações */
+
+  /* Elevação — a curva do M3, com a opacidade puxada para baixo: neste
+     produto quem separa superfície é o TOM e a LINHA; sombra só onde existe
+     profundidade de verdade (menu, diálogo, popover, arraste). */
+  --md-elev-0: none;
+  --md-elev-1: 0 1px 2px rgb(var(--md-shadow) / .16), 0 1px 3px 1px rgb(var(--md-shadow) / .07);
+  --md-elev-2: 0 1px 2px rgb(var(--md-shadow) / .18), 0 2px 6px 2px rgb(var(--md-shadow) / .09);
+  --md-elev-3: 0 4px 8px 3px rgb(var(--md-shadow) / .10), 0 1px 3px rgb(var(--md-shadow) / .18);
+  --md-elev-4: 0 6px 10px 4px rgb(var(--md-shadow) / .11), 0 2px 3px rgb(var(--md-shadow) / .18);
+  --md-elev-5: 0 8px 12px 6px rgb(var(--md-shadow) / .12), 0 4px 4px rgb(var(--md-shadow) / .18);
+
+  color-scheme: light;
+}
+
+/* ============================================================================
+   Papéis de cor — tema escuro
+   Mesmos nomes, outros tons: nenhum componente troca de seletor por tema.
+   ============================================================================ */
+
+html[data-tema='escuro'] {
+  --md-primary: var(--md-ref-primary-80);
+  --md-on-primary: var(--md-ref-primary-20);
+  --md-primary-container: var(--md-ref-primary-30);
+  --md-on-primary-container: var(--md-ref-primary-90);
+  --md-primary-fixed-dim: var(--md-ref-primary-80);
+  --md-inverse-primary: #0f62fe;
+
+  --md-secondary: var(--md-ref-secondary-80);
+  --md-on-secondary: var(--md-ref-secondary-20);
+  --md-secondary-container: var(--md-ref-secondary-30);
+  --md-on-secondary-container: var(--md-ref-secondary-90);
+
+  --md-tertiary: var(--md-ref-tertiary-80);
+  --md-on-tertiary: var(--md-ref-tertiary-20);
+  --md-tertiary-container: var(--md-ref-tertiary-30);
+  --md-on-tertiary-container: var(--md-ref-tertiary-90);
+
+  --md-error: var(--md-ref-error-80);
+  --md-on-error: var(--md-ref-error-20);
+  --md-error-container: var(--md-ref-error-30);
+  --md-on-error-container: var(--md-ref-error-90);
+
+  --md-success: var(--md-ref-success-80);
+  --md-on-success: var(--md-ref-success-20);
+  --md-success-container: var(--md-ref-success-30);
+  --md-on-success-container: var(--md-ref-success-90);
+
+  --md-warning: var(--md-ref-warning-80);
+  --md-on-warning: var(--md-ref-warning-20);
+  --md-warning-container: var(--md-ref-warning-30);
+  --md-on-warning-container: var(--md-ref-warning-90);
+
+  --md-surface: var(--md-ref-neutral-6);
+  --md-surface-dim: var(--md-ref-neutral-6);
+  --md-surface-bright: var(--md-ref-neutral-24);
+  --md-surface-container-lowest: var(--md-ref-neutral-4);
+  --md-surface-container-low: var(--md-ref-neutral-10);
+  --md-surface-container: var(--md-ref-neutral-12);
+  --md-surface-container-high: var(--md-ref-neutral-17);
+  --md-surface-container-highest: var(--md-ref-neutral-22);
+
+  --md-on-surface: var(--md-ref-neutral-90);
+  --md-on-surface-variant: var(--md-ref-nv-80);
+  --md-on-surface-faint: var(--md-ref-nv-70);
+
+  --md-outline: var(--md-ref-nv-60);
+  --md-outline-variant: var(--md-ref-nv-30);
+  --md-outline-faint: var(--md-ref-nv-22);
+
+  --md-inverse-surface: var(--md-ref-neutral-90);
+  --md-inverse-on-surface: var(--md-ref-neutral-20);
+  --md-scrim: rgb(0 0 0 / .55);
+  --md-shadow: 0 0 0;
+
+  /* No escuro a sombra precisa de muito mais opacidade para existir. */
+  --md-elev-0: none;
+  --md-elev-1: 0 1px 2px rgb(var(--md-shadow) / .40), 0 1px 3px 1px rgb(var(--md-shadow) / .22);
+  --md-elev-2: 0 1px 2px rgb(var(--md-shadow) / .44), 0 2px 6px 2px rgb(var(--md-shadow) / .26);
+  --md-elev-3: 0 4px 8px 3px rgb(var(--md-shadow) / .30), 0 1px 3px rgb(var(--md-shadow) / .48);
+  --md-elev-4: 0 6px 10px 4px rgb(var(--md-shadow) / .32), 0 2px 3px rgb(var(--md-shadow) / .48);
+  --md-elev-5: 0 8px 12px 6px rgb(var(--md-shadow) / .34), 0 4px 4px rgb(var(--md-shadow) / .50);
+
+  color-scheme: dark;
+}
+
+/* Só para quem nunca escolheu tema — na prática, até o useTema carimbar o
+   atributo no <html>. É o que evita o flash claro no primeiro paint. */
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema]) {
+    --md-primary: var(--md-ref-primary-80);
+    --md-on-primary: var(--md-ref-primary-20);
+    --md-primary-container: var(--md-ref-primary-30);
+    --md-on-primary-container: var(--md-ref-primary-90);
+    --md-primary-fixed-dim: var(--md-ref-primary-80);
+    --md-inverse-primary: #0f62fe;
+
+    --md-secondary: var(--md-ref-secondary-80);
+    --md-on-secondary: var(--md-ref-secondary-20);
+    --md-secondary-container: var(--md-ref-secondary-30);
+    --md-on-secondary-container: var(--md-ref-secondary-90);
+
+    --md-tertiary: var(--md-ref-tertiary-80);
+    --md-on-tertiary: var(--md-ref-tertiary-20);
+    --md-tertiary-container: var(--md-ref-tertiary-30);
+    --md-on-tertiary-container: var(--md-ref-tertiary-90);
+
+    --md-error: var(--md-ref-error-80);
+    --md-on-error: var(--md-ref-error-20);
+    --md-error-container: var(--md-ref-error-30);
+    --md-on-error-container: var(--md-ref-error-90);
+
+    --md-success: var(--md-ref-success-80);
+    --md-on-success: var(--md-ref-success-20);
+    --md-success-container: var(--md-ref-success-30);
+    --md-on-success-container: var(--md-ref-success-90);
+
+    --md-warning: var(--md-ref-warning-80);
+    --md-on-warning: var(--md-ref-warning-20);
+    --md-warning-container: var(--md-ref-warning-30);
+    --md-on-warning-container: var(--md-ref-warning-90);
+
+    --md-surface: var(--md-ref-neutral-6);
+    --md-surface-dim: var(--md-ref-neutral-6);
+    --md-surface-bright: var(--md-ref-neutral-24);
+    --md-surface-container-lowest: var(--md-ref-neutral-4);
+    --md-surface-container-low: var(--md-ref-neutral-10);
+    --md-surface-container: var(--md-ref-neutral-12);
+    --md-surface-container-high: var(--md-ref-neutral-17);
+    --md-surface-container-highest: var(--md-ref-neutral-22);
+
+    --md-on-surface: var(--md-ref-neutral-90);
+    --md-on-surface-variant: var(--md-ref-nv-80);
+    --md-on-surface-faint: var(--md-ref-nv-70);
+
+    --md-outline: var(--md-ref-nv-60);
+    --md-outline-variant: var(--md-ref-nv-30);
+    --md-outline-faint: var(--md-ref-nv-22);
+
+    --md-inverse-surface: var(--md-ref-neutral-90);
+    --md-inverse-on-surface: var(--md-ref-neutral-20);
+    --md-scrim: rgb(0 0 0 / .55);
+    --md-shadow: 0 0 0;
+
+    /* No escuro a sombra precisa de muito mais opacidade para existir. */
+    --md-elev-0: none;
+    --md-elev-1: 0 1px 2px rgb(var(--md-shadow) / .40), 0 1px 3px 1px rgb(var(--md-shadow) / .22);
+    --md-elev-2: 0 1px 2px rgb(var(--md-shadow) / .44), 0 2px 6px 2px rgb(var(--md-shadow) / .26);
+    --md-elev-3: 0 4px 8px 3px rgb(var(--md-shadow) / .30), 0 1px 3px rgb(var(--md-shadow) / .48);
+    --md-elev-4: 0 6px 10px 4px rgb(var(--md-shadow) / .32), 0 2px 3px rgb(var(--md-shadow) / .48);
+    --md-elev-5: 0 8px 12px 6px rgb(var(--md-shadow) / .34), 0 4px 4px rgb(var(--md-shadow) / .50);
+
+    color-scheme: dark;
+  }
+}
+
+/* ============================================================================
+   Foco visível — o indicador do M3.
+
+   Anel de 3px na cor primária, DESLOCADO 2px para fora do controle. O
+   deslocamento é o detalhe que faz o anel continuar visível em cima do botão
+   primário (que já é azul): entre o botão e o anel aparece a superfície.
+
+   Regra única para a base inteira; nenhuma folha a sobrescreve.
+   ============================================================================ */
+:focus-visible {
+  outline: 3px solid var(--md-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-default);
+}
+
+/* Teclado apenas: o M3 não desenha anel em clique de mouse — e o navegador já
+   resolve isso com :focus-visible. Este bloco só remove o anel legado. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
