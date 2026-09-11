@@ -1,6 +1,13 @@
 // ============================================================================
-// Lista de tickets — design system Resolv (densidade alta, ruído baixo).
-// Borda 1px, radius 2px, mono nos números, accent único #0275DE.
+// Listagem de tickets — Material Design 3, na densidade da casa.
+//
+// Três blocos: o painel de visualizações (esquerda), a barra de ferramentas e
+// a tabela. As peças genéricas (botão, select, badge, campo, tabela, estado
+// vazio) vêm de `resolv/styles/md3.scss`; aqui fica só o que é desta tela —
+// o layout, a largura de cada coluna e o desenho das células.
+//
+// Nenhum valor literal de cor, raio, altura ou tipografia: tudo sai de
+// `--md-*` / `--control-height-*` / `--radius-default` (styles/md3.css).
 // ============================================================================
 
 .lista-tickets {
@@ -8,314 +15,217 @@
   flex: 1;
   min-height: 0;
 
-  // ---------------------------------------------------------------- views panel
+  // ── Painel de visualizações ───────────────────────────────────────────────
   &__views {
-    width: 256px;
+    width: 260px;
     flex-shrink: 0;
-    background: var(--surface-card);
-    border-right: 1px solid var(--stroke);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    transition: width 0.12s ease;
+    background: var(--md-surface-container-lowest);
+    border-right: var(--md-borda) solid var(--md-outline-variant);
+    transition: width var(--md-dur-curta-3) var(--md-ease-padrao);
 
-    // Recolhida (ViewsPanel.tsx): o botão da rodada 2 estava inerte e os
-    // 256px eram fixos em QUALQUER largura — quem trabalha com a janela
-    // dividida ou notebook pequeno não tinha saída. Vira uma faixa só com o
-    // botão de expandir; o PADRÃO (sem escolha salva) já nasce assim abaixo
-    // do breakpoint de tablet — ver `useJanelaEstreita` em ViewsPanel.tsx,
-    // mesmo número de resolv/shell/topbar.scss:17 ($bp-lg), copiado pelo
-    // mesmo motivo de lá (nenhum .scss de resolv/ usa @use hoje).
+    // Recolhida (ViewsPanel.tsx): vira uma faixa só com o botão de expandir;
+    // o PADRÃO (sem escolha salva) já nasce assim abaixo do breakpoint de
+    // tablet — ver `useJanelaEstreita` em ViewsPanel.tsx.
     &--recolhido {
-      width: 44px;
+      width: 52px;
       align-items: center;
-      padding-top: 8px;
+      padding-top: var(--md-space-8);
       overflow: visible;
     }
   }
 
-  // ---------------------------------------------------------------- coluna main
+  // ── Coluna principal ──────────────────────────────────────────────────────
   &__main {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    gap: 16px;
+    padding: var(--md-space-24);
+    gap: var(--md-space-16);
+
+    @media (max-width: 599px) {
+      padding: var(--md-space-16);
+      gap: var(--md-space-12);
+    }
   }
 
   &__header {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--md-space-16);
+    flex-wrap: wrap;
   }
 
   &__titulo {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  &__subtitulo {
-    margin-top: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-  // "· Atualizado às HH:MM" ao lado da contagem — mesmo tom (--text-muted),
-  // não pede destaque próprio, só diz QUANDO é o dado da tabela abaixo.
-  &__atualizado {
-    color: var(--text-muted);
+    margin: 0;
+    min-width: 0;
+    font-size: var(--md-fs-title-large);
+    line-height: var(--md-lh-title-large);
+    letter-spacing: var(--md-ls-title-large);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface);
   }
 
   &__acoes {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--md-space-8);
     flex-shrink: 0;
   }
 
-  &__refresh {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--accent);
-    // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
-    // no escuro (tokens.scss:77) e branco por cima reprova o AA.
-    color: var(--surface-card);
-    border: none;
-    border-radius: var(--raio);
-    cursor: pointer;
-    i {
-      font-size: 16px;
-    }
-    &.is-loading i {
-      animation: resolv-spin 0.8s linear infinite;
+  // ── Barra de ferramentas ──────────────────────────────────────────────────
+  // Busca, filtros, ordenação e contagem numa faixa só, acima da tabela. Ela
+  // quebra em várias linhas quando falta largura, e a contagem é sempre a
+  // última a descer — é o que menos custa ficar embaixo.
+  &__toolbar {
+    row-gap: var(--md-space-8);
+    padding-bottom: var(--md-space-12);
+    border-bottom: var(--md-borda) solid var(--md-outline-variant);
+  }
+
+  &__busca {
+    flex: 1 1 240px;
+    max-width: 360px;
+    padding-right: var(--md-space-4);
+
+    @media (max-width: 599px) {
+      flex-basis: 100%;
+      max-width: none;
     }
   }
 
-  // Entrada para a tela de abertura (/chamados/novo). Mesma altura e raio dos
-  // outros controles da barra; sólida porque é a única ação primária daqui.
-  &__novo {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 12px;
-    // --accent/--surface-card (paleta Resolv), nao --acento/--acento-sobre:
-    // aqueles dois nao existem em resolv/styles/tokens.scss e vinham por
-    // heranca de styles/tokens.css, o design system do portal. Era a unica
-    // superficie do Resolv pintada com o azul da outra paleta.
-    background: var(--accent);
-    border: 1px solid var(--accent);
-    border-radius: var(--raio);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--surface-card);
-    cursor: pointer;
-    i {
-      font-size: 15px;
-    }
-    &:hover {
-      filter: brightness(1.06);
+  // O "x" da busca some do fluxo quando não há texto — sem largura reservada,
+  // porque o campo é elástico e a reserva apertaria o que se digita.
+  &__busca-limpar {
+    margin-right: calc(var(--md-space-8) * -1);
+  }
+
+  &__ordenar select {
+    // O rótulo mora dentro da opção ("Ordenar por: SLA"), então o controle
+    // precisa de mais largura que um select comum.
+    min-width: 200px;
+  }
+
+  &__contagem {
+    margin: 0;
+    margin-left: auto;
+
+    // No celular ela deixa de ser "o resto da linha" e vira uma linha
+    // própria — em `nowrap` (o padrão da primitiva) ela vazava da tela.
+    @media (max-width: 599px) {
+      margin-left: 0;
+      white-space: normal;
     }
   }
 
-  &__search {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: 260px;
-    height: 34px;
-    padding: 0 10px;
-    background: var(--surface-card);
-    border: 1px solid var(--stroke);
-    border-radius: var(--raio);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-    i {
-      font-size: 15px;
-      color: var(--text-muted);
-    }
-    input {
-      flex: 1;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-family: var(--f-ui);
-      font-size: 13px;
-      color: var(--text-primary);
-      &::placeholder {
-        color: var(--text-muted);
-      }
-    }
-    &:focus-within {
-      border-color: var(--accent);
-      // Anel de foco derivado do accent do tema: cravado no azul do claro ele
-      // some no escuro, e foco invisível é falha de acessibilidade.
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
-    }
+  // "· Atualizado às HH:MM" ao lado da contagem — mesmo tom, não pede
+  // destaque próprio, só diz QUANDO é o dado da tabela abaixo.
+  &__atualizado {
+    color: var(--md-on-surface-faint);
   }
 
   &__dica {
-    font-size: 12px;
-    color: var(--away);
-    margin-top: -8px;
+    margin: 0;
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    color: var(--md-warning);
   }
 
+  // ── Barra de ação em lote ─────────────────────────────────────────────────
   &__lote {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    // Barra de ação em lote: accent diluído. Em rgba cru ela ficava no azul
-    // escuro do tema claro e sumia sobre a superfície escura.
-    background: color-mix(in srgb, var(--accent) 4%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-    border-radius: var(--raio);
-    font-size: 12px;
-    color: var(--text-secondary);
+    gap: var(--md-space-8);
+    flex-wrap: wrap;
+    padding: var(--md-space-8) var(--md-space-12);
+    border-radius: var(--radius-default);
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+  }
+
+  &__lote-contagem {
     strong {
-      color: var(--accent);
-      font-weight: 600;
-    }
-    button {
-      margin-left: auto;
-      border: none;
-      background: transparent;
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
+      font-weight: var(--md-peso-medio);
+      font-variant-numeric: tabular-nums;
     }
   }
 
-  &__lote-select {
-    height: 28px;
-    padding: 0 8px;
-    background: var(--surface-card);
-    border: 1px solid var(--stroke);
-    border-radius: var(--raio);
-    font-family: var(--f-ui);
-    font-size: 12px;
-    color: var(--text-primary);
-    cursor: pointer;
-    &:hover {
-      border-color: var(--stroke-hover);
-    }
-    &:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-  }
-
-  &__aviso-erro,
-  &__aviso-sucesso {
+  // ── Avisos da ação em lote ────────────────────────────────────────────────
+  // Banner do M3, igual ao mural da Início: linha de cor à esquerda, ícone da
+  // intenção, corpo e a ação de dispensar.
+  &__aviso {
     display: flex;
     align-items: center;
-    gap: 8px;
-    border-radius: var(--raio);
-    padding: 8px 12px;
-    font-size: 13px;
-    span {
+    gap: var(--md-space-12);
+    padding: var(--md-space-8) var(--md-space-12);
+    border: var(--md-borda) solid var(--md-outline-variant);
+    border-left: 3px solid var(--md-outline);
+    border-radius: var(--radius-default);
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+
+    > span {
       flex: 1;
+      min-width: 0;
     }
-    button {
-      display: grid;
-      place-items: center;
-      border: 0;
-      background: none;
-      color: inherit;
-      cursor: pointer;
-      padding: 2px;
+
+    &--erro {
+      border-left-color: var(--md-error);
+      background: var(--md-error-container);
+      color: var(--md-on-error-container);
+
+      > svg {
+        color: var(--md-error);
+      }
     }
-  }
-  &__aviso-erro {
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
-  }
-  // Caminho feliz da ação em lote (rodada 3): mesmo desenho do erro acima,
-  // trocando --danger por --ok — a mesma dupla de tokens que já cobre o
-  // resto da tela (COR_PRIORIDADE/corEstadoSla em format.ts).
-  &__aviso-sucesso {
-    border: 1px solid var(--ok);
-    color: var(--ok);
-    background: var(--tom-ok);
+    &--sucesso {
+      border-left-color: var(--md-success);
+      background: var(--md-success-container);
+      color: var(--md-on-success-container);
+
+      > svg {
+        color: var(--md-success);
+      }
+    }
   }
 
-  // ---------------------------------------------------------------- estados
+  // ── Estados (carregando, erro, vazio) ─────────────────────────────────────
   &__estado {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    gap: 12px;
-    padding: 64px 24px;
-    color: var(--text-muted);
-    background: var(--surface-card);
-    border: 1px solid var(--stroke);
-    border-radius: var(--raio);
-    i {
-      font-size: 32px;
-    }
+    padding: var(--md-space-48) var(--md-space-24);
+    border: var(--md-borda) solid var(--md-outline-variant);
+    border-radius: var(--radius-default);
+    background: var(--md-surface-container-lowest);
+
     p {
-      font-size: 13px;
+      margin: 0;
     }
-    button {
-      margin-top: 4px;
-      padding: 7px 16px;
-      background: var(--accent);
-      color: var(--surface-card);
-      border: none;
-      border-radius: var(--raio);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
+
+    &--erro > svg {
+      color: var(--md-error);
     }
-    &--erro i {
-      color: var(--danger);
-    }
-  }
-  &__spin {
-    animation: resolv-spin 0.8s linear infinite;
   }
 
-  // ---------------------------------------------------------------- paginação
+  &__spin {
+    animation: resolv-spin 1s linear infinite;
+  }
+
+  // ── Paginação ─────────────────────────────────────────────────────────────
   &__paginacao {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 16px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    button {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 6px 12px;
-      background: var(--surface-card);
-      border: 1px solid var(--stroke);
-      border-radius: var(--raio);
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      cursor: pointer;
-      i {
-        font-size: 15px;
-      }
-      &:hover:not(:disabled) {
-        border-color: var(--stroke-hover);
-        color: var(--text-primary);
-      }
-      &:disabled {
-        opacity: 0.4;
-        cursor: default;
-      }
-    }
+    gap: var(--md-space-16);
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    color: var(--md-on-surface-variant);
   }
 }
 
@@ -324,120 +234,79 @@
 // ============================================================================
 .views-panel {
   &__busca {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 48px;
-    padding: 0 12px;
-    border-bottom: 1px solid var(--stroke);
+    margin: var(--md-space-12);
+    margin-bottom: var(--md-space-4);
     flex-shrink: 0;
-    i {
-      font-size: 15px;
-      color: var(--text-muted);
-    }
-    input {
-      flex: 1;
-      min-width: 0;
-      border: none;
-      outline: none;
-      background: transparent;
-      font-family: var(--f-ui);
-      font-size: 13px;
-      color: var(--text-primary);
-      &::placeholder {
-        color: var(--text-secondary);
-      }
-    }
-  }
-  &__recolher {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--stroke);
-    background: var(--surface-card);
-    border-radius: var(--raio);
-    color: var(--text-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-    i {
-      font-size: 14px;
-      color: var(--text-secondary);
-    }
-    &:hover {
-      border-color: var(--stroke-hover);
-      color: var(--text-primary);
-    }
   }
 
-  // Único conteúdo da faixa recolhida (`.lista-tickets__views--recolhido`) —
-  // mesmo desenho de `__recolher`, só que sozinho e centralizado na faixa de
-  // 44px, sem o resto do painel (busca, lista de views, personalizar) que
-  // some junto: é assim que a janela estreita ganha os 212px de volta.
+  &__recolher {
+    margin-right: calc(var(--md-space-8) * -1);
+  }
+
+  // Único conteúdo da faixa recolhida (`.lista-tickets__views--recolhido`):
+  // é assim que a janela estreita ganha os 208px de volta.
   &__expandir {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--stroke);
-    background: var(--surface-card);
-    border-radius: var(--raio);
-    color: var(--text-secondary);
-    cursor: pointer;
-    i {
-      font-size: 14px;
-    }
-    &:hover {
-      border-color: var(--stroke-hover);
-      color: var(--text-primary);
-    }
+    flex-shrink: 0;
   }
 
   &__lista {
     display: flex;
     flex-direction: column;
-    padding: 8px 0;
+    gap: 2px;
+    padding: var(--md-space-4) var(--md-space-8);
   }
 
+  // Item de navegação do M3, na altura de controle da casa: o atual assume
+  // `secondary-container` (a marca de seleção do M3) e sobe para o peso 500 —
+  // dois sinais, sem depender só da cor. `aria-current` no botão diz o mesmo
+  // ao leitor de tela.
   &__item {
-    // Flex por causa da contagem: o número vai pra direita e o rótulo fica
-    // com o resto, truncando em vez de empurrar o número pra fora.
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    text-align: left;
-    padding: 9px 16px;
-    border: none;
-    border-left: 2px solid transparent;
+    gap: var(--md-space-8);
+    min-height: var(--control-height-md);
+    padding: 0 var(--md-space-12);
+    border: 0;
+    border-radius: var(--radius-default);
     background: transparent;
-    font-family: var(--f-ui);
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--text-secondary);
+    text-align: left;
+    font-family: inherit;
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+    letter-spacing: var(--md-ls-body-medium);
+    font-weight: var(--md-peso-regular);
+    color: var(--md-on-surface-variant);
     cursor: pointer;
-    transition: background 0.1s ease, color 0.1s ease;
+    transition: background-color var(--md-dur-curta-2) var(--md-ease-padrao);
+
     &:hover {
-      background: var(--surface-alt);
-      color: var(--text-primary);
+      background: var(--md-state-layer-hover);
+      color: var(--md-on-surface);
+    }
+    &:active {
+      background: var(--md-state-layer-pressed);
     }
     &--ativo {
-      background: color-mix(in srgb, var(--accent) 6%, transparent);
-      border-left-color: var(--accent);
-      color: var(--accent);
-      font-weight: 500;
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+      font-weight: var(--md-peso-medio);
+
       .views-panel__contagem {
-        color: var(--accent);
+        color: var(--md-on-secondary-container);
+      }
+      &:hover {
+        background: var(--md-secondary-container);
+        color: var(--md-on-secondary-container);
       }
     }
     &--inerte {
-      color: var(--text-muted);
+      color: var(--md-on-surface-faint);
       cursor: default;
+
       &:hover {
         background: transparent;
-        color: var(--text-muted);
+        color: var(--md-on-surface-faint);
       }
     }
   }
@@ -449,160 +318,86 @@
     white-space: nowrap;
   }
 
-  // Contagem da visão (GET /tickets/resumo/). Mono como todo número da tela.
+  // Contagem da visão (GET /tickets/resumo/).
   &__contagem {
     flex-shrink: 0;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: var(--md-fs-label-medium);
+    line-height: var(--md-lh-label-medium);
+    letter-spacing: var(--md-ls-label-medium);
+    color: var(--md-on-surface-faint);
     font-variant-numeric: tabular-nums;
-    // Gaveta vazia continua sendo informação — só não compete com as que
-    // têm trabalho dentro.
+
+    // Gaveta vazia continua sendo informação — só não compete com as que têm
+    // trabalho dentro.
     &--zero {
-      opacity: 0.45;
+      opacity: 0.5;
     }
   }
 
   &__aviso {
-    padding: 2px 16px 8px;
-    font-size: 11px;
-    color: var(--text-muted);
+    margin: 0;
+    padding: var(--md-space-2) var(--md-space-16) var(--md-space-8);
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    color: var(--md-on-surface-faint);
   }
 
   &__sep {
-    height: 1px;
-    background: var(--stroke);
-    margin: 4px 0;
-  }
-  &__grupo {
-    padding: 8px 16px 2px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  &__personalizar {
-    margin: 8px 16px 16px;
-    padding: 8px;
-    border: 1px dashed var(--stroke);
-    background: transparent;
-    border-radius: var(--raio);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-secondary);
-    cursor: pointer;
-    &:hover {
-      border-color: var(--stroke-hover);
-      color: var(--text-primary);
-    }
+    height: var(--md-borda);
+    background: var(--md-outline-variant);
+    margin: var(--md-space-8) var(--md-space-12);
   }
 
-  // Controles que ainda não fazem nada (ver ViewsPanel): mesmo tratamento das
-  // visões pessoais inertes — aria-disabled + title "em breve". O hover de
-  // convite sai, senão o controle continua prometendo com o ponteiro o que
-  // não cumpre no clique.
+  &__grupo {
+    margin: 0;
+    padding: var(--md-space-8) var(--md-space-16) var(--md-space-2);
+    font-size: var(--md-fs-label-medium);
+    line-height: var(--md-lh-label-medium);
+    letter-spacing: var(--md-ls-label-medium);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface-faint);
+    text-transform: uppercase;
+  }
+
+  &__personalizar {
+    margin: var(--md-space-8) var(--md-space-12) var(--md-space-16);
+    justify-content: center;
+  }
+
+  // Controles que ainda não fazem nada (ver ViewsPanel): aria-disabled +
+  // title "em breve". O hover de convite sai, senão o controle continua
+  // prometendo com o ponteiro o que não cumpre no clique.
   &__busca input[aria-disabled='true'] {
     cursor: default;
   }
-  &__recolher[aria-disabled='true'],
   &__personalizar[aria-disabled='true'] {
     cursor: default;
     opacity: 0.55;
-  }
-  &__personalizar[aria-disabled='true']:hover {
-    border-color: var(--stroke);
-    color: var(--text-secondary);
   }
 }
 
 // ============================================================================
 // Tabela
+//
+// A estrutura (cabeçalho, linha de 52px, estados, divisor, ordenação) mora na
+// primitiva `.md-tabela`. O que é desta tela é a LARGURA de cada coluna e o
+// desenho de cada tipo de célula.
 // ============================================================================
 .tickets-tabela {
-  width: 100%;
-  border-collapse: collapse;
-  background: var(--surface-card);
-  font-size: 13px;
+  // ── Larguras: por importância, não iguais ────────────────────────────────
+  // Assunto é quem identifica o chamado e por isso leva o espaço elástico;
+  // o resto é conteúdo de tamanho conhecido e fica fixo, o que faz as colunas
+  // pararem de dançar entre uma página e outra.
+  table-layout: auto;
 
-  &__wrap {
-    flex: 1;
-    min-height: 0;
-    overflow: auto;
-    border: 1px solid var(--stroke);
-    border-radius: var(--raio);
-  }
-
-  thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: var(--surface-alt);
-    border-bottom: 1px solid var(--stroke);
-    text-align: left;
-    padding: 0 12px;
-    height: 40px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    white-space: nowrap;
-  }
-
-  &__sort {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    border: none;
-    background: transparent;
-    font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
-    color: inherit;
-    cursor: pointer;
-    padding: 0;
-    i {
-      font-size: 13px;
-      opacity: 0.5;
-    }
-    &:hover {
-      color: var(--text-secondary);
-    }
-    &--ativo {
-      color: var(--accent);
-      i {
-        opacity: 1;
-      }
-    }
-  }
-
-  tbody td {
-    padding: 0 12px;
-    height: 44px;
-    border-bottom: 1px solid var(--stroke);
-    color: var(--text-primary);
-    vertical-align: middle;
-  }
-
-  tbody tr {
-    cursor: pointer;
-    transition: background 0.1s ease;
-    &:hover {
-      background: var(--surface);
-    }
-    &:last-child td {
-      border-bottom: none;
-    }
-  }
-
-  // colunas
   .col-check {
-    width: 40px;
+    width: 44px;
     text-align: center;
+    padding: 0;
+
     input {
       cursor: pointer;
-      accent-color: var(--accent);
+      accent-color: var(--md-primary);
       // O desenho é 16px; quem tem os 24px de alvo do WCAG 2.5.8 é o <label>
       // em volta (a exceção de espaçamento não valeria: a linha inteira também
       // é clicável e envolve a caixa).
@@ -620,68 +415,86 @@
     height: 24px;
     cursor: pointer;
   }
+
   .col-protocolo {
-    width: 150px;
+    width: 108px;
   }
   .col-assunto {
-    min-width: 220px;
-    max-width: 320px;
-  }
-  .col-data {
-    width: 140px;
-  }
-  .col-cliente {
-    min-width: 180px;
-    max-width: 240px;
-  }
-  .col-resp {
-    width: 140px;
-  }
-  .col-cat {
-    width: 150px;
-  }
-  .col-urg {
-    width: 80px;
-  }
-  .col-status {
-    width: 150px;
-  }
-  .col-sla {
-    width: 120px;
-  }
-  .col-just {
-    min-width: 170px;
-    max-width: 220px;
-  }
-  .col-espera {
-    width: 90px;
+    min-width: 230px;
+    max-width: 420px;
   }
 
-  // células
-  // Item 26: agora é um <Link> de verdade (antes era <span>) — sem
-  // `text-decoration: none` herdaria o sublinhado padrão de âncora e
-  // destoaria do resto da tabela, que não sublinha nada. Sublinha só em
-  // hover/foco: mesmo sinal visual que um link ganha em qualquer outro
-  // lugar da casa, sem "azul sublinhado" constante brigando com a densidade
-  // da lista.
+  // No celular as duas primeiras colunas encolhem para o STATUS entrar na
+  // primeira tela — é o terceiro dado que se procura numa fila, depois do
+  // número e do assunto. Nenhuma coluna some: o resto continua a uma
+  // rolagem horizontal de distância.
+  @media (max-width: 599px) {
+    .col-protocolo {
+      width: 92px;
+    }
+    .col-assunto {
+      min-width: 150px;
+    }
+
+    thead th,
+    tbody td {
+      padding: 0 var(--md-space-12);
+    }
+  }
+  .col-status {
+    width: 142px;
+  }
+  .col-urg {
+    width: 112px;
+  }
+  .col-sla {
+    width: 136px;
+  }
+  .col-cliente {
+    min-width: 160px;
+    max-width: 220px;
+  }
+  .col-resp {
+    width: 130px;
+  }
+  .col-data {
+    width: 136px;
+  }
+  .col-cat {
+    width: 130px;
+  }
+  .col-just {
+    min-width: 150px;
+    max-width: 210px;
+  }
+  .col-espera {
+    width: 96px;
+  }
+
+  // ── Células ───────────────────────────────────────────────────────────────
+  // O protocolo é um <Link> de verdade (é a parada de Tab da linha): sem
+  // `text-decoration: none` herdaria o sublinhado padrão de âncora e destoaria
+  // da tabela. Sublinha em hover/foco — o mesmo sinal que um link ganha em
+  // qualquer outro lugar da casa, sem "azul sublinhado" constante brigando
+  // com a densidade da lista.
   &__ref {
     display: inline-block;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--accent);
+    font-family: var(--md-font-mono);
+    font-size: var(--md-fs-label-medium);
+    color: var(--md-primary);
     text-decoration: none;
+    font-variant-numeric: tabular-nums;
+
     &:hover,
     &:focus-visible {
       text-decoration: underline;
     }
   }
+
   // Texto que existe só para o leitor de tela (o cadeado da célula de
-  // assunto e a barra de urgência): a técnica de recorte 1px é a mesma do
-  // utilitário `sr-only` do Tailwind, só que local a este componente — a
-  // folha do shell cvz que declara `.sr-only` (cvz/styles/global.scss) só é
-  // importada por cvz/AppLayout.tsx, que não envolve `/chamados` (rota usa
-  // NovoShell, ver routes.tsx); depender dela aqui apagaria o texto também
-  // do relatório de acessibilidade, não só da tela.
+  // assunto): a técnica de recorte 1px é a mesma do utilitário `sr-only` do
+  // Tailwind, só que local a este componente — a folha do shell cvz que
+  // declara `.sr-only` não é importada nesta rota.
   &__sr {
     position: absolute;
     width: 1px;
@@ -693,94 +506,70 @@
     white-space: nowrap;
     border: 0;
   }
+
   &__mono-muted {
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
+    font-family: var(--md-font-mono);
+    font-size: var(--md-fs-label-medium);
+    color: var(--md-on-surface-variant);
     white-space: nowrap;
   }
+
   &__assunto {
     display: block;
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: var(--md-peso-medio);
+    color: inherit;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  // O Preflight do Tailwind põe TODO svg em `display: block` — dentro de uma
+  // linha de texto isso joga o cadeado para cima do assunto. Ícone que mora
+  // no meio de texto precisa voltar a ser inline.
   &__cadeado {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-right: 4px;
-    vertical-align: -1px;
+    display: inline-block;
+    color: var(--md-on-surface-variant);
+    margin-right: var(--md-space-4);
+    vertical-align: -3px;
   }
+
   &__cliente {
     display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    color: var(--text-primary);
+    color: inherit;
   }
+
   &__empresa {
-    display: block;
-    font-size: 11px;
-    color: var(--text-muted);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  &__vazio {
-    color: var(--text-muted);
-  }
-  // Prioridade como pílula: ícone + texto + fundo tingido (a barra de 4px
-  // sozinha não se lia — e cor sozinha nem devia, WCAG 1.4.1). `--cor` vem
-  // de COR_PRIORIDADE; fundo e borda são a mesma cor diluída, texto sólido.
-  &__prio {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 22px;
-    padding: 0 9px 0 7px;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--cor) 35%, transparent);
-    background: color-mix(in srgb, var(--cor) 12%, var(--surface-card));
-    color: var(--cor);
-    font-size: 12px;
-    font-weight: 500;
-    white-space: nowrap;
 
-    i {
-      font-size: 14px;
-    }
+  &__vazio {
+    color: var(--md-on-surface-faint);
   }
-  &__status {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    color: var(--text-primary);
-    white-space: nowrap;
+
+  // Prioridade e SLA são selos (`.md-badge`): o que sobra aqui é só não
+  // deixarem a linha crescer.
+  &__prio,
+  &__status,
+  &__sla {
+    max-width: 100%;
   }
+
+  // O ponto do status carrega a cor que a equipe configurou para a etapa
+  // (`stage_color`, do banco) — um pouco maior que o ponto padrão do selo,
+  // porque aqui ele é o dado, não só um reforço do estado.
   &__status-dot {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
   }
+
   &__just {
     display: block;
-    font-size: 12px;
-    color: var(--text-secondary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  // A COR vem do estado (corEstadoSla), como nas listas da Início; o texto diz
-  // o mesmo em palavras ("Estourado", "em risco"), então quem não distingue a
-  // cor não perde a informação.
-  &__sla {
-    display: block;
-    font-size: 12px;
-    font-weight: 500;
+    color: var(--md-on-surface-variant);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

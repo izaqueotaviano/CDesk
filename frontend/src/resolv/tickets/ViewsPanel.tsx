@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Icone } from '../shell/Icone'
 import { useConsultaDeMidia } from '../shell/useConsultaDeMidia'
 import { useResumoFila } from './dados'
 import { duracaoEmMinutos } from './format'
@@ -153,12 +154,12 @@ export function ViewsPanel({
       <aside className="lista-tickets__views lista-tickets__views--recolhido" aria-label="Visualizações">
         <button
           type="button"
-          className="views-panel__expandir"
+          className="md-btn md-btn--icon md-btn--sm views-panel__expandir"
           aria-label="Expandir painel de visualizações"
           title="Expandir painel"
           onClick={alternarRecolhido}
         >
-          <i className="ti ti-chevron-right" />
+          <Icone nome="left_panel_open" tamanho={18} />
         </button>
       </aside>
     )
@@ -166,8 +167,8 @@ export function ViewsPanel({
 
   return (
     <aside className="lista-tickets__views" aria-label="Visualizações">
-      <div className="views-panel__busca">
-        <i className="ti ti-search" />
+      <div className="md-campo md-campo--sm views-panel__busca">
+        <Icone nome="search" tamanho={18} />
         {/* Filtrar visualizações ainda não existe. `readOnly` + `aria-disabled`
             em vez de `disabled` porque o campo continua focalizável — é assim
             que o leitor de tela e o teclado chegam ao "em breve"; um input
@@ -186,10 +187,10 @@ export function ViewsPanel({
           type="button"
           aria-label="Recolher painel"
           title="Recolher painel"
-          className="views-panel__recolher"
+          className="md-btn md-btn--icon md-btn--sm views-panel__recolher"
           onClick={alternarRecolhido}
         >
-          <i className="ti ti-chevron-left" />
+          <Icone nome="left_panel_close" tamanho={18} />
         </button>
       </div>
 
@@ -252,7 +253,7 @@ export function ViewsPanel({
 
       <button
         type="button"
-        className="views-panel__personalizar"
+        className="md-btn md-btn--outlined md-btn--sm views-panel__personalizar"
         title="Personalizar visualizações — em breve"
         aria-disabled="true"
       >

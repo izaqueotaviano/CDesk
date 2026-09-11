@@ -105,6 +105,17 @@ MAPA = {
   'assignment_ind': 'assignment_ind',
   'task_alt': 'task_alt',
   'open_in_new': 'open_in_new',
+  'arrow_upward': 'arrow_upward',
+  'arrow_downward': 'arrow_downward',
+  'unfold_more': 'unfold_more',
+  'remove': 'remove',
+  'keyboard_double_arrow_up': 'keyboard_double_arrow_up',
+  'keyboard_double_arrow_down': 'keyboard_double_arrow_down',
+  'sort': 'sort',
+  'tune': 'tune',
+  'priority_high': 'priority_high',
+  'inventory_2': 'inventory_2',
+  'search_off': 'search_off',
 }
 
 def path_de(nome):

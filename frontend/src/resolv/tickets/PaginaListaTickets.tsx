@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAgentes } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import { Icone } from '../shell/Icone'
 import { mensagemDeErro } from './detalhe/linhaDoTempo'
 import { useAcoesEmLote, type ResultadoLote } from './dados'
 import { ROTULO_PRIORIDADE } from './format'
@@ -45,6 +46,32 @@ function horaCurtaDoEpoch(ms: number): string {
   return `${p(d.getHours())}:${p(d.getMinutes())}`
 }
 
+/** O que a barra de ferramentas oferece para ordenar — as MESMAS chaves que o
+ *  clique no cabeçalho da tabela usa (`ColunaOrdenavel`, 1:1 com
+ *  ALLOWED_ORDERING no servidor). O seletor e o cabeçalho são duas portas
+ *  para o mesmo `?ordering=`: quem ordena por um vê o outro acompanhar. */
+const ORDENACOES: { chave: ColunaOrdenavel; rotulo: string }[] = [
+  { chave: 'criado', rotulo: 'Aberto em' },
+  { chave: 'sla', rotulo: 'SLA' },
+  { chave: 'urgencia', rotulo: 'Prioridade' },
+  { chave: 'status', rotulo: 'Status' },
+  { chave: 'espera', rotulo: 'Tempo de espera' },
+  { chave: 'reference', rotulo: 'Protocolo' },
+  { chave: 'subject', rotulo: 'Assunto' },
+  { chave: 'cliente', rotulo: 'Cliente' },
+  { chave: 'responsavel', rotulo: 'Responsável' },
+  { chave: 'categoria', rotulo: 'Categoria' },
+  { chave: 'justificativa', rotulo: 'Justificativa' },
+]
+
+/** Os dois únicos valores que `?sla=` aceita no servidor (`_aplicar_filtros`
+ *  em apps/tickets/views.py) — qualquer outro é ignorado lá, então oferecer
+ *  mais aqui seria prometer um filtro que não filtra. */
+const FILTROS_SLA: { valor: 'at_risk' | 'breached'; rotulo: string }[] = [
+  { valor: 'at_risk', rotulo: 'Em risco' },
+  { valor: 'breached', rotulo: 'Estourado' },
+]
+
 const LIMITE = 25
 const VIEW_INICIAL = 'nao-resolvidos' // a mesma que está ativa no print
 
@@ -84,6 +111,17 @@ export function PaginaListaTickets() {
   // `q` é o termo já DEBOUNCED (o que de fato foi pedido ao servidor) — o
   // valor bruto de cada tecla mora só no estado local `busca`, abaixo.
   const q = searchParams.get('q') ?? ''
+  // Filtros da barra de ferramentas. Os dois são parâmetros que o servidor já
+  // aceitava (`priority`, `sla` em apps/tickets/views.py) e que só a Início
+  // usava — a fila, que é onde se tria, não tinha por onde acioná-los. Valor
+  // fora da lista é descartado aqui: URL é entrada de usuário.
+  const priorityParam = searchParams.get('priority') ?? ''
+  const prioridadeFiltro = (PRIORIDADES as string[]).includes(priorityParam) ? priorityParam : ''
+  const slaParam = searchParams.get('sla') ?? ''
+  const slaFiltro = (FILTROS_SLA.some((f) => f.valor === slaParam) ? slaParam : '') as
+    | ''
+    | 'at_risk'
+    | 'breached'
 
   const [selecionados, setSelecionados] = useState<Set<number>>(new Set())
   const [avisoLote, setAvisoLote] = useState<string | null>(null)
@@ -165,12 +203,21 @@ export function PaginaListaTickets() {
   const ehPrioritario = viewAtiva === 'prioritario'
   const consulta: ParamsListagem = {
     view: ehPrioritario ? 'nao-resolvidos' : viewAtiva,
-    priority: ehPrioritario ? 'urgent' : undefined,
+    // A visão "Prioritário" JÁ É o filtro de urgente — nela o seletor de
+    // prioridade fica travado nesse valor em vez de brigar com a visão.
+    priority: ehPrioritario ? 'urgent' : ((prioridadeFiltro || undefined) as Prioridade | undefined),
+    sla: slaFiltro || undefined,
     q,
     ordering,
     limit: LIMITE,
     offset,
   }
+
+  // Ordenação: o mesmo `?ordering=` do clique no cabeçalho, lido de volta em
+  // coluna + sentido para o seletor da barra de ferramentas poder mostrá-lo.
+  const colunaOrdenada = ordering.replace(/^-/, '') as ColunaOrdenavel
+  const ordemDecrescente = ordering.startsWith('-')
+  const filtrosAtivos = (prioridadeFiltro ? 1 : 0) + (slaFiltro ? 1 : 0)
 
   const { data, isLoading, isError, error, isFetching, refetch, dataUpdatedAt } =
     useTicketsList(consulta)
@@ -245,6 +292,17 @@ export function PaginaListaTickets() {
     trocarRecorte({ ordering: ordering === chave ? `-${chave}` : chave })
   }
 
+  /** Troca a COLUNA mantendo o sentido atual — o seletor da barra e o clique
+   *  no cabeçalho escrevem no mesmo `?ordering=`. */
+  function ordenarPorColuna(chave: ColunaOrdenavel) {
+    trocarRecorte({ ordering: ordemDecrescente ? `-${chave}` : chave })
+  }
+
+  /** Troca só o sentido, mantendo a coluna. */
+  function alternarSentido() {
+    trocarRecorte({ ordering: ordemDecrescente ? colunaOrdenada : `-${colunaOrdenada}` })
+  }
+
   function alternarSelecao(id: number) {
     setSelecionados((s) => {
       const n = new Set(s)
@@ -269,116 +327,229 @@ export function PaginaListaTickets() {
       <ViewsPanel ativa={viewAtiva} onSelecionar={selecionarView} />
 
       <section className="lista-tickets__main">
-        {/* ---------- cabeçalho ---------- */}
+        {/* ---------- cabeçalho da página ---------- */}
+        {/* Título e as ações da TELA (não da tabela). O que age sobre o
+            recorte — busca, filtros, ordenação — desce para a barra de
+            ferramentas logo abaixo, junto com a contagem de resultados. */}
         <header className="lista-tickets__header">
-          <div className="lista-tickets__titulo-bloco">
-            <h1 className="lista-tickets__titulo">{titulo}</h1>
-            <p className="lista-tickets__subtitulo">
-              {total > 0
-                ? `Exibindo de ${inicio} até ${fim} de um total de ${total} registro(s)`
-                : isLoading
-                  ? 'Carregando…'
-                  : 'Nenhum registro'}
-              {/* Item (rodada 3): sem `refetchInterval` (useTicketsList.ts) a
-                  fila só atualizava em ação própria ou socket — e nada dizia
-                  QUANDO é o dado na tela. `agoraMs` é `dataUpdatedAt` do
-                  próprio React Query (0 antes do primeiro fetch terminar, daí
-                  o `> 0` escondendo isto no carregamento inicial). */}
-              {agoraMs > 0 && (
-                <span className="lista-tickets__atualizado"> · Atualizado às {horaCurtaDoEpoch(agoraMs)}</span>
-              )}
-            </p>
-          </div>
+          <h1 className="lista-tickets__titulo">{titulo}</h1>
 
           <div className="lista-tickets__acoes">
             <button
               type="button"
-              className="lista-tickets__novo"
-              onClick={() => navigate('/chamados/novo')}
+              className={'md-btn md-btn--outlined md-btn--icon' + (isFetching ? ' lista-tickets__spin' : '')}
+              onClick={() => refetch()}
+              aria-label="Atualizar"
+              title="Atualizar"
             >
-              <i className="ti ti-plus" />
-              Novo chamado
+              <Icone nome="refresh" tamanho={18} />
             </button>
             <button
               type="button"
-              className={'lista-tickets__refresh' + (isFetching ? ' is-loading' : '')}
-              onClick={() => refetch()}
-              aria-label="Atualizar"
+              className="md-btn md-btn--filled"
+              onClick={() => navigate('/chamados/novo')}
             >
-              <i className="ti ti-refresh" />
+              <Icone nome="add" tamanho={18} /> Novo chamado
             </button>
-            <div className="lista-tickets__search">
-              <i className="ti ti-search" />
-              {/* Item 15: só tinha `placeholder` — some assim que a pessoa
-                  digita, e um placeholder nunca é nome acessível confiável
-                  (leitor de tela não anuncia com o campo já preenchido em
-                  todo navegador). O aria-label também diz o ESCOPO: `_busca_q`
-                  (apps/tickets/views.py) casa só referência, assunto e número
-                  do pedido — sem isso, alguém digitava um nome de cliente,
-                  não achava nada e desconfiava da tela errada. */}
-              <input
-                type="text"
-                placeholder="Pesquisar"
-                aria-label="Buscar por referência, assunto ou número do pedido"
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-              />
-            </div>
           </div>
         </header>
+
+        {/* ---------- barra de ferramentas ---------- */}
+        <div className="md-toolbar lista-tickets__toolbar">
+          <div className="md-campo lista-tickets__busca">
+            <Icone nome="search" tamanho={18} />
+            {/* Item 15: só tinha `placeholder` — some assim que a pessoa
+                digita, e um placeholder nunca é nome acessível confiável
+                (leitor de tela não anuncia com o campo já preenchido em
+                todo navegador). O aria-label também diz o ESCOPO: `_busca_q`
+                (apps/tickets/views.py) casa só referência, assunto e número
+                do pedido — sem isso, alguém digitava um nome de cliente,
+                não achava nada e desconfiava da tela errada. */}
+            <input
+              type="text"
+              placeholder="Pesquisar"
+              aria-label="Buscar por referência, assunto ou número do pedido"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+            {busca.length > 0 && (
+              <button
+                type="button"
+                className="md-btn md-btn--sm md-btn--icon lista-tickets__busca-limpar"
+                // Nome diferente do botão "Limpar busca" do estado vazio de
+                // propósito: os dois limpam o mesmo termo, mas quem usa
+                // leitor de tela precisa distinguir "apagar o que está escrito
+                // aqui" de "desfazer a busca que não achou nada".
+                aria-label="Apagar busca"
+                title="Apagar busca"
+                onClick={limparBusca}
+              >
+                <Icone nome="close" tamanho={18} />
+              </button>
+            )}
+          </div>
+
+          {/* Filtros: os dois parâmetros que o servidor já aceita. Quando
+              algum está ligado, o controle vira `secondary-container` — a
+              mesma marca de "selecionado" do resto da interface. */}
+          <div className={'md-select md-select--sm' + (ehPrioritario || prioridadeFiltro ? ' md-select--ativo' : '')}>
+            <select
+              aria-label="Filtrar por prioridade"
+              title={
+                ehPrioritario
+                  ? 'A visão "Tickets Prioritário" já é o recorte de urgentes'
+                  : 'Filtrar por prioridade'
+              }
+              disabled={ehPrioritario}
+              value={ehPrioritario ? 'urgent' : prioridadeFiltro}
+              onChange={(e) => trocarRecorte({ priority: e.target.value || undefined })}
+            >
+              <option value="">Prioridade: todas</option>
+              {PRIORIDADES.map((pr) => (
+                <option key={pr} value={pr}>
+                  {ROTULO_PRIORIDADE[pr]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={'md-select md-select--sm' + (slaFiltro ? ' md-select--ativo' : '')}>
+            <select
+              aria-label="Filtrar por SLA"
+              value={slaFiltro}
+              onChange={(e) => trocarRecorte({ sla: e.target.value || undefined })}
+            >
+              <option value="">SLA: todos</option>
+              {FILTROS_SLA.map((f) => (
+                <option key={f.valor} value={f.valor}>
+                  {f.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {filtrosAtivos > 0 && (
+            <button
+              type="button"
+              className="md-btn md-btn--texto md-btn--sm"
+              onClick={() => trocarRecorte({ priority: undefined, sla: undefined })}
+            >
+              Limpar filtros
+            </button>
+          )}
+
+          <div className="md-toolbar__espaco" />
+
+          {/* Ordenação: mesma chave do clique no cabeçalho da tabela. O
+              seletor escolhe a COLUNA e o botão ao lado inverte o sentido —
+              é o que torna a ordenação alcançável no celular, onde a tabela
+              rola na horizontal e o cabeçalho some da vista. */}
+          <div className="md-select md-select--sm lista-tickets__ordenar">
+            <select
+              aria-label="Ordenar por"
+              value={colunaOrdenada}
+              onChange={(e) => ordenarPorColuna(e.target.value as ColunaOrdenavel)}
+            >
+              {ORDENACOES.map((o) => (
+                <option key={o.chave} value={o.chave}>
+                  Ordenar por: {o.rotulo}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="md-btn md-btn--outlined md-btn--icon md-btn--sm"
+            onClick={alternarSentido}
+            aria-label={ordemDecrescente ? 'Ordem decrescente' : 'Ordem crescente'}
+            title={ordemDecrescente ? 'Ordem decrescente' : 'Ordem crescente'}
+          >
+            <Icone nome={ordemDecrescente ? 'arrow_downward' : 'arrow_upward'} tamanho={18} />
+          </button>
+
+          <p className="md-toolbar__contagem lista-tickets__contagem">
+            {total > 0
+              ? `Exibindo de ${inicio} até ${fim} de um total de ${total} registro(s)`
+              : isLoading
+                ? 'Carregando…'
+                : 'Nenhum registro'}
+            {/* Item (rodada 3): sem `refetchInterval` (useTicketsList.ts) a
+                fila só atualizava em ação própria ou socket — e nada dizia
+                QUANDO é o dado na tela. `agoraMs` é `dataUpdatedAt` do
+                próprio React Query (0 antes do primeiro fetch terminar, daí
+                o `> 0` escondendo isto no carregamento inicial). */}
+            {agoraMs > 0 && (
+              <span className="lista-tickets__atualizado"> · Atualizado às {horaCurtaDoEpoch(agoraMs)}</span>
+            )}
+          </p>
+        </div>
 
         {busca.length > 0 && busca.length < 3 && (
           <p className="lista-tickets__dica">Digite pelo menos 3 caracteres para iniciar a busca.</p>
         )}
 
-        {/* ---------- barra de seleção em lote ---------- */}
+        {/* ---------- barra de ação em lote ----------
+            A "contextual action bar" do M3: aparece só com seleção, assume o
+            `secondary-container` (a mesma cor que marca as linhas escolhidas
+            na tabela, para os dois se lerem como uma coisa só) e some junto
+            com a seleção. */}
         {selecionados.size > 0 && (
-          <div className="lista-tickets__lote">
-            <strong>{selecionados.size}</strong> selecionado(s)
+          <div className="lista-tickets__lote" role="group" aria-label="Ações para os tickets selecionados">
+            <span className="lista-tickets__lote-contagem">
+              <strong>{selecionados.size}</strong> selecionado(s)
+            </span>
             {podeLote && (
               <>
-                <select
-                  className="lista-tickets__lote-select"
-                  value=""
-                  disabled={atribuir.isPending}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (!v) return
-                    atribuirEmLote(v === 'ninguem' ? null : Number(v))
-                  }}
-                >
-                  <option value="">Atribuir a…</option>
-                  <option value="ninguem">Ninguém</option>
-                  {(agentes ?? []).map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.full_name}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  className="lista-tickets__lote-select"
-                  value=""
-                  disabled={mudarPrioridade.isPending}
-                  onChange={(e) => {
-                    const v = e.target.value
-                    if (!v) return
-                    mudarPrioridadeEmLote(v as Prioridade)
-                  }}
-                >
-                  <option value="">Mudar prioridade…</option>
-                  {PRIORIDADES.map((p) => (
-                    <option key={p} value={p}>
-                      {ROTULO_PRIORIDADE[p]}
-                    </option>
-                  ))}
-                </select>
+                <div className="md-select md-select--sm">
+                  <select
+                    className="lista-tickets__lote-select"
+                    aria-label="Atribuir os selecionados a"
+                    value=""
+                    disabled={atribuir.isPending}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (!v) return
+                      atribuirEmLote(v === 'ninguem' ? null : Number(v))
+                    }}
+                  >
+                    <option value="">Atribuir a…</option>
+                    <option value="ninguem">Ninguém</option>
+                    {(agentes ?? []).map((a) => (
+                      <option key={a.id} value={a.id}>
+                        {a.full_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="md-select md-select--sm">
+                  <select
+                    className="lista-tickets__lote-select"
+                    aria-label="Mudar a prioridade dos selecionados"
+                    value=""
+                    disabled={mudarPrioridade.isPending}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      if (!v) return
+                      mudarPrioridadeEmLote(v as Prioridade)
+                    }}
+                  >
+                    <option value="">Mudar prioridade…</option>
+                    {PRIORIDADES.map((p) => (
+                      <option key={p} value={p}>
+                        {ROTULO_PRIORIDADE[p]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {(atribuir.isPending || mudarPrioridade.isPending) && (
-                  <i className="ti ti-loader-2 lista-tickets__spin" aria-hidden="true" />
+                  <Icone nome="progress_activity" tamanho={18} className="lista-tickets__spin" />
                 )}
               </>
             )}
+            <div className="md-toolbar__espaco" />
             <button
               type="button"
+              className="md-btn md-btn--texto md-btn--sm"
               onClick={() => {
                 setSelecionados(new Set())
                 setAvisoLote(null)
@@ -391,11 +562,16 @@ export function PaginaListaTickets() {
         )}
 
         {avisoLote && (
-          <div className="lista-tickets__aviso-erro" role="alert">
-            <i className="ti ti-alert-triangle" aria-hidden="true" />
+          <div className="lista-tickets__aviso lista-tickets__aviso--erro" role="alert">
+            <Icone nome="warning" />
             <span>{avisoLote}</span>
-            <button type="button" onClick={() => setAvisoLote(null)} aria-label="Dispensar">
-              <i className="ti ti-x" aria-hidden="true" />
+            <button
+              type="button"
+              className="md-btn md-btn--sm md-btn--icon"
+              onClick={() => setAvisoLote(null)}
+              aria-label="Dispensar"
+            >
+              <Icone nome="close" tamanho={18} />
             </button>
           </div>
         )}
@@ -404,34 +580,39 @@ export function PaginaListaTickets() {
             `role="status"` (não `alert`): é uma confirmação, não precisa
             interromper leitor de tela como o erro acima interrompe. */}
         {avisoSucessoLote && (
-          <div className="lista-tickets__aviso-sucesso" role="status">
-            <i className="ti ti-circle-check" aria-hidden="true" />
+          <div className="lista-tickets__aviso lista-tickets__aviso--sucesso" role="status">
+            <Icone nome="check_circle" />
             <span>{avisoSucessoLote}</span>
-            <button type="button" onClick={() => setAvisoSucessoLote(null)} aria-label="Dispensar">
-              <i className="ti ti-x" aria-hidden="true" />
+            <button
+              type="button"
+              className="md-btn md-btn--sm md-btn--icon"
+              onClick={() => setAvisoSucessoLote(null)}
+              aria-label="Dispensar"
+            >
+              <Icone nome="close" tamanho={18} />
             </button>
           </div>
         )}
 
         {/* ---------- corpo ---------- */}
         {isError ? (
-          <div className="lista-tickets__estado lista-tickets__estado--erro">
-            <i className="ti ti-alert-triangle" />
+          <div className="md-vazio lista-tickets__estado lista-tickets__estado--erro">
+            <Icone nome="warning" tamanho={24} />
             <p>
               Não foi possível carregar os tickets
               {error instanceof ApiError ? ` (${error.status})` : ''}.
             </p>
-            <button type="button" onClick={() => refetch()}>
+            <button type="button" className="md-btn md-btn--outlined md-btn--sm" onClick={() => refetch()}>
               Tentar de novo
             </button>
           </div>
         ) : isLoading ? (
-          <div className="lista-tickets__estado">
-            <i className="ti ti-loader-2 lista-tickets__spin" />
+          <div className="md-vazio lista-tickets__estado">
+            <Icone nome="progress_activity" tamanho={24} className="lista-tickets__spin" />
             <p>Carregando tickets…</p>
           </div>
         ) : linhas.length === 0 ? (
-          <div className="lista-tickets__estado">
+          <div className="md-vazio lista-tickets__estado">
             {/* Item 15: o vazio de "não achei o que você buscou" (com saída
                 pra tentar de novo) é um problema diferente do vazio de "esta
                 view não tem nada" — confundir os dois faz quem busca "Acme"
@@ -440,15 +621,15 @@ export function PaginaListaTickets() {
                 existe. */}
             {termoBuscaAplicado ? (
               <>
-                <i className="ti ti-search" />
+                <Icone nome="search_off" tamanho={24} />
                 <p>Nenhum resultado para "{termoBuscaAplicado}".</p>
-                <button type="button" onClick={limparBusca}>
+                <button type="button" className="md-btn md-btn--outlined md-btn--sm" onClick={limparBusca}>
                   Limpar busca
                 </button>
               </>
             ) : (
               <>
-                <i className="ti ti-inbox" />
+                <Icone nome="inbox" tamanho={24} />
                 <p>Nenhum ticket nesta visualização.</p>
               </>
             )}
@@ -471,22 +652,24 @@ export function PaginaListaTickets() {
           <footer className="lista-tickets__paginacao">
             <button
               type="button"
+              className="md-btn md-btn--texto md-btn--sm"
               disabled={offset === 0}
               onClick={() => irParaOffset(Math.max(0, offset - LIMITE))}
             >
-              <i className="ti ti-chevron-left" />
+              <Icone nome="chevron_left" tamanho={18} />
               Anterior
             </button>
-            <span>
+            <span className="md-tabela__num">
               {inicio}–{fim} de {total}
             </span>
             <button
               type="button"
+              className="md-btn md-btn--texto md-btn--sm"
               disabled={fim >= total}
               onClick={() => irParaOffset(offset + LIMITE)}
             >
               Próxima
-              <i className="ti ti-chevron-right" />
+              <Icone nome="chevron_right" tamanho={18} />
             </button>
           </footer>
         )}

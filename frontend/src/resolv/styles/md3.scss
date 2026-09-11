@@ -641,6 +641,198 @@
   }
 }
 
+// ============================================================================
+// Select — o campo de escolha do M3, com a moldura do outlined text field.
+//
+// `<select>` nativo de propósito: teclado, leitor de tela e o seletor do
+// celular vêm prontos e corretos. O que muda é a moldura (2px, altura de
+// controle) e a seta, desenhada aqui para não depender do desenho do sistema.
+// ============================================================================
+.md-select {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: var(--md-space-12);
+    width: 8px;
+    height: 8px;
+    border-right: 1.5px solid var(--md-on-surface-variant);
+    border-bottom: 1.5px solid var(--md-on-surface-variant);
+    transform: translateY(-2px) rotate(45deg);
+    pointer-events: none;
+  }
+
+  select {
+    @extend .md-body-medium;
+
+    width: 100%;
+    height: var(--control-height-md);
+    padding: 0 var(--md-space-32) 0 var(--md-space-12);
+    border: var(--md-borda) solid var(--md-outline);
+    border-radius: var(--radius-default);
+    background: var(--md-surface-container-lowest);
+    color: var(--md-on-surface);
+    font-family: inherit;
+    cursor: pointer;
+    appearance: none;
+
+    &:hover {
+      border-color: var(--md-on-surface);
+    }
+    &:focus-visible {
+      border-color: var(--md-primary);
+    }
+    &:disabled {
+      border-color: color-mix(in srgb, var(--md-on-surface) 12%, transparent);
+      color: color-mix(in srgb, var(--md-on-surface) 38%, transparent);
+      cursor: not-allowed;
+    }
+  }
+
+  &--sm select {
+    height: var(--control-height-sm);
+  }
+
+  // Rótulo embutido ("Prioridade: Urgente"): quando o filtro está ligado, o
+  // controle assume `secondary-container` — a mesma marca de selecionado do
+  // chip e da linha, para "tem filtro aqui" se ver de relance.
+  &--ativo select {
+    border-color: transparent;
+    background: var(--md-secondary-container);
+    color: var(--md-on-secondary-container);
+  }
+  &--ativo::after {
+    border-color: var(--md-on-secondary-container);
+  }
+}
+
+// ============================================================================
+// Tabela de dados
+//
+// A densidade é a do briefing, não a do M3: linha de 52px (o data table do
+// M3 é 52 na versão densa e 76 na padrão), célula com 16px de folga lateral,
+// cabeçalho em `surface-container-low` sem borda pesada, divisor tênue entre
+// registros.
+//
+// Os quatro estados de linha vivem aqui: normal, hover (state layer),
+// selecionada (`secondary-container`) e foco (o anel do M3, quando o foco
+// entra em qualquer controle da linha).
+// ============================================================================
+.md-tabela {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--md-surface-container-lowest);
+
+  &__wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    border: var(--md-borda) solid var(--md-outline-variant);
+    border-radius: var(--radius-default);
+    background: var(--md-surface-container-lowest);
+  }
+
+  thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    height: var(--control-height-sm);
+    padding: 0 var(--md-space-16);
+    background: var(--md-surface-container-low);
+    border-bottom: var(--md-borda) solid var(--md-outline-variant);
+    text-align: left;
+    white-space: nowrap;
+    font-size: var(--md-fs-label-medium);
+    line-height: var(--md-lh-label-medium);
+    letter-spacing: var(--md-ls-label-medium);
+    font-weight: var(--md-peso-medio);
+    color: var(--md-on-surface-variant);
+  }
+
+  tbody td {
+    height: 52px;
+    padding: 0 var(--md-space-16);
+    border-bottom: var(--md-borda) solid var(--md-outline-faint);
+    vertical-align: middle;
+    font-size: var(--md-fs-body-medium);
+    line-height: var(--md-lh-body-medium);
+    letter-spacing: var(--md-ls-body-medium);
+    color: var(--md-on-surface);
+  }
+
+  tbody tr {
+    cursor: pointer;
+    transition: background-color var(--md-dur-curta-2) var(--md-ease-padrao);
+
+    &:hover td {
+      background: var(--md-state-layer-hover);
+    }
+    &:active td {
+      background: var(--md-state-layer-pressed);
+    }
+    // Foco de teclado em qualquer controle da linha: a linha inteira se
+    // anuncia, senão só o anel do link aparece e some o contexto de qual
+    // registro está em foco.
+    &:focus-within td {
+      background: var(--md-state-layer-hover);
+    }
+    &[data-selecionado='true'] td {
+      background: var(--md-secondary-container);
+      color: var(--md-on-secondary-container);
+    }
+    &:last-child td {
+      border-bottom: 0;
+    }
+  }
+
+  // Indicador de ordenação: discreto, e só quem está ordenando fica opaco.
+  &__ordenar {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--md-space-4);
+    height: var(--control-height-sm);
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    letter-spacing: inherit;
+    color: inherit;
+    cursor: pointer;
+
+    svg {
+      opacity: 0.4;
+    }
+    &:hover {
+      color: var(--md-on-surface);
+    }
+    &--ativo {
+      color: var(--md-primary);
+
+      svg {
+        opacity: 1;
+      }
+    }
+  }
+
+  // Texto secundário dentro da célula (empresa, data, duração).
+  &__meta {
+    display: block;
+    font-size: var(--md-fs-body-small);
+    line-height: var(--md-lh-body-small);
+    letter-spacing: var(--md-ls-body-small);
+    color: var(--md-on-surface-variant);
+  }
+
+  &__num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
 // ── Estado vazio ──
 .md-vazio {
   @extend .md-body-medium;
