@@ -42,3 +42,7 @@ superpowers/
 
 # Configurações → Backup (dev): dumps do banco, nunca versionados
 backups/
+
+# Carimbo do `./resolv`: a data do último `docker compose build`. Serve só para
+# o script saber que a imagem ficou velha quando o pyproject/Dockerfile muda.
+.docker-imagem-construida

@@ -222,13 +222,26 @@ preparar_venv() {
     passo "Criando o ambiente virtual do Python (só na primeira vez)"
     python3 -m venv "$VENV" || morrer "Falhou criar o virtualenv."
   fi
-  # Confere uma dependência de verdade em vez de um marcador: um venv criado
-  # pela metade (instalação interrompida) passaria por qualquer teste de
-  # "a pasta existe" e só quebraria no primeiro import.
-  if ! "$VENV/bin/python" -c "import django" >/dev/null 2>&1; then
+  # Duas perguntas diferentes, e as duas precisam de resposta:
+  #
+  # 1. O venv está INTEIRO? Confere um import de verdade em vez de um
+  #    marcador — um venv criado pela metade (instalação interrompida)
+  #    passaria por qualquer teste de "a pasta existe" e só quebraria no
+  #    primeiro import.
+  # 2. O venv está ATUAL? Um venv completo do mês passado passa no teste 1 e
+  #    mesmo assim não tem a dependência que entrou ontem. Era esse o buraco:
+  #    quem já tinha o projeto rodando nunca reinstalava, e o erro só
+  #    aparecia longe da causa ("No module named 'nh3'") na primeira tela que
+  #    usasse a biblioteca nova. Mesma ideia que `preparar_frontend` usa para
+  #    o `package-lock.json`: se o `pyproject.toml` mudou depois da última
+  #    instalação, o que está instalado está velho.
+  local carimbo="$VENV/.dependencias-instaladas"
+  if ! "$VENV/bin/python" -c "import django" >/dev/null 2>&1 \
+     || [ ! -f "$carimbo" ] || [ pyproject.toml -nt "$carimbo" ]; then
     passo "Instalando as dependências do backend (demora um pouco)"
     "$VENV/bin/pip" install -q --upgrade pip >/dev/null 2>&1 || true
     "$VENV/bin/pip" install -q -e ".[dev]" || morrer "pip install falhou — veja a mensagem acima."
+    touch "$carimbo"
     ok "Dependências instaladas."
   fi
 }
@@ -379,6 +392,18 @@ subir_backend_docker() {
   passo "Subindo backend (banco, Redis, API, worker)"
   # antes do `up`: o .env corrigido é o que os containers vão ler
   avaliar_clamav
+  # O mesmo problema do venv, na versão container: a imagem instala as
+  # dependências no build, então `up -d` sozinho sobe felizmente uma imagem
+  # velha, sem a biblioteca que entrou depois. `--build` em TODA execução
+  # custaria o contexto inteiro por nada; aqui ele só entra quando o que
+  # define a imagem mudou depois do último build.
+  local carimbo=".docker-imagem-construida"
+  if [ ! -f "$carimbo" ] || [ pyproject.toml -nt "$carimbo" ] \
+     || [ Dockerfile -nt "$carimbo" ] || [ docker-compose.yml -nt "$carimbo" ]; then
+    passo "Reconstruindo a imagem do backend (uma dependência mudou)"
+    docker compose build web || morrer "docker compose build falhou — veja a mensagem acima."
+    touch "$carimbo"
+  fi
   docker compose up -d
   ok "Containers no ar."
 }
