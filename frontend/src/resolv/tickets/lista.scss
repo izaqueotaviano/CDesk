@@ -44,11 +44,32 @@
     gap: 16px;
   }
 
+  // Item (impeccable/layout): sem `flex-wrap`, o título não tinha pra onde
+  // ir — `__acoes` abaixo é `flex-shrink: 0` (nunca cede largura), então
+  // era só o bloco do título que sobrava pra espremer, e span/h1 quebra
+  // PALAVRA por palavra à medida que o espaço aperta (o mínimo de um item
+  // flex sem wrap é o tamanho da palavra mais longa, não zero). Abaixo de
+  // ~900px de coluna principal (tablet com o painel de views recolhido, e
+  // todo o celular) o título virava uma coluna de uma palavra por linha
+  // ilegível. `.inicio__cabecalho` (inicio.scss) já resolve o mesmo par
+  // título/ações com `flex-wrap: wrap` — mesma correção aqui, não um
+  // padrão novo.
   &__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+
+  &__titulo-bloco {
+    // Preferência de largura antes do wrap decidir empurrar `__acoes` pra
+    // baixo — sem isso o navegador só teria a razão dos tamanhos de
+    // conteúdo de cada lado pra decidir, e podia ainda assim tentar
+    // acomodar os dois lado a lado numa faixa intermediária, voltando a
+    // espremer o título antes de finalmente quebrar.
+    flex: 1 1 240px;
+    min-width: 0;
   }
 
   &__titulo {
@@ -69,11 +90,17 @@
     color: var(--text-muted);
   }
 
+  // `flex-wrap` aqui é o mesmo raciocínio do `&__header` acima, um nível
+  // abaixo: no celular a faixa inteira de ações (chamado + refresh +
+  // densidade + busca, ~500px de conteúdo que não cede) não cabe nem
+  // sozinha na coluna disponível — sem quebra, `__search` é quem sofreria
+  // a mesma compressão ilegível que o título sofria antes.
   &__acoes {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 8px;
-    flex-shrink: 0;
   }
 
   &__refresh {
@@ -164,7 +191,15 @@
     display: flex;
     align-items: center;
     gap: 6px;
-    width: 260px;
+    // Item (impeccable/layout): era `width: 260px` fixo — junto com
+    // `__acoes` agora quebrando linha em vez de espremer, o campo de busca
+    // é o único controle da faixa com largura "elástica" o bastante pra
+    // fazer sentido encolher; os outros (chamado/refresh/densidade) são
+    // conteúdo de tamanho fixo (ícone/rótulo curto). `min-width` evita que
+    // ele encolha a ponto de não caber nem um caractere de placeholder.
+    flex: 1 1 260px;
+    min-width: 160px;
+    max-width: 260px;
     height: 34px;
     padding: 0 10px;
     background: var(--surface-card);
