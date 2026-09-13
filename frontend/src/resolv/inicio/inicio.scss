@@ -120,6 +120,21 @@
       background: var(--surface);
       border-bottom-color: var(--accent);
     }
+    // Item (impeccable/polish): `.inicio__kpis` é `overflow: hidden` (só
+    // pra cortar os cantos arredondados do container nas pontas) — mas os
+    // ladrilhos ficam colados uns nos outros SEM padding vertical, então o
+    // anel de foco padrão do navegador (que desenha PRA FORA da caixa)
+    // ficava cortado em cima/embaixo ao tabular até aqui, e só sobrava uma
+    // linha fina de um lado. Anel PRA DENTRO via box-shadow não depende do
+    // espaço fora da caixa — mesma cor, mesma ideia do anel padrão, só que
+    // imune ao corte do container. `.lista-tickets__views--recolhido` já
+    // resolve essa mesma classe de problema com `overflow: visible`; aqui
+    // não dá pra abrir mão do `overflow: hidden` do container (ele existe
+    // pelos cantos), então o anel é quem se adapta.
+    &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--accent);
+    }
   }
 
   &__kpi-rotulo {
