@@ -44,8 +44,7 @@ interface Contexto {
   titulo: string
   subtitulo: string
   /** Rótulo em versalete acima do título — o `.ds-eyebrow` do Convertize.
-   *  Só aparece na prévia do novo design (ver `.login-eyebrow` em login.css);
-   *  fala do PÚBLICO, não da marca, que o admin renomeia. */
+   *  Fala do PÚBLICO, não da marca, que o admin renomeia. */
   eyebrow: string
   icones: LucideIcon[]
   placeholderEmail: string
@@ -99,7 +98,7 @@ function destinoDepoisDoLogin(me: Me, de: string | undefined): string {
 function Marca({ nome, className }: { nome: string; className?: string }) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
-      <span className="login-marca__simbolo grid size-8 shrink-0 place-items-center rounded-md bg-tinta text-canvas">
+      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-laranja text-white">
         <svg className="h-auto w-4" viewBox="0 0 236 270" fill="none" aria-hidden="true">
           <path
             d="M128.101 0C151.417 0 170.802 4.03 186.255 12.09C201.98 19.88 213.909 29.82 222.042 41.91C230.447 54 235.056 67.16 235.869 81.4C236.683 95.64 233.7 109.08 226.923 121.7C220.145 134.33 209.707 145.21 195.609 154.34C181.511 163.48 163.617 168.99 141.928 170.87C139.217 170.87 136.506 172.21 133.795 174.9C131.355 177.31 130.135 180.13 130.135 183.36C130.135 186.58 132.033 189.54 135.828 192.22C139.624 194.64 146.808 195.85 157.382 195.85H223.262V269.6H162.668C146.402 269.6 132.71 267.72 121.595 263.96C110.75 260.19 102.074 255.36 95.568 249.45C89.061 243.54 84.588 236.96 82.148 229.7C79.979 222.18 79.572 214.79 80.928 207.54C82.554 200.02 85.808 193.16 90.688 186.99C95.839 180.54 102.346 175.3 110.208 171.27H65.881V269.6L0 270V0H128.101ZM116.308 116.46C132.575 116.46 144.775 113.24 152.908 106.79C161.042 100.34 165.108 93.36 165.108 85.84C165.108 78.04 161.042 70.93 152.908 64.48C144.775 58.03 132.575 54.81 116.308 54.81H65.881V116.46H116.308Z"
@@ -286,10 +285,7 @@ export function PaginaLogin() {
   const idErro = `${idBase}-erro`
 
   return (
-    // `login-convertize`: a prévia do design system Convertize, toda em
-    // login.css. Tirar esta classe devolve a tela ao design atual — nenhum
-    // token global foi alterado (ver o cabeçalho do bloco lá).
-    <div className="login-convertize relative min-h-screen bg-canvas text-tinta lg:grid lg:h-screen lg:grid-cols-[1fr_minmax(340px,42%)] lg:overflow-hidden">
+    <div className="relative min-h-screen bg-canvas text-tinta lg:grid lg:h-screen lg:grid-cols-[1fr_minmax(340px,42%)] lg:overflow-hidden">
       {/* Troca de público + tema, num nó só: no desktop flutua sobre o painel
           da direita (o lugar do "Sign in" da referência), no celular sobre o
           próprio formulário. Dois blocos por breakpoint dariam dois links de
@@ -315,14 +311,10 @@ export function PaginaLogin() {
         <Marca nome={nomeDaMarca} className="max-w-[52%] lg:max-w-none" />
 
         <div className="flex flex-1 items-start py-10 lg:items-center lg:py-0">
-          <div className="login-cartao relative mx-auto w-full max-w-[320px]">
-            {/* a moldura de planta baixa; some no celular, onde não há
-                respiro de 88px em volta pra ela caber */}
-            <span className="login-moldura hidden lg:block" aria-hidden="true" />
-
+          <div className="login-cartao relative mx-auto w-full max-w-[372px]">
             {passo === 'credenciais' ? (
               <form className="relative flex flex-col gap-4" onSubmit={form.handleSubmit(enviarCredenciais)} noValidate aria-busy={login.isPending}>
-                <header className="login-cabecalho text-center">
+                <header className="login-cabecalho">
                   <p className="login-eyebrow">{contexto.eyebrow}</p>
                   <h1 className="login-titulo text-titulo font-forte tracking-display">{contexto.titulo}</h1>
                   <p className="mt-2 text-pequeno leading-normal text-tinta-secundaria">{subtitulo}</p>
@@ -381,11 +373,11 @@ export function PaginaLogin() {
                   <ErroCampo id={`${idBase}-senha-erro`}>{form.formState.errors.password?.message}</ErroCampo>
                 </div>
 
-                <Button type="submit" className="login-botao mt-1 h-9 w-full" disabled={login.isPending}>
+                <Button type="submit" variant="inverse" className="mt-1 h-[42px] w-full" disabled={login.isPending}>
                   {login.isPending ? 'Entrando…' : 'Entrar'}
                 </Button>
 
-                <p className="login-nota text-center text-legenda leading-normal text-tinta-terciaria">
+                <p className="login-nota text-legenda leading-normal text-tinta-terciaria">
                   Esqueceu a senha? A redefinição é feita por um administrador: fale com o suporte
                   {contexto.publico === 'cliente' ? ' ou com o responsável pela sua empresa' : ''}.
                 </p>
@@ -403,7 +395,7 @@ export function PaginaLogin() {
                 <button type="button" onClick={voltar} className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
                   <ArrowLeft className="size-4" aria-hidden="true" /> Voltar
                 </button>
-                <header className="login-cabecalho flex flex-col items-center gap-3 text-center">
+                <header className="flex flex-col items-center gap-3 text-center">
                   <span className="login-selo-2fa grid size-11 place-items-center rounded-md bg-acento-suave text-acento">
                     {metodo === 'totp' ? <Smartphone className="size-5" aria-hidden="true" /> : <MailCheck className="size-5" aria-hidden="true" />}
                   </span>
@@ -454,7 +446,7 @@ export function PaginaLogin() {
                   />
                 </div>
 
-                <Button type="submit" className="login-botao h-9 w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
+                <Button type="submit" variant="inverse" className="h-[42px] w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
                   {confirmar2fa.isPending ? 'Confirmando…' : 'Confirmar'}
                 </Button>
 

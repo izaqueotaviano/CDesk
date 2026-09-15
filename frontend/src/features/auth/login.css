@@ -1,43 +1,83 @@
 /*
  * Tela de login — o que não cabe em utilitário do Tailwind.
  *
- * O desenho é o de uma planta baixa (referência: a tela de cadastro da
- * Relume): formulário à ESQUERDA sobre o canvas, painel de marca à direita
- * com grade de 64px, e uma moldura de linhas finas em volta do formulário
- * cujos braços passam dos cantos. Nada de cor literal aqui — tudo sai de
- * `--acento`/`--divisoria`/`--canvas` (styles/tokens.css), então o tema
- * escuro acompanha sem um segundo conjunto de regras.
+ * A paleta, a tipografia e o raio saem dos tokens (styles/tokens.css), que
+ * desde a troca para o Convertize já são os do kit. O que mora aqui é só a
+ * COMPOSIÇÃO desta tela: o formulário dentro de uma seção de papel, o painel
+ * de marca em grafite e os dois textos que caem sobre ele.
+ *
+ * REGRA DE CASCATA, porque isto já mordeu uma vez: as utilitárias do Tailwind
+ * entram DEPOIS deste arquivo no bundle e têm a mesma especificidade de uma
+ * classe. Então qualquer propriedade que o JSX também declare (cor de fundo,
+ * altura, alinhamento) tem que ser resolvida LÁ, no JSX — onde o
+ * `tailwind-merge` do `cn` faz a última palavra ser a certa. Aqui só entra o
+ * que nenhuma utilitária escreve. É por isso que o botão primário virou
+ * `variant="inverse"` (grafite no claro, invertendo no escuro — o `.button`
+ * de tinta cheia do kit, que é como ele trata tela de marca; dentro do
+ * produto o acento segue laranja, como no `.composer button` do próprio kit)
+ * e a marca virou `bg-laranja`, em vez de duas regras daqui que perdiam.
+ *
+ * A moldura de "planta baixa" (referência Relume) saiu junto com a paleta
+ * antiga: o contêiner do Convertize é a `.ds-section` — papel, linha de 1px e
+ * canto generoso —, e era ela ou a moldura, não as duas.
  */
 
-/* A moldura: quatro linhas de 1px que se cruzam PASSANDO dos cantos, como
-   marca de corte de planta baixa. Um elemento só, quatro camadas de
-   background — sem oito divs vazios no DOM só pra desenhar risco.
-   A geometria em dois passos: o RETÂNGULO respira 44px acima/abaixo e 24px
-   dos lados do formulário; os BRAÇOS passam dele mais 60px na vertical e
-   110px na horizontal. Daí o `inset` somar os dois (44+60, 24+110) e cada
-   linha ficar posicionada à distância do braço dentro da caixa. */
-.login-moldura {
-  position: absolute;
-  inset: -104px -134px;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--divisoria) 0 0) 50% 60px / 100% 1px no-repeat,
-    linear-gradient(var(--divisoria) 0 0) 50% calc(100% - 60px) / 100% 1px no-repeat,
-    linear-gradient(var(--divisoria) 0 0) 110px 50% / 1px 100% no-repeat,
-    linear-gradient(var(--divisoria) 0 0) calc(100% - 110px) 50% / 1px 100% no-repeat;
+/* ------------------------------------------------------------------ formulário
+   A `.ds-section` do kit: papel, linha de 1px e canto generoso. A largura
+   (372px, mais folgada que a coluna de 320px de antes) fica no `max-w-` do
+   JSX, junto do resto do layout — aqui só o que é material. */
+.login-cartao {
+  padding: 30px 28px 28px;
+  background: var(--superficie);
+  border: 1px solid var(--divisoria);
+  border-radius: var(--r-xl);
 }
 
-/* O painel da marca: tinta do acento + grade de 64px. `color-mix` sobre o
-   próprio `--acento` (e não um azul cravado) é o que faz o painel escurecer
-   junto no tema escuro, onde o acento vira #b4c5ff. */
+.login-campo {
+  height: 42px;  /* o kit respira mais que os 36px de antes (`padding:10px`) */
+}
+
+/* ------------------------------------------------------------------ tipografia
+   O título é o display do kit (Tenor Sans, peso normal, entrelinha curta) —
+   nada da caixa alta apertada que a escala de UI usa. */
+.login-titulo {
+  font-family: var(--f-display);
+  font-size: 33px;
+  font-weight: 400;
+  line-height: 1.06;
+  letter-spacing: 0;
+}
+
+/* O rótulo em versalete que abre toda seção do kit (`.ds-eyebrow`). O laranja
+   aqui é o de TEXTO (`--acento`), não o de marca: o cheio daria 2,98:1. */
+.login-eyebrow {
+  margin-bottom: 10px;
+  color: var(--acento);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+/* O kit é alinhado à esquerda — e o eyebrow só funciona assim. O passo de
+   2FA, que é centrado de propósito (o selo do método abre o bloco),
+   simplesmente não usa esta classe. */
+.login-cabecalho,
+.login-nota {
+  text-align: left;
+}
+
+/* ---------------------------------------------------------- painel da marca
+   O bloco escuro do kit (`.metric-card`, `.demo-sidebar`, `.pattern-grid`):
+   grafite cheio com a grade em laranja por cima. É o único lugar da tela onde
+   o laranja de marca pode aparecer na força total — sobre o grafite ele dá
+   4,98:1, contra os 2,98:1 que daria sobre o papel. */
 .login-painel {
-  --tinta-do-painel: color-mix(in srgb, var(--acento) 17%, var(--canvas));
-  --linha-da-grade: color-mix(in srgb, var(--acento) 22%, transparent);
-  background-color: var(--tinta-do-painel);
+  background-color: var(--grafite);
   background-image:
-    linear-gradient(var(--linha-da-grade) 1px, transparent 1px),
-    linear-gradient(90deg, var(--linha-da-grade) 1px, transparent 1px);
-  background-size: 64px 64px;
+    linear-gradient(rgba(255, 94, 44, .13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 94, 44, .13) 1px, transparent 1px);
+  background-size: 68px 68px;
   background-position: center;
 }
 
@@ -47,254 +87,18 @@
   background-image: none;
 }
 
-/* ===========================================================================
-   PRÉVIA — o design system Convertize aplicado a esta tela
-   ===========================================================================
-
-   Tudo aqui vive sob `.login-convertize`, a classe que PaginaLogin.tsx põe na
-   raiz. Duas consequências de propósito:
-
-   1. é uma PRÉVIA, não uma migração: tirar a classe devolve a tela ao design
-      atual, sem tocar em mais nada — nenhum token global mudou de valor;
-   2. é o reskin POR TOKEN, não uma segunda tela: os mesmos utilitários
-      (`bg-canvas`, `text-tinta`, `border-divisoria`…) continuam no JSX e só
-      passam a resolver para os valores do Convertize. É exatamente o que
-      aconteceria no sistema inteiro se a direção for aprovada.
-
-   A decisão de tradução que importa: no Resolv `--acento` é UMA coisa só
-   (fundo do botão primário E cor de destaque). No Convertize são duas —
-   a AÇÃO é a tinta grafite (`.button{background:var(--ink)}`) e o laranja é
-   um acento econômico. Então `--acento` vira grafite, e o laranja entra
-   nomeado à parte, aplicado só onde o próprio kit o aplica: marca, eyebrow,
-   foco, ícone de destaque e a grade do painel escuro.
-
-   Contraste: o laranja de marca (#ff5e2c) dá 2,98:1 sobre papel — reprova
-   como texto. O kit já resolve isso com um laranja mais fechado no papel
-   (`.tag{color:#bd4527}`, 5,07:1), e é ele que `--laranja-tinta` carrega.
-   Superfície fica com o laranja cheio; texto, nunca. */
-.login-convertize {
-  /* --- primitivos da marca (kit Convertize, tokens.css) --- */
-  --laranja: #ff5e2c;        /* marca e superfície — nunca texto miúdo */
-  --laranja-tinta: #bd4527;  /* o mesmo laranja em papel, aprovado como texto */
-  --laranja-veu: #fff0eb;    /* o hover da sidebar do kit */
-  --papel: #fffdf9;
-  --pergaminho: #f6f4f1;
-  --grafite: #292524;
-
-  /* --- semânticos do Resolv, remapeados --- */
-  --canvas: var(--pergaminho);
-  --superficie: var(--papel);
-  --superficie-sutil: var(--pergaminho);
-  --superficie-elevada: var(--papel);
-  --navegacao: var(--laranja-veu);
-  --divisoria: #e5e0da;
-  --borda-controle: #cfc8c1;
-  --borda-campo: #cbc4bd;
-  --tinta: var(--grafite);
-  /* Dois degraus do mesmo cinza-quente do kit (`--muted:#777169`), fechados
-     o bastante para passar em AA no pergaminho (6,3:1 e 4,9:1) — o valor
-     literal do kit dá 4,4:1 e reprovaria justo no texto menor da tela. */
-  --tinta-secundaria: #5f5952;
-  --tinta-terciaria: #6f6961;
-
-  --acento: var(--grafite);
-  --acento-hover: #3d3834;   /* o ativo da sidebar do kit */
-  --acento-sobre: #ffffff;
-  --acento-suave: var(--laranja-veu);
-
-  --perigo: #b13d24;  --perigo-suave: #fff0ed;
-  --alerta: #805b06;  --alerta-suave: #fff5d9;
-  --ok:     #28603a;  --ok-suave:     #e7f3ea;
-
-  --hover: rgba(41, 37, 36, .05);
-  --ativo: rgba(41, 37, 36, .09);
-  --elevacao-3: 0 18px 44px rgba(41, 37, 36, .16), 0 0 0 1px rgba(41, 37, 36, .05);
-
-  /* Forma: metade do caráter do kit está aqui. O Resolv resolve todos os
-     degraus em 2px; o Convertize vai de 8px (campo) a 18px (seção). */
-  --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px;
-
-  --f-ui: 'Geist Sans', Geist, -apple-system, system-ui, sans-serif;
-  --f-display: 'Tenor Sans', ui-serif, Georgia, serif;
-
-  /* O <body> resolve `--f-ui` NELE: os filhos herdam a fonte já calculada,
-     não a variável. Sem reafirmar aqui, a tela continuaria em Inter. */
-  font-family: var(--f-ui);
-  background-color: var(--canvas);
-  color: var(--tinta);
-}
-
-/* O escuro do produto já é quente (#17130e / #201b16 / #ebe0d9), então ele
-   convive com o kit sem retoque — o que muda é a AÇÃO: sobre fundo escuro o
-   grafite sumiria, e aí o laranja assume o papel de primário. */
-[data-tema='escuro'] .login-convertize {
-  --canvas: var(--neutro-975);
-  --superficie: var(--neutro-875);
-  --superficie-sutil: var(--neutro-975);
-  --superficie-elevada: var(--neutro-850);
-  --navegacao: var(--neutro-950);
-  --divisoria: #3d3834;
-  --borda-controle: #9d8e81;
-  --borda-campo: #6b6259;
-  /* A TINTA tem que virar junto: o bloco claro acima fixa grafite, e sem
-     desfazer isso aqui o texto escuro ficaria sobre fundo escuro. */
-  --tinta: #ebe0d9;
-  --tinta-secundaria: #cfc5be;
-  --tinta-terciaria: #a59c96;
-  --laranja-tinta: #ff8a63;
-  --laranja-veu: rgba(255, 94, 44, .22);
-  --acento: var(--laranja);
-  --acento-hover: #ff7a4f;
-  --acento-sobre: #2a1207;
-  --acento-suave: rgba(255, 94, 44, .16);
-  --hover: rgba(246, 244, 241, .06);
-  --ativo: rgba(246, 244, 241, .10);
-  --elevacao-3: 0 18px 44px rgba(0, 0, 0, .62), 0 0 0 1px #3d3834;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-tema='claro']) .login-convertize {
-    --canvas: var(--neutro-975);
-    --superficie: var(--neutro-875);
-    --superficie-sutil: var(--neutro-975);
-    --superficie-elevada: var(--neutro-850);
-    --navegacao: var(--neutro-950);
-    --divisoria: #3d3834;
-    --borda-controle: #9d8e81;
-    --borda-campo: #6b6259;
-    --tinta: #ebe0d9;
-    --tinta-secundaria: #cfc5be;
-    --tinta-terciaria: #a59c96;
-    --laranja-tinta: #ff8a63;
-    --laranja-veu: rgba(255, 94, 44, .22);
-    --acento: var(--laranja);
-    --acento-hover: #ff7a4f;
-    --acento-sobre: #2a1207;
-    --acento-suave: rgba(255, 94, 44, .16);
-    --hover: rgba(246, 244, 241, .06);
-    --ativo: rgba(246, 244, 241, .10);
-    --elevacao-3: 0 18px 44px rgba(0, 0, 0, .62), 0 0 0 1px #3d3834;
-  }
-}
-
-/* ---------------------------------------------------------------- estrutura
-   A moldura de planta baixa é referência de OUTRO desenho (Relume). O
-   contêiner do Convertize é a `.ds-section`: papel, linha de 1px, canto de
-   18px. Então a moldura sai e o formulário passa a morar dentro dela. */
-.login-convertize .login-moldura {
-  display: none;
-}
-
-.login-convertize .login-cartao {
-  max-width: 372px;
-  padding: 30px 28px 28px;
-  background: var(--superficie);
-  border: 1px solid var(--divisoria);
-  border-radius: var(--r-xl);
-}
-
-/* O painel da marca é o bloco escuro do kit (`.metric-card`, `.demo-sidebar`,
-   `.pattern-grid article`): grafite cheio com o laranja por cima — é onde o
-   laranja pode aparecer na força total, porque sobre o grafite ele dá 4,98:1. */
-.login-convertize .login-painel {
-  background-color: var(--grafite);
-  background-image:
-    linear-gradient(rgba(255, 94, 44, .13) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 94, 44, .13) 1px, transparent 1px);
-  background-size: 68px 68px;
-}
-.login-convertize .login-painel--foto {
-  background-image: none;
-}
-.login-convertize .login-painel__cartao {
+.login-painel__cartao {
   border-radius: var(--r-xl);
   box-shadow: 0 22px 50px rgba(20, 16, 14, .35);
 }
-.login-convertize .login-painel__rodape {
+
+/* Os dois textos que ficam SOBRE o grafite e não podem seguir o tom do
+   produto (que é escuro no claro, e sumiria ali). */
+.login-painel__rodape {
   color: rgba(255, 253, 249, .7);
 }
-
-/* ------------------------------------------------------------- tipografia */
-.login-convertize .login-titulo {
-  font-family: var(--f-display);
-  font-size: 33px;
-  font-weight: 400;
-  line-height: 1.06;
-  letter-spacing: 0;
-}
-
-/* O eyebrow é o rótulo laranja em versalete que abre toda seção do kit
-   (`.ds-eyebrow`). Ele NÃO existe no desenho atual — por isso nasce oculto e
-   só aparece sob o escopo, junto com o resto da prévia. */
-.login-eyebrow {
-  display: none;
-}
-.login-convertize .login-eyebrow {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--laranja-tinta);
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: .14em;
-  text-transform: uppercase;
-}
-
-/* O kit é alinhado à esquerda — e o eyebrow só funciona assim. O passo do
-   código empilha em flex, então não basta o `text-align`. */
-.login-convertize .login-cabecalho,
-.login-convertize .login-nota {
-  text-align: left;
-}
-.login-convertize .login-cabecalho {
-  align-items: flex-start;
-}
-
-/* --------------------------------------------------------------- controles */
-.login-convertize .login-campo,
-.login-convertize .login-botao {
-  height: 42px;  /* o kit respira mais que os 36px daqui (`padding:12px 16px`) */
-}
-.login-convertize .login-botao {
-  font-size: 14px;
-  font-weight: 600;
-}
-
-/* Foco: o kit contorna em laranja (`.focus-demo`). Mantida a forma da regra
-   única do produto (contorno de 2px com folga), só recolorida — e no tom que
-   passa em 1.4.11, não no laranja de marca, que daria 2,98:1. */
-.login-convertize :focus-visible {
-  outline: 2px solid var(--laranja-tinta);
-  outline-offset: 2px;
-  border-radius: var(--r-sm);
-}
-/* No campo é o desenho literal do kit: a linha vira laranja e um halo macio
-   a acompanha, colado (`.focus-demo`). Quem carrega o contraste é a LINHA
-   (5,07:1) — o halo é só o brilho, não o indicador. */
-.login-convertize input:focus-visible {
-  border-color: var(--laranja-tinta);
-  outline: 3px solid var(--laranja-veu);
-  outline-offset: 0;
-}
-
-/* "É cliente?" flutua sobre o painel — que no Convertize é grafite cheio.
-   Só a partir de `lg`, que é quando o painel existe; abaixo disso o texto
-   está sobre o pergaminho e o tom do produto serve. */
 @media (min-width: 1024px) {
-  .login-convertize .login-troca__pergunta {
+  .login-troca__pergunta {
     color: rgba(255, 253, 249, .72);
   }
-}
-
-/* ----------------------------------------------------------------- detalhes
-   Os três lugares onde o laranja aparece no papel, e só eles. */
-.login-convertize .login-marca__simbolo {
-  background: var(--laranja);
-  color: #ffffff;
-  border-radius: 10px;
-}
-.login-convertize .login-destaque__icone,
-.login-convertize .login-selo-2fa {
-  color: var(--laranja-tinta);
-}
-.login-convertize .login-selo-2fa {
-  border-radius: var(--r-lg);
 }

@@ -1,14 +1,16 @@
 /* ============================================================
    resolv — tokens do Painel do Cliente (e de tudo que é Tailwind)
 
-   Desde a Rodada 12 os VALORES são os do console do agente
-   (resolv/styles/tokens.scss e cvz/styles/_theme.scss): cromo #f0f0f0,
-   canvas #f8f8f7, conteúdo branco, azul de ação #0f62fe, linha estrutural
-   preta translúcida, raio único de 2px e separação por LINHA, não por
-   sombra. Os NOMES continuam os do portal (--acento, --superficie,
-   --divisoria…) porque ~50 arquivos Tailwind os consomem; só o valor por
-   trás mudou. Mudar um valor aqui é mudar lá também — os três arquivos
-   precisam continuar iguais.
+   Os VALORES são os do design system Convertize (o kit entregue em
+   uploads/tokens.css): pergaminho #f6f4f1 de fundo, papel #fffdf9 no
+   conteúdo, tinta grafite #292524, laranja de marca #ff5e2c, linha
+   #e5e0da, Geist na interface e Tenor Sans no display. Os NOMES continuam
+   os do portal (--acento, --superficie, --divisoria…) porque ~50 arquivos
+   Tailwind os consomem — foi por isso que a troca inteira coube na camada
+   de token, sem reescrever tela nenhuma.
+
+   Os mesmos valores vivem em resolv/styles/tokens.scss (console) e
+   cvz/styles/_theme.scss (admin). Mudar um aqui é mudar nos três.
 
    O tema continua no atributo data-tema do <html> ("claro" | "escuro",
    ou ausente em "sistema" — stores/prefs.ts), e o bloco
@@ -46,23 +48,44 @@
   --neutro-950: #120d09;  /* cromo (escuro) */
   --neutro-975: #17130e;  /* canvas (escuro) */
 
+  /* ---------- primitivos: a marca Convertize ----------
+     Três valores, porque o laranja da marca NÃO serve para tudo:
+
+     --laranja       #ff5e2c é o laranja do kit. Sobre papel dá 2,98:1 — só
+                     preenchimento e grafismo (marca, grade, gráfico), nunca
+                     texto pequeno nem fundo com texto branco em cima (3,05:1).
+     --laranja-tinta #b04518 é o MESMO laranja fechado até servir nos dois
+                     papéis, em TODA superfície clara: 5,57:1 sobre o papel,
+                     5,16:1 sobre o canvas, 4,73:1 sobre `--navegacao` (a mais
+                     escura das três — é ela que manda no valor) e 5,66:1 com
+                     branco em cima. É ele que vira `--acento`: o acento deste
+                     produto é texto (link, estado ativo, ícone) em 149 lugares
+                     contra 61 de preenchimento, então ele precisa ler como
+                     texto antes de qualquer outra coisa.
+     --grafite       #292524 é a tinta do kit: texto e as superfícies escuras
+                     (`.demo-sidebar`, `.metric-card`).
+
+     O kit usa grafite no `.button` das telas de marca e laranja nos acentos
+     de aplicação (`.composer button`, `.conversation-head button`) — a tela
+     de login segue a primeira leitura, o produto segue a segunda. */
+  --laranja:       #ff5e2c;
+  --laranja-tinta: #b04518;
+  --laranja-veu:   #fff0eb;
+  --grafite:       #292524;
+
   /* ---------- primitivos: acento e estado ----------
-     O azul é o Carbon #0f62fe do console (5,05:1 sobre branco, e branco sobre
-     ele dá os mesmos 5,05:1 — por isso o botão primário escreve em branco).
-     No escuro é o role `primary` REAL do M3 (TonalSpot, tom 80) para essa
-     mesma cor — não mais uma aproximação manual "clareada": mais claro/
-     pastel que o valor anterior e com contraste MAIOR (9,6–10,9:1 como
-     texto, contra 7,4:1 de antes). perigo/alerta/ok seguem o mesmo método
-     (retonados no hue/chroma reais de cada um; M3 não tem role nativo para
-     sucesso/atenção). */
-  --acento-escuro: #0f62fe;
-  --acento-escuro-hover: #0043ce;
-  --acento-claro:  #b4c5ff;
-  --acento-claro-hover: #d3dcff;
-  --acento-tinta-sobre-claro: #1b2d60;
-  --perigo-claro: #b3261e;  --perigo-escuro: #ffb4ab;
-  --alerta-claro: #8a5d0f;  --alerta-escuro: #f7bc68;
-  --ok-claro:     #1d7a4c;  --ok-escuro:     #81d9a2;
+     No escuro o laranja clareia (#ff8a63, 7,9:1 sobre o canvas escuro) e
+     ganha tinta escura por cima (7,3:1). O PERIGO fica num vermelho fechado
+     de propósito: no kit o tom de erro (#b13d24) é quase o mesmo do acento,
+     e alarme que se confunde com ação não é alarme. */
+  --acento-escuro: #b04518;
+  --acento-escuro-hover: #9c3b16;
+  --acento-claro:  #ff8a63;
+  --acento-claro-hover: #ffa686;
+  --acento-tinta-sobre-claro: #2a1207;
+  --perigo-claro: #a32019;  --perigo-escuro: #ffb4ab;
+  --alerta-claro: #805b06;  --alerta-escuro: #f7bc68;
+  --ok-claro:     #28603a;  --ok-escuro:     #81d9a2;
 
   /* ---------- primitivos: identidade (idêntico nos dois temas) ----------
      Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
@@ -74,12 +97,12 @@
   --avatar-c4: #9E5439; --avatar-c5: #4B5768; --avatar-c6: #A23E7B;
 
   /* ---------- tipografia ----------
-     Inter na interface (a mesma pilha do console); JetBrains Mono só em dado
-     técnico; a serifa é de UM lugar só — a saudação da Início, como no
-     console (resolv/inicio/inicio.scss). */
-  --f-ui: "Inter", -apple-system, system-ui, sans-serif;
+     A dupla do Convertize: Geist na interface, Tenor Sans no display (título
+     de tela, saudação da Início). JetBrains Mono continua só em dado técnico.
+     Self-hosted por @fontsource em src/main.tsx, como as anteriores. */
+  --f-ui: "Geist Sans", Geist, -apple-system, system-ui, sans-serif;
   --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  --f-display: "Libre Baskerville", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --f-display: "Tenor Sans", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
   --fs-micro:     9.75px;
   --fs-legenda:   11px;
@@ -115,15 +138,14 @@
   --sp-10: 40px; --sp-11: 44px; --sp-16: 64px;
 
   /* ---------- forma ----------
-     Um raio só na interface inteira: 2px, como no console (`--raio`). A
-     escala sm/md/lg/xl continua existindo por NOME — `rounded-lg` em 50
-     arquivos — mas todos os degraus resolvem pro mesmo valor. Quem precisa
-     de círculo de verdade (avatar, ponto de status, interruptor) usa
-     `--r-total`: é forma, não estilo. `--r-painel` é a exceção nomeada e só
-     do shell: o painel de conteúdo apoiado sobre o cromo, igual ao console
-     (`--raio-painel`). */
-  --r-sm: 2px; --r-md: 2px; --r-lg: 2px; --r-xl: 2px; --r-total: 999px;
-  --r-painel: 16px;
+     A escala volta a ter degraus: no Convertize o canto generoso é metade do
+     caráter, e os quatro valores saem do próprio kit — campo 8px, botão 10px
+     (`.button`), cartão 14px (`.component-card`), seção 18px (`.ds-section`).
+     Antes todos resolviam para 2px. Quem precisa de círculo de verdade
+     (avatar, ponto de status, interruptor) continua em `--r-total`: é forma,
+     não estilo. */
+  --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-total: 999px;
+  --r-painel: 18px;
   --respiro-painel: 12px;
   --borda-fina: 1px;
 
@@ -151,11 +173,14 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  --canvas:             var(--neutro-50);   /* fundo geral atrás do conteúdo */
-  --superficie:         var(--neutro-0);    /* cartão, campo, modal */
-  --superficie-sutil:   var(--neutro-50);
-  --superficie-elevada: var(--neutro-0);
-  --navegacao:          var(--neutro-100);  /* cromo: sidebar, barra, hover, caixa de ícone */
+  /* Pergaminho, papel e um cromo quente um degrau abaixo do canvas — a ordem
+     de luminância (cromo < canvas < superfície) é a mesma de antes, que é o
+     que mantém o cromo recuado em relação ao conteúdo. */
+  --canvas:             #f6f4f1;   /* fundo geral atrás do conteúdo */
+  --superficie:         #fffdf9;   /* cartão, campo, modal */
+  --superficie-sutil:   #f6f4f1;
+  --superficie-elevada: #fffdf9;
+  --navegacao:          #efeae2;   /* cromo: sidebar, barra, hover, caixa de ícone */
 
   /* Duas famílias de linha, de propósito (como no console):
      --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
@@ -164,34 +189,40 @@
                     precisa se anunciar como editável; com a linha estrutural
                     o formulário sumia dentro da página
      --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      #e5e7eb;  /* hex fixo: sobre o canvas (#f8f8f7) a linha derivada de preto ficava clara demais */
-  --borda-controle: rgba(0, 0, 0, .14);
-  --borda-campo:    var(--neutro-600);
+  --divisoria:      #e5e0da;  /* a `--line` do kit */
+  --borda-controle: #cfc8c1;
+  /* Campo continua bem mais escuro que a linha estrutural — é a regra que faz
+     o formulário se anunciar como editável. O #cbc4bd do kit daria 1,7:1 e
+     reprovaria em 1.4.11; este é o mesmo cinza-quente fechado até 3,8:1. */
+  --borda-campo:    #8a8079;
 
-  --tinta:            var(--neutro-900);
-  --tinta-secundaria: var(--neutro-700);
-  --tinta-terciaria:  #737373;
-  --texto-cromo:      #333333;  /* texto e ícone sobre o cromo */
+  --tinta:            var(--grafite);
+  /* Dois degraus do cinza-quente do kit (`--muted:#777169`) fechados o
+     bastante para passar em AA no pergaminho (6,3:1 e 4,9:1); o literal do
+     kit dá 4,4:1 e reprovaria no texto menor. */
+  --tinta-secundaria: #5f5952;
+  --tinta-terciaria:  #6f6961;
+  --texto-cromo:      #3b352f;  /* texto e ícone sobre o cromo */
 
   --acento:       var(--acento-escuro);
   --acento-hover: var(--acento-escuro-hover);
   --acento-tinta: var(--acento-escuro);
-  --acento-sobre: var(--neutro-0);
-  --acento-suave: rgba(15, 98, 254, .08);
+  --acento-sobre: #ffffff;
+  --acento-suave: var(--laranja-veu);
 
-  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .08);
-  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .10);
-  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .10);
+  --perigo: var(--perigo-claro);  --perigo-suave: #fff0ed;
+  --alerta: var(--alerta-claro);  --alerta-suave: #fff5d9;
+  --ok:     var(--ok-claro);      --ok-suave:     #e7f3ea;
 
-  --hover: rgba(0, 0, 0, .06);
-  --ativo: rgba(0, 0, 0, .10);
+  --hover: rgba(41, 37, 36, .05);
+  --ativo: rgba(41, 37, 36, .09);
 
   /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
      do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
      sombra, e é a mesma do console (--sombra-flutuante). */
   --elevacao-1: none;
-  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .12), 0 0 0 1px rgba(0, 0, 0, .06);
-  --sobreposicao: rgba(26, 26, 26, .42);  /* véu atrás do modal */
+  --elevacao-3: 0 18px 44px rgba(41, 37, 36, .16), 0 0 0 1px rgba(41, 37, 36, .05);
+  --sobreposicao: rgba(41, 37, 36, .48);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
@@ -226,7 +257,7 @@
   --acento-hover: var(--acento-claro-hover);
   --acento-tinta: var(--acento-claro);
   --acento-sobre: var(--acento-tinta-sobre-claro);
-  --acento-suave: rgba(180, 197, 255, .14);
+  --acento-suave: rgba(255, 138, 99, .16);
 
   --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
   --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
@@ -257,7 +288,7 @@
     --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
     --acento-tinta: var(--acento-claro);
     --acento-sobre: var(--acento-tinta-sobre-claro);
-    --acento-suave: rgba(180, 197, 255, .14);
+    --acento-suave: rgba(255, 138, 99, .16);
     --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
     --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
     --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);

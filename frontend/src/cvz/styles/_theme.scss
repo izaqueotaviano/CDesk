@@ -23,11 +23,16 @@
 [data-theme='light'] {
   color-scheme: light;
 
-  --cvz-blue:            #0f62fe;
-  --cvz-blue-hover:      #0043ce;
-  --cvz-blue-active:     #002d9c;
-  --cvz-blue-tint:       #edf5ff;
-  --cvz-blue-tint-hover: #d0e2ff;
+  // O nome `blue` ficou: ~200 usos e nenhum componente lê o hex direto.
+  // O VALOR é o laranja do Convertize já fechado para servir como texto em
+  // toda superfície clara (4,73:1 na mais escura delas) e como preenchimento
+  // com branco em cima (5,66:1) — ver o porquê dos três valores de marca em
+  // styles/tokens.css.
+  --cvz-blue:            #b04518;
+  --cvz-blue-hover:      #9c3b16;
+  --cvz-blue-active:     #85300f;
+  --cvz-blue-tint:       #fff0eb;
+  --cvz-blue-tint-hover: #ffe1d6;
 
   // Conteúdo em branco; o cromo (sidebar, barra de abas) é que recua para o
   // #f0f0f0. `raised` segue branco e se separa do fundo pela LINHA, não por
@@ -38,34 +43,34 @@
   // `surface`). `chrome`/`canvas` são os dois primeiros tons do app da Manus
   // (nav e canvas — só referência de VALOR, não código); o card de lá
   // (#fafafa) não entrou, cartão/tabela seguem em branco puro.
-  --cvz-surface:         #ffffff;
-  --cvz-canvas:          #f8f8f7;
-  --cvz-chrome:          #f0f0f0;
-  --cvz-raised:          #ffffff;
+  --cvz-surface:         #fffdf9;
+  --cvz-canvas:          #f6f4f1;
+  --cvz-chrome:          #efeae2;
+  --cvz-raised:          #fffdf9;
   // Hex fixo, não mais preto translúcido: sobre o novo `--cvz-canvas`
   // (#f8f8f7, não mais branco puro) uma borda derivada de preto ficava
   // clara demais — mesma troca e mesmo motivo do lado resolv
   // (resolv/styles/tokens.scss). `--cvz-field-border`, abaixo, é outra
   // família e não muda.
-  --cvz-stroke:          #e5e7eb;
-  --cvz-field-border:    #7d7d7d;
-  --cvz-hover:           #e6e6e6;
-  --cvz-hover-soft:      rgba(26, 26, 26, 0.04);
+  --cvz-stroke:          #e5e0da;
+  --cvz-field-border:    #8a8079;
+  --cvz-hover:           #e5e0da;
+  --cvz-hover-soft:      rgba(41, 37, 36, 0.05);
 
-  --cvz-text:            #1a1a1a;
-  --cvz-text-hover:      #101010;
-  --cvz-text-secondary:  #4d4d4d;
-  --cvz-text-muted:      #737373;
+  --cvz-text:            #292524;
+  --cvz-text-hover:      #171311;
+  --cvz-text-secondary:  #5f5952;
+  --cvz-text-muted:      #6f6961;
   --cvz-text-on-color:   #ffffff;
   --cvz-text-on-accent:  #ffffff;
 
-  --cvz-danger:          #b3261e;
-  --cvz-danger-hover:    #9c211a;
-  --cvz-danger-tint:     #fdeceb;
-  --cvz-success:         #1d7a4c;
-  --cvz-success-tint:    #e9f4ee;
-  --cvz-away:            #8a5d0f;
-  --cvz-away-tint:       #f8f1e3;
+  --cvz-danger:          #a32019;
+  --cvz-danger-hover:    #8a1a14;
+  --cvz-danger-tint:     #fff0ed;
+  --cvz-success:         #28603a;
+  --cvz-success-tint:    #e7f3ea;
+  --cvz-away:            #805b06;
+  --cvz-away-tint:       #fff5d9;
 
   // Identidade — o que distingue "esta pessoa" de "aquela" (avatar) e "este
   // plano" de "aquele" (Tag). Paleta à parte da semântica: nenhum é azul,
@@ -86,13 +91,13 @@
   --cvz-identity-4-text: var(--cvz-identity-4);
   --cvz-identity-5-text: var(--cvz-identity-5);
   --cvz-identity-6-text: var(--cvz-identity-6);
-  --cvz-overlay:         rgba(26, 26, 26, 0.38);
+  --cvz-overlay:         rgba(41, 37, 36, 0.44);
 
-  --cvz-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --cvz-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-  --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.14);
+  --cvz-shadow-sm: 0 1px 2px rgba(41, 37, 36, 0.06);
+  --cvz-shadow-md: 0 6px 16px rgba(41, 37, 36, 0.09);
+  --cvz-shadow-lg: 0 18px 44px rgba(41, 37, 36, 0.16);
 
-  --cvz-chrome-glass: rgba(240, 240, 240, 0.72);
+  --cvz-chrome-glass: rgba(239, 234, 226, 0.75);
   --cvz-on-accent-soft: rgba(255, 255, 255, 0.16);
 }
 
@@ -109,11 +114,11 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --cvz-blue:            #b4c5ff;
-  --cvz-blue-hover:      #d3dcff;
-  --cvz-blue-active:     #98a9e4;
-  --cvz-blue-tint:       #334478;  // M3 primary-container (tom 30)
-  --cvz-blue-tint-hover: #3f5085;
+  --cvz-blue:            #ff8a63;
+  --cvz-blue-hover:      #ffa686;
+  --cvz-blue-active:     #e5754f;
+  --cvz-blue-tint:       #5c2410;  // container do laranja (mesmo papel do tom 30)
+  --cvz-blue-tint-hover: #6f2c14;
 
   --cvz-surface:         #141218;  // M3 surface
   // Sem referência escura no material desta rodada — mesma extrapolação do
@@ -134,7 +139,7 @@
   --cvz-text-secondary:  #CAC4D0;  // M3 on-surface-variant
   --cvz-text-muted:      #938F99;  // M3 outline
   --cvz-text-on-color:   #E6E0E9;
-  --cvz-text-on-accent:  #1B2D60;  // M3 on-primary (tom 20) sobre o novo --cvz-blue
+  --cvz-text-on-accent:  #2a1207;  // tinta escura sobre o laranja claro (7,3:1)
 
   // error/success/warning pela MESMA metodologia e MESMA cor-fonte do resto
   // do produto (#b3261e/#1d7a4c/#8a5d0f — as mesmas de --danger/--ok/--away
@@ -167,5 +172,5 @@
   --cvz-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
 
   --cvz-chrome-glass: rgba(29, 27, 32, 0.72);
-  --cvz-on-accent-soft: rgba(27, 45, 96, 0.18);
+  --cvz-on-accent-soft: rgba(42, 18, 7, 0.20);
 }

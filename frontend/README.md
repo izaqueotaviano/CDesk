@@ -67,7 +67,9 @@ para `src/styles/`:
 - `tailwind.config.cjs` — idêntico ao entregue, com uma adição: o campo
   `content` (Tailwind v3 não gera nada sem ele; não veio no original).
 - `tokens.json` — guardado como referência (W3C Design Tokens), não
-  consumido em runtime.
+  consumido em runtime. Continua registrando a paleta e a tipografia
+  **originais**, anteriores à troca para o Convertize: quem vale hoje é o
+  `tokens.css`.
 
 Tema: atributo `data-tema` (`"claro"` \| `"escuro"`) em `<html>` — **nunca**
 fixado por padrão. Sem o atributo, `tokens.css` já resolve sozinho via

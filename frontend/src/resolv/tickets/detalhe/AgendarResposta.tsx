@@ -42,6 +42,11 @@ export function AgendarResposta({ ticket, me }: Props) {
   const [status, setStatus] = useState<StatusTicket>('open')
   const [quando, setQuando] = useState('')
   const [erro, setErro] = useState<string | null>(null)
+  /** Piso do seletor, carimbado ao ABRIR o painel e não a cada render: ler o
+   *  relógio durante o render é impuro (react-hooks/purity) e, pior, faria o
+   *  mínimo rastejar para a frente enquanto a pessoa escreve — um horário
+   *  escolhido às 14:00 viraria inválido sozinho no minuto seguinte. */
+  const [minimo, setMinimo] = useState('')
 
   const perms = me?.permissions ?? []
   const podeAgendar = me?.is_internal === true && perms.includes('ticket.reply_public')
@@ -49,7 +54,6 @@ export function AgendarResposta({ ticket, me }: Props) {
 
   if (!podeAgendar) return null
 
-  const minimo = paraDatetimeLocal(new Date(Date.now() + 60_000).toISOString())
   const podeConfirmar = texto.trim().length > 0 && quando.length > 0 && !agendarResposta.isPending
 
   function agendar() {
@@ -99,7 +103,14 @@ export function AgendarResposta({ ticket, me }: Props) {
       )}
 
       {!aberto ? (
-        <button type="button" className="agendar-resposta__abrir" onClick={() => setAberto(true)}>
+        <button
+          type="button"
+          className="agendar-resposta__abrir"
+          onClick={() => {
+            setMinimo(paraDatetimeLocal(new Date(Date.now() + 60_000).toISOString()))
+            setAberto(true)
+          }}
+        >
           <i className="ti ti-calendar-time" aria-hidden="true" /> Agendar resposta
         </button>
       ) : (

@@ -51,6 +51,13 @@ module.exports = {
         ok:     { DEFAULT: 'var(--ok)',     suave: 'var(--ok-suave)' },
         sobreposicao: 'var(--sobreposicao)',
 
+        // Primitivos de MARCA do Convertize: fixos nos dois temas. `laranja`
+        // é o laranja cheio (#ff5e2c) — preenchimento e grafismo só, nunca
+        // texto — e `grafite` é a tinta do kit, o fundo do `.button` de tela
+        // de marca. Quem segue o tema usa `acento`/`tinta`, não estes.
+        laranja: 'var(--laranja)',
+        grafite: 'var(--grafite)',
+
         // primitivos — use só quando o valor não puder seguir o tema.
         // A rampa é a do console (ver tokens.css); a quente antiga saiu.
         // 800/850/875/950/975 (degraus escuros) pelos roles de escala do
@@ -65,10 +72,11 @@ module.exports = {
       },
 
       fontFamily: {
-        ui:      ['Inter', '-apple-system', 'system-ui', 'sans-serif'],
+        ui:      ['Geist Sans', 'Geist', '-apple-system', 'system-ui', 'sans-serif'],
         mono:    ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
-        // Serifa de UM lugar só (saudação da Início), como `--f-display` no console.
-        display: ['Libre Baskerville', 'ui-serif', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
+        // O display do Convertize (título de tela, saudação da Início) — mesma
+        // pilha de `--f-display` em styles/tokens.css.
+        display: ['Tenor Sans', 'ui-serif', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
       },
 
       // escala base 14px razão 1,125
