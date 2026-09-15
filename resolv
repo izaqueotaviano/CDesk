@@ -690,13 +690,32 @@ pronto() {
     local ip; ip="$(ip_local)"
     echo
     if [ -n "$ip" ]; then
-      echo "  Da sua rede:   ${B}http://$ip:8000/api/v1/${N}"
+      if tem_frontend; then
+        # O Vite (vite.config.ts) já escuta em todas as interfaces
+        # (host: true) — falta só apontar ele pro backend certo, senão o
+        # bundle de quem acessa de outro aparelho chama "localhost:8000" DO
+        # APARELHO DELE, que não tem nada rodando.
+        echo "  Da sua rede:   ${B}http://$ip:5174${N}  ← passe este link pra quem for testar"
+        echo "  API:           http://$ip:8000/api/v1/"
+      else
+        echo "  Da sua rede:   ${B}http://$ip:8000/api/v1/${N}"
+      fi
     else
       aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
+      aviso "Substitua \$ip pelo seu IP local (ex.: 192.168.0.42) nos passos abaixo."
     fi
-    echo "  Para o front alcançar a API de outra origem, preencha no .env:"
-    echo "    DJANGO_ALLOWED_HOSTS_EXTRA, CORS_ALLOWED_ORIGINS e CSRF_TRUSTED_ORIGINS"
-    echo "  e rode este comando de novo."
+    echo
+    echo "  Pra funcionar de outro aparelho, duas coisas (uma vez só):"
+    echo "  1. No .env (raiz), preencha e suba de novo:"
+    echo "       DJANGO_ALLOWED_HOSTS_EXTRA=${ip:-\$ip}"
+    echo "       CORS_ALLOWED_ORIGINS=http://${ip:-\$ip}:5174"
+    echo "       CSRF_TRUSTED_ORIGINS=http://${ip:-\$ip}:5174"
+    if tem_frontend; then
+      echo "  2. Crie $FRONT_DIR/.env a partir do .env.example e troque 'localhost' por ${ip:-\$ip}:"
+      echo "       VITE_API_BASE_URL=http://${ip:-\$ip}:8000"
+      echo "       VITE_WS_BASE_URL=ws://${ip:-\$ip}:8000"
+    fi
+    echo "  Depois é só: ./resolv compartilhar de novo."
   fi
 
   echo

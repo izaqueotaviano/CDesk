@@ -42,10 +42,17 @@ export default defineConfig({
   server: {
     port: 5174,
     strictPort: true,
+    // `host: true` escuta em todas as interfaces (0.0.0.0), não só
+    // localhost — sem isto `./resolv compartilhar` expunha a API pra rede
+    // mas o Vite continuava só alcançável da própria máquina: quem testasse
+    // de outro aparelho batia num "conexão recusada" na porta 5174 mesmo com
+    // o .env do backend todo configurado.
+    host: true,
   },
   preview: {
     port: 5174,
     strictPort: true,
+    host: true,
   },
   test: {
     globals: true,
