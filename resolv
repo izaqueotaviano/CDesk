@@ -3,7 +3,7 @@
 # resolv — sobe o sistema inteiro (backend + frontend) com um comando.
 #
 #   ./resolv              atualiza, sobe API e frontend, migra e semeia
-#   ./resolv compartilhar como acima, e diz como outra máquina alcança a API
+#   ./resolv compartilhar como acima, e libera sozinho o acesso pela rede local
 #   ./resolv parar        derruba tudo (containers e frontend)
 #   ./resolv logs         acompanha o log da API
 #   ./resolv logs front   acompanha o log do frontend (Vite)
@@ -670,6 +670,71 @@ ip_local() {
   fi
 }
 
+# env_definir ARQUIVO CHAVE VALOR — troca o valor de CHAVE em ARQUIVO, ou
+# acrescenta a linha se a chave ainda não existir (self-heal de um .env
+# antigo, de antes desta variável existir).
+env_definir() {
+  local arquivo="$1" chave="$2" valor="$3"
+  if grep -q "^${chave}=" "$arquivo" 2>/dev/null; then
+    sed -i -E "s#^${chave}=.*#${chave}=${valor}#" "$arquivo"
+  else
+    echo "${chave}=${valor}" >> "$arquivo"
+  fi
+}
+
+# env_incluir_origem ARQUIVO CHAVE ORIGEM — garante que ORIGEM apareça na
+# lista separada por vírgula de CHAVE, sem duplicar e sem apagar o que já
+# tinha (o localhost continua liberado, senão quem desenvolve nesta máquina
+# para de conseguir logar).
+env_incluir_origem() {
+  local arquivo="$1" chave="$2" origem="$3" atual
+  atual="$(sed -n -E "s#^${chave}=(.*)#\1#p" "$arquivo" 2>/dev/null | head -1)"
+  case ",$atual," in
+    *",$origem,"*) return 0 ;;
+  esac
+  env_definir "$arquivo" "$chave" "${atual:+$atual,}$origem"
+}
+
+# Só entra em jogo pelo `./resolv compartilhar`: descobre o IP da rede local
+# e grava sozinho o que antes era um passo manual — DJANGO_ALLOWED_HOSTS_EXTRA/
+# CORS_ALLOWED_ORIGINS/CSRF_TRUSTED_ORIGINS no .env da raiz, e
+# VITE_API_BASE_URL/VITE_WS_BASE_URL no frontend/.env (criado a partir do
+# .env.example se ainda não existir). Imprime o IP encontrado (vazio se não
+# achou) e marca REDE_MUDOU=1 quando algo nos arquivos mudou de verdade, para
+# quem chamar decidir se vale reiniciar o que já estava no ar.
+REDE_MUDOU=0
+configurar_rede_local() {
+  local ip; ip="$(ip_local)"
+  if [ -z "$ip" ]; then
+    aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
+    aviso "Depois preencha \$ip à mão no .env (DJANGO_ALLOWED_HOSTS_EXTRA/CORS_ALLOWED_ORIGINS/CSRF_TRUSTED_ORIGINS)."
+    return 0
+  fi
+
+  # "|| true" nos dois cksum: no primeiro compartilhamento o frontend/.env
+  # ainda não existe, e cksum num arquivo que não existe sai com erro — sem
+  # isto o set -e do topo do script derrubava o resolv inteiro bem aqui,
+  # antes mesmo de gravar a configuração.
+  local origem="http://$ip:5174" antes depois
+  antes="$(cksum .env 2>/dev/null || true)"
+  tem_frontend && antes="$antes$(cksum "$FRONT_DIR/.env" 2>/dev/null || true)"
+
+  env_definir .env DJANGO_ALLOWED_HOSTS_EXTRA "$ip"
+  env_incluir_origem .env CORS_ALLOWED_ORIGINS "$origem"
+  env_incluir_origem .env CSRF_TRUSTED_ORIGINS "$origem"
+
+  if tem_frontend; then
+    [ -f "$FRONT_DIR/.env" ] || cp "$FRONT_DIR/.env.example" "$FRONT_DIR/.env"
+    env_definir "$FRONT_DIR/.env" VITE_API_BASE_URL "http://$ip:8000"
+    env_definir "$FRONT_DIR/.env" VITE_WS_BASE_URL "ws://$ip:8000"
+  fi
+
+  depois="$(cksum .env 2>/dev/null || true)"
+  tem_frontend && depois="$depois$(cksum "$FRONT_DIR/.env" 2>/dev/null || true)"
+  [ "$antes" = "$depois" ] || REDE_MUDOU=1
+  printf '%s' "$ip"
+}
+
 pronto() {
   local compartilhar="${1:-}"
 
@@ -692,9 +757,9 @@ pronto() {
     if [ -n "$ip" ]; then
       if tem_frontend; then
         # O Vite (vite.config.ts) já escuta em todas as interfaces
-        # (host: true) — falta só apontar ele pro backend certo, senão o
-        # bundle de quem acessa de outro aparelho chama "localhost:8000" DO
-        # APARELHO DELE, que não tem nada rodando.
+        # (host: true), e configurar_rede_local já apontou o bundle pro
+        # backend certo — sem isso quem acessasse de outro aparelho batia
+        # em "localhost:8000" DO APARELHO DELE, que não tem nada rodando.
         echo "  Da sua rede:   ${B}http://$ip:5174${N}  ← passe este link pra quem for testar"
         echo "  API:           http://$ip:8000/api/v1/"
       else
@@ -702,20 +767,7 @@ pronto() {
       fi
     else
       aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
-      aviso "Substitua \$ip pelo seu IP local (ex.: 192.168.0.42) nos passos abaixo."
     fi
-    echo
-    echo "  Pra funcionar de outro aparelho, duas coisas (uma vez só):"
-    echo "  1. No .env (raiz), preencha e suba de novo:"
-    echo "       DJANGO_ALLOWED_HOSTS_EXTRA=${ip:-\$ip}"
-    echo "       CORS_ALLOWED_ORIGINS=http://${ip:-\$ip}:5174"
-    echo "       CSRF_TRUSTED_ORIGINS=http://${ip:-\$ip}:5174"
-    if tem_frontend; then
-      echo "  2. Crie $FRONT_DIR/.env a partir do .env.example e troque 'localhost' por ${ip:-\$ip}:"
-      echo "       VITE_API_BASE_URL=http://${ip:-\$ip}:8000"
-      echo "       VITE_WS_BASE_URL=ws://${ip:-\$ip}:8000"
-    fi
-    echo "  Depois é só: ./resolv compartilhar de novo."
   fi
 
   echo
@@ -759,6 +811,21 @@ compartilhar() {
   conferir_ferramentas
   atualizar_codigo
   preparar_env
+  configurar_rede_local >/dev/null
+  # Backend/frontend podem já estar no ar de um './resolv' anterior, sem
+  # compartilhamento — nesse caso 'subir_backend'/'subir_frontend' só veem
+  # "já no ar" e pulam o restart, e o navegador de quem testar bate contra
+  # um CORS/CSRF configurado ainda pra localhost. Derrubar aqui garante que
+  # os dois sobem de novo já com o .env/.env do frontend atualizados.
+  if [ "$REDE_MUDOU" = "1" ]; then
+    passo "Configuração de rede mudou — reiniciando o que já estava no ar"
+    if [ "$MODO" = "docker" ]; then
+      docker compose rm -sf web worker beat >/dev/null 2>&1 || true
+    else
+      parar_backend_nativo >/dev/null 2>&1 || true
+    fi
+    parar_frontend >/dev/null 2>&1 || true
+  fi
   subir_backend
   subir_frontend
   esperar_backend
