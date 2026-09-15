@@ -100,6 +100,7 @@ const TICKET: TicketDetalhe = {
   messages: [],
   events: [],
   watchers: [],
+  scheduled_replies: [],
   requester: {
     name: 'Beto Barros',
     email: 'beto@acme.test',

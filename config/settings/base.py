@@ -483,6 +483,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.tickets.tasks.auto_close_stale_pending",
         "schedule": crontab(minute=5),  # de hora em hora, 5min depois do aviso
     },
+    # Resposta agendada: quem marcou "amanhã 8h" espera sair perto das 8h, não
+    # na próxima varredura de hora em hora — granularidade curta de propósito,
+    # comparável ao timeout de fila do chat acima.
+    "dispatch-scheduled-replies": {
+        "task": "apps.tickets.tasks.dispatch_scheduled_replies",
+        "schedule": 60.0,
+    },
     # prazo interno do quadro: digitável desde sempre, agora também AVISA
     "warn-overdue-cards": {
         "task": "apps.kanban.tasks.warn_overdue_cards",

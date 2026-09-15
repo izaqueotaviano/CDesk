@@ -468,6 +468,16 @@ class Ticket(TimeStampedModel):
             return True
         return user.can(Perm.TICKET_REPLY_PUBLIC)
 
+    def can_close_as_requester(self, user) -> bool:
+        """O CLIENTE encerra o próprio chamado — mesma população de
+        `can_reply` (o solicitante, ou o OWNER da empresa), sem o registro de
+        trabalho técnico (D4) que só o suporte preenche. Fechamento do
+        agente continua pela outra porta (`Perm.TICKET_CLOSE` em
+        `ticket_service.close_ticket`), que É interna por definição."""
+        if user.is_internal:
+            return False
+        return self.status != TicketStatus.CLOSED and self.can_reply(user)
+
 
 class SatisfactionSurvey(TimeStampedModel):
     """Pesquisa de satisfação (CSAT 0–10) de um ticket fechado.
@@ -573,6 +583,63 @@ class TicketMessage(TimeStampedModel):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+
+class ScheduledReplyStatus(models.TextChoices):
+    PENDING = "pending", "Pendente"
+    SENT = "sent", "Enviada"
+    FAILED = "failed", "Falhou"
+    CANCELLED = "cancelled", "Cancelada"
+
+
+class ScheduledReply(TimeStampedModel):
+    """Uma resposta escrita agora, para disparar sozinha na hora marcada —
+    o agente que quer responder logo cedo sem precisar estar na tela quando
+    o horário chegar.
+
+    Guarda os MESMOS parâmetros de `ticket_service.add_reply`: o disparo
+    (`apps.tickets.tasks.dispatch_scheduled_replies`) reusa essa função tal
+    como está, em vez de duplicar a máquina de estado do ticket (fechamento,
+    SLA, notificação do solicitante). `status` segue a mesma convenção de
+    `ReportExport`/`RetentionRun` (PENDING → SENT/FAILED); `CANCELLED` é o
+    extra que só este caso precisa — o agente pode desistir antes da hora.
+    """
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="scheduled_replies")
+    author = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="scheduled_replies",
+    )
+    body = models.TextField()
+    is_public = models.BooleanField(default=True)
+    # Só tem sentido (e só é exigido) quando `is_public` — nota interna não
+    # muda status. Vazio, não nulo: mesma convenção de `TicketMacro.priority`.
+    new_status = models.CharField(max_length=20, choices=TicketStatus.choices, blank=True)
+    resolution_started_at = models.DateTimeField(null=True, blank=True)
+    resolution_ended_at = models.DateTimeField(null=True, blank=True)
+    close_note = models.CharField(max_length=200, blank=True)
+    with_signature = models.BooleanField(default=False)
+    scheduled_at = models.DateTimeField(db_index=True)
+    status = models.CharField(
+        max_length=10, choices=ScheduledReplyStatus.choices, default=ScheduledReplyStatus.PENDING,
+    )
+    sent_at = models.DateTimeField(null=True, blank=True)
+    # A mensagem que o disparo produziu — rastreabilidade (paralelo a
+    # `RetentionRun.results`/`DataSubjectRequest.result`). Nula até enviar.
+    message = models.ForeignKey(
+        TicketMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    error = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "resposta agendada"
+        verbose_name_plural = "respostas agendadas"
+        ordering = ["scheduled_at"]
+        indexes = [
+            models.Index(fields=["status", "scheduled_at"], name="idx_scheduled_reply_pendente"),
+        ]
+
+    def __str__(self):
+        return f"Resposta agendada #{self.pk} em {self.ticket_id} para {self.scheduled_at:%d/%m %H:%M}"
 
 
 class ScanStatus(models.TextChoices):

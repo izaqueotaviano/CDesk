@@ -190,7 +190,7 @@ describe('MiniChat', () => {
     expect(within(dialogo).getByRole('button', { name: 'Pegar' })).toBeDisabled()
   })
 
-  it('cada painel aberto ao mesmo tempo tem um tom de identidade diferente no cabeçalho — e a aba repete o tom', async () => {
+  it('cada painel aberto ao mesmo tempo tem um tom de identidade diferente no cabeçalho', async () => {
     montar()
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Bruno Cliente' }))
@@ -201,8 +201,27 @@ describe('MiniChat', () => {
     expect(tomA).toMatch(/^(1[0-5]|[1-9])$/)
     expect(tomB).toMatch(/^(1[0-5]|[1-9])$/)
     expect(tomA).not.toBe(tomB)
-    const abaA = screen.getByRole('button', { name: 'Recolher conversa com Ana Cliente' })
-    expect(abaA.querySelector('[data-tom-chat]')?.getAttribute('data-tom-chat')).toBe(tomA)
+  })
+
+  it('minimizar guarda o mesmo tom que o painel tinha — a barra minimizada repete a cor do atendimento', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    const painel = await screen.findByRole('region', { name: 'Conversa com Ana Cliente' })
+    const tom = painel.querySelector('header')?.getAttribute('data-tom-chat')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Minimizar conversa com Ana Cliente' }))
+    const barra = await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' })
+    expect(barra.querySelector('[data-tom-chat]')?.getAttribute('data-tom-chat')).toBe(tom)
+  })
+
+  it('um chat aberto não aparece mais como barra minimizada — nunca os dois juntos', async () => {
+    montar()
+    expect(await screen.findByRole('button', { name: 'Abrir conversa com Ana Cliente' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir conversa com Ana Cliente' }))
+    await screen.findByRole('region', { name: 'Conversa com Ana Cliente' })
+    expect(screen.queryByRole('button', { name: 'Abrir conversa com Ana Cliente' })).not.toBeInTheDocument()
+    // Bruno continua minimizado — só o chat que abriu sai da barra
+    expect(screen.getByRole('button', { name: 'Abrir conversa com Bruno Cliente' })).toBeInTheDocument()
   })
 
   it('o botão de tamanho cicla os presets e a preferência fica guardada por agente', async () => {

@@ -56,6 +56,7 @@ vi.mock('@/api/chat', () => ({
   useCarregarAoRedor: () => ({ mutate: vi.fn() }),
   useMidiaDoChat: () => ({ data: undefined, isLoading: false }),
   useCaixaDeClientes: () => ({ data: caixa, isLoading: false, isError: false, refetch: vi.fn() }),
+  useEditarMensagemChat: () => ({ mutate: vi.fn(), isPending: false }),
   anexarMensagemNoCache: vi.fn(),
 }))
 

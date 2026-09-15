@@ -301,6 +301,18 @@ export function useAvaliarTicket(id: number) {
   })
 }
 
+/** Mesma rota `/close/` do agente — sem `resolution_started_at`/`ended_at`
+ *  (D4): o backend reconhece pelo `is_internal` de quem chama e pede só
+ *  o resumo do trabalho técnico de quem atende, nunca do cliente. */
+export function useEncerrarTicket(id: number) {
+  const gravar = useGravarTicket()
+  return useMutation({
+    mutationFn: (dados: { note?: string } = {}) =>
+      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados),
+    onSuccess: gravar,
+  })
+}
+
 /** Editar/excluir a PRÓPRIA mensagem — o backend só deixa o autor (`can_edit`). */
 export function useMensagemTicket(ticketId: number) {
   const qc = useQueryClient()

@@ -29,10 +29,20 @@
   }
 
   // ── Painéis ───────────────────────────────────────────────────────────────
+  // Cada atendimento aberto é um painel PRÓPRIO, lado a lado — nunca
+  // sobreposto. O que faltava era o cálculo da largura SOMADA dos N painéis:
+  // sem ele, 3 atendimentos no preset grande (3×460 + 2×12 = 1404px) saíam
+  // da tela e ficavam cortados na borda, sem como alcançar os de trás — o
+  // "encavalado" do pedido. Agora a faixa tem um teto e rola na horizontal
+  // em vez de cortar.
   &__paineis {
     display: flex;
     align-items: flex-end;
     gap: 12px;
+    max-width: calc(100vw - 32px);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-padding-inline: 12px;
   }
 
   &__painel {
@@ -41,6 +51,10 @@
     height: var(--minichat-altura, 500px);
     max-width: calc(100vw - 32px);
     max-height: calc(100vh - 80px);
+    // NUNCA encolhe pra caber: um painel mais estreito que o configurado
+    // (`--minichat-largura`) espremeria o compositor e a conversa em vez de
+    // simplesmente rolar — pior do que só precisar de um scroll horizontal.
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     background: var(--surface);
@@ -322,16 +336,20 @@
     font-size: 11px;
     color: var(--text-muted);
   }
+  // A barra de um atendimento MINIMIZADO: nome + cor do atendimento + marcador
+  // de não lidas + o sinal de abrir — maior que a pílula antiga de propósito
+  // (a pessoa precisa achar e mirar isto rápido, entre uma tela e outra).
   &__aba {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    max-width: 180px;
-    padding: 4px 10px 4px 4px;
+    gap: 8px;
+    max-width: 220px;
+    height: 36px;
+    padding: 0 8px 0 10px;
     border: 1px solid var(--stroke);
     // a barrinha da esquerda repete a cor do painel — a aba e o cabeçalho
     // dela são a mesma cor, e a pessoa acha o painel pelo tom
-    border-left: 3px solid var(--tom, var(--stroke));
+    border-left: 4px solid var(--tom, var(--stroke));
     border-radius: var(--raio);
     background: var(--surface);
     color: var(--text-primary);
@@ -342,10 +360,11 @@
     &:hover {
       border-color: var(--stroke-hover);
       border-left-color: var(--tom, var(--stroke-hover));
+      background: color-mix(in srgb, var(--tom, var(--accent)) 8%, var(--surface));
     }
-    &--aberta {
-      border-color: var(--tom, var(--accent));
-      background: color-mix(in srgb, var(--tom, var(--accent)) 10%, var(--surface-card));
+    &:focus-visible {
+      outline: 2px solid var(--tom, var(--accent));
+      outline-offset: -2px;
     }
   }
   &__aba-nome {
@@ -353,16 +372,30 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  &__avatar {
+  // O sinal de "abrir": maior que o resto do ícone do widget (28px em
+  // vez dos 22px comuns), preenchido na cor do atendimento — o pedido
+  // especificamente queria um botão de abrir MAIOR, não só um ícone discreto.
+  &__aba-abrir {
     width: 22px;
     height: 22px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--tom, var(--accent));
+    color: #ffffff;
+    font-size: 13px;
+  }
+  &__avatar {
+    width: 26px;
+    height: 26px;
     flex-shrink: 0;
     border-radius: 50%;
     display: grid;
     place-items: center;
     background: var(--surface-alt);
     color: var(--text-secondary);
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 600;
 
     // No cabeçalho colorido o avatar é um véu branco — a cor já está no

@@ -4,6 +4,7 @@ import type { Me } from '@/api/types'
 import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { identidadeDe } from '@/ui/identidade'
 import { formatarDataHora } from '../format'
+import { AgendarResposta } from './AgendarResposta'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
 import {
@@ -597,6 +598,7 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
         <div ref={fimRef} />
       </div>
 
+      <AgendarResposta ticket={ticket} me={me} />
       <Compositor ticket={ticket} me={me} pedidoReabrir={pedidoReabrir} />
     </section>
   )

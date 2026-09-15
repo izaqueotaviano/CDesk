@@ -6,6 +6,7 @@ import {
   useCarregarAnteriores,
   useCarregarAoRedor,
   useChat,
+  useEditarMensagemChat,
   useMarcarLidas,
   useMensagensChat,
   useMidiaDoChat,
@@ -203,6 +204,7 @@ export function Bolha({
   emFoco = false,
   destaque = null,
   onResponder,
+  onEditar,
   onIrPara,
 }: {
   msg: MensagemChat
@@ -216,6 +218,9 @@ export function Bolha({
    *  URL marca o link no texto, `''` só a mensagem. `null` = nada. */
   destaque?: string | null
   onResponder?: (msg: MensagemChat) => void
+  /** Só some quando `msg.can_edit` (autor + é a última da sessão + não
+   *  apagada — mesma regra do painel do cliente, ver `chat_service`). */
+  onEditar?: (msg: MensagemChat) => void
   onIrPara?: (id: number) => void
 }) {
   if (msg.is_system) {
@@ -260,6 +265,17 @@ export function Bolha({
               onClick={() => onResponder(msg)}
             >
               <i className="ti ti-arrow-back-up" aria-hidden="true" />
+            </button>
+          )}
+          {onEditar && msg.can_edit && !msg.is_deleted && (
+            <button
+              type="button"
+              className="cc-msg__responder"
+              aria-label="Editar esta mensagem"
+              title="Editar — só a última mensagem enviada, antes de chegar resposta"
+              onClick={() => onEditar(msg)}
+            >
+              <i className="ti ti-pencil" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -401,6 +417,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const reabrir = useReabrirChat(chatId)
   const { data: macros } = useMacros()
   const aplicarMacro = useAplicarMacroChat(chatId)
+  const editar = useEditarMensagemChat(chatId)
 
   // Rascunho POR CONVERSA, compartilhado com o mini chat (stores/chatUi):
   // o que se digita aqui aparece lá e vice-versa — a mesma conversa pode ser
@@ -436,6 +453,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const [posicao, setPosicao] = useState(0)
   const [painelMidia, setPainelMidia] = useState(false)
   const [respondendo, setRespondendo] = useState<MensagemChat | null>(null)
+  const [editando, setEditando] = useState<{ id: number; texto: string } | null>(null)
   // Nota interna: MESMO rascunho da mensagem normal, de propósito. Quem
   // começou a escrever e percebeu no meio que aquilo é recado para a equipe
   // não deveria perder o texto ao trocar o modo.
@@ -834,15 +852,59 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                     <span>Novas mensagens</span>
                   </div>
                 )}
-                <Bolha
-                  msg={item.msg}
-                  termo={termo}
-                  ehMinha={me != null && item.msg.author_is_internal === me.is_internal && !item.msg.is_system}
-                  emFoco={resultados[posicao]?.id === item.msg.id}
-                  destaque={destaque?.id === item.msg.id ? destaque.alvo : null}
-                  onResponder={podeEscrever ? setRespondendo : undefined}
-                  onIrPara={irPara}
-                />
+                {editando?.id === item.msg.id ? (
+                  <div className="cc-msg-editar">
+                    <textarea
+                      className="cc-msg-editar__texto"
+                      value={editando.texto}
+                      onChange={(e) => setEditando({ id: item.msg.id, texto: e.target.value })}
+                      autoFocus
+                      rows={2}
+                      aria-label="Editar mensagem"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          e.preventDefault()
+                          setEditando(null)
+                        }
+                      }}
+                    />
+                    <div className="cc-msg-editar__acoes">
+                      <button type="button" onClick={() => setEditando(null)}>
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="cc-msg-editar__salvar"
+                        disabled={!editando.texto.trim() || editar.isPending}
+                        onClick={() =>
+                          editar.mutate(
+                            { id: editando.id, body: editando.texto.trim() },
+                            {
+                              onSuccess: () => setEditando(null),
+                              onError: (e) =>
+                                setErroAcao(
+                                  e instanceof ApiError ? (e.detail ?? 'Não foi possível editar.') : 'Não foi possível editar.',
+                                ),
+                            },
+                          )
+                        }
+                      >
+                        <i className="ti ti-check" aria-hidden="true" /> Salvar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <Bolha
+                    msg={item.msg}
+                    termo={termo}
+                    ehMinha={me != null && item.msg.author_is_internal === me.is_internal && !item.msg.is_system}
+                    emFoco={resultados[posicao]?.id === item.msg.id}
+                    destaque={destaque?.id === item.msg.id ? destaque.alvo : null}
+                    onResponder={podeEscrever ? setRespondendo : undefined}
+                    onEditar={podeEscrever ? (m) => setEditando({ id: m.id, texto: m.body }) : undefined}
+                    onIrPara={irPara}
+                  />
+                )}
               </div>
             ),
           )

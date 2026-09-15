@@ -10,6 +10,7 @@ import {
   baixarPdfDoTicket,
   useAvaliacoesPendentesTicket,
   useAvaliarTicket,
+  useEncerrarTicket,
   useEstimativaEquipe,
   useMensagemTicket,
   useResponderTicket,
@@ -23,6 +24,7 @@ import { Alert } from '../ui/alert'
 import { Badge } from '../ui/badge'
 import { Button, buttonVariants } from '../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { ConfirmDialog } from '../ui/confirm-dialog'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog'
 import { Label, Textarea } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
@@ -303,6 +305,7 @@ export function PaginaTicket() {
   const { data: pendentes } = useAvaliacoesPendentesTicket()
   const { data: rapidas } = useRespostasRapidas('ticket')
   const responder = useResponderTicket(ticketId)
+  const encerrar = useEncerrarTicket(ticketId)
   const { editar, excluir } = useMensagemTicket(ticketId)
   const esperandoSuporte = ticket?.status === 'new' || ticket?.status === 'open'
   const { data: estimativa } = useEstimativaEquipe(esperandoSuporte && !ticket?.first_response_at ? ticket?.team?.slug : null)
@@ -311,6 +314,7 @@ export function PaginaTicket() {
   const [anexos, setAnexos] = useState<File[]>([])
   const [erroAnexo, setErroAnexo] = useState<string | null>(null)
   const [reabrindo, setReabrindo] = useState(false)
+  const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [editando, setEditando] = useState<{ id: number; texto: string } | null>(null)
   const [excluindo, setExcluindo] = useState<Mensagem | null>(null)
@@ -354,6 +358,11 @@ export function PaginaTicket() {
   // aberta, então o botão só aparece depois de avaliar (o cartão de nota
   // fica logo abaixo do cabeçalho)
   const podeReabrir = fechado && !ticket.auto_closed && !aguardaAvaliacao
+  // Mesma população de `Ticket.can_close_as_requester` (o backend decide de
+  // verdade): o solicitante ou o titular da empresa, chamado ainda aberto,
+  // conteúdo visível. Igual ao composer, não recorta por OWNER no front —
+  // quem não pode, recebe o erro do backend ao tentar.
+  const podeEncerrar = !fechado && !ticket.content_hidden
   const compositorVisivel = !ticket.content_hidden && (!fechado || reabrindo)
   const podeEnviar = (texto.trim().length > 0 || anexos.length > 0) && !responder.isPending
   const prazoResposta = !ticket.first_response_at && ticket.sla?.first_response?.due_at ? ticket.sla.first_response.due_at : null
@@ -442,6 +451,11 @@ export function PaginaTicket() {
               <Button variant="secondary" size="sm" onClick={exportarPdf} disabled={exportando || ticket.content_hidden}>
                 <IconDownload /> {exportando ? 'Gerando…' : 'Exportar PDF'}
               </Button>
+              {podeEncerrar && (
+                <Button variant="secondary" size="sm" onClick={() => setConfirmandoEncerrar(true)}>
+                  <IconCircleCheck /> Encerrar chamado
+                </Button>
+              )}
               {podeReabrir && !reabrindo && (
                 <Button size="sm" onClick={() => setReabrindo(true)}>
                   <IconRotateClockwise /> Reabrir chamado
@@ -707,6 +721,23 @@ export function PaginaTicket() {
           {aguardaAvaliacao ? 'Ainda precisa de ajuda? Avalie o atendimento e o botão “Reabrir chamado” aparece.' : 'Ainda precisa de ajuda? Use “Reabrir chamado”.'}
         </p>
       )}
+
+      <ConfirmDialog
+        aberto={confirmandoEncerrar}
+        onFechar={() => setConfirmandoEncerrar(false)}
+        onConfirmar={async () => {
+          try {
+            await encerrar.mutateAsync({})
+            toast.success('Chamado encerrado.')
+          } catch (e) {
+            toast.error(mensagemDeErro(e, 'Não foi possível encerrar.'))
+            throw e
+          }
+        }}
+        titulo="Encerrar este chamado?"
+        descricao="Se precisar de novo, é só responder aqui que ele reabre."
+        rotuloConfirmar="Encerrar chamado"
+      />
 
       <Dialog open={excluindo != null} onOpenChange={(aberto) => !aberto && setExcluindo(null)}>
         <DialogContent>

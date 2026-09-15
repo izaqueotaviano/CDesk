@@ -44,6 +44,7 @@ vi.mock('@/api/chat', () => ({
   useBuscaNaConversa: () => ({ data: [], isLoading: false }),
   useCarregarAoRedor: () => ({ mutate: vi.fn() }),
   useMidiaDoChat: () => ({ data: undefined, isLoading: false }),
+  useEditarMensagemChat: () => ({ mutate: vi.fn(), isPending: false }),
   // usado pela fila de anexos compartilhada (src/chat/conversa.ts)
   anexarMensagemNoCache: vi.fn(),
 }))

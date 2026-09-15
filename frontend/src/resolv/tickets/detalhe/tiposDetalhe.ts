@@ -62,6 +62,21 @@ export interface Seguidor {
   name: string
 }
 
+/** Uma resposta agendada — nasce escrita agora, dispara sozinha na hora
+ *  marcada (`ScheduledReplySerializer`). Só a equipe vê. */
+export interface RespostaAgendada {
+  id: number
+  body: string
+  is_public: boolean
+  new_status: StatusTicket | ''
+  scheduled_at: string
+  status: 'pending' | 'sent' | 'failed' | 'cancelled'
+  sent_at: string | null
+  error: string
+  author_name: string
+  created_at: string
+}
+
 export interface Etiqueta {
   id: number
   name: string
@@ -134,6 +149,9 @@ export interface TicketDetalhe {
   watchers: Seguidor[]
   /** null quando o conteúdo está mascarado para quem pede. */
   requester: Requester | null
+  /** Todas — pendente, enviada, falhou, cancelada; vem vazio pro cliente
+   *  (é ferramenta interna, ver `get_scheduled_replies`). */
+  scheduled_replies: RespostaAgendada[]
 }
 
 /** Alvos de @menção / atribuição (GET /tickets/{id}/mention-targets/).

@@ -32,6 +32,7 @@ from apps.customers.services.quota import QuotaExceeded
 from apps.tickets import selectors
 from apps.tickets.models import (
     ScanStatus,
+    ScheduledReply,
     Service,
     Ticket,
     TicketAttachment,
@@ -52,10 +53,12 @@ from apps.tickets.serializers import (
     BulkCloseSerializer,
     BulkPrioritySerializer,
     MentionTargetSerializer,
+    ScheduledReplySerializer,
     ServiceSerializer,
     TabsSerializer,
     TeamSerializer,
     TicketCategorySerializer,
+    TicketCloseByRequesterSerializer,
     TicketCloseSerializer,
     TicketCreateSerializer,
     TicketDetailSerializer,
@@ -65,6 +68,7 @@ from apps.tickets.serializers import (
     TicketRatingAnswerSerializer,
     TicketReclassifySerializer,
     TicketReplySerializer,
+    TicketScheduleReplySerializer,
 )
 from apps.tickets.services import (
     atribuicao,
@@ -752,23 +756,72 @@ class TicketViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=["post"])
     def close(self, request, pk=None):
-        if not request.user.is_internal:
-            raise PermissionDenied("Apenas usuários internos fecham tickets.")
+        """Fecha o ticket — o agente com o registro de trabalho técnico
+        (D4), o cliente sem ele (`close_ticket_by_requester`). É a MESMA
+        rota pros dois lados; quem decide qual caminho seguir é
+        `request.user.is_internal`, não um endpoint separado por papel —
+        mesma forma da rota de chat (`ChatViewSet.close`)."""
         ticket = self.get_object()
-        ser = TicketCloseSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
         try:
-            ticket = ticket_service.close_ticket(
-                ticket=ticket,
-                actor=request.user,
-                resolution_started_at=ser.validated_data["resolution_started_at"],
-                resolution_ended_at=ser.validated_data["resolution_ended_at"],
-                note=ser.validated_data.get("note", ""),
-            )
+            if request.user.is_internal:
+                ser = TicketCloseSerializer(data=request.data)
+                ser.is_valid(raise_exception=True)
+                ticket = ticket_service.close_ticket(
+                    ticket=ticket,
+                    actor=request.user,
+                    resolution_started_at=ser.validated_data["resolution_started_at"],
+                    resolution_ended_at=ser.validated_data["resolution_ended_at"],
+                    note=ser.validated_data.get("note", ""),
+                )
+            else:
+                ser = TicketCloseByRequesterSerializer(data=request.data)
+                ser.is_valid(raise_exception=True)
+                ticket = ticket_service.close_ticket_by_requester(
+                    ticket=ticket,
+                    actor=request.user,
+                    note=ser.validated_data.get("note", ""),
+                )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
+
+    # ------------------------------------------------------------------ #
+    # Resposta agendada — escrita agora, disparada sozinha na hora marcada
+    # (`ticket_service.schedule_reply`/`dispatch_scheduled_replies`).
+    # ------------------------------------------------------------------ #
+
+    @action(detail=True, methods=["post"], url_path="schedule-reply")
+    def schedule_reply(self, request, pk=None):
+        ticket = self.get_object()
+        ser = TicketScheduleReplySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            agendada = ticket_service.schedule_reply(
+                ticket=ticket, actor=request.user, **ser.validated_data,
+            )
+        except TicketRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(
+            ScheduledReplySerializer(agendada).data, status=http.HTTP_201_CREATED
+        )
+
+    @action(
+        detail=True, methods=["post"],
+        url_path=r"schedule-reply/(?P<schedule_id>\d+)/cancel",
+    )
+    def cancel_scheduled_reply(self, request, pk=None, schedule_id=None):
+        ticket = self.get_object()
+        agendada = ScheduledReply.objects.filter(pk=schedule_id, ticket=ticket).first()
+        if agendada is None:
+            raise NotFound("Agendamento não encontrado neste ticket.")
+        try:
+            agendada = ticket_service.cancel_scheduled_reply(
+                scheduled=agendada, actor=request.user,
+            )
+        except TicketRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(ScheduledReplySerializer(agendada).data)
 
     # ------------------------------------------------------------------ #
     # Avaliação (CSAT) — sempre logado, sempre por aqui. Não existe mais

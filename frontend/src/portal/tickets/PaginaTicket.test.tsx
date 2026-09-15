@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaginaTicket } from './PaginaTicket'
@@ -87,6 +87,7 @@ beforeEach(() => {
       }
       if (u.pathname === '/api/v1/tickets/pending-ratings/') return Promise.resolve(jsonDe(pendentes))
       if (u.pathname === '/api/v1/tickets/5/rate/') return Promise.resolve(jsonDe({ ...ticketAtual, satisfaction: { score: 9 } }))
+      if (u.pathname === '/api/v1/tickets/5/close/') return Promise.resolve(jsonDe({ ...ticketAtual, status: 'closed', closed_at: '2026-09-03T10:00:00Z' }))
       if (u.pathname === '/api/v1/chat/quick-replies/') return Promise.resolve(jsonDe([{ id: 1, contexto: 'ticket', rotulo: 'Ainda não resolveu', texto: 'Oi! O problema continua acontecendo.', order: 1 }]))
       if (u.pathname === '/api/v1/tickets/response-estimate/') return Promise.resolve(jsonDe({ minutes: 120, sample: 10, label: '2 h' }))
       return Promise.resolve(jsonDe([]))
@@ -122,6 +123,36 @@ describe('PaginaTicket (cliente)', () => {
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/reply/' && c.metodo === 'POST')).toBe(true))
     const envio = chamadas.find((c) => c.url === '/api/v1/tickets/5/reply/')!
     expect(envio.corpo).toEqual({ body: 'Oi! O problema continua acontecendo.', is_public: true })
+  })
+
+  it('em aberto: "Encerrar chamado" pede confirmação e chama /close/ sem campos de resolução técnica', async () => {
+    montar()
+    await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
+    expect(screen.queryByRole('button', { name: /Reabrir chamado/ })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Encerrar chamado/ }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Encerrar chamado' }))
+
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/close/' && c.metodo === 'POST')).toBe(true))
+    const envio = chamadas.find((c) => c.url === '/api/v1/tickets/5/close/')!
+    expect(envio.corpo).toEqual({})
+    // grava o ticket fechado que a rota devolveu — some "Encerrar chamado"
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument())
+  })
+
+  it('já fechado: não mostra "Encerrar chamado"', async () => {
+    ticketAtual = detalhe({ status: 'closed', closed_at: '2026-09-02T12:00:00Z', first_response_at: '2026-09-01T12:00:00Z' })
+    montar()
+    await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
+    expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument()
+  })
+
+  it('conteúdo restrito: não mostra "Encerrar chamado" (não é o solicitante)', async () => {
+    ticketAtual = detalhe({ content_hidden: true, is_restricted: true })
+    montar()
+    await screen.findByRole('heading', { name: 'Chamado restrito' })
+    expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument()
   })
 
   it('resolvido: sem compositor até clicar em "Reabrir chamado", que explica o efeito', async () => {

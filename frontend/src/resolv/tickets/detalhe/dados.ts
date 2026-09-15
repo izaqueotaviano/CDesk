@@ -5,6 +5,7 @@ import type {
   AlvoMencao,
   DadosFechamento,
   Macro,
+  RespostaAgendada,
   TicketDetalhe,
 } from './tiposDetalhe'
 import type { Prioridade, StatusTicket } from '../tipos'
@@ -99,6 +100,21 @@ export interface DadosResposta {
    *  `body` — o servidor a desenha a partir do perfil (apps/accounts/assinatura.py). */
   with_signature?: boolean
   files?: File[]
+}
+
+/** Corpo do `POST /tickets/{id}/schedule-reply/` — mesmos campos de
+ *  `DadosResposta` (sem `files`: a v1 do agendamento não segura upload por
+ *  horas até o disparo) mais `scheduled_at`. */
+export interface DadosAgendamento {
+  body: string
+  is_public: boolean
+  new_status?: StatusTicket
+  resolution_started_at?: string
+  resolution_ended_at?: string
+  close_note?: string
+  with_signature?: boolean
+  /** ISO — a tela monta a partir do `<input type="datetime-local">`. */
+  scheduled_at: string
 }
 
 /**
@@ -211,6 +227,24 @@ export function useAcoesTicket(id: number) {
     onSuccess: gravar,
   })
 
+  // As duas devolvem a RESPOSTA AGENDADA, não o ticket (`ScheduledReplySerializer`)
+  // — por isso não usam `gravar` (que espera um TicketDetalhe inteiro):
+  // invalidar a query do detalhe já basta pra `scheduled_replies` chegar
+  // atualizado no próximo GET.
+  const revalidar = () => qc.invalidateQueries({ queryKey: chaveDetalhe(id) })
+
+  const agendarResposta = useMutation({
+    mutationFn: (dados: DadosAgendamento) =>
+      api.post<RespostaAgendada>(`/api/v1/tickets/${id}/schedule-reply/`, dados),
+    onSuccess: revalidar,
+  })
+
+  const cancelarAgendamento = useMutation({
+    mutationFn: (agendamentoId: number) =>
+      api.post<RespostaAgendada>(`/api/v1/tickets/${id}/schedule-reply/${agendamentoId}/cancel/`),
+    onSuccess: revalidar,
+  })
+
   return {
     responder,
     atribuir,
@@ -225,5 +259,7 @@ export function useAcoesTicket(id: number) {
     fechar,
     editarMensagem,
     apagarMensagem,
+    agendarResposta,
+    cancelarAgendamento,
   }
 }

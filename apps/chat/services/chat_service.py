@@ -332,6 +332,20 @@ def _pode_mexer_na_mensagem(message: ChatMessage, actor) -> None:
         raise ChatRuleViolation("Esta mensagem já foi apagada.")
 
 
+def is_last_message(message: ChatMessage) -> bool:
+    """Se `message` é a mais recente da sessão — ninguém, nem o próprio autor,
+    mandou nada depois dela. Só usada por `edit_message`: apagar uma mensagem
+    antiga continua liberado (some da tela pros dois lados, não reescreve o
+    que já foi lido), mas CORRIGIR o texto de algo que a conversa já deixou
+    pra trás enganaria quem já respondeu àquilo.
+
+    O serializer (`ChatMessageSerializer.get_can_edit`) reimplementa esta
+    mesma regra em vez de chamar esta função: precisa cachear o id mais
+    recente por chat para não pagar uma query por mensagem num histórico
+    de até 100 — ver o comentário lá."""
+    return not message.chat.messages.filter(id__gt=message.id).exists()
+
+
 def edit_message(*, message: ChatMessage, actor, body: str) -> ChatMessage:
     """Corrige o texto de uma mensagem já enviada.
 
@@ -341,6 +355,11 @@ def edit_message(*, message: ChatMessage, actor, body: str) -> ChatMessage:
     é, e o módulo não tem esse mecanismo em nenhuma outra operação.
     """
     _pode_mexer_na_mensagem(message, actor)
+    if not is_last_message(message):
+        raise ChatRuleViolation(
+            "Só é possível corrigir a última mensagem enviada, e só antes de "
+            "chegar uma resposta."
+        )
     body = (body or "").strip()
     if not body:
         raise ChatRuleViolation("A mensagem não pode ficar vazia — apague-a.")

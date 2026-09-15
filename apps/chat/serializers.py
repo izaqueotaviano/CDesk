@@ -4,6 +4,7 @@ A censura de palavrões acontece AQUI (exibição), para os dois lados — o
 banco guarda o texto original, a lista de moderação vale retroativamente.
 """
 
+from django.db.models import Max
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
@@ -105,8 +106,12 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         }
 
     def get_can_edit(self, obj) -> bool:
-        """Mesma regra de `chat_service._pode_mexer_na_mensagem` — quem vê o
-        botão é quem a API deixaria usar, não uma segunda verdade no front.
+        """Mesma regra de `chat_service._pode_mexer_na_mensagem` +
+        `is_last_message` (autor + não apagada + é a última da sessão), mas
+        sem repetir a consulta de "é a última" por mensagem: `many=True`
+        reusa este mesmo serializer pra cada item de um histórico de até 100
+        mensagens, e cada uma pagaria uma query só pra descobrir o id mais
+        recente do MESMO chat — cacheado abaixo.
 
         `context["user"]` é o atalho para quem serializa fora de uma view
         REST — o ChatConsumer (WebSocket) tem `self.user`, não um `request`
@@ -116,11 +121,15 @@ class ChatMessageSerializer(serializers.ModelSerializer):
         user = self.context.get("user") or getattr(self.context.get("request"), "user", None)
         if user is None or not user.is_authenticated:
             return False
-        return (
-            obj.author_id is not None
-            and obj.author_id == user.pk
-            and obj.deleted_at is None
-        )
+        if obj.author_id is None or obj.author_id != user.pk or obj.deleted_at is not None:
+            return False
+        return obj.id == self._ultimo_id_do_chat(obj.chat_id)
+
+    def _ultimo_id_do_chat(self, chat_id: int) -> int | None:
+        cache = self.context.setdefault("_ultimo_id_por_chat", {})
+        if chat_id not in cache:
+            cache[chat_id] = ChatMessage.objects.filter(chat_id=chat_id).aggregate(Max("id"))["id__max"]
+        return cache[chat_id]
 
 
 class ChatMessageEditSerializer(serializers.Serializer):

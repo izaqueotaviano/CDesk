@@ -129,6 +129,7 @@ function ticket(extra: Partial<TicketDetalhe> = {}): TicketDetalhe {
     messages: [mensagem()],
     events: [],
     watchers: [],
+    scheduled_replies: [],
     requester: null,
     ...extra,
   }

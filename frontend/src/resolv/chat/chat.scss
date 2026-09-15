@@ -1271,6 +1271,71 @@
   }
 }
 
+/* Edição inline: substitui a bolha no lugar, mesma largura de balão do
+   composer principal — sem isto a mensagem "pularia" de posição na rolagem. */
+.cc-msg-editar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 75%;
+  margin: 2px 0 2px 34px; // alinha com o balão (avatar + gap do .cc-msg)
+  padding: 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--raio);
+  background: var(--surface-card);
+
+  &__texto {
+    min-height: 48px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    padding: 8px 10px;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    color: var(--text-primary);
+    resize: vertical;
+
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+
+    button {
+      border: 1px solid var(--stroke);
+      border-radius: var(--raio);
+      background: none;
+      padding: 5px 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      cursor: pointer;
+
+      &:hover {
+        border-color: var(--stroke-hover);
+        color: var(--text-primary);
+      }
+    }
+  }
+
+  &__salvar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
 .cc-msg__citacao {
   display: flex;
   flex-direction: column;

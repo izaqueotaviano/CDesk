@@ -62,6 +62,33 @@ class TestEditar:
                                {"body": "de volta"}, format="json")
         assert resp.status_code == 400
 
+    def test_nao_edita_mensagem_antiga_depois_de_mandar_outra(self, ana, chat_da_ana, api):
+        """Ainda é dela, ainda não foi apagada — mas já não é a última."""
+        antiga = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")
+        ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="ainda aqui?")
+        resp = api(ana).patch(f"/api/v1/chat/chats/{chat_da_ana.pk}/messages/{antiga.pk}/",
+                               {"body": "reescrito"}, format="json")
+        assert resp.status_code == 400
+        antiga.refresh_from_db()
+        assert antiga.body == "oi"
+
+    def test_nao_edita_depois_que_o_outro_lado_respondeu(self, ana, agente, chat_da_ana, api):
+        chat_service.take_chat(chat=chat_da_ana, agent=agente)
+        minha = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")
+        ChatMessage.objects.create(chat=chat_da_ana, author=agente, body="oi, em que posso ajudar?")
+        resp = api(ana).patch(f"/api/v1/chat/chats/{chat_da_ana.pk}/messages/{minha.pk}/",
+                               {"body": "reescrito"}, format="json")
+        assert resp.status_code == 400
+
+    def test_edita_a_ultima_mesmo_com_mensagens_anteriores(self, ana, chat_da_ana, api):
+        ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="primeira")
+        ultima = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="segunda")
+        resp = api(ana).patch(f"/api/v1/chat/chats/{chat_da_ana.pk}/messages/{ultima.pk}/",
+                               {"body": "segunda, corrigida"}, format="json")
+        assert resp.status_code == 200
+        ultima.refresh_from_db()
+        assert ultima.body == "segunda, corrigida"
+
 
 class TestApagar:
     def test_autor_apaga_a_propria_mensagem(self, ana, chat_da_ana, api):
@@ -81,6 +108,16 @@ class TestApagar:
         assert resp.status_code == 404
         msg.refresh_from_db()
         assert msg.body == "segredo"
+
+    def test_apaga_mensagem_antiga_mesmo_nao_sendo_a_ultima(self, ana, chat_da_ana, api):
+        """Diferente de editar: apagar uma mensagem de trás não reescreve o
+        que já foi lido, só some com ela — continua liberado."""
+        antiga = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")
+        ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="mais uma")
+        resp = api(ana).delete(f"/api/v1/chat/chats/{chat_da_ana.pk}/messages/{antiga.pk}/")
+        assert resp.status_code == 200
+        antiga.refresh_from_db()
+        assert antiga.deleted_at is not None
 
     def test_apaga_os_anexos_junto(self, ana, chat_da_ana):
         from django.core.files.base import ContentFile
@@ -153,3 +190,12 @@ class TestSerializer:
         linha = [m for m in corpo if m["id"] == msg.pk][0]
         assert linha["can_edit"] is False
         assert linha["is_deleted"] is True
+
+    def test_can_edit_falso_quando_nao_e_a_ultima(self, ana, chat_da_ana, api):
+        antiga = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi")
+        ultima = ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="oi de novo")
+        corpo = api(ana).get(f"/api/v1/chat/chats/{chat_da_ana.pk}/messages/").json()
+        linha_antiga = [m for m in corpo if m["id"] == antiga.pk][0]
+        linha_ultima = [m for m in corpo if m["id"] == ultima.pk][0]
+        assert linha_antiga["can_edit"] is False
+        assert linha_ultima["can_edit"] is True

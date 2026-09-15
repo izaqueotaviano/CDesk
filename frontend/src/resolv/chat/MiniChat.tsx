@@ -45,15 +45,21 @@ function presetDe(t: TamanhoMiniChat): keyof typeof TAMANHOS_MINICHAT {
   return melhor
 }
 
-function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeChat; aberta: boolean; onAlternar: () => void }) {
+/**
+ * Um atendimento MINIMIZADO: nome do cliente, a cor do atendimento, um botão
+ * de abrir maior e o marcador de mensagens novas — nada além disso. Só
+ * existe pra quem NÃO está em `abertos`; quando o chat abre, esta barra some
+ * e dá lugar ao painel (`PainelConversa`) — os dois nunca aparecem juntos
+ * pro mesmo chat, que era a duplicação que deixava a faixa "encavalada".
+ */
+function BarraMinimizada({ chat, tom, onAbrir }: { chat: Chat; tom: IndiceDeChat; onAbrir: () => void }) {
   return (
     <button
       type="button"
-      className={'minichat__aba' + (aberta ? ' minichat__aba--aberta' : '')}
-      aria-expanded={aberta}
-      aria-label={`${aberta ? 'Recolher' : 'Abrir'} conversa com ${chat.client_name}`}
+      className="minichat__aba"
+      aria-label={`Abrir conversa com ${chat.client_name}`}
       title={`${chat.client_name} · ${chat.company_name}`}
-      onClick={onAlternar}
+      onClick={onAbrir}
       style={{ '--tom': `var(--chat-tom-${tom})` } as React.CSSProperties}
     >
       <AvatarComPresenca
@@ -65,6 +71,10 @@ function AbaChat({ chat, tom, aberta, onAlternar }: { chat: Chat; tom: IndiceDeC
       />
       <span className="minichat__aba-nome">{chat.client_name}</span>
       {chat.unread_count > 0 && <span className="minichat__badge">{chat.unread_count > 9 ? '9+' : chat.unread_count}</span>}
+      {/* só o SINAL visual de "abrir" — o alvo de clique é a barra inteira
+          (um botão dentro de outro não é válido); maior e preenchido na cor
+          do atendimento, como o pedido descreveu. */}
+      <i className="ti ti-chevron-up minichat__aba-abrir" aria-hidden="true" />
     </button>
   )
 }
@@ -427,7 +437,6 @@ export function MiniChat() {
   const { data: config } = useConfigChat()
   const pegar = usePegarChat()
   const abertos = useChatUi((s) => s.abertos)
-  const alternar = useChatUi((s) => s.alternar)
   const abrir = useChatUi((s) => s.abrir)
   const fechar = useChatUi((s) => s.fechar)
   const filaAberta = useChatUi((s) => s.filaAberta)
@@ -455,6 +464,10 @@ export function MiniChat() {
   const tons = tonsDistintos(meusChats)
   // só os que AINDA são meus e ativos — encerrou/transferiu, o painel some
   const paineis = abertos.map((id) => porId.get(id)).filter((c): c is Chat => c != null)
+  // o inverso dos painéis: quem está em `meusChats` mas não em `abertos` —
+  // nunca os dois juntos pro mesmo chat (era essa dupla aparição, painel +
+  // aba "ativa", que deixava a faixa encavalada)
+  const minimizados = meusChats.filter((c) => !abertos.includes(c.id))
   const naFila = filaChats.length
   const naoLidas = meusChats.reduce((soma, c) => soma + c.unread_count, 0)
   const noLimite = meusChats.length >= limite
@@ -542,8 +555,8 @@ export function MiniChat() {
             {meusChats.length}/{limite}
           </span>
         )}
-        {meusChats.map((chat) => (
-          <AbaChat key={chat.id} chat={chat} tom={tons.get(chat.id) ?? 1} aberta={abertos.includes(chat.id)} onAlternar={() => alternar(chat.id, limite)} />
+        {minimizados.map((chat) => (
+          <BarraMinimizada key={chat.id} chat={chat} tom={tons.get(chat.id) ?? 1} onAbrir={() => abrir(chat.id, limite)} />
         ))}
         {naFila > 0 && (
           <button type="button" className="minichat__fila" onClick={alternarFila} title="Ver quem está esperando">

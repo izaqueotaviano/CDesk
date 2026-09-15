@@ -13,6 +13,7 @@ from rest_framework import serializers
 from apps.accounts import assinatura
 from apps.accounts.models import Team
 from apps.tickets.models import (
+    ScheduledReply,
     Service,
     Ticket,
     TicketAttachment,
@@ -419,6 +420,36 @@ class TicketEventSerializer(serializers.ModelSerializer):
         return obj.changed_by.full_name if obj.changed_by else None
 
 
+class ScheduledReplySerializer(serializers.ModelSerializer):
+    """Uma resposta agendada, para a lista no detalhe do ticket — só o que a
+    tela precisa mostrar/cancelar, não os campos de `add_reply` que só o
+    disparo usa (`with_signature`, `close_note`...)."""
+
+    author_name = serializers.CharField(source="author.full_name", read_only=True)
+
+    class Meta:
+        model = ScheduledReply
+        fields = [
+            "id", "body", "is_public", "new_status", "scheduled_at",
+            "status", "sent_at", "error", "author_name", "created_at",
+        ]
+
+
+class TicketScheduleReplySerializer(serializers.Serializer):
+    """Corpo de `POST /tickets/{id}/schedule-reply/` — mesmos campos de
+    `TicketReplySerializer` (ver ali) mais `scheduled_at`, sem anexo (a v1
+    do agendamento não segura upload por horas até o disparo)."""
+
+    body = serializers.CharField()
+    is_public = serializers.BooleanField(default=True)
+    new_status = serializers.ChoiceField(choices=TicketStatus.choices, required=False, allow_blank=True, default="")
+    resolution_started_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    resolution_ended_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    close_note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    with_signature = serializers.BooleanField(default=False)
+    scheduled_at = serializers.DateTimeField()
+
+
 class WatcherSerializer(serializers.Serializer):
     """Seguidor exposto na tela — nasce por @menção (`TicketWatcher`, ver
     `services/mentions.py`); a Fase 2 achou que não havia como sequer LER isso
@@ -448,14 +479,26 @@ class TicketDetailSerializer(TicketListSerializer):
     events = serializers.SerializerMethodField()
     watchers = serializers.SerializerMethodField()
     requester = serializers.SerializerMethodField()
+    scheduled_replies = serializers.SerializerMethodField()
 
     # `satisfaction` e `closed_at` SUBIRAM para a lista (a tela de Avaliações
     # do portal precisa da nota sem abrir cada chamado) — herdados daqui.
     class Meta(TicketListSerializer.Meta):
         fields = TicketListSerializer.Meta.fields + [
             "messages", "events", "resolution_started_at", "resolution_ended_at",
-            "sla_cycle", "watchers", "requester",
+            "sla_cycle", "watchers", "requester", "scheduled_replies",
         ]
+
+    @extend_schema_field(ScheduledReplySerializer(many=True))
+    def get_scheduled_replies(self, obj):
+        """Só a equipe vê — é ferramenta de trabalho do agente, igual a
+        `events`; o cliente não sabe (nem precisa saber) que uma resposta
+        está programada antes dela chegar."""
+        user = self.context["request"].user
+        if not user.is_internal or not self._visible(obj):
+            return []
+        qs = obj.scheduled_replies.select_related("author").order_by("scheduled_at")
+        return ScheduledReplySerializer(qs, many=True).data
 
     @extend_schema_field(RequesterSerializer(allow_null=True))
     def get_requester(self, obj):
@@ -624,6 +667,13 @@ class TicketMessageEditSerializer(serializers.Serializer):
 class TicketCloseSerializer(serializers.Serializer):
     resolution_started_at = serializers.DateTimeField()
     resolution_ended_at = serializers.DateTimeField()
+    note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class TicketCloseByRequesterSerializer(serializers.Serializer):
+    """Sem `resolution_started_at`/`resolution_ended_at` (D4) — esse registro
+    é do trabalho técnico de quem atende; o cliente só diz "pode fechar"."""
+
     note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
 
 

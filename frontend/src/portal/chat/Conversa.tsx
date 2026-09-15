@@ -29,6 +29,7 @@ import { useAgora } from '../lib/formato'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { ConfirmDialog } from '../ui/confirm-dialog'
+import { ErroEstado } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
 import { Mensagem, MensagemDoSistema, PilulaChat } from './componentes'
@@ -72,7 +73,7 @@ export function Conversa({
 }) {
   const idBase = useId()
   const agora = useAgora()
-  const { data: chat } = useChat(chatId)
+  const { data: chat, isError: erroChat } = useChat(chatId)
   const { data: configChat } = useConfigChat()
   const { data: mensagens, isLoading } = useMensagensChat(chatId)
   const {
@@ -144,13 +145,27 @@ export function Conversa({
     [temMensagens, chatId],
   )
 
-  if (!chat || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex h-full flex-col gap-3 p-4" aria-busy="true" aria-label="Carregando conversa">
         <Skeleton className="h-10 w-1/2" />
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
       </div>
+    )
+  }
+
+  // Chat que não existe mais, ou não é do usuário logado (link antigo,
+  // troca de sessão) — sem isto ficava preso no esqueleto de carregamento
+  // pra sempre, escondendo o composer sem nenhuma explicação.
+  if (erroChat || !chat) {
+    return (
+      <ErroEstado
+        className="m-auto"
+        titulo="Não foi possível abrir esta conversa"
+        descricao="Ela pode não existir mais, ou não pertencer a você."
+        onTentarNovamente={onVoltar}
+      />
     )
   }
 

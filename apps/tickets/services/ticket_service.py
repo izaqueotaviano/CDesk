@@ -29,6 +29,8 @@ from apps.accounts.rbac import Perm
 from apps.customers.services import quota as quota_service
 from apps.tickets.models import (
     MessageSource,
+    ScheduledReply,
+    ScheduledReplyStatus,
     Ticket,
     TicketMessage,
     TicketSource,
@@ -1049,6 +1051,176 @@ def close_ticket(
 
     broadcast_ticket_event(ticket=ticket, kind="closed", actor=actor)
     return ticket
+
+
+def close_ticket_by_requester(*, ticket: Ticket, actor, note: str = "") -> Ticket:
+    """O CLIENTE encerra o próprio chamado.
+
+    Espelha `close_ticket`, mas SEM `resolution_started_at`/`resolution_ended_at`
+    (D4): esse registro descreve o trabalho técnico de quem atendeu, e não faz
+    sentido pedir isso de quem só está dizendo "pode fechar, resolvido pra
+    mim". Mesmo efeito colateral do fechamento do agente (pesquisa de
+    satisfação, franquia de manutenção, aviso ao solicitante) — só o QUEM
+    fecha e o QUE se registra mudam.
+    """
+    if not ticket.can_close_as_requester(actor):
+        raise TicketRuleViolation("Só quem abre o chamado (ou o titular da empresa) pode encerrá-lo.")
+
+    with transaction.atomic():
+        ticket = Ticket.objects.select_for_update().get(pk=ticket.pk)
+        if ticket.status == TicketStatus.CLOSED:
+            raise TicketRuleViolation("Ticket já está fechado.")
+
+        now = timezone.now()
+        ticket.closed_at = now
+        ticket.closed_by = actor
+        ticket.save(update_fields=["closed_at", "closed_by"])
+        _change_status(ticket, TicketStatus.CLOSED, actor, note=note)
+
+        marcas = []
+        if (ticket.sla_resolution_due_at is not None
+                and not ticket.sla_resolution_breached
+                and now > ticket.sla_resolution_due_at):
+            ticket.sla_resolution_breached = True
+            marcas.append("sla_resolution_breached")
+        if (ticket.first_response_at is None
+                and ticket.sla_first_response_due_at is not None
+                and not ticket.sla_first_response_breached
+                and now > ticket.sla_first_response_due_at):
+            ticket.sla_first_response_breached = True
+            marcas.append("sla_first_response_breached")
+        if marcas:
+            ticket.save(update_fields=marcas)
+        transaction.on_commit(lambda: _open_satisfaction_survey(ticket.pk))
+        transaction.on_commit(lambda: _check_maintenance_overage(ticket.pk, actor.pk))
+        transaction.on_commit(lambda: _notify_requester_closed(ticket.pk, automatic=False))
+    from apps.notifications.services import broadcast_ticket_event
+
+    broadcast_ticket_event(ticket=ticket, kind="closed", actor=actor)
+    return ticket
+
+
+# ---------------------------------------------------------------------- #
+# Resposta agendada — escrita agora, disparada sozinha na hora marcada
+# ---------------------------------------------------------------------- #
+
+def schedule_reply(
+    *,
+    ticket: Ticket,
+    actor,
+    body: str,
+    scheduled_at: dt.datetime,
+    is_public: bool = True,
+    new_status: str | None = None,
+    resolution_started_at: dt.datetime | None = None,
+    resolution_ended_at: dt.datetime | None = None,
+    close_note: str = "",
+    with_signature: bool = False,
+) -> ScheduledReply:
+    """Agenda uma resposta — só quem já poderia responder AGORA
+    (`can_reply`/`can_reply_publicly`) pode agendar para depois; o disparo
+    (`tasks.dispatch_scheduled_replies`) chama `add_reply` com os mesmos
+    parâmetros, então validar aqui é evitar um agendamento que o disparo
+    rejeitaria sozinho, sem ninguém olhando, horas depois.
+    """
+    if not actor.is_internal:
+        raise TicketRuleViolation("Agendar resposta é ação da equipe.")
+    if not ticket.can_reply(actor):
+        raise TicketRuleViolation("Sem permissão para responder este ticket.")
+    if not (body or "").strip():
+        raise TicketRuleViolation("Escreva o texto da resposta.")
+    if scheduled_at <= timezone.now():
+        raise TicketRuleViolation("A data e hora precisam estar no futuro.")
+
+    if is_public:
+        if not ticket.can_reply_publicly(actor):
+            raise TicketRuleViolation(
+                "Seu papel não permite responder ao cliente. Use uma nota interna."
+            )
+        if new_status not in _AGENT_REPLY_STATUSES:
+            raise TicketRuleViolation(
+                "Escolha o status que o ticket assume ao enviar: "
+                "open, pending_customer ou closed."
+            )
+        if new_status == TicketStatus.CLOSED and (
+            resolution_started_at is None or resolution_ended_at is None
+        ):
+            raise TicketRuleViolation(
+                "Fechar ao enviar exige data de início e de término da solução (D4)."
+            )
+    else:
+        new_status = ""
+
+    return ScheduledReply.objects.create(
+        ticket=ticket, author=actor, body=body.strip(), is_public=is_public,
+        new_status=new_status or "", resolution_started_at=resolution_started_at,
+        resolution_ended_at=resolution_ended_at, close_note=close_note,
+        with_signature=with_signature, scheduled_at=scheduled_at,
+    )
+
+
+def cancel_scheduled_reply(*, scheduled: ScheduledReply, actor) -> ScheduledReply:
+    """Desiste de um agendamento antes da hora — só o autor, e só enquanto
+    pendente (já enviada/falhada/cancelada não volta atrás)."""
+    if actor.pk != scheduled.author_id:
+        raise TicketRuleViolation("Só quem agendou pode cancelar.")
+    if scheduled.status != ScheduledReplyStatus.PENDING:
+        raise TicketRuleViolation("Este agendamento não está mais pendente.")
+    scheduled.status = ScheduledReplyStatus.CANCELLED
+    scheduled.save(update_fields=["status", "updated_at"])
+    return scheduled
+
+
+def dispatch_scheduled_replies() -> int:
+    """Dispara as respostas agendadas cuja hora já chegou.
+
+    Mesmo padrão de `auto_close_stale_pending`: pega só os ids pendentes e
+    vencidos, tranca linha a linha (`select_for_update`) dentro da própria
+    transação e REVALIDA o status depois do lock — o agente pode ter
+    cancelado entre a seleção e o lock, e a corrida não pode mandar uma
+    resposta que acabou de ser desistida.
+    """
+    agora = timezone.now()
+    alvos = list(
+        ScheduledReply.objects.filter(
+            status=ScheduledReplyStatus.PENDING, scheduled_at__lte=agora,
+        ).values_list("pk", flat=True)
+    )
+
+    enviadas = 0
+    for pk in alvos:
+        with transaction.atomic():
+            agendada = ScheduledReply.objects.select_for_update().select_related(
+                "ticket", "author"
+            ).get(pk=pk)
+            if agendada.status != ScheduledReplyStatus.PENDING:
+                continue  # cancelada (ou já processada) entre a seleção e o lock
+            try:
+                mensagem = add_reply(
+                    ticket=agendada.ticket, author=agendada.author, body=agendada.body,
+                    is_public=agendada.is_public,
+                    new_status=agendada.new_status or None,
+                    resolution_started_at=agendada.resolution_started_at,
+                    resolution_ended_at=agendada.resolution_ended_at,
+                    close_note=agendada.close_note,
+                    with_signature=agendada.with_signature,
+                )
+            except TicketRuleViolation as exc:
+                # o ticket pode ter fechado/mudado de dono desde o agendamento —
+                # FAILED, não silencioso: quem agendou precisa ver que não saiu
+                agendada.status = ScheduledReplyStatus.FAILED
+                agendada.error = str(exc)
+                agendada.save(update_fields=["status", "error", "updated_at"])
+                logger.warning(
+                    "Resposta agendada #%s não pôde ser enviada: %s", agendada.pk, exc
+                )
+                continue
+            agendada.status = ScheduledReplyStatus.SENT
+            agendada.sent_at = agora
+            agendada.message = mensagem
+            agendada.save(update_fields=["status", "sent_at", "message", "updated_at"])
+        enviadas += 1
+    return enviadas
 
 
 def _check_maintenance_overage(ticket_pk, actor_pk):

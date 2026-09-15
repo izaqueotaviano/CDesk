@@ -155,3 +155,18 @@ def warn_stale_pending() -> int:
     if avisados:
         logger.info("Aviso de fechamento: %s ticket(s) avisado(s).", avisados)
     return avisados
+
+
+@shared_task
+def dispatch_scheduled_replies() -> int:
+    """Dispara as respostas agendadas cuja hora já chegou.
+
+    Granularidade curta de propósito (ver CELERY_BEAT_SCHEDULE) — quem agenda
+    "amanhã 8h" espera que o disparo saia por volta das 8h, não na próxima
+    varredura de hora em hora."""
+    from apps.tickets.services import ticket_service
+
+    enviadas = ticket_service.dispatch_scheduled_replies()
+    if enviadas:
+        logger.info("Respostas agendadas: %s enviada(s).", enviadas)
+    return enviadas
