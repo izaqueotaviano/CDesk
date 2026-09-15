@@ -8,6 +8,15 @@ import '@fontsource/jetbrains-mono/500.css'
 // Serif de destaque — só a saudação da Início usa (--f-display); um peso
 // já basta, o corpo da interface inteira continua em Inter.
 import '@fontsource/libre-baskerville/400.css'
+// Tipografia do design system Convertize (Geist na interface, Tenor Sans no
+// display). Hoje só a PRÉVIA da tela de login usa (features/auth/login.css,
+// escopo `.login-convertize`); se a direção for aprovada, estas duas
+// substituem Inter/Libre Baskerville no sistema inteiro.
+import '@fontsource/geist-sans/400.css'
+import '@fontsource/geist-sans/500.css'
+import '@fontsource/geist-sans/600.css'
+import '@fontsource/geist-sans/700.css'
+import '@fontsource/tenor-sans/400.css'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
