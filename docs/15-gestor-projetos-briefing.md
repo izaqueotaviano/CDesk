@@ -1,8 +1,17 @@
-# 15 — Gestor de Projetos: briefing (rascunho para validação)
+# 15 — Gestor de Projetos: briefing (histórico — projeto mudou de repositório)
 
-> Estado: **aguardando respostas do briefing**. Nada do módulo foi implementado.
-> Este documento consolida o escopo enviado (57 seções, estilo Asana adaptado a
-> agências) + os acréscimos pedidos, cruzados com o que o Resolv já tem.
+> **Este módulo NÃO é mais implementado dentro do Resolv.** Depois deste
+> rascunho, o usuário decidiu que o Gestor de Projetos seria um **produto
+> novo e independente**, sem compartilhar banco, usuários ou autenticação
+> com o Resolv. A implementação (Fase 1 — fundação, concluída) mora em
+> [`izaqueotaviano/Claude`, pasta `gestor-projetos/`](https://github.com/izaqueotaviano/Claude/tree/gestor-projetos/fase1-fundacao/gestor-projetos),
+> com as decisões completas em `gestor-projetos/docs/00-decisoes.md`
+> daquele repositório.
+>
+> O conteúdo abaixo fica só como registro histórico do briefing original —
+> a análise de "o que o Resolv já resolve" (seção 1) deixou de valer,
+> porque o produto novo não reaproveita nada do Resolv por decisão
+> explícita do usuário.
 
 ## 1. O que o repositório já resolve (e não deve ser refeito)
 
