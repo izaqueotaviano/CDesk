@@ -114,20 +114,30 @@
     height: 18px;
     cursor: nwse-resize;
     touch-action: none;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0 45%, transparent 45%);
+    // A alça mora em cima do cabeçalho, que é a cor do atendimento — então
+    // ela se desenha na TINTA daquele tom (chat.scss publica `--tinta-do-tom`),
+    // não em branco fixo: sobre o amarelo da paleta o branco sumia.
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--tinta-do-tom, #ffffff) 55%, transparent) 0 45%,
+      transparent 45%
+    );
     opacity: 0.6;
 
     &:hover,
     &:focus-visible {
       opacity: 1;
-      outline: 2px solid #ffffff;
+      outline: 2px solid var(--tinta-do-tom, #ffffff);
       outline-offset: -2px;
     }
   }
 
   // O cabeçalho é pintado pelo atributo `data-tom-chat` (chat.scss, paleta
-  // própria do chat): fundo na cor do atendimento, texto branco. O fallback
-  // aqui só existe pra quando o widget renderiza fora de .novo-shell.
+  // própria do chat): fundo na cor do atendimento, texto na tinta DAQUELE
+  // tom — quinze tons bem separados por matiz não cabem todos na mesma faixa
+  // de luminosidade, então o texto em cima vira com a cor (ver tokens.scss).
+  // O fallback aqui só existe pra quando o widget renderiza fora de
+  // .novo-shell.
   &__painel-cabecalho {
     display: flex;
     align-items: center;
@@ -172,12 +182,13 @@
     font-size: 15px;
 
     &:hover {
-      // O cabeçalho é sempre um tom médio de identidade com texto branco, nos
-      // dois temas — o véu branco funciona nos dois.
-      background: rgba(255, 255, 255, 0.18);
+      // O véu é a própria tinta do tom diluída: sobre tom escuro ele clareia,
+      // sobre tom claro ele escurece — um `rgba` branco fixo só funcionava na
+      // metade da paleta.
+      background: color-mix(in srgb, var(--tinta-do-tom, #ffffff) 18%, transparent);
     }
     &:focus-visible {
-      outline: 2px solid #ffffff;
+      outline: 2px solid var(--tinta-do-tom, #ffffff);
       outline-offset: -2px;
     }
   }
@@ -281,7 +292,11 @@
     border: none;
     border-radius: 50%;
     background: var(--accent);
-    color: #ffffff;
+    // `--surface-card` e não branco: ele inverte com o tema, e o acento
+    // também — no escuro o acento é claro (#ff8a63) e branco em cima
+    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
+    // lista.scss, inicio.scss).
+    color: var(--surface-card);
     font-size: 19px;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.15s ease;
@@ -323,7 +338,9 @@
 
     &--fila {
       background: var(--away);
-      color: #ffffff;
+      // --away é âmbar fechado no claro e âmbar CLARO no escuro; branco fixo
+      // dava 1,70:1 lá. O par mora em tokens.scss.
+      color: var(--texto-sobre-away);
     }
   }
 
@@ -383,7 +400,8 @@
     place-items: center;
     border-radius: 50%;
     background: var(--tom, var(--accent));
-    color: #ffffff;
+    // preenchido com o tom do atendimento, então escreve com a tinta dele
+    color: var(--tinta-do-tom, var(--surface-card));
     font-size: 13px;
   }
   &__avatar {
@@ -398,11 +416,11 @@
     font-size: 10px;
     font-weight: 600;
 
-    // No cabeçalho colorido o avatar é um véu branco — a cor já está no
-    // fundo; repetir a mesma cor no avatar o faria sumir.
+    // No cabeçalho colorido o avatar é um véu da tinta daquele tom — a cor
+    // já está no fundo; repetir a mesma cor no avatar o faria sumir.
     &--cabecalho {
-      background: rgba(255, 255, 255, 0.22);
-      color: #ffffff;
+      background: color-mix(in srgb, var(--tinta-do-tom, #ffffff) 22%, transparent);
+      color: var(--tinta-do-tom, #ffffff);
     }
   }
   &__badge {
@@ -529,7 +547,11 @@
     border: none;
     border-radius: var(--raio);
     background: var(--accent);
-    color: #ffffff;
+    // `--surface-card` e não branco: ele inverte com o tema, e o acento
+    // também — no escuro o acento é claro (#ff8a63) e branco em cima
+    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
+    // lista.scss, inicio.scss).
+    color: var(--surface-card);
     font: inherit;
     font-size: 12px;
     font-weight: 500;

@@ -9,6 +9,11 @@ import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/tenor-sans/400.css'
 
+// Ícones Tabler (classes `ti ti-*`) — subset dos 98 que o produto usa, gerado
+// por scripts/gerar_subset_icones.py. Vinha de CDN, que a CSP de produção não
+// libera (`font-src 'self' data:`): em produção o ícone não aparecia.
+import './assets/icones/tabler-subset.css'
+
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

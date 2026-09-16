@@ -60,7 +60,16 @@ function BarraMinimizada({ chat, tom, onAbrir }: { chat: Chat; tom: IndiceDeChat
       aria-label={`Abrir conversa com ${chat.client_name}`}
       title={`${chat.client_name} · ${chat.company_name}`}
       onClick={onAbrir}
-      style={{ '--tom': `var(--chat-tom-${tom})` } as React.CSSProperties}
+      // `--tinta-do-tom` acompanha `--tom`: quem preenche com a cor do
+      // atendimento (o botão de abrir) escreve com a tinta daquele tom. Aqui
+      // o par vai à mão porque a barra minimizada NÃO carrega
+      // `data-tom-chat` — ela é clara, só o botão dentro dela é colorido.
+      style={
+        {
+          '--tom': `var(--chat-tom-${tom})`,
+          '--tinta-do-tom': `var(--chat-tom-${tom}-tinta)`,
+        } as React.CSSProperties
+      }
     >
       <AvatarComPresenca
         nome={chat.client_name}

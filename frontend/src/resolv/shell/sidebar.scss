@@ -306,7 +306,11 @@
     justify-content: center;
     border-radius: var(--raio);
     background: var(--accent);
-    color: #ffffff;
+    // `--surface-card` e não branco: ele inverte com o tema, e o acento
+    // também — no escuro o acento é claro (#ff8a63) e branco em cima
+    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
+    // lista.scss, inicio.scss).
+    color: var(--surface-card);
     font-family: var(--f-ui);
     font-size: 9px;
     font-weight: 700;

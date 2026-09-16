@@ -1704,11 +1704,17 @@
    (0,3,0), pelo mesmo motivo: as classes de avatar de cada tela pintam
    fundo/cor com (0,1,0) ou (0,2,0). */
 .resolv-scope.novo-shell [data-tom-chat] {
-  color: var(--texto-sobre-identidade);
+  color: var(--tinta-do-tom);
 }
 
+/* Cada tom publica a SUA tinta num `--tinta-do-tom` local, e não só se pinta:
+   o cabeçalho do painel do mini chat tem botões, véu de hover e anel de foco
+   que ficam SOBRE a cor do atendimento e precisavam saber se aquele tom pede
+   texto claro ou escuro (minichat.scss lê a mesma variável). O par
+   tom↔tinta mora em tokens.scss, com a razão de contraste de cada um. */
 @for $i from 1 through 15 {
   .resolv-scope.novo-shell [data-tom-chat='#{$i}'] {
+    --tinta-do-tom: var(--chat-tom-#{$i}-tinta);
     background: var(--chat-tom-#{$i});
   }
 }

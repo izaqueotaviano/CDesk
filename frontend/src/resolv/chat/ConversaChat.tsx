@@ -711,7 +711,12 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                 esperar a resposta e encerrar — some quando a conversa fecha */}
             {chat.status === 'active' && chat.client_presence && (
               <span className={'cc-conversa__presenca cc-conversa__presenca--' + chat.client_presence}>
-                <i className="ti ti-point-filled" aria-hidden="true" />
+                {/* `ti-point`, não `ti-point-filled`: o cheio só existe na
+                    variante `filled` da fonte, que é OUTRO arquivo — com a
+                    fonte regular esta bolinha nunca apareceu. Um ícone só não
+                    paga uma segunda fonte, e a presença já é dita por escrito
+                    ao lado. */}
+                <i className="ti ti-point" aria-hidden="true" />
                 {chat.client_presence === 'available'
                   ? 'cliente na tela'
                   : chat.client_presence === 'away'
