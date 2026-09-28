@@ -1,10 +1,10 @@
-// A tipografia do design system Convertize: Geist na interface, Tenor Sans no
-// display (título de tela, saudação da Início) e JetBrains Mono só em dado
-// técnico. Inter e Libre Baskerville saíram junto com a paleta antiga.
-import '@fontsource/geist-sans/400.css'
-import '@fontsource/geist-sans/500.css'
-import '@fontsource/geist-sans/600.css'
-import '@fontsource/geist-sans/700.css'
+// A tipografia do design system Convertize v2: Inter na interface inteira
+// (inclusive nos números), Tenor Sans só em título editorial e JetBrains Mono
+// só em dado técnico. Geist saiu: era leitura da v1, e o v2 pede Inter.
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/tenor-sans/400.css'

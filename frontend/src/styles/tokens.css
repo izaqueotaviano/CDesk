@@ -1,10 +1,11 @@
 /* ============================================================
    resolv — tokens do Painel do Cliente (e de tudo que é Tailwind)
 
-   Os VALORES são os do design system Convertize (o kit entregue em
-   uploads/tokens.css): pergaminho #f6f4f1 de fundo, papel #fffdf9 no
-   conteúdo, tinta grafite #292524, laranja de marca #ff5e2c, linha
-   #e5e0da, Geist na interface e Tenor Sans no display. Os NOMES continuam
+   Os VALORES são os do Convertize Design System v2 (a skill
+   convertize-design-system, 2.0.0): canvas #f5f5f5, superfície #ffffff,
+   cromo #f0efed, tinta #292524, linha #e7e5e4, AÇÃO em carvão #292524 e o
+   laranja #ff5e2c reservado a foco, seleção, item ativo e marca. Inter na
+   interface e Tenor Sans só em título editorial. Os NOMES continuam
    os do portal (--acento, --superficie, --divisoria…) porque ~50 arquivos
    Tailwind os consomem — foi por isso que a troca inteira coube na camada
    de token, sem reescrever tela nenhuma.
@@ -25,67 +26,45 @@
      do resolv. Prefira os semânticos abaixo; primitivo é só pra quando o
      valor NÃO pode seguir o tema. */
   --neutro-0:   #ffffff;
-  --neutro-25:  #fafafa;
-  --neutro-50:  #f8f8f7;  /* canvas (claro) */
-  --neutro-100: #f0f0f0;  /* cromo (claro) */
-  --neutro-200: #e6e6e6;
-  --neutro-300: #cfcfcf;
-  --neutro-400: #a8a8a8;
-  --neutro-500: #8d8d8d;  /* borda de campo (escuro) */
-  --neutro-600: #7d7d7d;  /* borda de campo (claro) */
-  --neutro-700: #4d4d4d;  /* texto secundário (claro) */
-  /* Degraus escuros pelos ROLES de escala do Material 3 (m3.material.io/
-     styles/color/roles), calculados via @material/material-color-utilities
-     (DynamicScheme/SchemeTonalSpot — a mesma classe do Material Theme
-     Builder do Google): outline-variant (tom 30) / surface-container
-     (tom 12) / surface-container-low (tom 10) / surface-container-lowest
-     (tom 4) / surface·surface-dim (tom 6). Mesma ordem de antes
-     (cromo < canvas < superfície < cartão), nos tom-stops reais do M3. */
-  --neutro-800: #50453a;  /* linha estrutural (escuro) */
-  --neutro-850: #241f1a;  /* cartão (escuro) */
-  --neutro-875: #201b16;  /* superfície (escuro) */
-  --neutro-900: #1a1a1a;  /* tinta (claro) */
-  --neutro-950: #120d09;  /* cromo (escuro) */
-  --neutro-975: #17130e;  /* canvas (escuro) */
+  --neutro-25:  #fafafa;  /* fundo de página (claro) */
+  --neutro-50:  #f5f5f5;  /* canvas (claro) */
+  --neutro-100: #f0efed;  /* cromo / inset (claro) */
+  --neutro-200: #e7e5e4;  /* linha estrutural (claro) */
+  --neutro-300: #d6d3d1;  /* linha reforçada (claro) */
+  --neutro-400: #a8a29e;
+  --neutro-500: #777169;  /* linha de campo (os dois temas) */
+  --neutro-600: #4e4e4e;  /* texto secundário (claro) */
+  --neutro-700: #292524;  /* tinta e ação (claro) */
+  --neutro-800: #1c1917;  /* superfície (escuro) */
+  --neutro-900: #0c0a09;  /* canvas (escuro) */
+  /* Só o escuro precisa de degraus entre 800 e 900, que a rampa do kit não
+     nomeia: são os valores do próprio bloco escuro do v2. */
+  --neutro-850: #231f1d;  /* superfície elevada (escuro) */
+  --neutro-875: #0f0d0c;  /* fundo de página (escuro) */
+  --neutro-950: #3a3532;  /* linha estrutural (escuro) */
+  --neutro-975: #5a5450;  /* linha reforçada (escuro) */
 
   /* ---------- primitivos: a marca Convertize ----------
-     Três valores, porque o laranja da marca NÃO serve para tudo:
+     A rampa OFICIAL do kit v2 (`--cz-n0`…`--cz-n900`): pedra, não cinza puro
+     — o matiz quente mora nos neutros, e não numa superfície creme. Foi o
+     que a leitura anterior (papel `#fffdf9` sobre pergaminho `#f6f4f1`)
+     errou: no v2 a superfície é BRANCA e o canvas é um cinza claro.
 
-     --laranja       #ff5e2c é o laranja do kit. Sobre papel dá 2,98:1 — só
-                     preenchimento e grafismo (marca, grade, gráfico), nunca
-                     texto pequeno nem fundo com texto branco em cima (3,05:1).
-     --laranja-tinta #b04518 é o MESMO laranja fechado até servir nos dois
-                     papéis, em TODA superfície clara: 5,57:1 sobre o papel,
-                     5,16:1 sobre o canvas, 4,73:1 sobre `--navegacao` (a mais
-                     escura das três — é ela que manda no valor) e 5,66:1 com
-                     branco em cima. É ele que vira `--acento`: o acento deste
-                     produto é texto (link, estado ativo, ícone) em 149 lugares
-                     contra 61 de preenchimento, então ele precisa ler como
-                     texto antes de qualquer outra coisa.
-     --grafite       #292524 é a tinta do kit: texto e as superfícies escuras
-                     (`.demo-sidebar`, `.metric-card`).
-
-     O kit usa grafite no `.button` das telas de marca e laranja nos acentos
-     de aplicação (`.composer button`, `.conversation-head button`) — a tela
-     de login segue a primeira leitura, o produto segue a segunda. */
+     --laranja       #ff5e2c é a marca. Sobre branco dá 3,05:1 — foco,
+                     seleção, item ativo e grafismo, NUNCA texto corrido nem
+                     fundo com texto claro em cima.
+     --laranja-tinta #b3401b é o `--accent-text` do kit: 5,73:1 sobre a
+                     superfície, 4,98:1 sobre o cromo. É o laranja que pode
+                     ser lido.
+     --grafite       #292524 é a tinta E a ação principal (`--primary`). No
+                     kit v2 o botão primário é carvão; o laranja marcaria
+                     tudo e, marcando tudo, não marcaria nada. */
   --laranja:       #ff5e2c;
-  --laranja-tinta: #b04518;
-  --laranja-veu:   #fff0eb;
+  --laranja-fundo: #d94d1e;   /* `--cz-orange-deep`: hover do laranja cheio */
+  --laranja-tinta: #b3401b;
+  --laranja-veu:   #fff0e9;
+  --laranja-veu-linha: #ffd7ca;
   --grafite:       #292524;
-
-  /* ---------- primitivos: acento e estado ----------
-     No escuro o laranja clareia (#ff8a63, 7,9:1 sobre o canvas escuro) e
-     ganha tinta escura por cima (7,3:1). O PERIGO fica num vermelho fechado
-     de propósito: no kit o tom de erro (#b13d24) é quase o mesmo do acento,
-     e alarme que se confunde com ação não é alarme. */
-  --acento-escuro: #b04518;
-  --acento-escuro-hover: #9c3b16;
-  --acento-claro:  #ff8a63;
-  --acento-claro-hover: #ffa686;
-  --acento-tinta-sobre-claro: #2a1207;
-  --perigo-claro: #a32019;  --perigo-escuro: #ffb4ab;
-  --alerta-claro: #805b06;  --alerta-escuro: #f7bc68;
-  --ok-claro:     #28603a;  --ok-escuro:     #81d9a2;
 
   /* ---------- primitivos: identidade (idêntico nos dois temas) ----------
      Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
@@ -97,10 +76,13 @@
   --avatar-c4: #9E5439; --avatar-c5: #4B5768; --avatar-c6: #A23E7B;
 
   /* ---------- tipografia ----------
-     A dupla do Convertize: Geist na interface, Tenor Sans no display (título
-     de tela, saudação da Início). JetBrains Mono continua só em dado técnico.
-     Self-hosted por @fontsource em src/main.tsx, como as anteriores. */
-  --f-ui: "Geist Sans", Geist, -apple-system, system-ui, sans-serif;
+     INTER na interface inteira, inclusive nos números (tabular) — é a regra
+     de marca do v2, e foi onde a leitura anterior errou: ela trocou Inter
+     por Geist. Tenor Sans SÓ em título editorial (h1 de tela, título de
+     diálogo, saudação da Início): é serifada e decorativa, e número nela
+     fica ilegível — por isso nunca em botão, tabela ou valor.
+     Self-hosted por @fontsource em src/main.tsx, como as demais. */
+  --f-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
   --f-display: "Tenor Sans", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
@@ -138,16 +120,18 @@
   --sp-10: 40px; --sp-11: 44px; --sp-16: 64px;
 
   /* ---------- forma ----------
-     A escala volta a ter degraus: no Convertize o canto generoso é metade do
-     caráter, e os quatro valores saem do próprio kit — campo 8px, botão 10px
-     (`.button`), cartão 14px (`.component-card`), seção 18px (`.ds-section`).
-     Antes todos resolviam para 2px. Quem precisa de círculo de verdade
-     (avatar, ponto de status, interruptor) continua em `--r-total`: é forma,
-     não estilo. */
-  --r-sm: 8px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px; --r-total: 999px;
-  --r-painel: 18px;
+     A escala de raio do v2, com os nomes daqui: xs 4 / sm 6 / md 10 / lg 12 /
+     xl 20. É mais fechada que a leitura anterior (8/10/14/18) — o kit usa 6
+     no botão e no campo, e guarda o canto generoso para o que é superfície.
+     Quem precisa de círculo de verdade (avatar, ponto de status, interruptor)
+     continua em `--r-total`: é forma, não estilo. */
+  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 20px; --r-total: 999px;
+  --r-painel: 12px;
   --respiro-painel: 12px;
-  --borda-fina: 1px;
+  /* 0,7px é a espessura de TODA linha no v2 (`--hairline`): borda, divisória
+     e contorno. Numa tela comum o navegador resolve para menos de um pixel
+     físico, que é justamente o traço fino que o kit quer. */
+  --borda-fina: .7px;
 
   /* ---------- ícone ---------- */
   --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
@@ -165,7 +149,11 @@
   --sidebar-larga: 240px;
   --sidebar-recolhida: 64px;
   --alvo-minimo: 24px;
-  --altura-controle: 34px;
+  /* As três alturas de controle do v2 (`--h-sm/md/lg`). `--altura-controle`
+     continua sendo o padrão, e passa de 34 para os 36 do kit. */
+  --altura-controle-sm: 28px;
+  --altura-controle: 36px;
+  --altura-controle-lg: 44px;
 }
 
 /* ============================================================
@@ -173,62 +161,73 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  /* Pergaminho, papel e um cromo quente um degrau abaixo do canvas — a ordem
-     de luminância (cromo < canvas < superfície) é a mesma de antes, que é o
-     que mantém o cromo recuado em relação ao conteúdo. */
-  --canvas:             #f6f4f1;   /* fundo geral atrás do conteúdo */
-  --superficie:         #fffdf9;   /* cartão, campo, modal */
-  --superficie-sutil:   #f6f4f1;
-  --superficie-elevada: #fffdf9;
-  --navegacao:          #efeae2;   /* cromo: sidebar, barra, hover, caixa de ícone */
+  /* Superfície BRANCA sobre canvas cinza-pedra, e o cromo um degrau abaixo —
+     a ordem de luminância (cromo < canvas < superfície) é a de sempre, mas
+     os valores agora são os do kit v2. O calor mora nos neutros (pedra, não
+     cinza puro) e no laranja, não numa superfície creme. */
+  --canvas:             #f5f5f5;   /* fundo geral atrás do conteúdo */
+  --superficie:         #ffffff;   /* cartão, campo, modal */
+  --superficie-sutil:   #fafafa;
+  --superficie-elevada: #ffffff;
+  --navegacao:          #f0efed;   /* cromo: sidebar, barra, hover, caixa de ícone */
 
-  /* Duas famílias de linha, de propósito (como no console):
-     --divisoria    estrutura (cartão, tabela, divisória, cromo) — preta
-                    translúcida, a MESMA linha funciona sobre os três fundos
-     --borda-campo  SÓ campo de entrada — bem mais escura, porque campo
-                    precisa se anunciar como editável; com a linha estrutural
-                    o formulário sumia dentro da página
-     --borda-controle é a linha estrutural reforçada (hover de cartão/linha). */
-  --divisoria:      #e5e0da;  /* a `--line` do kit */
-  --borda-controle: #cfc8c1;
-  /* Campo continua bem mais escuro que a linha estrutural — é a regra que faz
-     o formulário se anunciar como editável. O #cbc4bd do kit daria 1,7:1 e
-     reprovaria em 1.4.11; este é o mesmo cinza-quente fechado até 3,8:1. */
-  --borda-campo:    #8a8079;
+  /* Duas famílias de linha, de propósito:
+     --divisoria      estrutura (cartão, tabela, divisória) — a `--line`
+     --borda-controle a mesma reforçada (hover) — a `--line-strong`
+     --borda-campo    SÓ campo, botão secundário e chip. */
+  --divisoria:      #e7e5e4;
+  --borda-controle: #d6d3d1;
+  /* DIVERGÊNCIA do kit, e a única: o `--control-line: #c9c4bd` dele dá 1,73:1
+     sobre a superfície e reprova em 1.4.11, que pede 3:1 para a borda de um
+     controle. Este é o degrau `--cz-n500` da RAMPA DO PRÓPRIO KIT, o primeiro
+     que passa nos dois temas (4,8:1 no claro, 3,6:1 no escuro). */
+  --borda-campo:    #777169;
 
-  --tinta:            var(--grafite);
-  /* Dois degraus do cinza-quente do kit (`--muted:#777169`) fechados o
-     bastante para passar em AA no pergaminho (6,3:1 e 4,9:1); o literal do
-     kit dá 4,4:1 e reprovaria no texto menor. */
-  --tinta-secundaria: #5f5952;
-  --tinta-terciaria:  #6f6961;
-  --texto-cromo:      #3b352f;  /* texto e ícone sobre o cromo */
+  --tinta:            #292524;
+  --tinta-secundaria: #4e4e4e;
+  --tinta-terciaria:  #6f6a63;
+  --texto-cromo:      #292524;
 
-  --acento:       var(--acento-escuro);
-  --acento-hover: var(--acento-escuro-hover);
-  --acento-tinta: var(--acento-escuro);
+  /* A AÇÃO é carvão, não laranja — regra de marca do v2. O laranja marca
+     foco, seleção, item ativo e marca; se tudo for laranja, nada chama
+     atenção. Quem preenche um botão usa `--primario`. */
+  --primario:       #292524;
+  --primario-hover: #1c1917;
+  --primario-sobre: #ffffff;
+
+  /* `--acento` é o laranja que pode ser LIDO (`--accent-text` do kit): é o
+     token de link, item ativo e ícone de estado. O laranja cheio só aparece
+     como `--laranja` (foco, seleção, marca), nunca como texto. */
+  --acento:       #b3401b;
+  --acento-hover: #93340f;
+  --acento-tinta: #b3401b;
   --acento-sobre: #ffffff;
-  --acento-suave: var(--laranja-veu);
+  --acento-suave: #fff0e9;
+  --acento-suave-linha: #ffd7ca;
 
-  --perigo: var(--perigo-claro);  --perigo-suave: #fff0ed;
-  --alerta: var(--alerta-claro);  --alerta-suave: #fff5d9;
-  --ok:     var(--ok-claro);      --ok-suave:     #e7f3ea;
+  --foco:      #ff5e2c;
+  --foco-anel: #ffe1d6;
+
+  --perigo: #b13d24;  --perigo-suave: #fff3f0;  --perigo-linha: #f4cfc6;
+  --alerta: #8a5c35;  --alerta-suave: #fbf6ea;  --alerta-linha: #eedfbf;
+  --ok:     #3e6f4e;  --ok-suave:     #edf5ee;  --ok-linha:     #cfe3d4;
+  --info:   #2f6479;  --info-suave:   #edf6fa;  --info-linha:   #cfe4ec;
 
   --hover: rgba(41, 37, 36, .05);
   --ativo: rgba(41, 37, 36, .09);
 
-  /* Elevação: o nível 1 NÃO EXISTE mais — cartão, campo e botão se separam
-     do fundo pela linha. Só o que flutua (popover, menu, toast, modal) tem
-     sombra, e é a mesma do console (--sombra-flutuante). */
-  --elevacao-1: none;
-  --elevacao-3: 0 18px 44px rgba(41, 37, 36, .16), 0 0 0 1px rgba(41, 37, 36, .05);
-  --sobreposicao: rgba(41, 37, 36, .48);  /* véu atrás do modal */
+  /* As três sombras do kit. O nível 1 volta a existir (o v2 usa uma sombra
+     de 1px em cartão elevado), mas cartão comum continua se separando do
+     fundo pela LINHA, não por sombra. */
+  --elevacao-1: 0 1px 2px rgba(41, 37, 36, .06);
+  --elevacao-2: 0 9px 22px rgba(40, 38, 32, .10);
+  --elevacao-3: 0 22px 56px rgba(28, 25, 23, .20);
+  --sobreposicao: rgba(12, 10, 9, .44);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
   color-scheme: light;
 }
-
 /* ============================================================
    Semântica — tema escuro
    Os mesmos valores da paleta escura do console (resolv/styles/tokens.scss,
@@ -237,66 +236,110 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  --canvas:             var(--neutro-975);
-  --superficie:         var(--neutro-875);
-  --superficie-sutil:   var(--neutro-975);
-  --superficie-elevada: var(--neutro-850);
-  --navegacao:          var(--neutro-950);
+  --canvas:             #0c0a09;
+  --superficie:         #1c1917;
+  --superficie-sutil:   #0f0d0c;
+  --superficie-elevada: #231f1d;
+  --navegacao:          #0c0a09;
 
-  --divisoria:      var(--neutro-800);
-  --borda-controle: #9d8e81;
-  /* No escuro o contraste de campo se ganha CLAREANDO a linha. */
-  --borda-campo:    var(--neutro-500);
+  --divisoria:      #3a3532;
+  --borda-controle: #4e4e4e;
+  /* Mesma divergência do claro, e o mesmo degrau da rampa do kit: no escuro
+     ele fica CLARO em relação à superfície (3,6:1); o `#5a5450` do v2 daria
+     2,35:1. */
+  --borda-campo:    #777169;
 
-  --tinta:            #ebe0d9;
-  --tinta-secundaria: #cfc5be;
-  --tinta-terciaria:  #a59c96;
-  --texto-cromo:      #ebe0d9;
+  --tinta:            #f5f5f5;
+  --tinta-secundaria: #d6d3d1;
+  --tinta-terciaria:  #a8a29e;
+  --texto-cromo:      #f5f5f5;
 
-  --acento:       var(--acento-claro);
-  --acento-hover: var(--acento-claro-hover);
-  --acento-tinta: var(--acento-claro);
-  --acento-sobre: var(--acento-tinta-sobre-claro);
-  --acento-suave: rgba(255, 138, 99, .16);
+  /* No escuro a ação inverte: carvão sumiria, então o primário é o claro do
+     kit (`--primary:#f0efed`) com tinta escura em cima. */
+  --primario:       #f0efed;
+  --primario-hover: #ffffff;
+  --primario-sobre: #1c1917;
 
-  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
-  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
-  --ok:     var(--ok-escuro);      --ok-suave:     rgba(129, 217, 162, .14);
+  --acento:       #ff8a63;
+  --acento-hover: #ffa686;
+  --acento-tinta: #ff8a63;
+  --acento-sobre: #1c1917;
+  --acento-suave: #35201a;
+  --acento-suave-linha: #5b2f22;
 
-  --hover: rgba(235, 224, 217, .06);
-  --ativo: rgba(235, 224, 217, .10);
+  --foco:      #ff5e2c;
+  --foco-anel: #5b2f22;
 
-  --elevacao-1: none;
-  --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+  --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
+  --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;
+  --ok:     #8fc39e;  --ok-suave:     #17241b;  --ok-linha:     #2b4232;
+  --info:   #9cc9da;  --info-suave:   #15242a;  --info-linha:   #284550;
+
+  --hover: rgba(245, 245, 245, .06);
+  --ativo: rgba(245, 245, 245, .10);
+
+  --elevacao-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --elevacao-2: 0 10px 24px rgba(0, 0, 0, .45);
+  --elevacao-3: 0 24px 60px rgba(0, 0, 0, .6);
   --sobreposicao: rgba(0, 0, 0, .62);
-  --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
+  --esqueleto: linear-gradient(90deg, rgba(245,245,245,.06), rgba(245,245,245,.12), rgba(245,245,245,.06));
 
   --esquema: dark;
   color-scheme: dark;
 }
-
-/* Respeita a preferência do sistema quando ninguém fixou o tema. */
 @media (prefers-color-scheme: dark) {
+  /* Sem `data-tema` no documento, o escuro vale pelo que o sistema pede.
+     Os MESMOS valores do bloco acima, de propósito: é a única duplicação
+     do arquivo, e ela existe porque `@media` não herda seletor. */
   :root:not([data-tema="claro"]) {
-    --canvas: var(--neutro-975);          --superficie: var(--neutro-875);
-    --superficie-sutil: var(--neutro-975); --superficie-elevada: var(--neutro-850);
-    --navegacao: var(--neutro-950);
-    --divisoria: var(--neutro-800);        --borda-controle: #9d8e81;
-    --borda-campo: var(--neutro-500);
-    --tinta: #ebe0d9;                      --tinta-secundaria: #cfc5be;
-    --tinta-terciaria: #a59c96;            --texto-cromo: #ebe0d9;
-    --acento: var(--acento-claro);         --acento-hover: var(--acento-claro-hover);
-    --acento-tinta: var(--acento-claro);
-    --acento-sobre: var(--acento-tinta-sobre-claro);
-    --acento-suave: rgba(255, 138, 99, .16);
-    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(255, 180, 171, .14);
-    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(247, 188, 104, .16);
-    --ok: var(--ok-escuro);          --ok-suave: rgba(129, 217, 162, .14);
-    --hover: rgba(235, 224, 217, .06);    --ativo: rgba(235, 224, 217, .10);
-    --elevacao-1: none;
-    --elevacao-3: 0 8px 24px rgba(0, 0, 0, .62), 0 0 0 1px var(--neutro-800);
+    --canvas:             #0c0a09;
+    --superficie:         #1c1917;
+    --superficie-sutil:   #0f0d0c;
+    --superficie-elevada: #231f1d;
+    --navegacao:          #0c0a09;
+
+    --divisoria:      #3a3532;
+    --borda-controle: #4e4e4e;
+    /* Mesma divergência do claro, e o mesmo degrau da rampa do kit: no escuro
+       ele fica CLARO em relação à superfície (3,6:1); o `#5a5450` do v2 daria
+       2,35:1. */
+    --borda-campo:    #777169;
+
+    --tinta:            #f5f5f5;
+    --tinta-secundaria: #d6d3d1;
+    --tinta-terciaria:  #a8a29e;
+    --texto-cromo:      #f5f5f5;
+
+    /* No escuro a ação inverte: carvão sumiria, então o primário é o claro do
+       kit (`--primary:#f0efed`) com tinta escura em cima. */
+    --primario:       #f0efed;
+    --primario-hover: #ffffff;
+    --primario-sobre: #1c1917;
+
+    --acento:       #ff8a63;
+    --acento-hover: #ffa686;
+    --acento-tinta: #ff8a63;
+    --acento-sobre: #1c1917;
+    --acento-suave: #35201a;
+    --acento-suave-linha: #5b2f22;
+
+    --foco:      #ff5e2c;
+    --foco-anel: #5b2f22;
+
+    --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
+    --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;
+    --ok:     #8fc39e;  --ok-suave:     #17241b;  --ok-linha:     #2b4232;
+    --info:   #9cc9da;  --info-suave:   #15242a;  --info-linha:   #284550;
+
+    --hover: rgba(245, 245, 245, .06);
+    --ativo: rgba(245, 245, 245, .10);
+
+    --elevacao-1: 0 1px 2px rgba(0, 0, 0, .4);
+    --elevacao-2: 0 10px 24px rgba(0, 0, 0, .45);
+    --elevacao-3: 0 24px 60px rgba(0, 0, 0, .6);
     --sobreposicao: rgba(0, 0, 0, .62);
-    --esqueleto: linear-gradient(90deg, rgba(235,224,217,.06), rgba(235,224,217,.12), rgba(235,224,217,.06));
+    --esqueleto: linear-gradient(90deg, rgba(245,245,245,.06), rgba(245,245,245,.12), rgba(245,245,245,.06));
+
     --esquema: dark;
     color-scheme: dark;
   }

@@ -10,7 +10,7 @@ interface BotaoProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 // destes tem box-shadow de repouso; só o anel de foco (`shadow-foco`, do
 // tailwind.config.cjs) usa sombra, e só em :focus-visible.
 const CLASSES_POR_VARIANTE: Record<Variante, string> = {
-  primario: 'bg-acento text-acento-sobre hover:brightness-95 active:brightness-90',
+  primario: 'bg-primario text-primario-sobre hover:bg-primario-hover active:brightness-95',
   secundario:
     'bg-superficie text-tinta border border-borda-controle hover:bg-hover active:bg-ativo',
   fantasma: 'bg-transparent text-tinta hover:bg-hover active:bg-ativo',

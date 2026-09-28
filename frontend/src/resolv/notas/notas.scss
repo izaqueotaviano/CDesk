@@ -298,10 +298,10 @@
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: var(--accent);
-    // token de superfície sobre fundo de marca: branco cai para 2.45:1 no
-    // tema escuro (ver tokens.scss)
-    color: var(--surface-card);
+    // Sinal de "nova", não ação: o `cz-badge--brand` do kit é véu de acento
+    // com a tinta do acento, não preenchimento cheio.
+    background: var(--tom-acento-forte);
+    color: var(--accent);
     i {
       font-size: 20px;
     }

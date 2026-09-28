@@ -8,6 +8,13 @@
 // =============================================================================
 
 // --- cor: marca --------------------------------------------------------------
+// A AÇÃO (`cz-btn`): carvão no claro, claro no escuro.
+$primary:         var(--cvz-primary);
+$primary-hover:   var(--cvz-primary-hover);
+$on-primary:      var(--cvz-on-primary);
+// A MARCA: foco, seleção e grafismo — nunca texto.
+$brand:           var(--cvz-brand);
+// `$blue` (o nome ficou) é o laranja LEGÍVEL: link, item ativo, ícone.
 $blue:            var(--cvz-blue);
 $blue-hover:      var(--cvz-blue-hover);
 $blue-active:     var(--cvz-blue-active);
@@ -80,7 +87,8 @@ $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
 // interruptor com trilho quase reto e bolinha redonda (o que os 2px davam)
 // lia como quebrado, não como consistente. Só forma circular de verdade
 // (avatar, ponto de status) segue em 50%.
-$radius:          10px;  // o `.button` do Convertize — botão, campo, cartão, popover…
+$radius:          6px;   // `--radius-sm` do v2 — botão, campo, chip
+$radius-card:     12px;  // `--radius-lg` do v2 — cartão, popover, modal
 $radius-pill:     999px;
 $radius-circle:   50%;
 
@@ -121,7 +129,7 @@ $sp-4: 16px; $sp-5: 24px; $sp-6: 32px;
 $sp-7: 48px; $sp-8: 64px;
 
 // --- tipografia --------------------------------------------------------------
-$f-ui:      var(--f-ui, 'Geist Sans', -apple-system, system-ui, sans-serif);
+$f-ui:      var(--f-ui, Inter, ui-sans-serif, -apple-system, 'Segoe UI', sans-serif);
 $f-mono:    var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
 $f-display: var(--f-display, 'Tenor Sans', ui-serif, Georgia, serif);
 

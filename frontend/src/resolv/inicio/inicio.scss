@@ -16,7 +16,7 @@
   // Único lugar do produto com a fonte de destaque (--f-display, hoje Tenor
   // Sans) — mesmo tratamento do título grande do app da Manus (manus.im):
   // display só aqui, peso regular (bold numa serifa de texto pesa demais num
-  // título já grande), resto da interface segue no Geist.
+  // título já grande), resto da interface segue no Inter.
   &__titulo {
     font-family: var(--f-display);
     font-size: 26px;
@@ -49,10 +49,10 @@
     padding: 8px 14px;
     border: none;
     border-radius: var(--raio);
-    background: var(--accent);
+    background: var(--primario);
     // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
     // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
-    color: var(--surface-card);
+    color: var(--primario-sobre);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -313,8 +313,8 @@
     padding: 4px 10px;
     border: none;
     border-radius: var(--raio);
-    background: var(--accent);
-    color: var(--surface-card);
+    background: var(--primario);
+    color: var(--primario-sobre);
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;

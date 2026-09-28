@@ -109,10 +109,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--accent);
+    background: var(--primario);
     // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
     // no escuro (tokens.scss:77) e branco por cima reprova o AA.
-    color: var(--surface-card);
+    color: var(--primario-sobre);
     border: none;
     border-radius: var(--raio);
     cursor: pointer;
@@ -136,12 +136,12 @@
     // aqueles dois nao existem em resolv/styles/tokens.scss e vinham por
     // heranca de styles/tokens.css, o design system do portal. Era a unica
     // superficie do Resolv pintada com o azul da outra paleta.
-    background: var(--accent);
+    background: var(--primario);
     border: 1px solid var(--accent);
     border-radius: var(--raio);
     font-size: 12px;
     font-weight: 500;
-    color: var(--surface-card);
+    color: var(--primario-sobre);
     cursor: pointer;
     i {
       font-size: 15px;
@@ -339,8 +339,8 @@
     button {
       margin-top: 4px;
       padding: 7px 16px;
-      background: var(--accent);
-      color: var(--surface-card);
+      background: var(--primario);
+      color: var(--primario-sobre);
       border: none;
       border-radius: var(--raio);
       font-size: 13px;

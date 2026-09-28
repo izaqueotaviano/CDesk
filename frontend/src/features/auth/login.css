@@ -6,16 +6,18 @@
  * COMPOSIÇÃO desta tela: o formulário dentro de uma seção de papel, o painel
  * de marca em grafite e os dois textos que caem sobre ele.
  *
+ * O botão primário desta tela não é mais exceção nenhuma: no v2 a ação do
+ * PRODUTO INTEIRO é carvão, então ele é simplesmente o `default` do `Button`.
+ * A exceção que existia aqui (`variant="inverse"`) era o kit v1 lido ao
+ * contrário — lá o laranja é que era a ação.
+ *
  * REGRA DE CASCATA, porque isto já mordeu uma vez: as utilitárias do Tailwind
  * entram DEPOIS deste arquivo no bundle e têm a mesma especificidade de uma
  * classe. Então qualquer propriedade que o JSX também declare (cor de fundo,
  * altura, alinhamento) tem que ser resolvida LÁ, no JSX — onde o
  * `tailwind-merge` do `cn` faz a última palavra ser a certa. Aqui só entra o
- * que nenhuma utilitária escreve. É por isso que o botão primário virou
- * `variant="inverse"` (grafite no claro, invertendo no escuro — o `.button`
- * de tinta cheia do kit, que é como ele trata tela de marca; dentro do
- * produto o acento segue laranja, como no `.composer button` do próprio kit)
- * e a marca virou `bg-laranja`, em vez de duas regras daqui que perdiam.
+ * que nenhuma utilitária escreve. É por isso que a marca virou `bg-laranja`,
+ * em vez de uma regra daqui que perdia.
  *
  * A moldura de "planta baixa" (referência Relume) saiu junto com a paleta
  * antiga: o contêiner do Convertize é a `.ds-section` — papel, linha de 1px e
@@ -34,7 +36,7 @@
 }
 
 .login-campo {
-  height: 42px;  /* o kit respira mais que os 36px de antes (`padding:10px`) */
+  height: var(--altura-controle-lg);  /* `--h-lg` do v2: campo de entrada de tela */
 }
 
 /* ------------------------------------------------------------------ tipografia

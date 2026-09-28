@@ -105,12 +105,12 @@
       border-color: var(--stroke-hover);
     }
     &--primario {
-      background: var(--accent);
+      background: var(--primario);
       border-color: var(--accent);
       // Token de superfície sobre fundo de marca: o --accent clareia no tema
       // escuro (tokens.scss:77) e branco por cima cai para 2.45:1. Vale para
       // todo botão --primario deste arquivo.
-      color: var(--surface-card);
+      color: var(--primario-sobre);
       &:hover {
         filter: brightness(1.06);
       }
@@ -410,14 +410,14 @@
       }
     }
     &--primario {
-      background: var(--accent);
+      background: var(--primario);
       border-color: var(--accent);
-      color: var(--surface-card);
+      color: var(--primario-sobre);
       i {
         color: var(--surface-card);
       }
       &:hover {
-        background: var(--accent);
+        background: var(--primario);
         filter: brightness(1.06);
       }
     }
@@ -1204,9 +1204,9 @@
       cursor: default;
     }
     &--primario {
-      background: var(--accent);
+      background: var(--primario);
       border-color: var(--accent);
-      color: var(--surface-card);
+      color: var(--primario-sobre);
     }
     &--perigo {
       background: var(--danger);
@@ -1883,8 +1883,8 @@
     padding: 0 14px;
     border: none;
     border-radius: var(--raio);
-    background: var(--accent);
-    color: var(--surface-card);
+    background: var(--primario);
+    color: var(--primario-sobre);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -2098,11 +2098,11 @@
     gap: 6px;
     border: none;
     border-radius: var(--raio);
-    background: var(--accent);
+    background: var(--primario);
     padding: 6px 14px;
     font-size: 12px;
     font-weight: 500;
-    color: var(--surface-card);
+    color: var(--primario-sobre);
     cursor: pointer;
 
     &:hover {
@@ -2574,11 +2574,11 @@
     }
     &--primario {
       border-color: transparent;
-      background: var(--accent);
+      background: var(--primario);
       // `--surface-card` e não branco: `--accent` clareia no tema escuro e
       // branco por cima cai para 2.45:1 — mesma razão do comentário em
       // `.ticket-cab__botao--primario`, neste mesmo arquivo.
-      color: var(--surface-card);
+      color: var(--primario-sobre);
       &:hover:not(:disabled) {
         filter: brightness(1.06);
       }

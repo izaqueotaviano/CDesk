@@ -235,7 +235,11 @@
         width: 3px;
         height: 20px;
         border-radius: 0 3px 3px 0;
-        background: var(--accent);
+        // Trilho e ícone do item ativo são o lugar canônico do laranja no v2
+        // ("o detalhe do ícone fica laranja no item ativo"). O trilho é
+        // GRAFISMO, então leva o laranja cheio; o ícone fica ao lado de
+        // texto, então leva o laranja legível.
+        background: var(--laranja);
       }
       .sidebar-rail__icone i {
         color: var(--accent);
@@ -305,12 +309,12 @@
     align-items: center;
     justify-content: center;
     border-radius: var(--raio);
-    background: var(--accent);
+    background: var(--surface-alt);
     // `--surface-card` e não branco: ele inverte com o tema, e o acento
     // também — no escuro o acento é claro (#ff8a63) e branco em cima
     // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
     // lista.scss, inicio.scss).
-    color: var(--surface-card);
+    color: var(--text-secondary);
     font-family: var(--f-ui);
     font-size: 9px;
     font-weight: 700;

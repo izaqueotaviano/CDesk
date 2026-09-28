@@ -8,8 +8,10 @@ export const Switch = forwardRef<ElementRef<typeof SwitchPrimitive.Root>, Compon
     return (
       <SwitchPrimitive.Root
         ref={ref}
+        // Ligado é VERDE: é o `cz-switch` do v2. Interruptor diz ESTADO,
+        // e estado tem cor própria — no acento ele competia com "ação".
         className={cn(
-          'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-total border-2 border-transparent bg-neutro-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-acento dark:bg-neutro-600',
+          'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-total border-2 border-transparent bg-neutro-400 transition-colors disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-ok dark:bg-neutro-600',
           className,
         )}
         {...props}

@@ -8,17 +8,18 @@ import { cn } from '../lib/cn'
  * 13px em peso 500. O foco é o contorno global de tokens.css — nada aqui
  * desenha anel próprio.
  *
- * Variantes casam com as do console: `default` é o primário (azul de ação,
- * escurece no hover em vez de clarear), `secondary` é o terciário do cvz
- * (superfície + linha), `inverse` é o botão de enviar do composer (pinta com
- * o token de texto, escreve com o de superfície — `.cc-composer__enviar`).
+ * Variantes casam com as do console: `default` é o primário — CARVÃO, a
+ * ação do Convertize v2, não o laranja (que no kit marca foco, seleção e
+ * marca) —, `secondary` é o terciário do cvz (superfície + linha), `inverse`
+ * é o botão de enviar do composer (pinta com o token de texto, escreve com o
+ * de superfície — `.cc-composer__enviar`).
  */
 const buttonVariants = cva(
   'inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-md border border-transparent font-medio transition-[background-color,color,border-color] duration-150 disabled:pointer-events-none disabled:opacity-50 [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        default: 'bg-acento text-acento-sobre hover:bg-acento-hover',
+        default: 'bg-primario text-primario-sobre hover:bg-primario-hover',
         secondary: 'border-divisoria bg-superficie text-tinta hover:border-tinta-terciaria hover:bg-navegacao',
         outline: 'border-divisoria bg-transparent text-tinta hover:bg-navegacao',
         ghost: 'text-tinta-secundaria hover:bg-navegacao hover:text-tinta',

@@ -373,7 +373,7 @@ export function PaginaLogin() {
                   <ErroCampo id={`${idBase}-senha-erro`}>{form.formState.errors.password?.message}</ErroCampo>
                 </div>
 
-                <Button type="submit" variant="inverse" className="mt-1 h-[42px] w-full" disabled={login.isPending}>
+                <Button type="submit" className="mt-1 h-[44px] w-full" disabled={login.isPending}>
                   {login.isPending ? 'Entrando…' : 'Entrar'}
                 </Button>
 
@@ -446,7 +446,7 @@ export function PaginaLogin() {
                   />
                 </div>
 
-                <Button type="submit" variant="inverse" className="h-[42px] w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
+                <Button type="submit" className="h-[44px] w-full" disabled={codigo.length !== 6 || confirmar2fa.isPending}>
                   {confirmar2fa.isPending ? 'Confirmando…' : 'Confirmar'}
                 </Button>
 

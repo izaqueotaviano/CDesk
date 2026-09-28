@@ -118,7 +118,7 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent);
+    background: var(--laranja);  // ponto de não lida: grafismo, o `cz-badge` do kit
   }
 
   &__vazio {
@@ -171,7 +171,7 @@
     transition: background-color 0.15s ease, border-color 0.15s ease;
 
     &--ligada {
-      background: var(--accent);
+      background: var(--ok);  // `cz-switch` ligado é VERDE no kit, não cor de marca
       border-color: var(--accent);
     }
     &:focus-visible {

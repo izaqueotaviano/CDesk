@@ -8,19 +8,22 @@
 // Escopado em .resolv-scope para os tokens valerem só sob o shell novo — o
 // resto do app (login etc.) fica intocado.
 //
-// A paleta é a do design system Convertize: papel #fffdf9 no conteúdo,
-// pergaminho #f6f4f1 no canvas, cromo quente #efeae2, tinta grafite #292524
-// e o laranja da marca como ação. Os mesmos valores vivem em
+// A paleta é a do design system Convertize v2: superfície BRANCA no
+// conteúdo, canvas #f5f5f5, cromo #f0efed, tinta #292524 e a AÇÃO em carvão
+// — no v2 o laranja não preenche ação, ele marca foco, seleção, item ativo e
+// marca. O calor mora nos neutros (pedra) e no laranja. Os mesmos valores
+// vivem em
 // styles/tokens.css (portal/Tailwind) e cvz/styles/_theme.scss (admin) —
 // mudar aqui é mudar nos três. Nenhum componente repete hex.
 // ============================================================================
 
 .resolv-scope {
   // ── Fontes ──
-  // A dupla do Convertize: Geist na interface, Tenor Sans no display
-  // (saudação da Início, título de tela). JetBrains Mono segue só em dado
+  // Inter na interface inteira, inclusive nos números. Tenor Sans SÓ em
+  // título editorial (saudação da Início, título de tela) — serifada e
+  // decorativa, número nela fica ilegível. JetBrains Mono segue só em dado
   // técnico (id, referência de ticket, atalho) — nunca em texto corrido.
-  --f-ui: 'Geist Sans', Geist, -apple-system, system-ui, sans-serif;
+  --f-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --f-mono: 'JetBrains Mono', monospace;
   --f-display: 'Tenor Sans', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
 
@@ -35,42 +38,46 @@
   // primeiros tons do app da Manus (nav e canvas); o card de lá (#fafafa)
   // não entrou — o pedido original já tinha fixado cartão/tabela em branco
   // puro, e isso não mudou.
-  --surface: #fffdf9;
-  --surface-alt: #efeae2;
-  --surface-card: #fffdf9;
-  --surface-canvas: #f6f4f1;
+  --surface: #ffffff;
+  --surface-alt: #f0efed;
+  --surface-card: #ffffff;
+  --surface-canvas: #f5f5f5;
   // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
   // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
   // branco puro) uma borda derivada de preto ficava clara demais. Mesma
   // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
   // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
-  --stroke: #e5e0da;
-  --stroke-hover: #cfc8c1;
+  --stroke: #e7e5e4;
+  --stroke-hover: #d6d3d1;
   --stroke-subtle: rgba(41, 37, 36, 0.04);
 
   // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
   // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
   // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
   // o formulário sumir dentro da página.
-  --borda-campo: #8a8079;
+  // DIVERGÊNCIA do kit: o `--control-line: #c9c4bd` dele dá 1,73:1 sobre a
+  // superfície e reprova em 1.4.11 (borda de controle pede 3:1). Este é o
+  // degrau `--cz-n500` da rampa DO PRÓPRIO KIT, o primeiro que passa nos dois
+  // temas (4,8:1 no claro, 3,6:1 no escuro).
+  --borda-campo: #777169;
 
   // ── Texto ──
   // Fonte: o mesmo material de referência do fundo (app da Manus) —
   // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
   // saem daqui (ver conferência de WCAG no commit).
   --text-primary: #292524;
-  --text-secondary: #5f5952;
-  --text-muted: #6f6961;
+  --text-secondary: #4e4e4e;
+  --text-muted: #6f6a63;
   // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
-  --texto-cromo: #3b352f;
+  --texto-cromo: #292524;
   // Fundo do item ATIVO da sidebar: o véu de laranja do kit
   // (`.site-sidebar a.active{background:#fff0eb}`). Continua token à parte de
   // `--tom-acento` porque aquele é derivado por alfa e pinta uma dúzia de
   // outros lugares; aqui o kit pede um creme SÓLIDO. No escuro volta a ser
   // `--tom-acento`.
-  --sidebar-ativo: #fff0eb;
+  --sidebar-ativo: #fff0e9;  // `--accent-soft` do v2
 
   // ── Identidade ──
   // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
@@ -159,22 +166,33 @@
   --presenca-offline: #59524d;
 
   // ── Semânticas ──
-  // `--laranja` é o laranja de marca do kit (#ff5e2c): preenchimento e
-  // grafismo só — sobre papel ele dá 2,98:1 como texto e 3,05:1 com branco
-  // em cima. `--accent` é o mesmo laranja fechado até servir nos dois papéis
-  // em toda superfície clara (4,73:1 na mais escura delas, 5,66:1 com branco
-  // em cima — a conta completa está em styles/tokens.css), e o produto usa
-  // como ação: aqui o acento é TEXTO (link, estado ativo, ícone) em muito mais
-  // lugares do que preenchimento. O perigo fica num vermelho mais fechado de
-  // propósito — o tom de erro do kit (#b13d24) é quase o acento, e alarme que
-  // se confunde com ação não é alarme.
+  // Três papéis DIFERENTES, e a rodada anterior confundia dois deles:
+  //
+  //   --primario  a AÇÃO. Carvão, não laranja — regra de marca do v2 ("a
+  //               ação principal é carvão; se tudo for laranja, nada chama
+  //               atenção"). É o `--primary` do kit, e quem preenche botão
+  //               usa ele.
+  //   --accent    o laranja que pode ser LIDO (`--accent-text` do kit):
+  //               link, item ativo, ícone de estado. 5,73:1 sobre a
+  //               superfície branca.
+  //   --laranja   a MARCA (#ff5e2c). Foco, seleção e grafismo — sobre branco
+  //               dá 3,05:1, então nunca texto nem fundo com texto claro.
+  //
+  // Os estados agora são os do kit, inclusive o perigo: o #b13d24 dele já
+  // não se confunde com a ação, porque a ação deixou de ser laranja — era
+  // justamente por isso que a rodada passada precisou fechá-lo mais.
   --laranja: #ff5e2c;
-  --accent: #b04518;
-  --accent-hover: #9c3b16;
-  --accent-active: #85300f;
-  --danger: #a32019;
-  --ok: #28603a;
-  --away: #805b06;
+  --primario: #292524;
+  --primario-hover: #1c1917;
+  --primario-sobre: #ffffff;
+  --accent: #b3401b;
+  --accent-hover: #93340f;
+  --accent-active: #7d2b0b;
+  --foco: #ff5e2c;
+  --foco-anel: #ffe1d6;
+  --danger: #b13d24;
+  --ok: #3e6f4e;
+  --away: #8a5c35;
   // Tinta de quem PREENCHE com --away (o selo "fila" do mini chat). O --away
   // vira dos dois lados com o tema — âmbar fechado no claro, âmbar claro no
   // escuro —, então a tinta em cima dele tem que virar junto: branco fixo
@@ -200,18 +218,20 @@
   --tom-nota: #fffaec; // fundo da nota interna, um degrau mais claro que a pílula
 
   // ── Raio ──
-  // O canto generoso é metade do caráter do Convertize: 10px é o `.button` do
-  // kit, e serve de padrão para botão/campo/cartão/modal. Quem precisa de
+  // O v2 é mais fechado que a leitura anterior: 6px no botão e no campo
+  // (`--radius-sm`), e o canto generoso guardado para superfície — 12px no
+  // cartão (`--radius-lg`). `--raio` é o padrão de controle. Quem precisa de
   // círculo de verdade (avatar, ponto de presença) usa 50% direto — é forma,
   // não estilo.
-  --raio: 10px;
+  --raio: 6px;
+  --raio-cartao: 12px;
   // Exceção nomeada, e só do CROMO do shell: as abas no estilo de navegador
   // (barra-de-abas.scss) e o painel de conteúdo que flutua sobre o cromo
   // (shell.scss) dependem da curva — a junção côncava entre a aba ativa e o
   // painel É o desenho, e a 2px ela some. Botão, campo, card, modal continuam
   // em `--raio`; nada fora do shell lê estes dois.
   --raio-aba: 12px;
-  --raio-painel: 18px;
+  --raio-painel: 12px;
   // Respiro entre o painel e a borda da janela (direita e baixo), o mesmo que
   // faz o painel parecer um cartão apoiado no cromo em vez de colado nele.
   --respiro-painel: 12px;
@@ -263,16 +283,16 @@
   // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
   // surface-container (tom 12) — a MESMA ordem relativa de antes
   // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
-  --surface: #201b16;
-  --surface-alt: #120d09;
-  --surface-card: #241f1a;
-  --surface-canvas: #17130e;
+  --surface: #1c1917;
+  --surface-alt: #0c0a09;
+  --surface-card: #231f1d;
+  --surface-canvas: #0c0a09;
   // outline-variant (tom 30) / outline (tom 60) / outline-variant discreto (tom 24)
-  --stroke: #50453a;
-  --stroke-hover: #9d8e81;
-  --stroke-subtle: #42372d;
+  --stroke: #3a3532;
+  --stroke-hover: #4e4e4e;
+  --stroke-subtle: #231f1d;
   // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
-  --borda-campo: #8d8d8d;
+  --borda-campo: #777169;
 
   // O cinza de "offline" precisa virar do outro lado junto com o fundo:
   // 6,1:1 sobre --surface-card, contra os 2,1:1 que o tom claro dava ali.
@@ -280,9 +300,9 @@
 
   // on-surface (tom 90) / on-surface-variant (tom 80) / on-surface-variant
   // com menos ênfase (tom 65) — mesmos roles do M3 para texto sobre superfície.
-  --text-primary: #ebe0d9;
-  --text-secondary: #cfc5be;
-  --text-muted: #a59c96;
+  --text-primary: #f5f5f5;
+  --text-secondary: #d6d3d1;
+  --text-muted: #a8a29e;
   // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
   // o mesmo texto principal (um cinza #333 ali seria ilegível).
   --texto-cromo: var(--text-primary);
@@ -295,15 +315,21 @@
   // pastel que o valor antigo (#78a9ff, tom≈69), e com contraste MAIOR
   // (9,6–10,9:1 como texto nas três superfícies, contra os 7,4:1 de antes).
   // hover/active seguem a MESMA paleta tonal do primary (tons 88/70).
+  // No escuro a AÇÃO inverte (carvão sumiria): o primário vira o claro do
+  // kit com tinta escura em cima. O acento clareia junto.
+  --primario: #f0efed;
+  --primario-hover: #ffffff;
+  --primario-sobre: #1c1917;
   --accent: #ff8a63;
   --accent-hover: #ffa686;
   --accent-active: #e5754f;
+  --foco-anel: #5b2f22;
   // role `error` do M3 (tom 80) para #b3261e.
-  --danger: #ffb4ab;
+  --danger: #ff9b85;
   // Sem role nativo no M3 para sucesso/atenção — retonados pelo MESMO método
   // (HCT, tom 80) preservando o hue/chroma reais de #1d7a4c e #8a5d0f.
-  --ok: #81d9a2;
-  --away: #f7bc68;
+  --ok: #8fc39e;
+  --away: #e3b682;
   // 10,28:1 — no escuro o --away é claro, e quem escreve em cima dele escurece
   --texto-sobre-away: #1c1917;
 

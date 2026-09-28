@@ -40,12 +40,22 @@ module.exports = {
           terciaria:   'var(--tinta-terciaria)',
           cromo:       'var(--texto-cromo)',
         },
+        // A AÇÃO do produto (botão primário) — carvão no claro, claro no
+        // escuro. Regra de marca do v2: laranja não preenche ação.
+        primario: {
+          DEFAULT: 'var(--primario)',
+          hover:   'var(--primario-hover)',
+          sobre:   'var(--primario-sobre)',
+        },
+        // `acento` é o laranja LEGÍVEL (link, item ativo, ícone de estado).
+        // O laranja cheio é `laranja`, e só marca foco, seleção e marca.
         acento: {
           DEFAULT: 'var(--acento)',
           hover:   'var(--acento-hover)',
           suave:   'var(--acento-suave)',
           sobre:   'var(--acento-sobre)',
         },
+        foco: { DEFAULT: 'var(--foco)', anel: 'var(--foco-anel)' },
         perigo: { DEFAULT: 'var(--perigo)', suave: 'var(--perigo-suave)' },
         alerta: { DEFAULT: 'var(--alerta)', suave: 'var(--alerta-suave)' },
         ok:     { DEFAULT: 'var(--ok)',     suave: 'var(--ok-suave)' },
@@ -72,7 +82,7 @@ module.exports = {
       },
 
       fontFamily: {
-        ui:      ['Geist Sans', 'Geist', '-apple-system', 'system-ui', 'sans-serif'],
+        ui:      ['Inter', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
         mono:    ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
         // O display do Convertize (título de tela, saudação da Início) — mesma
         // pilha de `--f-display` em styles/tokens.css.

@@ -291,12 +291,12 @@
     place-items: center;
     border: none;
     border-radius: 50%;
-    background: var(--accent);
-    // `--surface-card` e não branco: ele inverte com o tema, e o acento
-    // também — no escuro o acento é claro (#ff8a63) e branco em cima
-    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
-    // lista.scss, inicio.scss).
-    color: var(--surface-card);
+    // O `cz-fab` do kit é a exceção documentada: laranja CHEIO, porque ele
+    // flutua sobre o conteúdo e é o gatilho da marca. A tinta em cima é
+    // escura e FIXA nos dois temas (o fundo não vira com o tema): #1c1917
+    // sobre #ff5e2c dá 6,1:1.
+    background: var(--laranja);
+    color: #1c1917;
     font-size: 19px;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.15s ease;
@@ -428,11 +428,11 @@
     font-size: 10px;
     padding: 0 5px;
     border-radius: var(--raio);
-    background: var(--accent);
+    background: var(--surface-alt);
     // Sobre fundo de marca, o texto é o token de superfície (branco no claro,
     // escuro no escuro): o --accent CLAREIA no tema escuro e branco por cima
     // cai para 2.45:1.
-    color: var(--surface-card);
+    color: var(--text-secondary);
   }
   &__fila {
     margin-left: 4px;
@@ -546,12 +546,12 @@
     padding: 5px 10px;
     border: none;
     border-radius: var(--raio);
-    background: var(--accent);
+    background: var(--primario);
     // `--surface-card` e não branco: ele inverte com o tema, e o acento
     // também — no escuro o acento é claro (#ff8a63) e branco em cima
     // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
     // lista.scss, inicio.scss).
-    color: var(--surface-card);
+    color: var(--primario-sobre);
     font: inherit;
     font-size: 12px;
     font-weight: 500;

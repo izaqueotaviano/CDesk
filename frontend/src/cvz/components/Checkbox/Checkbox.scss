@@ -162,14 +162,19 @@
     }
   }
 
+  // Ligado é VERDE, não cor de marca: é o `cz-switch` do v2
+  // (`input:checked{background:var(--success)}`). Um interruptor diz um
+  // ESTADO — ligado/desligado —, e estado tem cor própria; pintá-lo com o
+  // acento fazia "ligado" competir com "isto é uma ação".
   input:checked + &__track {
-    background-color: $blue;
+    background-color: $success;
 
     &::after { transform: translateX(16px); }
   }
 
+  // O anel de foco é o único lugar onde o laranja CHEIO entra num controle.
   input:focus-visible + &__track {
-    outline: $focus-w solid $blue;
+    outline: $focus-w solid $brand;
     outline-offset: 2px;
   }
 }
