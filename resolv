@@ -9,6 +9,7 @@
 #   ./resolv logs front   acompanha o log do frontend (Vite)
 #   ./resolv logs worker  acompanha o log das tarefas de fundo (Celery)
 #   ./resolv estado       mostra o que está no ar
+#   ./resolv diagnostico  junta tudo que importa quando "não entra"
 #   ./resolv antivirus    sobe também o ClamAV (opcional, pesado)
 #   ./resolv ajuda
 #
@@ -908,6 +909,125 @@ antivirus() {
   ok "Antivírus no ar."
 }
 
+# --------------------------------------------------------------------------- #
+# Diagnóstico
+# --------------------------------------------------------------------------- #
+#
+# Existe porque depurar "não entra" por mensagem de chat é lento e impreciso:
+# cada pergunta custa uma ida e volta, e "não funciona" cabe em três problemas
+# diferentes. Aqui sai tudo de uma vez, numa saída só, pronta para colar.
+#
+# Não muda nada no sistema — só olha e conta.
+
+# Uma chamada HTTP com teto de tempo, traduzida para linguagem humana. O
+# código de saída do curl diz tanto quanto o status HTTP: 7 é "ninguém
+# escutando" e 28 é "aceitou o pedido e não respondeu". São problemas
+# opostos, e confundir os dois manda a investigação para o lado errado.
+sonda() {
+  local rotulo="$1" metodo="$2" url="$3"; shift 3
+  local cod="" saida=0
+  cod="$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X "$metodo" "$url" "$@" 2>/dev/null)" || saida=$?
+  case "$saida" in
+    0)  printf '  %-30s HTTP %s\n' "$rotulo" "$cod" ;;
+    7)  printf '  %-30s recusado (ninguém escutando)\n' "$rotulo" ;;
+    28) printf '  %-30s TRAVOU (aceitou e não respondeu)\n' "$rotulo" ;;
+    *)  printf '  %-30s falhou (curl %s)\n' "$rotulo" "$saida" ;;
+  esac
+}
+
+diagnostico() {
+  local relatorio="${TMPDIR:-/tmp}/resolv-diagnostico.txt"
+  {
+    echo "===== diagnóstico do Resolv ====="
+    date
+    echo
+
+    echo "-- código --"
+    echo "  commit:  $(git log -1 --oneline 2>/dev/null || echo '(fora de um repositório)')"
+    echo "  branch:  $(git branch --show-current 2>/dev/null || echo '?')"
+    echo "  pendente: $(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') arquivo(s) alterado(s)"
+    echo
+
+    echo "-- ambiente --"
+    detectar_modo 2>/dev/null || true
+    echo "  modo:    ${MODO:-?}"
+    echo "  settings: $(grep -E '^DJANGO_SETTINGS_MODULE=' .env 2>/dev/null || echo '(não definido no .env)')"
+    # Este arquivo GANHA do proxy do Vite: se ele apontar para a porta 8000,
+    # o navegador volta a falar com duas origens e o proxy não serve de nada.
+    if [ -f "$FRONT_DIR/.env" ]; then
+      echo "  $FRONT_DIR/.env EXISTE — e ele ganha do proxy:"
+      sed 's/^/    /' "$FRONT_DIR/.env" | grep -v '^\s*#' | grep -v '^\s*$' || true
+    else
+      echo "  $FRONT_DIR/.env: não existe (certo — o proxy assume)"
+    fi
+    echo
+
+    echo "-- quem está nas portas --"
+    local p dir
+    for porta in 5174 8000; do
+      local achou=0
+      for p in $(lsof -ti ":$porta" 2>/dev/null || true); do
+        dir="$(cwd_do_pid "$p" 2>/dev/null || echo '?')"
+        echo "  $porta  pid $p  <- $dir"
+        achou=1
+      done
+      [ "$achou" = 0 ] && echo "  $porta  (ninguém)"
+    done
+    echo
+
+    echo "-- o backend, direto na 8000 --"
+    sonda "health (sem banco/redis)" GET "$URL/health/"
+    sonda "auth/me (espera 401)"     GET "$URL/api/v1/auth/me/"
+    echo
+
+    echo "-- o backend PELO PROXY do Vite (5174) --"
+    echo "   é por aqui que o navegador fala; se diferir do bloco acima,"
+    echo "   o problema está no proxy, não no Django."
+    sonda "health pelo proxy"    GET "$FRONT_URL/health/"
+    sonda "auth/me (espera 401)" GET "$FRONT_URL/api/v1/auth/me/"
+    echo
+
+    echo "-- o preflight (só o navegador manda isto; o curl comum, não) --"
+    sonda "OPTIONS login (espera 200)" OPTIONS "$URL/api/v1/auth/login/" \
+      -H "Origin: $FRONT_URL" \
+      -H 'Access-Control-Request-Method: POST' \
+      -H 'Access-Control-Request-Headers: content-type'
+    echo
+
+    echo "-- login de ponta a ponta, com cookie, pelo proxy --"
+    local pote="${TMPDIR:-/tmp}/resolv-diag-cookies.txt"
+    rm -f "$pote"
+    sonda "POST login (espera 200)" POST "$FRONT_URL/api/v1/auth/login/" \
+      -H 'Content-Type: application/json' \
+      -d '{"email":"admin@demo.resolv.test","password":"resolv123"}' \
+      -c "$pote"
+    if [ -s "$pote" ] && grep -q sessionid "$pote" 2>/dev/null; then
+      echo "  sessionid recebido            sim"
+      # A pergunta que decide tudo: a sessão que o login acabou de criar é
+      # aceita na chamada seguinte? 200 = sadio; 401 = a sessão não gruda,
+      # que é o que produz a tela de "sua sessão expirou".
+      sonda "auth/me COM a sessão (200)" GET "$FRONT_URL/api/v1/auth/me/" -b "$pote"
+    else
+      echo "  sessionid recebido            NÃO — o login não criou sessão"
+    fi
+    rm -f "$pote"
+    echo
+
+    echo "-- o Vite está servindo o código atual? --"
+    local n
+    n="$(curl -s -m 10 "$FRONT_URL/src/api/client.ts" 2>/dev/null | grep -c 'TEMPO_LIMITE_MS' || true)"
+    echo "  teto de tempo no client.ts:   ${n:-0}  (0 = está servindo código velho)"
+    echo
+
+    echo "-- últimas linhas do log do Vite --"
+    tail -12 "$VITE_LOG" 2>/dev/null | sed 's/^/  /' || echo "  (sem $VITE_LOG)"
+    echo
+    echo "===== fim ====="
+  } 2>&1 | tee "$relatorio"
+  echo
+  ok "Salvo também em $relatorio"
+}
+
 ajuda() {
   sed -n '3,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
@@ -918,6 +1038,7 @@ case "${1:-subir}" in
   parar|stop)                  parar ;;
   logs)                        logs "${2:-}" ;;
   estado|status|ps)            estado ;;
+  diagnostico|diagnóstico|doctor) diagnostico ;;
   antivirus|antivírus)         antivirus ;;
   ajuda|help|-h|--help)        ajuda ;;
   *) erro "Comando desconhecido: $1"; echo; ajuda; exit 1 ;;
