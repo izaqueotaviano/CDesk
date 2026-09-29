@@ -110,6 +110,10 @@ describe('tempos', () => {
   it('tempoSla mostra negativo quando estourado e — sem SLA', () => {
     expect(tempoSla({ due_at: null, state: 'none', minutes_left: null })).toBe('—')
     expect(tempoSla({ due_at: 'x', state: 'breached', minutes_left: -35 })).toBe('-35min')
+    // Um SLA estourado há semanas: o cartão do quadro imprimia o minuto cru
+    // ("-29845m") em vez de escalar a unidade — ilegível num cartão feito
+    // para ser lido de relance.
+    expect(tempoSla({ due_at: 'x', state: 'breached', minutes_left: -29845 })).toBe('-20d 17h')
     expect(tempoSla({ due_at: 'x', state: 'ok', minutes_left: 90 })).toBe('1h 30min')
     expect(tempoSla({ due_at: 'x', state: 'met', minutes_left: null })).toBe('ok')
   })

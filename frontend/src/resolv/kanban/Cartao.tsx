@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { API_BASE_URL } from '@/api/client'
 import { identidadeDe } from '@/ui/identidade'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../tickets/format'
+import { tempoSla } from '../tickets/detalhe/linhaDoTempo'
 import type { Cartao as CartaoTipo } from './tipos'
 
 /** "2026-09-05T14:30" ↔ ISO — o backend espera ISO completo, o
@@ -127,9 +128,14 @@ export function Cartao({ cartao, onAbrir, onDefinirPrazo, arrastando }: Props) {
           )}
 
           {mostrarSla && (
+            // `tempoSla` e não minuto cru: o cartão imprimia o valor direto do
+            // backend, e um SLA estourado há três semanas virava "-29845m" —
+            // ilegível justamente num cartão cuja função é ser lido de relance.
+            // É o mesmo formatador do detalhe do chamado, então o quadro e a
+            // tela do ticket passam a falar a mesma duração.
             <span className={'kb-cartao__sla kb-cartao__sla--' + sla.state}>
               <i className="ti ti-alarm" />
-              {sla.minutes_left! < 0 ? `-${Math.abs(sla.minutes_left!)}m` : `${sla.minutes_left}m`}
+              {tempoSla(sla)}
             </span>
           )}
         </div>
