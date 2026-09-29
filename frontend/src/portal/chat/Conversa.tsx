@@ -390,7 +390,7 @@ export function Conversa({
         ) : (
           grupos.map((g) => (
             <section key={g.rotulo} className="flex flex-col gap-2" aria-label={g.rotulo}>
-              <h3 className="flex items-center gap-3 text-legenda font-medio uppercase tracking-rotulo text-tinta-secundaria before:h-px before:flex-1 before:bg-divisoria after:h-px after:flex-1 after:bg-divisoria">
+              <h3 className="flex items-center gap-3 text-legenda font-medio text-tinta-secundaria before:h-px before:flex-1 before:bg-divisoria after:h-px after:flex-1 after:bg-divisoria">
                 {g.rotulo}
               </h3>
               {g.itens.map((m) =>
@@ -433,7 +433,7 @@ export function Conversa({
                     {m.id === regua && (
                       <div
                         role="separator"
-                        className="mb-2 flex items-center gap-3 text-legenda font-medio uppercase tracking-rotulo text-acento before:h-px before:flex-1 before:bg-acento/40 after:h-px after:flex-1 after:bg-acento/40"
+                        className="mb-2 flex items-center gap-3 text-legenda font-medio text-acento before:h-px before:flex-1 before:bg-acento/40 after:h-px after:flex-1 after:bg-acento/40"
                       >
                         Novas mensagens
                       </div>

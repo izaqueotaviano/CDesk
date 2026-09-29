@@ -572,7 +572,7 @@ export function PaginaTicket() {
             {grupos.length === 0 && <p className="text-pequeno text-tinta-secundaria">Nenhuma mensagem ainda.</p>}
             {grupos.map((g) => (
               <section key={g.rotulo} className="flex flex-col gap-4" aria-label={g.rotulo}>
-                <h3 className="flex items-center gap-3 text-legenda font-medio uppercase tracking-rotulo text-tinta-secundaria before:h-px before:flex-1 before:bg-divisoria after:h-px after:flex-1 after:bg-divisoria">
+                <h3 className="flex items-center gap-3 text-legenda font-medio text-tinta-secundaria before:h-px before:flex-1 before:bg-divisoria after:h-px after:flex-1 after:bg-divisoria">
                   {g.rotulo}
                 </h3>
                 {g.itens.map((m) =>

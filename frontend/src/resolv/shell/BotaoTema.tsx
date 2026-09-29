@@ -1,5 +1,4 @@
 import { useTema } from './useTema'
-import { IconeMarca } from '@/ui/marca/IconeMarca'
 
 /**
  * Sol/lua da zona utilitária da Sidebar (Fase 2 — antes vivia na Topbar, que
@@ -19,9 +18,13 @@ export function BotaoTema() {
   return (
     <button type="button" className="sidebar-rail__item" aria-label={acao} title={acao} onClick={alternar}>
       <span className="sidebar-rail__icone">
-        {/* Dois elementos, e não `nome={cond ? 'sun' : 'moon'}`: o gerador
-            do subset procura o nome LITERAL, e um ternário o esconderia. */}
-        {tema === 'escuro' ? <IconeMarca nome="sun" /> : <IconeMarca nome="moon" />}
+        {/* Dois elementos literais, e não um ternário dentro do `className`:
+            o gerador do subset procura o par `ti ti-*` escrito por extenso. */}
+        {tema === 'escuro' ? (
+          <i className="ti ti-sun" aria-hidden="true" />
+        ) : (
+          <i className="ti ti-moon" aria-hidden="true" />
+        )}
       </span>
       <span className="sidebar-rail__rotulo" aria-hidden="true">
         {acao}

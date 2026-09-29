@@ -82,29 +82,40 @@
      diálogo, saudação da Início): é serifada e decorativa, e número nela
      fica ilegível — por isso nunca em botão, tabela ou valor.
      Self-hosted por @fontsource em src/main.tsx, como as demais. */
-  --f-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
-  --f-display: "Tenor Sans", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --f-ui: "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* Uma família só. `--f-mono` e `--f-display` continuam existindo porque ~50
+     arquivos os consomem, mas apontam para a MESMA pilha: trocar a fonte de
+     um rótulo pequeno era o que fazia a tela parecer um painel técnico em vez
+     de um documento. Número segue alinhado por `font-variant-numeric`, que é
+     o que realmente importa numa coluna, e não pela largura fixa do glifo. */
+  --f-mono: var(--f-ui);
+  --f-display: var(--f-ui);
 
-  --fs-micro:     9.75px;
-  --fs-legenda:   11px;
-  --fs-pequeno:   12.5px;
+  /* QUATRO tamanhos, e só. Os nove nomes continuam para não reescrever tela
+     nenhuma, mas caem em 12 / 14 / 16 / 28: rótulo, interface, leitura e
+     título. Uma escala curta é o que faz a hierarquia vir do PESO e do
+     espaço, não de mais um degrau de tamanho. */
+  --fs-micro:     12px;
+  --fs-legenda:   12px;
+  --fs-pequeno:   12px;
   --fs-corpo:     14px;
-  --fs-corpo-lg:  15.75px;
-  --fs-titulo-sm: 17.75px;
-  --fs-titulo:    20px;
-  --fs-titulo-lg: 22.5px;
-  --fs-display:   25.25px;
+  --fs-corpo-lg:  16px;
+  --fs-titulo-sm: 16px;
+  --fs-titulo:    16px;
+  --fs-titulo-lg: 28px;
+  --fs-display:   28px;
 
   --lh-nenhuma: 1;
-  --lh-justa:   1.25;
-  --lh-normal:  1.45;
-  --lh-solta:   1.6;
+  --lh-justa:   1.2;    /* título */
+  --lh-normal:  1.43;   /* interface */
+  --lh-solta:   1.75;   /* leitura — o respiro é o que dá o tom de documento */
 
-  --ls-titulo:  -0.015em;
-  --ls-display: -0.03em;
+  /* Zero entrelinhamento em tudo. O `--ls-rotulo` era o tracking de CAIXA
+     ALTA; rótulo em versalete sumiu junto com o resto das caixas altas. */
+  --ls-titulo:  0em;
+  --ls-display: -0.01em;
   --ls-nenhum:  0em;
-  --ls-rotulo:  0.05em;
+  --ls-rotulo:  0em;
 
   --fw-normal: 400;
   --fw-medio:  500;
@@ -125,13 +136,15 @@
      no botão e no campo, e guarda o canto generoso para o que é superfície.
      Quem precisa de círculo de verdade (avatar, ponto de status, interruptor)
      continua em `--r-total`: é forma, não estilo. */
-  --r-xs: 4px; --r-sm: 6px; --r-md: 10px; --r-lg: 12px; --r-xl: 20px; --r-total: 999px;
+  /* Três raios: 8 no que é controle, 12 no que é superfície, cápsula no que
+     é campo de entrada (busca e composer). */
+  --r-xs: 8px; --r-sm: 8px; --r-md: 12px; --r-lg: 12px; --r-xl: 12px; --r-total: 999px;
   --r-painel: 12px;
   --respiro-painel: 12px;
   /* 0,7px é a espessura de TODA linha no v2 (`--hairline`): borda, divisória
      e contorno. Numa tela comum o navegador resolve para menos de um pixel
      físico, que é justamente o traço fino que o kit quer. */
-  --borda-fina: .7px;
+  --borda-fina: 1px;
 
   /* ---------- ícone ---------- */
   --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
@@ -165,48 +178,62 @@
      a ordem de luminância (cromo < canvas < superfície) é a de sempre, mas
      os valores agora são os do kit v2. O calor mora nos neutros (pedra, não
      cinza puro) e no laranja, não numa superfície creme. */
-  --canvas:             #f5f5f5;   /* fundo geral atrás do conteúdo */
-  --superficie:         #ffffff;   /* cartão, campo, modal */
-  --superficie-sutil:   #fafafa;
+  --canvas:             #f6f5f3;   /* fundo do app */
+  --superficie:         #ffffff;   /* cartão, campo, composer */
+  --superficie-sutil:   #faf9f5;   /* o creme */
   --superficie-elevada: #ffffff;
-  --navegacao:          #f0efed;   /* cromo: sidebar, barra, hover, caixa de ícone */
+  /* A sidebar tem o MESMO fundo do app, não um degrau próprio: o que a
+     separa do conteúdo é o espaço, não um bloco de cor. */
+  --navegacao:          #f6f5f3;
+  /* Estados opacos da navegação e das listas. Separados do `--hover`
+     translúcido lá embaixo, que continua servindo de véu sobre cor. */
+  --fundo-hover:        #f5f5f5;
+  --fundo-selecionado:  #ebebeb;
 
   /* Duas famílias de linha, de propósito:
      --divisoria      estrutura (cartão, tabela, divisória) — a `--line`
      --borda-controle a mesma reforçada (hover) — a `--line-strong`
      --borda-campo    SÓ campo, botão secundário e chip. */
-  --divisoria:      #e7e5e4;
+  --divisoria:      #e5e4e2;
   --borda-controle: #d6d3d1;
-  /* DIVERGÊNCIA do kit, e a única: o `--control-line: #c9c4bd` dele dá 1,73:1
-     sobre a superfície e reprova em 1.4.11, que pede 3:1 para a borda de um
-     controle. Este é o degrau `--cz-n500` da RAMPA DO PRÓPRIO KIT, o primeiro
-     que passa nos dois temas (4,8:1 no claro, 3,6:1 no escuro). */
-  --borda-campo:    #777169;
+  /* DIVERGÊNCIA do briefing, e a única: ele pede `#D6D3D1` na borda de campo,
+     que dá 1,44:1 sobre branco e reprova em 1.4.11 (a norma pede 3:1 para o
+     contorno de um controle). Campo cuja borda não se enxerga não é
+     minimalismo, é campo invisível. Este é o tom mais CLARO da mesma família
+     quente que ainda passa: 3,47:1 sobre branco, 3,26:1 sobre o creme.
+     O `#D6D3D1` do briefing continua valendo no que é fio decorativo. */
+  --borda-campo:    #8e8983;
 
-  --tinta:            #292524;
-  --tinta-secundaria: #4e4e4e;
-  --tinta-terciaria:  #6f6a63;
-  --texto-cromo:      #292524;
+  --tinta:            #242424;   /* nunca preto puro */
+  --tinta-secundaria: #616161;   /* metadado, apoio */
+  --tinta-terciaria:  #767676;   /* o degrau mais silencioso que ainda passa AA */
+  --texto-cromo:      #242424;
 
-  /* A AÇÃO é carvão, não laranja — regra de marca do v2. O laranja marca
-     foco, seleção, item ativo e marca; se tudo for laranja, nada chama
-     atenção. Quem preenche um botão usa `--primario`. */
-  --primario:       #292524;
-  --primario-hover: #1c1917;
+  /* UM acento, e ele é o sólido escuro. Marca duas coisas e só duas: o CTA
+     primário e o estado ativo. Tudo o mais é neutro quente. */
+  --primario:       #242424;
+  --primario-hover: #141414;
   --primario-sobre: #ffffff;
 
-  /* `--acento` é o laranja que pode ser LIDO (`--accent-text` do kit): é o
-     token de link, item ativo e ícone de estado. O laranja cheio só aparece
-     como `--laranja` (foco, seleção, marca), nunca como texto. */
-  --acento:       #b3401b;
-  --acento-hover: #93340f;
-  --acento-tinta: #b3401b;
+  /* `--acento` deixou de ser o laranja. Ele nomeia o que PUXA a atenção —
+     link, item ativo, ícone de estado — e agora isso é a própria tinta.
+     A consequência é deliberada: sem cor para distinguir, link passa a se
+     anunciar por SUBLINHADO, que é o sinal que funciona também para quem
+     não separa matiz. O laranja da marca não morreu, só saiu da navegação:
+     ele segue em `--laranja`, para a marca e para ícone de conteúdo. */
+  --acento:       #242424;
+  --acento-hover: #141414;
+  --acento-tinta: #242424;
   --acento-sobre: #ffffff;
-  --acento-suave: #fff0e9;
-  --acento-suave-linha: #ffd7ca;
+  /* O véu do item ativo e da seleção: neutro, não mais laranja claro. */
+  --acento-suave: #ebebeb;
+  --acento-suave-linha: #e5e4e2;
 
-  --foco:      #ff5e2c;
-  --foco-anel: #ffe1d6;
+  /* Foco continua sendo contorno, não véu colorido: a tinta tem 13,9:1
+     sobre a superfície e 13,2:1 sobre o app, então o anel se vê em
+     qualquer fundo do produto sem precisar de cor. */
+  --foco:      #242424;
+  --foco-anel: #d6d3d1;
 
   --perigo: #b13d24;  --perigo-suave: #fff3f0;  --perigo-linha: #f4cfc6;
   --alerta: #8a5c35;  --alerta-suave: #fbf6ea;  --alerta-linha: #eedfbf;
@@ -236,39 +263,44 @@
    superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  --canvas:             #0c0a09;
-  --superficie:         #1c1917;
-  --superficie-sutil:   #0f0d0c;
-  --superficie-elevada: #231f1d;
-  --navegacao:          #0c0a09;
+  /* O escuro espelha a mesma ideia: greige QUENTE, não cinza frio nem preto
+     puro — contra #000 a linha de 1px some, e o quente é o que mantém o
+     parentesco com o claro. */
+  --canvas:             #1a1a19;
+  --superficie:         #242423;
+  --superficie-sutil:   #1f1f1e;
+  --superficie-elevada: #2a2a29;
+  --navegacao:          #1a1a19;
+  --fundo-hover:        #2a2a29;
+  --fundo-selecionado:  #333332;
 
-  --divisoria:      #3a3532;
-  --borda-controle: #4e4e4e;
-  /* Mesma divergência do claro, e o mesmo degrau da rampa do kit: no escuro
-     ele fica CLARO em relação à superfície (3,6:1); o `#5a5450` do v2 daria
-     2,35:1. */
-  --borda-campo:    #777169;
+  --divisoria:      #323230;
+  --borda-controle: #3d3d3a;
+  /* Mesma divergência do claro, pelo mesmo motivo: 3,6:1 sobre a superfície
+     escura, contra os 1,4:1 que o valor do briefing daria aqui. */
+  --borda-campo:    #7c7a75;
 
-  --tinta:            #f5f5f5;
-  --tinta-secundaria: #d6d3d1;
-  --tinta-terciaria:  #a8a29e;
-  --texto-cromo:      #f5f5f5;
+  --tinta:            #f2f1ee;
+  --tinta-secundaria: #b5b3ae;
+  --tinta-terciaria:  #97948f;
+  --texto-cromo:      #f2f1ee;
 
-  /* No escuro a ação inverte: carvão sumiria, então o primário é o claro do
-     kit (`--primary:#f0efed`) com tinta escura em cima. */
-  --primario:       #f0efed;
+  /* A ação inverte: o sólido escuro viraria invisível, então o primário é o
+     sólido CLARO com tinta escura em cima. O papel é o mesmo — um acento só,
+     no CTA e no item ativo. */
+  --primario:       #f2f1ee;
   --primario-hover: #ffffff;
-  --primario-sobre: #1c1917;
+  --primario-sobre: #1a1a19;
 
-  --acento:       #ff8a63;
-  --acento-hover: #ffa686;
-  --acento-tinta: #ff8a63;
-  --acento-sobre: #1c1917;
-  --acento-suave: #35201a;
-  --acento-suave-linha: #5b2f22;
+  --acento:       #f2f1ee;
+  --acento-hover: #ffffff;
+  --acento-tinta: #f2f1ee;
+  --acento-sobre: #1a1a19;
+  --acento-suave: #333332;
+  --acento-suave-linha: #3d3d3a;
 
-  --foco:      #ff5e2c;
-  --foco-anel: #5b2f22;
+  --foco:      #f2f1ee;
+  --foco-anel: #3d3d3a;
 
   --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
   --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;
@@ -292,39 +324,44 @@
      Os MESMOS valores do bloco acima, de propósito: é a única duplicação
      do arquivo, e ela existe porque `@media` não herda seletor. */
   :root:not([data-tema="claro"]) {
-    --canvas:             #0c0a09;
-    --superficie:         #1c1917;
-    --superficie-sutil:   #0f0d0c;
-    --superficie-elevada: #231f1d;
-    --navegacao:          #0c0a09;
+    /* O escuro espelha a mesma ideia: greige QUENTE, não cinza frio nem preto
+       puro — contra #000 a linha de 1px some, e o quente é o que mantém o
+       parentesco com o claro. */
+    --canvas:             #1a1a19;
+    --superficie:         #242423;
+    --superficie-sutil:   #1f1f1e;
+    --superficie-elevada: #2a2a29;
+    --navegacao:          #1a1a19;
+    --fundo-hover:        #2a2a29;
+    --fundo-selecionado:  #333332;
 
-    --divisoria:      #3a3532;
-    --borda-controle: #4e4e4e;
-    /* Mesma divergência do claro, e o mesmo degrau da rampa do kit: no escuro
-       ele fica CLARO em relação à superfície (3,6:1); o `#5a5450` do v2 daria
-       2,35:1. */
-    --borda-campo:    #777169;
+    --divisoria:      #323230;
+    --borda-controle: #3d3d3a;
+    /* Mesma divergência do claro, pelo mesmo motivo: 3,6:1 sobre a superfície
+       escura, contra os 1,4:1 que o valor do briefing daria aqui. */
+    --borda-campo:    #7c7a75;
 
-    --tinta:            #f5f5f5;
-    --tinta-secundaria: #d6d3d1;
-    --tinta-terciaria:  #a8a29e;
-    --texto-cromo:      #f5f5f5;
+    --tinta:            #f2f1ee;
+    --tinta-secundaria: #b5b3ae;
+    --tinta-terciaria:  #97948f;
+    --texto-cromo:      #f2f1ee;
 
-    /* No escuro a ação inverte: carvão sumiria, então o primário é o claro do
-       kit (`--primary:#f0efed`) com tinta escura em cima. */
-    --primario:       #f0efed;
+    /* A ação inverte: o sólido escuro viraria invisível, então o primário é o
+       sólido CLARO com tinta escura em cima. O papel é o mesmo — um acento só,
+       no CTA e no item ativo. */
+    --primario:       #f2f1ee;
     --primario-hover: #ffffff;
-    --primario-sobre: #1c1917;
+    --primario-sobre: #1a1a19;
 
-    --acento:       #ff8a63;
-    --acento-hover: #ffa686;
-    --acento-tinta: #ff8a63;
-    --acento-sobre: #1c1917;
-    --acento-suave: #35201a;
-    --acento-suave-linha: #5b2f22;
+    --acento:       #f2f1ee;
+    --acento-hover: #ffffff;
+    --acento-tinta: #f2f1ee;
+    --acento-sobre: #1a1a19;
+    --acento-suave: #333332;
+    --acento-suave-linha: #3d3d3a;
 
-    --foco:      #ff5e2c;
-    --foco-anel: #5b2f22;
+    --foco:      #f2f1ee;
+    --foco-anel: #3d3d3a;
 
     --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
     --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;

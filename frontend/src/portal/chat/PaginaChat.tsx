@@ -85,12 +85,12 @@ function Lista({
       <div className="flex-1 overflow-y-auto p-2">
         {vivo && (
           <div className="mb-2">
-            <p className="px-2 py-1 text-legenda font-medio uppercase tracking-rotulo text-tinta-secundaria">Conversa atual</p>
+            <p className="px-2 py-1 text-legenda font-medio text-tinta-secundaria">Conversa atual</p>
             <CartaoConversa chat={vivo} agoraMs={agoraMs} ativo={selecionado === vivo.id && !mostrandoContinua} onClick={() => onSelecionar(vivo.id)} />
           </div>
         )}
 
-        <p className="px-2 py-1 text-legenda font-medio uppercase tracking-rotulo text-tinta-secundaria">Histórico</p>
+        <p className="px-2 py-1 text-legenda font-medio text-tinta-secundaria">Histórico</p>
         {carregandoHistorico ? (
           <div className="space-y-2 p-2">
             {[0, 1, 2].map((i) => (

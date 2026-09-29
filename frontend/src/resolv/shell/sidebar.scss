@@ -217,42 +217,17 @@
       background: var(--stroke);
       color: var(--text-primary);
     }
-    // Ativo: fundo tingido da cor de ação + a barrinha vertical na borda
-    // esquerda (a marca de "você está aqui" das barras laterais de navegador
-    // e editor). A barrinha fica FORA do padding da lista, encostada na
-    // borda do rail, por isso o `left` negativo.
+    // Ativo: um pill claro e o peso da fonte. Só isso.
+    //
+    // Saíram daqui a barrinha vertical da borda esquerda e o laranja no
+    // ícone. Os dois marcavam a mesma coisa três vezes — fundo, trilho e
+    // cor —, e o briefing pede o contrário: hierarquia por espaço e peso,
+    // sem cor de marca na navegação. O pill sozinho já responde "você está
+    // aqui", e o negrito confirma para quem não separa tom de cinza.
     &--ativo {
       background: var(--sidebar-ativo);
       color: var(--text-primary);
       font-weight: 600;
-
-      &::before {
-        content: '';
-        position: absolute;
-        left: -12px;
-        top: 50%;
-        transform: translateY(-50%);
-        width: 3px;
-        height: 20px;
-        border-radius: 0 3px 3px 0;
-        // Trilho e ícone do item ativo são o lugar canônico do laranja no v2
-        // ("o detalhe do ícone fica laranja no item ativo"). O trilho é
-        // GRAFISMO, então leva o laranja cheio; o ícone fica ao lado de
-        // texto, então leva o laranja legível.
-        background: var(--laranja);
-      }
-      // Ícone Tabler: a cor inteira vira o laranja legível, porque ele é
-      // de uma camada só.
-      .sidebar-rail__icone i {
-        color: var(--accent);
-      }
-      // Ícone da marca: só o DETALHE (`.a`) acende, e no laranja cheio — é
-      // exatamente o gesto que o kit descreve, e ele só existe porque o
-      // desenho tem duas camadas. O corpo do ícone segue a cor do texto.
-      .sidebar-rail__icone .i {
-        --i-a: var(--laranja);
-        --i-ao: 1;
-      }
     }
     &--inerte {
       color: var(--text-muted);

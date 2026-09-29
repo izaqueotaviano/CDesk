@@ -85,8 +85,6 @@
   caption {
     @include type($fs-label, $w-medium);
     color: $text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
     text-align: left;
     padding: $sp-3 $sp-4;
     background-color: $chrome;
@@ -140,8 +138,6 @@
 .relatorios-distribuicao__titulo {
   @include type($fs-label, $w-medium);
   color: $text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
   margin: 0 0 $sp-3;
 }
 
@@ -518,8 +514,6 @@
   dt {
     @include type($fs-label, $w-medium);
     color: $text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
   }
 
   dd {

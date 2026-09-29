@@ -603,8 +603,6 @@
   &__titulo {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--text-secondary);
   }
 
@@ -953,8 +951,6 @@
     background: var(--surface);
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     color: var(--text-secondary);
     &::before,
     &::after {
@@ -1067,8 +1063,6 @@
   &__papel {
     font-size: 10px;
     font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     padding: 1px 6px;
     border-radius: var(--raio);
     background: var(--surface-alt);
@@ -2186,8 +2180,6 @@
   &__titulo {
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--text-secondary);
   }
   &__lista {
@@ -2205,8 +2197,6 @@
   &__rotulo {
     font-size: 11px;
     font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     color: var(--text-secondary);
   }
   &__valor {

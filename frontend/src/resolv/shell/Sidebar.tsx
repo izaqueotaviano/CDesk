@@ -27,8 +27,6 @@ import { usePrefs } from '@/stores/prefs'
 import { BotaoTema } from './BotaoTema'
 import { MenuPresenca } from './MenuPresenca'
 import { PainelNotificacoes } from './PainelNotificacoes'
-import { IconeMarca } from '@/ui/marca/IconeMarca'
-import type { NomeDeIcone, NomeProprio } from '@/ui/marca/IconeMarca'
 import './sidebar.scss'
 
 export type Item = {
@@ -43,7 +41,6 @@ export type Item = {
    *  então o genérico cobre — e o vocabulário de helpdesk (ticket, aviso)
    *  não existe lá. Quem não tem equivalente fica no Tabler, de propósito:
    *  inventar um símbolo aproximado é pior que manter o certo. */
-  marca?: NomeDeIcone | NomeProprio
   route: string
   enabled: boolean
 }
@@ -52,21 +49,17 @@ export type Item = {
 // de seção e o grupo "Navegar" da busca vêm daqui, uma fonte só, sem duplicar
 // nome/ícone/rota em três lugares. A ORDEM aqui é a ordem que aparece nos três.
 export const NAV: Item[] = [
-  { id: 'inicio', label: 'Início', icon: 'ti ti-home', marca: 'home', route: '/inicio', enabled: true },
-  { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', marca: 'tag', route: '/chamados', enabled: true },
-  { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', marca: 'chat', route: '/chat', enabled: true },
-  { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', marca: 'grid', route: '/quadro', enabled: true },
-  { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', marca: 'users', route: '/clientes', enabled: true },
-  // O sprite do kit não tem megafone — ele é desenhado para painel de loja.
-  // Manter o Tabler aqui deixava o único contorno fino no meio de formas
-  // cheias, e lia como defeito; então este símbolo foi DESENHADO na gramática
-  // do kit (ver ui/marca/sprite-proprio.ts), não copiado dele.
-  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', marca: 'megafone', route: '/avisos', enabled: true },
-  { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', marca: 'analytics', route: '/relatorios', enabled: true },
-  { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', marca: 'shield', route: '/auditoria', enabled: true },
-  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', marca: 'sliders', route: '/configuracoes', enabled: true },
-  { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', marca: 'calendar', route: '/calendario', enabled: false },
-  { id: 'notas', label: 'Notas', icon: 'ti ti-note', marca: 'file', route: '/notas', enabled: true },
+  { id: 'inicio', label: 'Início', icon: 'ti ti-home', route: '/inicio', enabled: true },
+  { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
+  { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
+  { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
+  { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
+  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
+  { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: true },
+  { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
+  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
+  { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },
+  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: true },
 ]
 
 interface Props {
@@ -221,7 +214,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
           title="Buscar e navegar (Ctrl K)"
           onClick={onAbrirBusca}
         >
-          <IconeMarca nome="search" tamanho="sm" />
+          <i className="ti ti-search" aria-hidden="true" />
           <span className="sidebar-rail__busca-rotulo">Buscar</span>
           <kbd className="sidebar-rail__busca-atalho">Ctrl K</kbd>
         </button>
@@ -251,13 +244,12 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
                 onClick={() => item.enabled && navigate(item.route)}
               >
                 <span className="sidebar-rail__icone">
-                  {/* O desenho da marca quando existe um fiel; o Tabler
-                      quando não — ver o comentário do tipo `Item`. */}
-                  {item.marca ? (
-                    <IconeMarca nome={item.marca} />
-                  ) : (
-                    <i className={item.icon} aria-hidden="true" />
-                  )}
+                  {/* Tabler, monolinear, sempre. O sprite da marca saiu daqui:
+                      ele é de forma CHEIA com uma camada de detalhe colorida,
+                      e o briefing pede traço fino, monocromático e uniforme.
+                      Misturar as duas famílias numa mesma coluna deixava
+                      metade dos itens parecendo estar selecionado. */}
+                  <i className={item.icon} aria-hidden="true" />
                   {badge != null && <span className="sidebar-rail__badge">{badge}</span>}
                 </span>
                 {/* aria-hidden: o nome acessível do botão já é o `aria-label`

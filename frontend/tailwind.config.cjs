@@ -81,28 +81,33 @@ module.exports = {
         },
       },
 
+      // UMA família. As três chaves continuam porque ~50 arquivos usam
+      // `font-mono`/`font-display`, mas apontam para a mesma pilha — a
+      // troca de fonte num rótulo pequeno era o que dava cara de painel
+      // técnico a uma tela que deveria parecer documento.
+      //
+      // Estas pilhas são LITERAIS: o Tailwind não lê `--f-ui`, então mudar
+      // só o token não muda `font-ui` coisa nenhuma. Já mordeu uma vez.
       fontFamily: {
-        ui:      ['Inter', 'ui-sans-serif', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
-        mono:    ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
-        // O display do Convertize (título de tela, saudação da Início) — mesma
-        // pilha de `--f-display` em styles/tokens.css.
-        display: ['Tenor Sans', 'ui-serif', 'Georgia', 'Cambria', 'Times New Roman', 'Times', 'serif'],
+        ui:      ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        mono:    ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        display: ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
       },
 
       // escala base 14px razão 1,125
       fontSize: {
-        micro:       ['9.75px',  { lineHeight: '1' }],
-        legenda:     ['11px',    { lineHeight: '1.45' }],
-        pequeno:     ['12.5px',  { lineHeight: '1.45' }],
-        corpo:       ['14px',    { lineHeight: '1.45' }],
-        'corpo-lg':  ['15.75px', { lineHeight: '1.45' }],
-        'titulo-sm': ['17.75px', { lineHeight: '1.25', letterSpacing: '-0.015em' }],
-        titulo:      ['20px',    { lineHeight: '1.25', letterSpacing: '-0.015em' }],
-        'titulo-lg': ['22.5px',  { lineHeight: '1.25', letterSpacing: '-0.03em' }],
-        display:     ['25.25px', { lineHeight: '1.25', letterSpacing: '-0.03em' }],
+        micro:       ['12px',  { lineHeight: '1' }],
+        legenda:     ['12px',    { lineHeight: '1.43' }],
+        pequeno:     ['12px',  { lineHeight: '1.43' }],
+        corpo:       ['14px',    { lineHeight: '1.43' }],
+        'corpo-lg':  ['16px', { lineHeight: '1.75' }],
+        'titulo-sm': ['16px', { lineHeight: '1.2' }],
+        titulo:      ['16px',    { lineHeight: '1.2' }],
+        'titulo-lg': ['28px',  { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        display:     ['28px', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
       },
       fontWeight: { normal: '400', medio: '500', forte: '600' },
-      lineHeight: { nenhuma: '1', justa: '1.25', normal: '1.45', solta: '1.6' },
+      lineHeight: { nenhuma: '1', justa: '1.2', normal: '1.43', solta: '1.75' },
       letterSpacing: { titulo: '-0.015em', display: '-0.03em', nenhum: '0em', rotulo: '0.05em' },
 
       // grade de 4px com meio-degrau de 2px

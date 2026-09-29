@@ -39,15 +39,15 @@
   // não entrou — o pedido original já tinha fixado cartão/tabela em branco
   // puro, e isso não mudou.
   --surface: #ffffff;
-  --surface-alt: #f0efed;
+  --surface-alt: #f6f5f3;    // sidebar e cromo: MESMO fundo do app
   --surface-card: #ffffff;
-  --surface-canvas: #f5f5f5;
+  --surface-canvas: #f6f5f3;
   // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
   // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
   // branco puro) uma borda derivada de preto ficava clara demais. Mesma
   // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
   // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
-  --stroke: #e7e5e4;
+  --stroke: #e5e4e2;
   --stroke-hover: #d6d3d1;
   --stroke-subtle: rgba(41, 37, 36, 0.04);
 
@@ -55,29 +55,32 @@
   // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
   // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
   // o formulário sumir dentro da página.
-  // DIVERGÊNCIA do kit: o `--control-line: #c9c4bd` dele dá 1,73:1 sobre a
-  // superfície e reprova em 1.4.11 (borda de controle pede 3:1). Este é o
-  // degrau `--cz-n500` da rampa DO PRÓPRIO KIT, o primeiro que passa nos dois
-  // temas (4,8:1 no claro, 3,6:1 no escuro).
-  --borda-campo: #777169;
+  // DIVERGÊNCIA do briefing, e a única: ele pede `#D6D3D1`, que dá 1,44:1
+  // sobre branco e reprova em 1.4.11 (contorno de controle pede 3:1). Campo
+  // cuja borda não se enxerga não é minimalismo, é campo invisível. Este é o
+  // tom mais claro da mesma família quente que ainda passa: 3,47:1.
+  --borda-campo: #8e8983;
 
   // ── Texto ──
   // Fonte: o mesmo material de referência do fundo (app da Manus) —
   // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
   // saem daqui (ver conferência de WCAG no commit).
-  --text-primary: #292524;
-  --text-secondary: #4e4e4e;
-  --text-muted: #6f6a63;
+  --text-primary: #242424;
+  --text-secondary: #616161;
+  --text-muted: #767676;
   // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
-  --texto-cromo: #292524;
+  --texto-cromo: #242424;
   // Fundo do item ATIVO da sidebar: o véu de laranja do kit
   // (`.site-sidebar a.active{background:#fff0eb}`). Continua token à parte de
   // `--tom-acento` porque aquele é derivado por alfa e pinta uma dúzia de
   // outros lugares; aqui o kit pede um creme SÓLIDO. No escuro volta a ser
   // `--tom-acento`.
-  --sidebar-ativo: #fff0e9;  // `--accent-soft` do v2
+  // Fundo do item ATIVO da sidebar. Era um véu de laranja; agora é o cinza
+  // neutro do briefing — "sem cor de marca vibrante na navegação". O que
+  // marca o item ativo é o pill e o peso da fonte, não a cor.
+  --sidebar-ativo: #ebebeb;
 
   // ── Identidade ──
   // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
@@ -182,14 +185,16 @@
   // não se confunde com a ação, porque a ação deixou de ser laranja — era
   // justamente por isso que a rodada passada precisou fechá-lo mais.
   --laranja: #ff5e2c;
-  --primario: #292524;
-  --primario-hover: #1c1917;
+  --primario: #242424;
+  --primario-hover: #141414;
   --primario-sobre: #ffffff;
-  --accent: #b3401b;
-  --accent-hover: #93340f;
-  --accent-active: #7d2b0b;
-  --foco: #ff5e2c;
-  --foco-anel: #ffe1d6;
+  // `--accent` deixou de ser o laranja: um acento só, e ele é o sólido
+  // escuro. Link passa a se anunciar por sublinhado, não por matiz.
+  --accent: #242424;
+  --accent-hover: #141414;
+  --accent-active: #000000;
+  --foco: #242424;
+  --foco-anel: #d6d3d1;
   --danger: #b13d24;
   --ok: #3e6f4e;
   --away: #8a5c35;
@@ -223,7 +228,7 @@
   // cartão (`--radius-lg`). `--raio` é o padrão de controle. Quem precisa de
   // círculo de verdade (avatar, ponto de presença) usa 50% direto — é forma,
   // não estilo.
-  --raio: 6px;
+  --raio: 8px;
   --raio-cartao: 12px;
   // Exceção nomeada, e só do CROMO do shell: as abas no estilo de navegador
   // (barra-de-abas.scss) e o painel de conteúdo que flutua sobre o cromo
@@ -283,16 +288,16 @@
   // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
   // surface-container (tom 12) — a MESMA ordem relativa de antes
   // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
-  --surface: #1c1917;
-  --surface-alt: #0c0a09;
-  --surface-card: #231f1d;
-  --surface-canvas: #0c0a09;
+  --surface: #242423;
+  --surface-alt: #1a1a19;
+  --surface-card: #2a2a29;
+  --surface-canvas: #1a1a19;
   // outline-variant (tom 30) / outline (tom 60) / outline-variant discreto (tom 24)
-  --stroke: #3a3532;
+  --stroke: #323230;
   --stroke-hover: #4e4e4e;
   --stroke-subtle: #231f1d;
   // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
-  --borda-campo: #777169;
+  --borda-campo: #7c7a75;
 
   // O cinza de "offline" precisa virar do outro lado junto com o fundo:
   // 6,1:1 sobre --surface-card, contra os 2,1:1 que o tom claro dava ali.
@@ -300,7 +305,7 @@
 
   // on-surface (tom 90) / on-surface-variant (tom 80) / on-surface-variant
   // com menos ênfase (tom 65) — mesmos roles do M3 para texto sobre superfície.
-  --text-primary: #f5f5f5;
+  --text-primary: #f2f1ee;
   --text-secondary: #d6d3d1;
   --text-muted: #a8a29e;
   // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
@@ -317,13 +322,14 @@
   // hover/active seguem a MESMA paleta tonal do primary (tons 88/70).
   // No escuro a AÇÃO inverte (carvão sumiria): o primário vira o claro do
   // kit com tinta escura em cima. O acento clareia junto.
-  --primario: #f0efed;
+  --primario: #f2f1ee;
   --primario-hover: #ffffff;
-  --primario-sobre: #1c1917;
-  --accent: #ff8a63;
-  --accent-hover: #ffa686;
-  --accent-active: #e5754f;
-  --foco-anel: #5b2f22;
+  --primario-sobre: #1a1a19;
+  --accent: #f2f1ee;
+  --accent-hover: #ffffff;
+  --accent-active: #d6d3d1;
+  --foco: #f2f1ee;
+  --foco-anel: #3d3d3a;
   // role `error` do M3 (tom 80) para #b3261e.
   --danger: #ff9b85;
   // Sem role nativo no M3 para sucesso/atenção — retonados pelo MESMO método

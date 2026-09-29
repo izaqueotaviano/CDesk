@@ -291,12 +291,12 @@
     place-items: center;
     border: none;
     border-radius: 50%;
-    // O `cz-fab` do kit é a exceção documentada: laranja CHEIO, porque ele
-    // flutua sobre o conteúdo e é o gatilho da marca. A tinta em cima é
-    // escura e FIXA nos dois temas (o fundo não vira com o tema): #1c1917
-    // sobre #ff5e2c dá 6,1:1.
-    background: var(--laranja);
-    color: #1c1917;
+    // Sólido escuro, como todo CTA primário: o briefing só admite UM acento,
+    // e ele é este. Era laranja cheio — a exceção do kit anterior, que aqui
+    // virava a única mancha de cor viva da tela e puxava o olho para o
+    // canto errado.
+    background: var(--primario);
+    color: var(--primario-sobre);
     font-size: 19px;
     cursor: pointer;
     transition: background 0.15s ease, transform 0.15s ease;

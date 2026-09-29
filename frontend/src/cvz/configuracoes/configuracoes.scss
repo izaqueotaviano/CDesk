@@ -128,8 +128,6 @@
 .cfg-permissoes__titulo {
   @include type($fs-meta, $w-medium);
   color: $text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .cfg-permissoes__grid {

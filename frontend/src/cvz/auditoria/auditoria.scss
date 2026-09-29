@@ -22,8 +22,6 @@
   th {
     @include type($fs-label, $w-medium);
     color: $text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
     background: $chrome;
   }
   td {
