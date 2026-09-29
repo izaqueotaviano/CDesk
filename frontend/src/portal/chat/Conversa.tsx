@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
-import { IconArrowLeft, IconCheck, IconPaperclip, IconPencil, IconRotateClockwise, IconSearch, IconSend, IconTrash, IconX } from '@tabler/icons-react'
+import { IconArrowLeft, IconCheck, IconChevronDown, IconChevronUp, IconPaperclip, IconPencil, IconRotateClockwise, IconSearch, IconSend, IconTrash, IconX } from '@tabler/icons-react'
 import {
   LIMITE_MENSAGENS,
   useBuscaNaConversa,
@@ -26,14 +26,18 @@ import { useSalaChat } from '@/realtime/useSalaChat'
 import { Avatar } from '@/ui/Avatar'
 import { cn } from '../lib/cn'
 import { useAgora } from '../lib/formato'
+import { ZonaDeSoltar } from '../tickets/AnexosDoFormulario'
 import { Badge } from '../ui/badge'
 import { Button } from '../ui/button'
 import { ConfirmDialog } from '../ui/confirm-dialog'
 import { ErroEstado } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
+import type { ChatDoCliente } from '../api/chats'
 import { Mensagem, MensagemDoSistema, PilulaChat } from './componentes'
 import { ModalAvaliacao } from './ModalAvaliacao'
+import { AvisoDaFila } from './AvisoDaFila'
+import { usePosicaoAoVivo } from './fila'
 
 function agruparPorDia(msgs: MensagemChat[], agoraMs: number): { rotulo: string; itens: MensagemChat[] }[] {
   const grupos: { rotulo: string; itens: MensagemChat[] }[] = []
@@ -52,7 +56,7 @@ function primeiroNome(nome: string) {
 }
 
 const CAMPO =
-  'w-full rounded-md border border-borda-campo bg-superficie px-3 py-2 text-[13px] text-tinta placeholder:text-tinta-terciaria hover:border-tinta-secundaria focus-visible:border-acento'
+  'w-full rounded-md border border-borda-campo bg-superficie px-3 py-2 text-corpo text-tinta placeholder:text-tinta-terciaria hover:border-tinta-secundaria focus-visible:border-acento'
 
 /**
  * A conversa: thread + composer. Texto vai pelo socket (trava sem conexão);
@@ -73,7 +77,8 @@ export function Conversa({
 }) {
   const idBase = useId()
   const agora = useAgora()
-  const { data: chat, isError: erroChat } = useChat(chatId)
+  const { data: chatBruto, isError: erroChat } = useChat(chatId)
+  const chat = chatBruto as ChatDoCliente | undefined
   const { data: configChat } = useConfigChat()
   const { data: mensagens, isLoading } = useMensagensChat(chatId)
   const {
@@ -90,6 +95,7 @@ export function Conversa({
   const marcarLidas = useMarcarLidas(chatId)
   const editar = useEditarMensagemChat(chatId)
   const excluir = useExcluirMensagemChat(chatId)
+  usePosicaoAoVivo(chatId, chat?.status === 'queued')
 
   const [texto, setTexto] = useState('')
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
@@ -179,7 +185,7 @@ export function Conversa({
     : status === 'conectando'
       ? { tom: 'alerta' as const, texto: 'Conectando…' }
       : status === 'recusado'
-        ? { tom: 'perigo' as const, texto: 'Sessão expirada — recarregue a página' }
+        ? { tom: 'perigo' as const, texto: 'Sessão expirada. Recarregue a página' }
         : { tom: 'alerta' as const, texto: 'Reconectando…' }
 
   function enviar() {
@@ -243,7 +249,7 @@ export function Conversa({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3  p-4">
+      <header className="flex items-center gap-3 p-4">
         {onVoltar && (
           <Button variant="ghost" size="icon-sm" onClick={onVoltar} aria-label="Voltar para a lista" className="md:hidden">
             <IconArrowLeft />
@@ -316,10 +322,14 @@ export function Conversa({
         )}
       </header>
 
+      {chat.status === 'queued' && chat.queue_position && (
+        <AvisoDaFila posicao={chat.queue_position} className="border-t border-divisoria px-4 py-3" />
+      )}
+
       {buscando && (
         <form
           role="search"
-          className="flex flex-wrap items-center gap-2  px-4 py-2"
+          className="flex flex-wrap items-center gap-2 border-t border-divisoria px-4 py-2"
           onSubmit={(e) => {
             e.preventDefault()
             setTermo(rascunhoBusca)
@@ -351,10 +361,10 @@ export function Conversa({
                     : `${posicao + 1} de ${resultados.length}`}
               </span>
               <Button size="icon-sm" variant="ghost" aria-label="Resultado anterior" disabled={resultados.length === 0} onClick={() => navegarBusca(-1)}>
-                ↑
+                <IconChevronUp />
               </Button>
               <Button size="icon-sm" variant="ghost" aria-label="Próximo resultado" disabled={resultados.length === 0} onClick={() => navegarBusca(1)}>
-                ↓
+                <IconChevronDown />
               </Button>
             </>
           )}
@@ -433,7 +443,7 @@ export function Conversa({
                     {m.id === regua && (
                       <div
                         role="separator"
-                        className="mb-2 flex items-center gap-3 text-legenda font-medio text-acento before:h-px before:flex-1 before:bg-acento/40 after:h-px after:flex-1 after:bg-acento/40"
+                        className="mb-2 flex items-center gap-3 text-legenda font-medio text-tinta before:h-px before:flex-1 before:bg-tinta-terciaria after:h-px after:flex-1 after:bg-tinta-terciaria"
                       >
                         Novas mensagens
                       </div>
@@ -485,13 +495,13 @@ export function Conversa({
       )}
 
       {anexos.fila.length > 0 && (
-        <div className="flex flex-col gap-2  p-3" aria-label="Anexos em envio">
+        <div className="flex flex-col gap-2 border-t border-divisoria p-3" aria-label="Anexos em envio">
           {anexos.fila.map((envio) => (
             <div
               key={envio.id}
               className={cn(
-                'flex items-center gap-2 rounded-md  bg-superficie px-2 py-1.5',
-                envio.estado === 'erro' && 'border-perigo',
+                'flex items-center gap-2 rounded-sm bg-navegacao px-2 py-1.5',
+                envio.estado === 'erro' && 'bg-perigo-suave',
               )}
             >
               {envio.previa ? (
@@ -532,10 +542,11 @@ export function Conversa({
       )}
 
       {aberta && (
-        <div className="flex flex-col gap-2  p-3">
+        // arrastar um arquivo para cá envia como anexo — o mesmo caminho do botão
+        <ZonaDeSoltar onArquivos={anexar} className="flex flex-col gap-2 border-t border-divisoria p-3">
           {respondendo && (
-            <div className="flex items-center gap-2 rounded-md border-l-2 border-acento bg-navegacao px-2 py-1">
-              <span className="shrink-0 text-legenda font-medio text-acento">
+            <div className="flex items-center gap-2 rounded-sm bg-navegacao px-2 py-1">
+              <span className="shrink-0 text-legenda font-medio text-tinta">
                 Respondendo {respondendo.author_is_internal ? respondendo.author_name : 'você mesmo'}
               </span>
               <span className="flex-1 truncate text-legenda text-tinta-secundaria">
@@ -561,7 +572,7 @@ export function Conversa({
             }}
             onKeyDown={aoTeclar}
             onPaste={colar}
-            placeholder={socketAberto ? 'Escreva sua mensagem… (Ctrl+V cola um print)' : 'Sem conexão — o texto espera voltar; anexos continuam funcionando.'}
+            placeholder={socketAberto ? 'Escreva sua mensagem… (Ctrl+V cola um print)' : 'Sem conexão. O texto espera voltar; anexos continuam funcionando.'}
             aria-label="Escreva sua mensagem"
             className={`${CAMPO} resize-none`}
           />
@@ -588,7 +599,7 @@ export function Conversa({
               <IconSend /> Enviar
             </Button>
           </div>
-        </div>
+        </ZonaDeSoltar>
       )}
 
       {/* Encerrar É avaliar: o modal manda as duas notas junto do `close`, e o

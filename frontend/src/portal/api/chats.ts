@@ -6,6 +6,32 @@ function lista<T>(d: Paginado<T> | T[]): T[] {
   return Array.isArray(d) ? d : d.results
 }
 
+/**
+ * `queue_position` do `ChatSerializer` (apps/chat/services/fila.py): só com
+ * o chat na fila. Números e mais nada — quem está na frente nunca vem.
+ * `estimated_wait_minutes` é nulo sem base recente ou com a fila fechada.
+ */
+export interface PosicaoNaFila {
+  position: number
+  ahead: number
+  estimated_wait_minutes: number | null
+  queue_open: boolean
+  queue_opens_at: string | null
+}
+
+/** O chat como o portal o recebe. O campo é opcional porque um backend
+ *  anterior à posição na fila não o manda — a tela cai no "Aguardando um
+ *  atendente" de sempre. */
+export type ChatDoCliente = Chat & { queue_position?: PosicaoNaFila | null }
+
+/** Limites de anexo que o servidor aplica agora (`attachment_limits` do
+ *  `ClientChatConfigSerializer`). Opcional pelo mesmo motivo acima. */
+export interface LimitesAnexoServidor {
+  max_bytes: number
+  max_bytes_per_message: number
+  max_files_per_message: number
+}
+
 /** As conversas do cliente (o backend já recorta pelo próprio usuário). */
 export function useChatsRecentes(limite = 5) {
   return useQuery({

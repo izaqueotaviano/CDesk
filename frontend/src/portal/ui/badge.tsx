@@ -3,22 +3,21 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '../lib/cn'
 
 /**
- * Selo do portal, calibrado pelo `.tag` do cvz: 22px de altura, raio único
- * (a cápsula de 999px saiu — "cápsula ao lado de botão/campo quadrado
- * quebrava a leitura de mesma família", cvz/styles/_tokens.scss), fundo em
- * tint e texto na cor cheia, pra o contraste não depender do ponto.
+ * Selo do portal: cápsula de 22px (raio 999 — é pílula, não controle), fundo
+ * em véu e texto na cor cheia, para o contraste não depender do ponto. Cor
+ * só quando o selo diz ESTADO (ok, alerta, perigo); o resto é neutro.
  */
 const badgeVariants = cva(
-  'inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-md border border-transparent px-2 text-legenda font-medio leading-none',
+  'inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-total border border-transparent px-2 text-legenda font-medio leading-none',
   {
     variants: {
       variant: {
-        neutro: ' bg-navegacao text-tinta-secundaria',
-        acento: 'bg-acento-suave text-acento',
+        neutro: 'bg-navegacao-ativo text-tinta-secundaria',
+        acento: 'bg-acento-suave text-tinta',
         ok: 'bg-ok-suave text-ok',
         alerta: 'bg-alerta-suave text-alerta',
         perigo: 'bg-perigo-suave text-perigo',
-        outline: 'border-current bg-transparent text-tinta-secundaria',
+        outline: 'border-borda-controle bg-transparent text-tinta-secundaria',
       },
     },
     defaultVariants: { variant: 'neutro' },

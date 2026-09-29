@@ -61,8 +61,8 @@ function Marca() {
     <Link
       to="/portal"
       className="flex h-8 min-w-0 items-center gap-2 rounded-md px-1.5 text-tinta hover:bg-navegacao-hover"
-      aria-label="Central de Suporte — ir para o Início"
-      title="Central de Suporte — ir para o Início"
+      aria-label="Central de Suporte: ir para o Início"
+      title="Central de Suporte: ir para o Início"
     >
       <span className="grid size-5 shrink-0 place-items-center">
         <svg className="h-auto w-[15px]" viewBox="0 0 236 270" fill="none" aria-hidden="true">
@@ -145,7 +145,7 @@ function Sidebar({ me }: { me: Me | undefined }) {
 
 function TopoCelular({ me }: { me: Me | undefined }) {
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between  bg-navegacao px-3 md:hidden">
+    <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between border-b border-divisoria bg-navegacao px-3 md:hidden">
       <Marca />
       <div className="flex items-center gap-1">
         <AlternarTema />
@@ -163,7 +163,7 @@ function BarraInferior() {
   const itens = ITENS_NAV.filter((i) => i.noCelular)
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30  bg-navegacao pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-divisoria bg-navegacao pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Navegação principal"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${itens.length}, minmax(0, 1fr))` }}>

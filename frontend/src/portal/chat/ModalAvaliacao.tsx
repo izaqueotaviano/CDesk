@@ -165,7 +165,7 @@ export function ModalAvaliacao({
           <p className="text-pequeno text-tinta-secundaria">
             {modo === 'encerrando'
               ? `A conversa ${chat.agent_name ? `com ${primeiroNome(chat.agent_name)} ` : ''}é encerrada assim que você enviar a avaliação.`
-              : `Conversa ${chat.agent_name ? `com ${primeiroNome(chat.agent_name)}` : 'encerrada'} — avalie para poder iniciar um novo chat.`}
+              : `Conversa ${chat.agent_name ? `com ${primeiroNome(chat.agent_name)}` : 'encerrada'}. Avalie para poder iniciar um novo chat.`}
           </p>
         </DialogHeader>
 
@@ -186,7 +186,7 @@ export function ModalAvaliacao({
               aria-describedby={faltaJustificativa ? `${idBase}-j-erro` : undefined}
             />
             {faltaJustificativa ? (
-              <ErroCampo id={`${idBase}-j-erro`}>Conte o que aconteceu — ajuda a gente a melhorar.</ErroCampo>
+              <ErroCampo id={`${idBase}-j-erro`}>Conte o que aconteceu. Isso ajuda a gente a melhorar.</ErroCampo>
             ) : (
               <Ajuda>Sua nota vai para quem cuidou da conversa.</Ajuda>
             )}

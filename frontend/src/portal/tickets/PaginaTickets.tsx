@@ -110,8 +110,8 @@ export function PaginaTickets() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-titulo-lg font-forte tracking-display">Tickets</h1>
-          <p className="mt-1 text-pequeno text-tinta-secundaria">Seus chamados com o suporte, do mais urgente ao já resolvido.</p>
+          <h1 className="text-titulo-lg font-forte">Tickets</h1>
+          <p className="mt-1 text-corpo text-tinta-secundaria">Seus chamados com o suporte, do mais urgente ao já resolvido.</p>
         </div>
         <Link to="/portal/tickets/novo" className={buttonVariants()}>
           <IconPlus /> Abrir ticket
@@ -127,8 +127,6 @@ export function PaginaTickets() {
               <TabsTrigger
                 key={a.id}
                 value={a.id}
-                // laranja só quando há algo esperando a pessoa — com zero, é uma aba como as outras
-                className={cn(realce && 'data-[state=active]:bg-alerta-suave data-[state=active]:text-alerta')}
               >
                 {a.rotulo}
                 {n === undefined ? (
@@ -154,7 +152,7 @@ export function PaginaTickets() {
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Buscar por número, assunto ou nº do pedido"
               aria-label="Buscar tickets"
-              className="pl-9"
+              className="rounded-total pl-9"
             />
           </div>
           <Button
@@ -258,16 +256,19 @@ export function PaginaTickets() {
               }
             />
           ) : (
+            // toda aba vazia convida a um próximo passo — e o passo que sempre
+            // cabe é abrir um chamado
             <EstadoVazio
               icone={IconTicket}
               titulo={definicao.vazio.titulo}
               descricao={definicao.vazio.descricao}
               acao={
-                aba === 'aguardando-suporte' || aba === 'em-andamento' ? (
-                  <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
-                    <IconPlus /> Abrir ticket
-                  </Link>
-                ) : undefined
+                <Link
+                  to="/portal/tickets/novo"
+                  className={buttonVariants({ size: 'sm', variant: aba === 'aguardando-suporte' || aba === 'em-andamento' ? 'default' : 'secondary' })}
+                >
+                  <IconPlus /> Abrir ticket
+                </Link>
               }
             />
           )

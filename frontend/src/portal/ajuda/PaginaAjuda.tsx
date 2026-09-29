@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { IconArrowRight, IconBook, IconLifebuoy, IconMessagePlus, IconPlus, IconSearch, IconX, IconZoomCancel } from '@tabler/icons-react'
+import { IconBook, IconMessagePlus, IconPlus, IconSearch, IconX, IconZoomCancel } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
 import { useArtigos, useCategoriasAjuda, type ArtigoResumo } from '../api/ajuda'
 import { cn } from '../lib/cn'
@@ -13,31 +13,43 @@ import { EstadoVazio } from '../ui/estado-vazio'
 import { Input } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
 
+/**
+ * O cartão inteiro é o link — por isso sem a seta "→" que havia no rodapé:
+ * ela repetia por grafismo o que o cartão já é, e numa grade de nove
+ * cartões virava nove setas.
+ */
 function CartaoArtigo({ artigo }: { artigo: ArtigoResumo }) {
   return (
     <Link
       to={`/portal/ajuda/${artigo.id}`}
-      className="group flex flex-col gap-2 rounded-xl  bg-superficie p-5 transition-[border-color] hover:border-borda-controle"
+      className="group flex flex-col gap-2 rounded-md bg-superficie p-5 transition-colors hover:bg-navegacao-hover"
     >
       {artigo.category && (
-        <Badge variant="acento" className="w-fit">
+        <Badge variant="neutro" className="w-fit">
           {artigo.category}
         </Badge>
       )}
-      <h3 className="text-corpo-lg font-forte leading-justa text-tinta group-hover:text-acento">{artigo.title}</h3>
-      {artigo.excerpt && <p className="line-clamp-3 text-pequeno leading-normal text-tinta-secundaria">{artigo.excerpt}</p>}
-      <span className="mt-auto flex items-center gap-3 pt-1 text-legenda text-tinta-terciaria">
-        {artigo.wp_modified_at && <span>atualizado {dataCurta(artigo.wp_modified_at)}</span>}
-        {artigo.helpful_count > 0 && <span>{artigo.helpful_count} acharam útil</span>}
-        <IconArrowRight className="ml-auto size-4 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-      </span>
+      <h3 className="text-titulo font-forte leading-justa text-tinta">{artigo.title}</h3>
+      {artigo.excerpt && <p className="line-clamp-3 text-corpo text-tinta-secundaria">{artigo.excerpt}</p>}
+      {(artigo.wp_modified_at || artigo.helpful_count > 0) && (
+        <span className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-legenda text-tinta-secundaria">
+          {artigo.wp_modified_at && <span>Atualizado em {dataCurta(artigo.wp_modified_at)}</span>}
+          {artigo.helpful_count > 0 && <span>{artigo.helpful_count} acharam útil</span>}
+        </span>
+      )}
     </Link>
   )
 }
 
+/** Filtro de categoria: pílula com a linha de controle; a escolhida é o
+ *  acento cheio (o único do produto), que é o estado "ligado". */
+const CHIP =
+  'inline-flex h-8 items-center gap-2 rounded-total border border-borda-controle px-3.5 text-pequeno font-medio text-tinta transition-colors hover:bg-navegacao-hover'
+const CHIP_ATIVO = 'border-primario bg-primario text-primario-sobre hover:bg-primario-hover'
+
 function EsqueletoCartao() {
   return (
-    <div className="flex flex-col gap-3 rounded-xl  bg-superficie p-5">
+    <div className="flex flex-col gap-3 rounded-md bg-superficie p-5">
       <Skeleton className="h-5 w-24" />
       <Skeleton className="h-5 w-3/4" />
       <Skeleton className="h-4 w-full" />
@@ -94,29 +106,28 @@ export function PaginaAjuda() {
 
   return (
     <div className="flex flex-col gap-6">
-      {/* ---------------- busca em destaque ---------------- */}
-      <section className="flex flex-col items-center gap-4 rounded-xl  bg-superficie px-4 py-8 text-center md:px-8 md:py-10">
-        <span className="grid size-12 place-items-center rounded-total bg-acento-suave text-acento">
-          <IconLifebuoy className="size-6" aria-hidden="true" />
-        </span>
+      {/* ---------------- título e busca, direto no plano ----------------
+          Sem o cartão central com ícone que havia aqui: o título e a busca
+          já são o destaque, e a moldura só empurrava os artigos para baixo. */}
+      <header className="flex flex-col gap-4">
         <div>
-          <h1 className="text-titulo-lg font-forte tracking-display">Central de Ajuda</h1>
-          <p className="mt-1 text-pequeno text-tinta-secundaria">
-            Tutoriais e respostas prontas — antes de abrir um ticket, veja se já tem a resposta aqui.
+          <h1 className="text-titulo-lg font-forte">Central de Ajuda</h1>
+          <p className="mt-1 text-corpo text-tinta-secundaria">
+            Tutoriais e respostas prontas. Antes de abrir um ticket, veja se a resposta já está aqui.
           </p>
         </div>
-        <div className="relative w-full max-w-xl">
-          <IconSearch className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-tinta-secundaria" aria-hidden="true" />
+        <div className="relative w-full max-w-2xl">
+          <IconSearch className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-tinta-secundaria" stroke={1.75} aria-hidden="true" />
           <Input
             type="search"
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
             placeholder="Buscar por assunto, erro ou palavra-chave"
             aria-label="Buscar na Central de Ajuda"
-            className="h-12 pl-12 pr-4 text-corpo-lg"
+            className="h-11 rounded-total pl-11 pr-4 text-corpo-lg"
           />
         </div>
-      </section>
+      </header>
 
       {/* ---------------- categorias ---------------- */}
       {(categorias.data?.length ?? 0) > 0 && (
@@ -125,10 +136,7 @@ export function PaginaAjuda() {
             type="button"
             onClick={() => definir({ categoria: undefined })}
             aria-pressed={!categoria}
-            className={cn(
-              'h-7 rounded-md  bg-superficie px-3 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento',
-              !categoria && 'border-acento bg-acento-suave text-acento',
-            )}
+            className={cn(CHIP, !categoria && CHIP_ATIVO)}
           >
             Todos
           </button>
@@ -138,13 +146,10 @@ export function PaginaAjuda() {
               type="button"
               onClick={() => definir({ categoria: c.name === categoria ? undefined : c.name })}
               aria-pressed={c.name === categoria}
-              className={cn(
-                'inline-flex items-center gap-2 h-7 rounded-md  bg-superficie px-3 text-pequeno font-medio text-tinta-secundaria transition-colors hover:border-acento hover:text-acento',
-                c.name === categoria && 'border-acento bg-acento-suave text-acento',
-              )}
+              className={cn(CHIP, c.name === categoria && CHIP_ATIVO)}
             >
               {c.name}
-              <span className="text-legenda text-tinta-terciaria">{c.count}</span>
+              <span className={cn('text-legenda', c.name === categoria ? 'opacity-80' : 'text-tinta-secundaria')}>{c.count}</span>
             </button>
           ))}
         </section>
@@ -206,7 +211,7 @@ export function PaginaAjuda() {
               <EstadoVazio
                 icone={IconBook}
                 titulo="Nenhum artigo publicado ainda"
-                descricao="Enquanto a Central de Ajuda não tem conteúdo, fale com a gente — o suporte responde por ticket ou chat."
+                descricao="Enquanto a Central de Ajuda não tem conteúdo, fale com a gente: o suporte responde por ticket ou chat."
                 acao={
                   <div className="flex flex-col gap-2 sm:flex-row">
                     <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
@@ -224,8 +229,8 @@ export function PaginaAjuda() {
                 titulo="Nada encontrado"
                 descricao={
                   q
-                    ? `Nenhum artigo fala sobre “${q}”. Tente outra palavra — ou abra um ticket e a gente responde.`
-                    : 'Nenhum artigo nesta categoria.'
+                    ? `Nenhum artigo fala sobre “${q}”. Tente outra palavra, ou abra um ticket e a gente responde.`
+                    : 'Nenhum artigo nesta categoria ainda. Veja as outras categorias ou abra um ticket.'
                 }
                 acao={
                   <div className="flex flex-col gap-2 sm:flex-row">
@@ -266,7 +271,7 @@ export function PaginaAjuda() {
             </Link>
           }
         >
-          Conte o que você tentou — assim o suporte já começa de onde você parou.
+          Conte o que você tentou. Assim o suporte já começa de onde você parou.
         </Alert>
       )}
     </div>

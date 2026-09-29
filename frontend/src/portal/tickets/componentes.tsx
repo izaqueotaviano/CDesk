@@ -22,12 +22,14 @@ export function PilulaStatus({
   )
 }
 
-/** Só Alta/Urgente ganham cor: "Normal" em toda linha seria ruído. */
+/** Só Alta/Urgente ganham cor: "Normal" em toda linha seria ruído. Sem o
+ *  ponto: prioridade é atributo do chamado, não estado — o ponto fica para
+ *  o que está acontecendo agora (a situação, ao lado). */
 export function PilulaPrioridade({ prioridade }: { prioridade: Prioridade }) {
   const tom = TOM_PRIORIDADE[prioridade]
   if (tom === 'neutro' || tom === 'acento') return null
   return (
-    <Badge variant={tom} ponto>
+    <Badge variant={tom}>
       {ROTULO_PRIORIDADE[prioridade]}
     </Badge>
   )
@@ -40,20 +42,20 @@ interface CartaoProps {
   compacto?: boolean
 }
 
+/** Hover de cartão: um degrau sobre a superfície, visível nos dois temas
+ *  (o `navegacao-hover` do escuro some sobre a superfície escura). */
+export const HOVER_CARTAO = 'transition-colors hover:bg-[var(--fundo-hover)]'
+
 /** Uma linha da lista — o card inteiro é o link. */
 export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
-  const aguardandoVoce = ticket.status === 'pending_customer'
   return (
     <Link
       to={`/portal/tickets/${ticket.id}`}
-      className={cn(
-        'group flex flex-col gap-2 rounded-xl  bg-superficie p-4 transition-[border-color] hover:border-borda-controle sm:flex-row sm:items-center sm:gap-4',
-        aguardandoVoce && 'border-alerta/40 bg-alerta-suave/30',
-      )}
+      className={cn('group flex flex-col gap-2 rounded-md bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4', HOVER_CARTAO)}
     >
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="fonte-mono text-legenda text-acento">{ticket.reference}</span>
+          <span className="fonte-mono text-legenda text-tinta-secundaria">{ticket.reference}</span>
           {ticket.reopen_count > 0 && (
             <span className="inline-flex items-center gap-1 text-legenda text-tinta-secundaria" title="Reaberto">
               <IconRotateClockwise className="size-3" aria-hidden="true" />
@@ -61,7 +63,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
             </span>
           )}
         </div>
-        <p className="truncate text-corpo font-medio text-tinta group-hover:text-acento">
+        <p className="truncate text-corpo font-medio text-tinta">
           {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
         </p>
         {!compacto && (
@@ -87,8 +89,8 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
           <PilulaPrioridade prioridade={ticket.priority} />
           <PilulaStatus ticket={ticket} />
         </span>
-        <span className="text-legenda text-tinta-terciaria">
-          atualizado {relativo(ticket.updated_at, agoraMs)}
+        <span className="text-legenda text-tinta-secundaria">
+          Atualizado {relativo(ticket.updated_at, agoraMs)}
         </span>
       </div>
     </Link>
@@ -97,7 +99,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
 
 export function EsqueletoCartaoTicket() {
   return (
-    <div className="flex items-center gap-4 rounded-xl  bg-superficie p-4">
+    <div className="flex items-center gap-4 rounded-md bg-superficie p-4">
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-4 w-2/3" />

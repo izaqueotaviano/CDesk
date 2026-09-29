@@ -3,20 +3,20 @@ import { IconChevronDown } from '@tabler/icons-react'
 import { cn } from '../lib/cn'
 
 /**
- * Campo de entrada do portal, calibrado pelo `field` do cvz: 34px, raio
- * único, e a linha PRÓPRIA de campo (`border-borda-campo`, bem mais escura
+ * Campo de entrada do portal: 36px, raio de 8px (controle; a busca pede
+ * cápsula e a recebe por `className`), e a linha PRÓPRIA de campo (`border-borda-campo`, bem mais escura
  * que a estrutural) sempre visível — "campo precisa se anunciar como
  * editável", e em tela de toque não existe hover pra escurecer depois. O
  * foco é o contorno global de tokens.css; aqui só a borda vira acento.
  */
 const base =
-  'w-full rounded-md border border-borda-campo bg-superficie text-[13px] text-tinta transition-[border-color] placeholder:text-tinta-terciaria hover:border-tinta-secundaria focus-visible:border-acento disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-perigo'
+  'w-full rounded-sm border border-borda-campo bg-superficie text-corpo text-tinta transition-[border-color] placeholder:text-tinta-terciaria hover:border-tinta-secundaria focus-visible:border-acento disabled:cursor-not-allowed disabled:opacity-60 aria-[invalid=true]:border-perigo'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input(
   { className, ...props },
   ref,
 ) {
-  return <input ref={ref} className={cn(base, 'h-[34px] px-3', className)} {...props} />
+  return <input ref={ref} className={cn(base, 'h-[36px] px-3', className)} {...props} />
 })
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(
@@ -32,7 +32,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 ) {
   return (
     <span className="relative block">
-      <select ref={ref} className={cn(base, 'h-[34px] appearance-none pl-3 pr-9', className)} {...props}>
+      <select ref={ref} className={cn(base, 'h-[36px] appearance-none pl-3 pr-9', className)} {...props}>
         {children}
       </select>
       <IconChevronDown
@@ -44,7 +44,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
 })
 
 export function Label({ className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
-  return <label className={cn('text-pequeno font-medio text-tinta', className)} {...props} />
+  return <label className={cn('text-corpo font-medio text-tinta', className)} {...props} />
 }
 
 export function Ajuda({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {

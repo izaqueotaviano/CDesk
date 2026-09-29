@@ -72,6 +72,7 @@ function jsonDe(body: unknown, status = 200) {
 }
 
 beforeEach(() => {
+  window.localStorage.clear()
   ticketAtual = detalhe()
   pendentes = []
   chamadas = []
@@ -81,6 +82,7 @@ beforeEach(() => {
       const u = new URL(String(url), 'http://x')
       const metodo = init?.method ?? 'GET'
       chamadas.push({ url: u.pathname + u.search, metodo, corpo: typeof init?.body === 'string' ? JSON.parse(init.body) : init?.body })
+      if (u.pathname === '/api/v1/auth/me/') return Promise.resolve(jsonDe({ id: 4, full_name: 'Ana Almeida', email: 'ana@acme.test', is_internal: false }))
       if (u.pathname === '/api/v1/tickets/5/') return Promise.resolve(jsonDe(ticketAtual))
       if (u.pathname === '/api/v1/tickets/5/reply/') {
         return Promise.resolve(jsonDe({ ...ticketAtual, status: 'open', messages: [...(ticketAtual.messages as unknown[]), { id: 11, author_name: 'Ana', author_avatar: null, author_is_internal: false, body: 'oi', is_public: true, source: 'web', is_first_response: false, created_at: '2026-09-03T10:00:00Z', attachments: [], mentions: [], edited_at: null, is_deleted: false, can_edit: true }] }))
@@ -183,5 +185,33 @@ describe('PaginaTicket (cliente)', () => {
     fireEvent.click(screen.getByRole('button', { name: /Enviar avaliação/ }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/rate/' && c.metodo === 'POST')).toBe(true))
     expect(chamadas.find((c) => c.url === '/api/v1/tickets/5/rate/')!.corpo).toEqual({ score: 9, comment: '' })
+  })
+
+  it('rascunho da resposta: volta com aviso e some depois de enviar', async () => {
+    const chave = 'resolv:portal:rascunho:4:ticket:5'
+    window.localStorage.setItem(chave, JSON.stringify({ v: 'Testei de novo e continua', em: Date.now() }))
+    montar()
+    expect(await screen.findByText('Rascunho restaurado.')).toBeInTheDocument()
+    expect(screen.getByLabelText('Responder')).toHaveValue('Testei de novo e continua')
+
+    fireEvent.click(screen.getByRole('button', { name: /^Enviar$/ }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/reply/')).toBe(true))
+    await waitFor(() => expect(screen.getByLabelText('Responder')).toHaveValue(''))
+    expect(window.localStorage.getItem(chave)).toBeNull()
+  })
+
+  it('print colado vira anexo com miniatura e vai no envio', async () => {
+    montar()
+    const area = await screen.findByLabelText('Responder')
+    const print = new File(['png'], 'image.png', { type: 'image/png' })
+    fireEvent.paste(area, { clipboardData: { items: [{ kind: 'file', type: 'image/png', getAsFile: () => print }] } })
+    const lista = await screen.findByRole('list', { name: 'Anexos a enviar' })
+    expect(within(lista).getByText(/^captura-\d{14}\.png$/)).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /^Enviar$/ }))
+    await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/reply/')).toBe(true))
+    const envio = chamadas.find((c) => c.url === '/api/v1/tickets/5/reply/')!
+    expect(envio.corpo).toBeInstanceOf(FormData)
+    expect(((envio.corpo as FormData).get('files') as File).name).toMatch(/^captura-/)
   })
 })

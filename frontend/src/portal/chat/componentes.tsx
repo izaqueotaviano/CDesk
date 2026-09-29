@@ -76,12 +76,15 @@ export function CartaoConversa({
       onClick={onClick}
       aria-current={ativo || undefined}
       className={cn(
-        'flex w-full items-center gap-3 rounded-md border border-transparent p-3 text-left transition-colors hover:bg-navegacao',
-        ativo && 'border-acento/30 bg-acento-suave hover:bg-acento-suave',
+        // sem borda: `border-acento/30` não existe (cor por variável não aceita
+        // opacidade no Tailwind) e o `border` sobrava com o cinza padrão —
+        // um contorno claro no tema escuro. O selecionado é o véu, só.
+        'flex w-full items-center gap-3 rounded-md p-3 text-left transition-colors hover:bg-[var(--fundo-hover)]',
+        ativo && 'bg-acento-suave hover:bg-acento-suave',
       )}
     >
       <span className="relative shrink-0">
-        <span className="grid size-10 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
+        <span className="grid size-10 place-items-center rounded-total bg-navegacao-ativo text-tinta-secundaria">
           <IconHeadset className="size-4" aria-hidden="true" />
         </span>
         {/* "o atendente ainda está aí?" decide entre esperar a resposta e
@@ -244,9 +247,9 @@ export function Mensagem({
     <article
       data-msg={msg.id}
       className={cn(
-        'group flex gap-2.5 rounded-md border px-3.5 py-3',
+        'group flex gap-2.5 rounded-md px-3.5 py-3',
         // suporte em branco, o meu em azul suave — como qualquer mensageiro
-        doSuporte ? ' bg-superficie' : 'border-acento/20 bg-acento-suave',
+        doSuporte ? 'bg-superficie' : 'bg-acento-suave',
         emFoco && 'ring-2 ring-acento',
       )}
       aria-label={`Mensagem de ${msg.author_name}`}

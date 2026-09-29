@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { IconArrowRight, IconChevronLeft, IconChevronRight, IconHeadset, IconHistory, IconMessageCircle, IconSearch, IconStar, IconTicket, IconX, IconZoomCancel, type Icon } from '@tabler/icons-react'
+import { IconChevronLeft, IconChevronRight, IconHeadset, IconHistory, IconMessageCircle, IconSearch, IconStar, IconTicket, IconX, IconZoomCancel, type Icon } from '@tabler/icons-react'
 import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
 import { ApiError } from '@/api/client'
 import { useChatsEncerrados, useContagemHistorico, useTicketsEncerrados, type FiltroAvaliacao } from '../api/historico'
@@ -53,19 +53,19 @@ function desdeDoPeriodo(periodo: Periodo, agoraMs: number): string | undefined {
  *  estreitas), não três cartões altos empilhados. */
 function CartaoNumero({ rotulo, valor, icone: Icone, detalhe }: { rotulo: string; valor: number | undefined; icone: Icon; detalhe?: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl  bg-superficie p-3 sm:gap-3 sm:p-5">
+    <div className="flex flex-col gap-2 rounded-md bg-superficie p-3 sm:gap-3 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-legenda font-medio text-tinta-secundaria sm:text-pequeno">{rotulo}</span>
-        <span className="hidden size-8 place-items-center rounded-lg bg-navegacao text-tinta-secundaria sm:grid">
+        <span className="hidden size-8 place-items-center rounded-sm bg-navegacao text-tinta-secundaria sm:grid">
           <Icone className="size-4" aria-hidden="true" />
         </span>
       </div>
       {valor === undefined ? (
         <Skeleton className="h-7 w-10 sm:h-8 sm:w-12" />
       ) : (
-        <span className="text-titulo-lg font-forte leading-nenhuma text-tinta sm:text-display">{valor}</span>
+        <span className="text-titulo-lg font-forte leading-nenhuma tabular-nums text-tinta">{valor}</span>
       )}
-      {detalhe && <span className="text-legenda text-tinta-terciaria">{detalhe}</span>}
+      {detalhe && <span className="text-legenda text-tinta-secundaria">{detalhe}</span>}
     </div>
   )
 }
@@ -79,7 +79,7 @@ function NotaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: bool
   if (nota != null) {
     return (
       <div className="flex items-start gap-3">
-        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-ok-suave text-corpo-lg font-forte text-ok" aria-hidden="true">
+        <span className="grid size-9 shrink-0 place-items-center rounded-sm bg-ok-suave text-corpo-lg font-forte text-ok" aria-hidden="true">
           {nota}
         </span>
         <span className="min-w-0">
@@ -136,8 +136,8 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
   }
   if (chat.ticket_id) {
     return (
-      <Link to={`/portal/tickets/${chat.ticket_id}`} className="inline-flex items-center gap-1 text-pequeno text-acento hover:underline">
-        Continuou no chamado {chat.ticket_reference} <IconArrowRight className="size-3.5" aria-hidden="true" />
+      <Link to={`/portal/tickets/${chat.ticket_id}`} className="text-pequeno font-medio text-tinta underline decoration-borda-controle underline-offset-2 hover:decoration-current">
+        Continuou no chamado {chat.ticket_reference}
       </Link>
     )
   }
@@ -150,13 +150,13 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
 
 function LinhaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: boolean }) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl  bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-md bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="fonte-mono text-legenda text-acento">{ticket.reference}</span>
+          <span className="fonte-mono text-legenda text-tinta-secundaria">{ticket.reference}</span>
           <PilulaStatus ticket={ticket} />
         </div>
-        <Link to={`/portal/tickets/${ticket.id}`} className="mt-0.5 block truncate text-corpo font-medio text-tinta hover:text-acento focus-visible:outline-none focus-visible:underline">
+        <Link to={`/portal/tickets/${ticket.id}`} className="mt-0.5 block truncate rounded-sm text-corpo font-medio text-tinta hover:underline">
           {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
         </Link>
         <p className="mt-0.5 text-legenda text-tinta-secundaria">
@@ -177,12 +177,12 @@ function LinhaChat({ chat, max, agoraMs }: { chat: Chat; max: number; agoraMs: n
   const rel = relativo(chat.closed_at ?? chat.queued_at, agoraMs)
   const quando = rel.startsWith('há') || rel === 'agora' ? `${rel} (${dataHora(chat.closed_at)})` : `em ${dataHora(chat.closed_at)}`
   return (
-    <li className="flex flex-col gap-3 rounded-xl  bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-md bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <span className="hidden size-10 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria sm:grid">
         <IconHeadset className="size-4" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
-        <Link to={`/portal/chat?chat=${chat.id}`} className="block truncate text-corpo font-medio text-tinta hover:text-acento focus-visible:outline-none focus-visible:underline">
+        <Link to={`/portal/chat?chat=${chat.id}`} className="block truncate rounded-sm text-corpo font-medio text-tinta hover:underline">
           {chat.agent_name ? `Conversa com ${chat.agent_name}` : 'Conversa sem atendimento'}
         </Link>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-legenda text-tinta-secundaria">
@@ -284,19 +284,19 @@ export function PaginaHistorico() {
   return (
     <div className="flex flex-col gap-6">
       <header>
-        <h1 className="text-titulo-lg font-forte tracking-display">Histórico</h1>
-        <p className="mt-1 text-pequeno text-tinta-secundaria">
+        <h1 className="text-titulo-lg font-forte">Histórico</h1>
+        <p className="mt-1 text-corpo text-tinta-secundaria">
           Chamados resolvidos ou fechados e conversas encerradas, com as avaliações que você deu.
         </p>
       </header>
 
       {pendentesTotal > 0 && (
-        <Card className="border-alerta/40 bg-alerta-suave/30" aria-labelledby="pendentes-titulo">
+        <Card aria-labelledby="pendentes-titulo">
           <CardHeader>
             <CardTitle id="pendentes-titulo">
               {pendentesTotal === 1 ? 'Uma avaliação pendente' : `${pendentesTotal} avaliações pendentes`}
             </CardTitle>
-            <CardDescription>Sua nota vai para quem cuidou do atendimento — e, no chat, é o que libera a próxima conversa.</CardDescription>
+            <CardDescription>Sua nota vai para quem cuidou do atendimento. No chat, é ela que libera a próxima conversa.</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="flex flex-col divide-y divide-divisoria">
@@ -317,7 +317,7 @@ export function PaginaHistorico() {
                 <li key={`ticket-${t.ticket_id}`} className="flex items-center justify-between gap-3 py-2.5">
                   <span className="min-w-0">
                     <span className="block truncate text-pequeno font-medio">
-                      <span className="fonte-mono text-acento">{t.reference}</span> · {t.subject}
+                      <span className="fonte-mono text-tinta-secundaria">{t.reference}</span> · {t.subject}
                     </span>
                     <span className="block text-legenda text-tinta-secundaria">chamado resolvido</span>
                   </span>
@@ -368,7 +368,7 @@ export function PaginaHistorico() {
                 onChange={(e) => setBusca(e.target.value)}
                 placeholder="Buscar por número, assunto ou nº do pedido"
                 aria-label="Buscar no histórico"
-                className="pl-9"
+                className="rounded-total pl-9"
               />
             </div>
           ) : (

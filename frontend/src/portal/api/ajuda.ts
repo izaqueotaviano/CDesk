@@ -39,6 +39,7 @@ export interface CategoriaAjuda {
 
 export const chavesAjuda = {
   artigos: (p: { q?: string; categoria?: string }) => ['portal', 'ajuda', 'artigos', p] as const,
+  sugestoes: (texto: string) => ['portal', 'ajuda', 'sugestoes', texto] as const,
   artigo: (id: number) => ['portal', 'ajuda', 'artigo', id] as const,
   categorias: ['portal', 'ajuda', 'categorias'] as const,
 }
@@ -57,6 +58,34 @@ export function useArtigos({ q, categoria }: { q?: string; categoria?: string })
     select: lista,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
+  })
+}
+
+/** Menos que isto não é assunto, é começo de palavra. */
+export const MINIMO_PARA_SUGERIR = 3
+
+/**
+ * "Isso pode resolver": até três artigos para o que a pessoa está
+ * escrevendo no assunto do chamado. O servidor quebra a frase em palavras e
+ * ordena por relevância (`ArticleViewSet.suggest`) — a busca da lista, que
+ * procura a frase inteira como substring, não acharia nada numa frase.
+ *
+ * Quem chama já espera a pessoa parar de digitar; aqui só não se pergunta
+ * nada com menos de `MINIMO_PARA_SUGERIR` letras.
+ */
+export function useSugestoesDeArtigos(texto: string) {
+  const limpo = texto.trim()
+  return useQuery({
+    queryKey: chavesAjuda.sugestoes(limpo),
+    queryFn: () =>
+      api.get<ArtigoResumo[]>(`/api/v1/knowledge/articles/suggest/?${new URLSearchParams({ q: limpo, limit: '3' })}`),
+    enabled: limpo.length >= MINIMO_PARA_SUGERIR,
+    // a lista anterior fica na tela enquanto a nova chega: sumir e voltar a
+    // cada palavra faria o formulário pular embaixo do cursor
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+    // sugestão é ajuda: se falhar, some em silêncio, sem retry nem erro na tela
+    retry: false,
   })
 }
 

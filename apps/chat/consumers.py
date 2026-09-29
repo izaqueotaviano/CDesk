@@ -179,6 +179,18 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             "ticket_reference": event["ticket_reference"],
         })
 
+    async def chat_queue_position(self, event):
+        """A fila andou (`services/fila.avisar_posicoes`). Só números, e só
+        os DESTE chat: a lista de campos é fechada aqui de propósito, para um
+        campo novo no evento não sair para o cliente sem alguém decidir."""
+        await self.send_json({
+            "type": "queue_position",
+            **{k: event.get(k) for k in (
+                "chat_id", "position", "ahead", "estimated_wait_minutes",
+                "queue_open", "queue_opens_at",
+            )},
+        })
+
     # ------------------------------------------------------------------ #
     # Acesso a banco
     # ------------------------------------------------------------------ #

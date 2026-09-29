@@ -16,7 +16,7 @@ export const TabsList = forwardRef<ElementRef<typeof TabsPrimitive.List>, Compon
         ref={ref}
         className={cn(
           // rola na horizontal no celular em vez de quebrar em duas linhas
-          'flex max-w-full items-end overflow-x-auto  [scrollbar-width:none]',
+          'flex max-w-full items-end overflow-x-auto border-b border-divisoria [scrollbar-width:none]',
           className,
         )}
         {...props}
@@ -33,7 +33,7 @@ export const TabsTrigger = forwardRef<
     <TabsPrimitive.Trigger
       ref={ref}
       className={cn(
-        '-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-4 py-3 text-[13px] font-medio text-tinta-secundaria transition-colors hover:bg-navegacao hover:text-tinta data-[state=active]:border-acento data-[state=active]:text-tinta',
+        '-mb-px inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 border-transparent px-3 py-2.5 text-corpo font-medio text-tinta-secundaria transition-colors hover:text-tinta data-[state=active]:border-acento data-[state=active]:text-tinta',
         className,
       )}
       {...props}

@@ -2,9 +2,9 @@ import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '../lib/cn'
 
 /**
- * Card do portal: superfície branca, linha estrutural e raio único — sem
- * sombra, como todo cartão do console. A separação do fundo é feita pela
- * LINHA (e pelo canvas um degrau mais escuro atrás), não por elevação.
+ * Card do portal: superfície branca sobre o plano, raio de 12px, sem linha e
+ * sem sombra — o que separa o cartão do fundo é o TOM, não uma borda ou uma
+ * penumbra.
  */
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(function Card(
   { className, ...props },
@@ -13,7 +13,7 @@ export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(f
   return (
     <div
       ref={ref}
-      className={cn('rounded-md  bg-superficie text-tinta', className)}
+      className={cn('rounded-md bg-superficie text-tinta', className)}
       {...props}
     />
   )
@@ -24,11 +24,12 @@ export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElemen
 }
 
 export function CardTitle({ className, ...props }: HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn('text-[15px] font-forte leading-justa', className)} {...props} />
+  // h2: o título do cartão é a seção logo abaixo do h1 da página
+  return <h2 className={cn('text-titulo font-forte leading-justa', className)} {...props} />
 }
 
 export function CardDescription({ className, ...props }: HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn('text-pequeno text-tinta-secundaria', className)} {...props} />
+  return <p className={cn('text-corpo text-tinta-secundaria', className)} {...props} />
 }
 
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {

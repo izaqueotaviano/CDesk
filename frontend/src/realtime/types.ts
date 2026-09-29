@@ -29,6 +29,18 @@ export type EventoServidorChat =
   | { type: 'transferred'; agent_name: string }
   | { type: 'closed'; by_internal: boolean }
   | { type: 'converted'; ticket_id: number; ticket_reference: string }
+  /** A fila andou: a posição DESTE chat (`apps/chat/services/fila.py`). Só
+   *  números — quem está na frente nunca vem. O portal o aplica no cache do
+   *  chat (portal/chat/PosicaoNaFila.tsx); o console não precisa dele. */
+  | {
+      type: 'queue_position'
+      chat_id: number
+      position: number
+      ahead: number
+      estimated_wait_minutes: number | null
+      queue_open: boolean
+      queue_opens_at: string | null
+    }
   | { type: 'error'; detail: string }
   | { type: 'pong' }
 

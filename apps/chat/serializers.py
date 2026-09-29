@@ -19,7 +19,7 @@ from apps.chat.models import (
     ChatRating,
     ClientQuickReply,
 )
-from apps.chat.services import chat_service
+from apps.chat.services import chat_service, fila
 
 
 class ChatFileSerializer(serializers.ModelSerializer):
@@ -297,6 +297,9 @@ class ChatSerializer(serializers.ModelSerializer):
     )
     closed_by_name = serializers.SerializerMethodField()
     ws_url = serializers.SerializerMethodField()
+    #: Posição na fila (só com o chat `queued`): quantos estão na frente e a
+    #: espera estimada — números, nunca quem. Ver `services/fila.py`.
+    queue_position = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -315,6 +318,7 @@ class ChatSerializer(serializers.ModelSerializer):
             "client_presence", "agent_presence",
             "rating", "rating_pending", "ticket_id", "ticket_reference",
             "ws_url",
+            "queue_position",
         ]
         read_only_fields = [f for f in fields if f not in _EDITAVEIS_DO_CHAT]
 
@@ -383,6 +387,35 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def get_ws_url(self, obj) -> str:
         return f"/ws/chat/{obj.pk}/"
+
+    @extend_schema_field(
+        {
+            "type": "object",
+            "nullable": True,
+            "properties": {
+                "position": {"type": "integer"},
+                "ahead": {"type": "integer"},
+                "estimated_wait_minutes": {"type": "integer", "nullable": True},
+                "queue_open": {"type": "boolean"},
+                "queue_opens_at": {"type": "string", "format": "date-time", "nullable": True},
+            },
+        }
+    )
+    def get_queue_position(self, obj):
+        """A fila inteira é lida UMA vez por resposta (lista do console com
+        vários chats esperando), guardada no contexto — mesmo truque do
+        `_ultimo_id_por_chat` do serializer de mensagem."""
+        if obj.status != "queued":
+            return None
+        if "_fila" not in self.context:
+            estado = chat_service.estado_da_fila()
+            self.context["_fila"] = (
+                fila.fila_em_ordem(),
+                estado,
+                fila.espera_tipica_minutos() if estado[0] else None,
+            )
+        ordem, estado, espera = self.context["_fila"]
+        return fila.situacao(obj, ordem=ordem, estado=estado, espera_tipica=espera)
 
 
 class RateSerializer(serializers.Serializer):
@@ -497,14 +530,41 @@ class ClientChatConfigSerializer(serializers.ModelSerializer):
 
     queue_open = serializers.SerializerMethodField()
     queue_opens_at = serializers.SerializerMethodField()
+    #: Os limites de anexo que o servidor aplica AGORA (`SystemConfig`, via
+    #: `tickets.services.attachments.limits`). O portal os lê para recusar
+    #: antes de subir e para dizer o número certo — "até 10 MB" escrito no
+    #: código mentiria no dia em que o admin mudasse o teto. Não é segredo:
+    #: é o mesmo número que a recusa do upload já diz por extenso.
+    attachment_limits = serializers.SerializerMethodField()
 
     class Meta:
         model = ChatConfig
         fields = [
             "welcome_message", "score_min", "score_max", "low_score_threshold",
             "queue_open", "queue_opens_at",
+            "attachment_limits",
         ]
         read_only_fields = fields
+
+    @extend_schema_field(
+        {
+            "type": "object",
+            "properties": {
+                "max_bytes": {"type": "integer"},
+                "max_bytes_per_message": {"type": "integer"},
+                "max_files_per_message": {"type": "integer"},
+            },
+        }
+    )
+    def get_attachment_limits(self, _obj) -> dict:
+        from apps.tickets.services.attachments import limits
+
+        por_arquivo, por_mensagem, arquivos = limits()
+        return {
+            "max_bytes": por_arquivo,
+            "max_bytes_per_message": por_mensagem,
+            "max_files_per_message": arquivos,
+        }
 
     # Mesma fonte do serializer interno (`chat_service.estado_da_fila`), de
     # propósito: duas contas para a mesma pergunta acabariam discordando.

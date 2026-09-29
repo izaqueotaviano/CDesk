@@ -3,20 +3,30 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { IconAlertTriangle, IconCircleCheck, IconCircleX, IconInfoCircle, type Icon } from '@tabler/icons-react'
 import { cn } from '../lib/cn'
 
-const alertVariants = cva(
-  'flex gap-3 rounded-md border border-l-2 bg-superficie p-4 text-corpo [&_svg]:mt-0.5 [&_svg]:size-5 [&_svg]:shrink-0',
-  {
-    variants: {
-      variant: {
-        info: ' border-l-acento [&_svg]:text-acento',
-        warning: ' border-l-alerta [&_svg]:text-alerta',
-        success: ' border-l-ok [&_svg]:text-ok',
-        destructive: ' border-l-perigo [&_svg]:text-perigo',
-      },
+/**
+ * Fundo pelo tom — e só quando o tom É estado: aviso, erro e sucesso se
+ * anunciam no véu da própria cor; informação fica na superfície branca, como
+ * um cartão. Sem barra lateral: a borda grossa à esquerda era enfeite, e o
+ * ícone colorido já diz o tom.
+ */
+const alertVariants = cva('flex gap-3 rounded-md p-4 text-corpo', {
+  variants: {
+    variant: {
+      info: 'bg-superficie',
+      warning: 'bg-alerta-suave',
+      success: 'bg-ok-suave',
+      destructive: 'bg-perigo-suave',
     },
-    defaultVariants: { variant: 'info' },
   },
-)
+  defaultVariants: { variant: 'info' },
+})
+
+const COR_ICONE: Record<NonNullable<AlertProps['variant']>, string> = {
+  info: 'text-tinta-secundaria',
+  warning: 'text-alerta',
+  success: 'text-ok',
+  destructive: 'text-perigo',
+}
 
 const ICONE: Record<NonNullable<AlertProps['variant']>, Icon> = {
   info: IconInfoCircle,
@@ -40,20 +50,20 @@ export interface AlertProps extends HTMLAttributes<HTMLDivElement>, VariantProps
 }
 
 /**
- * Faixa de aviso, no desenho do `.aviso` do console: superfície branca com
- * a linha estrutural e uma barra de 2px na esquerda dizendo o tom — sem
- * fundo colorido inteiro, que pesava ao lado dos cartões.
+ * Faixa de aviso. O ícone recebe a cor DIRETO na própria classe: o seletor
+ * `[&_svg]` que estava na faixa alcançava também os ícones dos botões da
+ * `acao` — e pintava o "+" do "Abrir ticket" com a cor do fundo do botão.
  */
 export function Alert({ className, variant, titulo, acao, icone, papel, children, ...props }: AlertProps) {
   const Icone = icone ?? ICONE[variant ?? 'info']
   const role = papel ?? (variant === 'destructive' || variant === 'warning' ? 'alert' : 'status')
   return (
     <div role={role} className={cn(alertVariants({ variant }), className)} {...props}>
-      <Icone aria-hidden="true" />
+      <Icone className={cn('mt-0.5 size-5 shrink-0', COR_ICONE[variant ?? 'info'])} stroke={1.75} aria-hidden="true" />
       <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
         <div className="min-w-0 flex-1">
           {titulo && <p className="font-medio">{titulo}</p>}
-          {children && <div className="text-pequeno text-tinta-secundaria">{children}</div>}
+          {children && <div className="text-corpo text-tinta-secundaria">{children}</div>}
         </div>
         {acao && <div className="shrink-0">{acao}</div>}
       </div>

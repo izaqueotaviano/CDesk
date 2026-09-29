@@ -6,11 +6,11 @@ import { useChatsRecentes, useContagemChatsAtivos } from '../api/chats'
 import { useAvaliacoesPendentesTicket, useContagemAbas, useTicketsRecentes } from '../api/tickets'
 import { cn } from '../lib/cn'
 import { dataHora, primeiroNome, relativo, useAgora } from '../lib/formato'
-import { CartaoTicket, EsqueletoCartaoTicket } from '../tickets/componentes'
+import { CartaoTicket, EsqueletoCartaoTicket, HOVER_CARTAO } from '../tickets/componentes'
 import { Alert } from '../ui/alert'
 import { Badge } from '../ui/badge'
 import { Button, buttonVariants } from '../ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card'
+import { Card } from '../ui/card'
 import { EstadoVazio } from '../ui/estado-vazio'
 import { Skeleton } from '../ui/skeleton'
 import { MuralAvisos } from './MuralAvisos'
@@ -25,16 +25,14 @@ interface CartaoResumoProps {
   ajuda?: string
 }
 
-/** Cartão de número, no desenho do `.inicio-stat` do console: linha, não sombra; o destaque é a cor do número. */
+/** Cartão de número: branco sobre o plano, sem linha; o destaque (quando a
+ *  bola está com a pessoa) é a cor do número e do ícone, que é estado. */
 function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: CartaoResumoProps) {
   const ativo = destaque && (valor ?? 0) > 0
   return (
     <Link
       to={para}
-      className={cn(
-        'group flex flex-col gap-3 rounded-md  bg-superficie p-5 transition-[border-color] hover:border-borda-controle',
-        ativo && 'border-alerta/40',
-      )}
+      className={cn('group flex flex-col gap-3 rounded-md bg-superficie p-4 md:p-5', HOVER_CARTAO)}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-pequeno font-medio text-tinta-secundaria">{rotulo}</span>
@@ -45,13 +43,13 @@ function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: Ca
       {valor === undefined ? (
         <Skeleton className="h-8 w-12" />
       ) : (
-        <span className={cn('font-mono text-display font-medio leading-nenhuma text-tinta', ativo && 'text-alerta')}>{valor}</span>
+        <span className={cn('text-display font-forte leading-nenhuma tabular-nums text-tinta', ativo && 'text-alerta')}>{valor}</span>
       )}
       {/* Sem a seta que vinha colada no rótulo. O cartão inteiro é o alvo do
           clique — a seta repetia por grafismo o que a própria palavra já
           diz, e três delas lado a lado viravam ruído numa fileira que
           deveria ser só número e rótulo. */}
-      <span className="text-legenda text-tinta-terciaria">{ajuda ?? 'Ver'}</span>
+      <span className="text-legenda text-tinta-secundaria">{ajuda ?? 'Ver'}</span>
     </Link>
   )
 }
@@ -67,13 +65,13 @@ function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
   return (
     <Link
       to={`/portal/chat?chat=${chat.id}`}
-      className="group flex items-center gap-3 rounded-md  bg-superficie p-4 transition-[border-color] hover:border-borda-controle"
+      className={cn('group flex items-center gap-3 rounded-md bg-superficie p-4', HOVER_CARTAO)}
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
         <IconHeadset className="size-4" aria-hidden="true" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-corpo font-medio group-hover:text-acento">
+        <span className="block truncate text-corpo font-medio">
           {chat.agent_name ? `Conversa com ${chat.agent_name}` : 'Aguardando um atendente'}
         </span>
         <span className="block truncate text-legenda text-tinta-secundaria">
@@ -90,7 +88,7 @@ function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
             {s.rotulo}
           </Badge>
         )}
-        <span className="text-legenda text-tinta-terciaria">{relativo(chat.queued_at, agoraMs)}</span>
+        <span className="text-legenda text-tinta-secundaria">{relativo(chat.queued_at, agoraMs)}</span>
       </span>
     </Link>
   )
@@ -132,24 +130,24 @@ export function PaginaInicio() {
     pendentesChat > 0
       ? 'Avalie o último chat para iniciar outro'
       : filaFechada
-        ? `Fora do horário de atendimento por chat${voltaAs ? ` — volta ${voltaAs}` : ''}`
+        ? `Fora do horário de atendimento por chat${voltaAs ? `. Volta em ${voltaAs}` : ''}`
         : null
 
   return (
     <div className="flex flex-col gap-6">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          {/* A serifa de UM lugar só, como no console: `--f-display`, 26px, peso 400. */}
-          <h1 className="font-display text-[26px] font-normal leading-tight text-tinta">
-            {me ? `Olá, ${primeiroNome(me.full_name)}` : <Skeleton className="h-7 w-40" />}
+          {/* O mesmo título de toda página do portal: 28px, peso 600. */}
+          <h1 className="text-titulo-lg font-forte text-tinta">
+            {me ? `Olá, ${primeiroNome(me.full_name)}` : <Skeleton className="h-8 w-40" />}
           </h1>
-          <p className="mt-1 text-pequeno text-tinta-secundaria">
+          <p className="mt-1 text-corpo text-tinta-secundaria">
             {me?.company_name ? `${me.company_name} · ` : ''}Acompanhe seus chamados e fale com o suporte.
             {filaAberta != null && (
               <>
                 {' · '}
                 <span className={cn('font-medio', filaAberta ? 'text-ok' : 'text-tinta-terciaria')}>
-                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? ` — volta ${voltaAs}` : ''}`}
+                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? `, volta em ${voltaAs}` : ''}`}
                 </span>
               </>
             )}
@@ -227,74 +225,85 @@ export function PaginaInicio() {
         />
       </section>
 
+      {/* As duas listas direto no plano, cada item um cartão — sem o cartão
+          em volta que havia aqui: cartão branco dentro de cartão branco não
+          tem borda que o separe, e a lista virava texto solto. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Tickets recentes</CardTitle>
-            <Link to="/portal/tickets" className="text-pequeno font-medio text-acento hover:underline">
+        <section aria-labelledby="inicio-tickets" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="inicio-tickets" className="text-titulo font-forte">
+              Tickets recentes
+            </h2>
+            <Link to="/portal/tickets" className="rounded-sm text-corpo font-medio text-tinta hover:underline">
               Ver todos
             </Link>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {recentes.isLoading ? (
-              [0, 1, 2].map((i) => <EsqueletoCartaoTicket key={i} />)
-            ) : recentes.data && recentes.data.length > 0 ? (
-              recentes.data.map((t) => <CartaoTicket key={t.id} ticket={t} agoraMs={agora} compacto />)
-            ) : (
+          </div>
+          {recentes.isLoading ? (
+            [0, 1, 2].map((i) => <EsqueletoCartaoTicket key={i} />)
+          ) : recentes.data && recentes.data.length > 0 ? (
+            recentes.data.map((t) => <CartaoTicket key={t.id} ticket={t} agoraMs={agora} compacto />)
+          ) : (
+            <Card>
               <EstadoVazio
                 icone={IconTicket}
                 titulo="Nenhum ticket ainda"
-                descricao="Quando precisar de ajuda, abra um ticket — você acompanha tudo por aqui."
+                descricao="Quando precisar de ajuda, abra um ticket. Você acompanha tudo por aqui."
                 acao={
                   <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
                     <IconPlus /> Abrir ticket
                   </Link>
                 }
               />
-            )}
-          </CardContent>
-        </Card>
+            </Card>
+          )}
+        </section>
 
-        <Card>
-          <CardHeader className="flex-row items-center justify-between">
-            <CardTitle>Conversas recentes</CardTitle>
-            <Link to="/portal/chat" className="text-pequeno font-medio text-acento hover:underline">
+        <section aria-labelledby="inicio-conversas" className="flex flex-col gap-2">
+          <div className="flex items-center justify-between gap-2">
+            <h2 id="inicio-conversas" className="text-titulo font-forte">
+              Conversas recentes
+            </h2>
+            <Link to="/portal/chat" className="rounded-sm text-corpo font-medio text-tinta hover:underline">
               Ver todas
             </Link>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2">
-            {chats.isLoading ? (
-              [0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-md  p-4">
-                  <Skeleton className="size-9 rounded-total" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-1/2" />
-                    <Skeleton className="h-3 w-3/4" />
-                  </div>
+          </div>
+          {chats.isLoading ? (
+            [0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-3 rounded-md bg-superficie p-4">
+                <Skeleton className="size-9 rounded-total" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-3/4" />
                 </div>
-              ))
-            ) : chats.data && chats.data.length > 0 ? (
-              chats.data.map((c) => <LinhaChat key={c.id} chat={c} agoraMs={agora} />)
-            ) : (
+              </div>
+            ))
+          ) : chats.data && chats.data.length > 0 ? (
+            chats.data.map((c) => <LinhaChat key={c.id} chat={c} agoraMs={agora} />)
+          ) : (
+            <Card>
               <EstadoVazio
                 icone={IconMessageCircle}
                 titulo="Nenhuma conversa ainda"
                 descricao={
                   filaFechada
-                    ? `O chat está fechado agora${voltaAs ? ` — volta ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
+                    ? `O chat está fechado agora${voltaAs ? ` e volta em ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
                     : 'O chat é o caminho mais rápido para uma dúvida curta, dentro do horário de atendimento.'
                 }
                 acao={
-                  motivoChatTravado ? undefined : (
+                  motivoChatTravado ? (
+                    <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
+                      <IconPlus /> Abrir ticket
+                    </Link>
+                  ) : (
                     <Link to="/portal/chat" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
                       <IconMessagePlus /> Iniciar chat
                     </Link>
                   )
                 }
               />
-            )}
-          </CardContent>
-        </Card>
+            </Card>
+          )}
+        </section>
       </div>
     </div>
   )

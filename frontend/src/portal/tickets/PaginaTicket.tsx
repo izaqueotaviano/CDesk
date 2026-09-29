@@ -1,12 +1,13 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useId, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { IconArrowLeft, IconCheck, IconCircleCheck, IconClock, IconDownload, IconFileText, IconHash, IconLock, IconPaperclip, IconPencil, IconPlus, IconRotateClockwise, IconSend, IconShieldCheck, IconStar, IconTag, IconTrash, IconUsers, IconX } from '@tabler/icons-react'
 import { ApiError } from '@/api/client'
+import { useMe } from '@/api/queries/useMe'
+import { imagensColadas } from '@/chat/conversa'
 import { mensagemDeErro, rotuloDia, urlApi } from '@/resolv/tickets/detalhe/linhaDoTempo'
 import type { Mensagem, TicketDetalhe } from '@/resolv/tickets/detalhe/tiposDetalhe'
 import { Avatar } from '@/ui/Avatar'
 import {
-  LIMITE_ANEXO_MB,
   baixarPdfDoTicket,
   useAvaliacoesPendentesTicket,
   useAvaliarTicket,
@@ -16,7 +17,6 @@ import {
   useResponderTicket,
   useRespostasRapidas,
   useTicketCliente,
-  validarAnexos,
 } from '../api/tickets'
 import { cn } from '../lib/cn'
 import { dataHora, hora, relativo, tamanhoArquivo, useAgora } from '../lib/formato'
@@ -29,6 +29,10 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label, Textarea } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
 import { toast } from '../ui/toaster'
+import { chaveDeRascunho, useRascunho } from '../lib/rascunho'
+import { descricaoDosLimites, useAnexosLocais, useLimitesAnexo } from './anexos'
+import { BotaoAnexar, ListaDeAnexos, RecusasDeAnexo, ZonaDeSoltar } from './AnexosDoFormulario'
+import { AvisoDeRascunho } from './AvisoDeRascunho'
 import { PilulaPrioridade, PilulaStatus } from './componentes'
 import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
 
@@ -90,14 +94,14 @@ function LinhaDoTempo({ ticket }: { ticket: TicketDetalhe }) {
                   p.estado === 'atual' && 'border-acento bg-acento-suave text-acento',
                   p.estado === 'atual' && p.tom === 'alerta' && 'border-alerta bg-alerta-suave text-alerta',
                   p.estado === 'feito' && p.tom === 'neutro' && 'border-neutro-400 bg-neutro-400',
-                  p.estado === 'futuro' && ' bg-superficie text-tinta-terciaria',
+                  p.estado === 'futuro' && 'border-borda-controle bg-superficie text-tinta-terciaria',
                 )}
                 aria-hidden="true"
               >
                 {p.estado === 'feito' ? <IconCheck className="size-3.5" /> : p.estado === 'atual' ? <span className="size-2 rounded-total bg-current" /> : null}
               </span>
               {!ultimo && (
-                <span className={cn('h-full min-h-4 w-0.5 flex-1 bg-divisoria lg:h-0.5 lg:min-h-0 lg:w-auto', p.estado === 'feito' && 'bg-ok/50')} />
+                <span className={cn('h-full min-h-4 w-0.5 flex-1 bg-divisoria lg:h-0.5 lg:min-h-0 lg:w-auto', p.estado === 'feito' && 'bg-ok')} />
               )}
             </span>
             <span className="min-w-0 pb-1 lg:pr-3">
@@ -123,7 +127,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
   const [comentario, setComentario] = useState('')
   const idNota = useId()
   return (
-    <Card id="avaliacao" className="scroll-mt-20 border-ok/30 bg-ok-suave/40">
+    <Card id="avaliacao" className="scroll-mt-20">
       <CardHeader>
         <CardTitle>Como foi o atendimento?</CardTitle>
         <p className="text-pequeno text-tinta-secundaria">De 0 (péssimo) a 10 (excelente). Sua nota vai para quem cuidou do chamado.</p>
@@ -141,8 +145,8 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
               aria-checked={nota === n}
               onClick={() => setNota(n)}
               className={cn(
-                'grid size-9 place-items-center rounded-lg  bg-superficie text-corpo font-medio transition-colors hover:border-acento',
-                nota === n && 'border-acento bg-acento text-acento-sobre',
+                'grid size-9 place-items-center rounded-sm border border-borda-controle text-corpo font-medio transition-colors hover:bg-navegacao-hover',
+                nota === n && 'border-primario bg-primario text-primario-sobre hover:bg-primario-hover',
               )}
             >
               {n}
@@ -239,7 +243,7 @@ function MensagemDoTicket({
   const doSuporte = msg.author_is_internal
   return (
     <article
-      className={cn('flex gap-2.5 rounded-md  bg-superficie px-3.5 py-3', doSuporte && 'border-l-2 border-l-acento')}
+      className="flex gap-2.5 rounded-md bg-superficie px-3.5 py-3"
       aria-label={`Mensagem de ${msg.author_name}`}
     >
       <Avatar nome={msg.author_name} urlFoto={msg.author_avatar ? urlApi(msg.author_avatar) : null} tamanho="sm" />
@@ -310,16 +314,19 @@ export function PaginaTicket() {
   const esperandoSuporte = ticket?.status === 'new' || ticket?.status === 'open'
   const { data: estimativa } = useEstimativaEquipe(esperandoSuporte && !ticket?.first_response_at ? ticket?.team?.slug : null)
 
+  const { data: me } = useMe()
+  const limites = useLimitesAnexo()
+  const anexos = useAnexosLocais(limites)
   const [texto, setTexto] = useState('')
-  const [anexos, setAnexos] = useState<File[]>([])
-  const [erroAnexo, setErroAnexo] = useState<string | null>(null)
+  // A resposta pela metade sobrevive a F5 e a sair da página — por chamado,
+  // por pessoa (lib/rascunho). Anexo não entra: arquivo não cabe ali.
+  const rascunho = useRascunho(chaveDeRascunho(me?.id, 'ticket', ticketId), texto, setTexto, (t) => !t.trim())
   const [reabrindo, setReabrindo] = useState(false)
   const [confirmandoEncerrar, setConfirmandoEncerrar] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [editando, setEditando] = useState<{ id: number; texto: string } | null>(null)
   const [excluindo, setExcluindo] = useState<Mensagem | null>(null)
   const areaRef = useRef<HTMLTextAreaElement>(null)
-  const inputAnexo = useRef<HTMLInputElement>(null)
   const idTexto = useId()
 
   // reabrir leva o foco ao texto
@@ -346,7 +353,7 @@ export function PaginaTicket() {
             ) : undefined
           }
         >
-          {naoExiste ? 'Confira o número na sua lista de tickets.' : 'Nada foi perdido — tente de novo em instantes.'}
+          {naoExiste ? 'Confira o número na sua lista de tickets.' : 'Nada foi perdido. Tente de novo em instantes.'}
         </Alert>
       </div>
     )
@@ -364,7 +371,7 @@ export function PaginaTicket() {
   // quem não pode, recebe o erro do backend ao tentar.
   const podeEncerrar = !fechado && !ticket.content_hidden
   const compositorVisivel = !ticket.content_hidden && (!fechado || reabrindo)
-  const podeEnviar = (texto.trim().length > 0 || anexos.length > 0) && !responder.isPending
+  const podeEnviar = (texto.trim().length > 0 || anexos.anexos.length > 0) && !responder.isPending
   const prazoResposta = !ticket.first_response_at && ticket.sla?.first_response?.due_at ? ticket.sla.first_response.due_at : null
   // Depois da primeira resposta a pessoa não ficava sem prazo nenhum: o de
   // solução entra no lugar, enquanto ainda está no futuro (o estouro é
@@ -377,11 +384,12 @@ export function PaginaTicket() {
   function enviar() {
     if (!podeEnviar) return
     responder.mutate(
-      { body: texto.trim(), files: anexos },
+      { body: texto.trim(), files: anexos.arquivos },
       {
         onSuccess: () => {
           setTexto('')
-          setAnexos([])
+          anexos.limpar()
+          rascunho.limpar()
           setReabrindo(false)
           toast.success(podeReabrir && reabrindo ? 'Chamado reaberto com sua mensagem.' : 'Mensagem enviada ao suporte.')
         },
@@ -397,11 +405,12 @@ export function PaginaTicket() {
     }
   }
 
-  function adicionarAnexos(lista: FileList | null) {
-    if (!lista) return
-    const { aceitos, erro } = validarAnexos(Array.from(lista), anexos)
-    setAnexos((a) => [...a, ...aceitos])
-    setErroAnexo(erro)
+  /** Ctrl+V com um print vira anexo; texto colado segue normal. */
+  function colar(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const imagens = imagensColadas(e.clipboardData?.items ?? null, new Date())
+    if (imagens.length === 0) return
+    e.preventDefault()
+    anexos.adicionar(imagens)
   }
 
   async function exportarPdf() {
@@ -433,8 +442,8 @@ export function PaginaTicket() {
         <CardHeader className="gap-3">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <span className="fonte-mono text-pequeno text-acento">{ticket.reference}</span>
-              <h1 className="mt-0.5 text-titulo font-forte leading-justa tracking-titulo">
+              <span className="fonte-mono text-pequeno text-tinta-secundaria">{ticket.reference}</span>
+              <h1 className="mt-0.5 text-titulo-lg font-forte leading-justa [overflow-wrap:anywhere]">
                 {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -462,8 +471,8 @@ export function PaginaTicket() {
                 </Button>
               )}
               {prazoSolucao && (
-                <p className="inline-flex items-center gap-2 rounded-md bg-acento-suave px-3 py-2 text-pequeno text-tinta">
-                  <IconClock className="size-4 text-acento" aria-hidden="true" />
+                <p className="inline-flex items-center gap-2 rounded-md bg-navegacao px-3 py-2 text-corpo text-tinta">
+                  <IconClock className="size-4 text-tinta-secundaria" aria-hidden="true" />
                   Previsão de solução até <strong>{dataHora(prazoSolucao)}</strong>
                 </p>
               )}
@@ -522,8 +531,8 @@ export function PaginaTicket() {
             </Alert>
           )}
           {esperandoSuporte && (prazoResposta || estimativa?.label) && (
-            <p className="inline-flex items-center gap-2 rounded-lg bg-acento-suave px-3 py-2 text-pequeno text-tinta">
-              <IconClock className="size-4 text-acento" aria-hidden="true" />
+            <p className="inline-flex w-fit items-center gap-2 rounded-md bg-navegacao px-3 py-2 text-corpo text-tinta">
+              <IconClock className="size-4 text-tinta-secundaria" aria-hidden="true" />
               {prazoResposta ? (
                 <>
                   Resposta prevista até <strong>{dataHora(prazoResposta)}</strong>
@@ -537,7 +546,7 @@ export function PaginaTicket() {
           )}
           {fechado && ticket.auto_closed && (
             <Alert variant="info" titulo="Este chamado foi encerrado automaticamente por falta de retorno.">
-              Ele não pode ser reaberto — se o problema continua, abra um novo ticket e cite o número {ticket.reference}.
+              Ele não pode ser reaberto. Se o problema continua, abra um novo ticket e cite o número {ticket.reference}.
             </Alert>
           )}
           {ticket.content_hidden && (
@@ -626,92 +635,78 @@ export function PaginaTicket() {
 
       {/* ---------------- compositor ---------------- */}
       {compositorVisivel && (
-        <Card className={cn(reabrindo && 'border-acento/40')}>
-          <CardContent className="flex flex-col gap-3 p-5 md:p-6">
-            <div className="flex items-center justify-between gap-2">
-              <Label htmlFor={idTexto}>{reabrindo ? 'Reabrir com uma mensagem' : 'Responder'}</Label>
-              {reabrindo && (
-                <Button variant="ghost" size="sm" onClick={() => setReabrindo(false)}>
-                  <IconX /> Cancelar
-                </Button>
-              )}
-            </div>
-            {reabrindo && (
-              <p className="text-pequeno text-tinta-secundaria">Sua mensagem reabre o chamado e volta para a fila do suporte.</p>
-            )}
-
-            {(rapidas?.length ?? 0) > 0 && (
-              <div className="flex flex-wrap gap-2" aria-label="Respostas rápidas">
-                {rapidas!.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    onClick={() => {
-                      setTexto((t) => (t.trim() ? `${t}\n${r.texto}` : r.texto))
-                      areaRef.current?.focus()
-                    }}
-                    className="h-7 rounded-md  bg-superficie px-3 text-pequeno text-tinta-secundaria transition-colors hover:border-acento hover:bg-acento-suave hover:text-acento"
-                  >
-                    {r.rotulo}
-                  </button>
-                ))}
+        <ZonaDeSoltar onArquivos={anexos.adicionar} desabilitada={responder.isPending}>
+          <Card>
+            <CardContent className="flex flex-col gap-3 p-5 md:p-6">
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor={idTexto}>{reabrindo ? 'Reabrir com uma mensagem' : 'Responder'}</Label>
+                {reabrindo && (
+                  <Button variant="ghost" size="sm" onClick={() => setReabrindo(false)}>
+                    <IconX /> Cancelar
+                  </Button>
+                )}
               </div>
-            )}
-
-            <Textarea
-              id={idTexto}
-              ref={areaRef}
-              value={texto}
-              onChange={(e) => setTexto(e.target.value)}
-              onKeyDown={aoTeclar}
-              rows={4}
-              placeholder={reabrindo ? 'Conte o que ainda não ficou resolvido…' : 'Escreva sua mensagem para o suporte…'}
-            />
-
-            {anexos.length > 0 && (
-              <ul className="flex flex-wrap gap-2" aria-label="Anexos a enviar">
-                {anexos.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg  bg-navegacao px-2.5 py-1 text-legenda">
-                    <IconPaperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
-                    <span className="max-w-[200px] truncate">{f.name}</span>
-                    <span className="text-tinta-terciaria">{tamanhoArquivo(f.size)}</span>
-                    <button type="button" aria-label={`Remover ${f.name}`} onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))} className="grid size-6 place-items-center rounded-md hover:bg-perigo-suave hover:text-perigo">
-                      <IconX className="size-3" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {erroAnexo && (
-              <p role="alert" className="text-legenda text-perigo">
-                {erroAnexo}
-              </p>
-            )}
-
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => inputAnexo.current?.click()}>
-                  <IconPaperclip /> Anexar
-                </Button>
-                <input
-                  ref={inputAnexo}
-                  type="file"
-                  multiple
-                  hidden
-                  aria-label="Escolher arquivos"
-                  onChange={(e) => {
-                    adicionarAnexos(e.target.files)
-                    e.target.value = ''
+              {reabrindo && (
+                <p className="text-pequeno text-tinta-secundaria">Sua mensagem reabre o chamado e volta para a fila do suporte.</p>
+              )}
+              {rascunho.restaurado && (
+                <AvisoDeRascunho
+                  onDescartar={() => {
+                    rascunho.limpar()
+                    setTexto('')
                   }}
                 />
-                <span className="text-legenda text-tinta-terciaria">Imagens e documentos até {LIMITE_ANEXO_MB} MB</span>
+              )}
+
+              {(rapidas?.length ?? 0) > 0 && (
+                <div className="flex flex-wrap gap-2" aria-label="Respostas rápidas">
+                  {rapidas!.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => {
+                        setTexto((t) => (t.trim() ? `${t}\n${r.texto}` : r.texto))
+                        areaRef.current?.focus()
+                      }}
+                      className="h-7 rounded-total border border-borda-controle px-3 text-pequeno text-tinta transition-colors hover:bg-navegacao-hover"
+                    >
+                      {r.rotulo}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <Textarea
+                id={idTexto}
+                ref={areaRef}
+                value={texto}
+                onChange={(e) => setTexto(e.target.value)}
+                onKeyDown={aoTeclar}
+                onPaste={colar}
+                rows={4}
+                aria-describedby={`${idTexto}-ajuda`}
+                placeholder={reabrindo ? 'Conte o que ainda não ficou resolvido…' : 'Escreva sua mensagem para o suporte…'}
+              />
+
+              <ListaDeAnexos anexos={anexos.anexos} onRemover={anexos.remover} />
+              <RecusasDeAnexo recusas={anexos.recusas} />
+
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
+                  <div>
+                    <BotaoAnexar onArquivos={anexos.adicionar} disabled={responder.isPending} />
+                  </div>
+                  <span id={`${idTexto}-ajuda`} className="text-legenda text-tinta-secundaria">
+                    {descricaoDosLimites(limites)} Cole um print com Ctrl+V.
+                  </span>
+                </div>
+                <Button onClick={enviar} disabled={!podeEnviar} title="Ctrl+Enter" className="sm:shrink-0">
+                  <IconSend /> {responder.isPending ? 'Enviando…' : reabrindo ? 'Reabrir e enviar' : 'Enviar'}
+                </Button>
               </div>
-              <Button onClick={enviar} disabled={!podeEnviar} title="Ctrl+Enter">
-                <IconSend /> {responder.isPending ? 'Enviando…' : reabrindo ? 'Reabrir e enviar' : 'Enviar'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </ZonaDeSoltar>
       )}
 
       {fechado && !reabrindo && !ticket.auto_closed && !ticket.content_hidden && (

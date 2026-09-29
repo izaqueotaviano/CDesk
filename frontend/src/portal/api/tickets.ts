@@ -102,7 +102,7 @@ export const ABAS: DefinicaoAba[] = [
     id: 'resolvidos',
     rotulo: 'Resolvidos',
     params: { resolucao: 'resolvido' },
-    vazio: { titulo: 'Nenhum chamado resolvido ainda', descricao: 'Chamados concluídos pelo suporte ficam aqui — e podem ser reabertos respondendo.' },
+    vazio: { titulo: 'Nenhum chamado resolvido ainda', descricao: 'Chamados concluídos pelo suporte ficam aqui, e podem ser reabertos respondendo.' },
   },
   {
     id: 'fechados',
@@ -387,17 +387,4 @@ export async function baixarPdfDoTicket(id: number, referencia: string): Promise
   a.click()
   a.remove()
   URL.revokeObjectURL(url)
-}
-
-/** Anexos: o portal limita a 10 MB por arquivo (regra do produto). */
-export const LIMITE_ANEXO_MB = 10
-export const MAX_ANEXOS = 10
-
-export function validarAnexos(novos: File[], atuais: File[]): { aceitos: File[]; erro: string | null } {
-  const grandes = novos.filter((f) => f.size > LIMITE_ANEXO_MB * 1024 * 1024)
-  const aceitos = novos.filter((f) => f.size <= LIMITE_ANEXO_MB * 1024 * 1024)
-  const problemas: string[] = []
-  if (grandes.length) problemas.push(`${grandes.map((f) => f.name).join(', ')}: acima de ${LIMITE_ANEXO_MB} MB.`)
-  if (atuais.length + aceitos.length > MAX_ANEXOS) problemas.push(`No máximo ${MAX_ANEXOS} arquivos por mensagem.`)
-  return { aceitos: aceitos.slice(0, Math.max(0, MAX_ANEXOS - atuais.length)), erro: problemas.join(' ') || null }
 }

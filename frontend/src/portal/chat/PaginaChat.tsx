@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { IconAlertCircle, IconClock, IconHistory, IconMessageCircle, IconMessagePlus } from '@tabler/icons-react'
+import { IconAlertCircle, IconClock, IconHistory, IconMessageCircle, IconMessagePlus, IconPlus } from '@tabler/icons-react'
 import {
   pendentesDoErro,
   useAbrirChat,
@@ -61,8 +61,8 @@ function Lista({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2  p-4">
-        <h1 className="text-titulo-sm font-forte">Chat</h1>
+      <div className="flex items-center justify-between gap-2 p-4">
+        <h1 className="text-titulo font-forte">Chat</h1>
         <Button size="sm" disabled={travado || iniciando} onClick={onIniciar} title={travado ? motivoTravado : undefined}>
           <IconMessagePlus /> {iniciando ? 'Abrindo…' : vivo ? 'Continuar' : 'Novo chat'}
         </Button>
@@ -74,8 +74,8 @@ function Lista({
           onClick={onVerContinua}
           aria-current={mostrandoContinua || undefined}
           className={cn(
-            'mx-2 mt-2 flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-pequeno font-medio text-tinta-secundaria transition-colors hover:bg-navegacao hover:text-tinta',
-            mostrandoContinua && 'border-acento/30 bg-acento-suave text-tinta hover:bg-acento-suave',
+            'mx-2 flex items-center gap-2 rounded-sm px-3 py-2 text-corpo font-medio text-tinta-secundaria transition-colors hover:bg-[var(--fundo-hover)] hover:text-tinta',
+            mostrandoContinua && 'bg-acento-suave text-tinta hover:bg-acento-suave',
           )}
         >
           <IconHistory className="size-4" aria-hidden="true" /> Ver conversa completa
@@ -101,7 +101,7 @@ function Lista({
           <ErroEstado
             className="py-6"
             titulo="Não foi possível carregar o histórico"
-            descricao="Suas conversas continuam guardadas — só não deu para buscá-las agora."
+            descricao="Suas conversas continuam guardadas. Só não deu para buscá-las agora."
             onTentarNovamente={onRecarregarHistorico}
           />
         ) : historico && historico.length > 0 ? (
@@ -116,7 +116,7 @@ function Lista({
               className="py-8"
               icone={IconMessageCircle}
               titulo="Nenhuma conversa ainda"
-              descricao="Fale com um atendente agora — se ninguém puder atender, a conversa vira um chamado automaticamente."
+              descricao="Fale com um atendente agora. Se ninguém puder atender, a conversa vira um chamado automaticamente."
             />
           )
         )}
@@ -192,7 +192,7 @@ export function PaginaChat() {
   const motivoTravado = bloqueadoPorAvaliacao
     ? 'Avalie o último atendimento antes de iniciar outro'
     : filaFechada
-      ? `Fora do horário de atendimento${config.data?.queue_opens_at ? ` — volta ${dataHora(config.data.queue_opens_at)}` : ''}`
+      ? `Fora do horário de atendimento${config.data?.queue_opens_at ? `. Volta em ${dataHora(config.data.queue_opens_at)}` : ''}`
       : undefined
 
   const conversaSelecionada = selecionadoId ?? vivo.data?.id ?? null
@@ -201,7 +201,7 @@ export function PaginaChat() {
   return (
     <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4 md:h-[calc(100vh-6rem)]">
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-md  bg-superficie md:grid-cols-[320px_1fr]">
-        <div className={algoAberto ? 'hidden  md:block md:border-r' : ' md:block md:border-r'}>
+        <div className={cn('md:block md:border-r md:border-divisoria', algoAberto && 'hidden')}>
           <Lista
             vivo={vivo.data}
             historico={historico.data}
@@ -242,12 +242,12 @@ export function PaginaChat() {
               titulo="Fora do horário de atendimento por chat"
               descricao={
                 config.data?.queue_opens_at
-                  ? `Volta ${dataHora(config.data.queue_opens_at)}. Abra um ticket e a equipe responde assim que o expediente começar.`
+                  ? `Volta em ${dataHora(config.data.queue_opens_at)}. Abra um ticket e a equipe responde assim que o expediente começar.`
                   : 'Abra um ticket e a equipe responde assim que o expediente começar.'
               }
               acao={
-                <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
-                  Abrir ticket
+                <Link to="/portal/tickets/novo" className={buttonVariants({ size: 'sm' })}>
+                  <IconPlus /> Abrir ticket
                 </Link>
               }
             />
@@ -256,7 +256,7 @@ export function PaginaChat() {
               className="h-full justify-center"
               icone={IconMessageCircle}
               titulo="Selecione uma conversa"
-              descricao="Escolha uma conversa na lista ou inicie um novo chat."
+              descricao="Escolha uma conversa na lista ou comece uma nova pelo botão ao lado."
             />
           )}
         </div>
@@ -267,7 +267,7 @@ export function PaginaChat() {
           {erroAbrir.detail}
           {erroAbrir.code === 'fora_do_expediente' && (
             <span className="mt-1 flex items-center gap-1 text-legenda">
-              <IconAlertCircle className="size-3.5" aria-hidden="true" /> Abra um ticket — a equipe responde assim que o expediente começar.
+              <IconAlertCircle className="size-3.5" aria-hidden="true" /> Abra um ticket. A equipe responde assim que o expediente começar.
             </span>
           )}
         </Alert>
