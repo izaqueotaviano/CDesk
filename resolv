@@ -538,11 +538,49 @@ frontend_desatualizado() {
     || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]
 }
 
+# `frontend/.env` GANHA do proxy do Vite: o que estiver ali é para onde a tela
+# vai falar, ponto. Isso é proposital (é assim que `./resolv compartilhar`
+# publica a API na rede), mas vira armadilha depois: o arquivo fica para trás,
+# o IP da rede muda ou você sai daquela rede, e a tela passa a chamar um
+# endereço que ninguém atende. O pedido não é recusado — fica pendurado. E
+# como `localhost:8000` continua respondendo a qualquer teste de terminal, o
+# sistema parece sadio enquanto a tela não entra.
+#
+# Custou uma tarde descobrir isso uma vez. Agora o script fala antes.
+conferir_destino_do_front() {
+  [ "$COMPARTILHANDO" = "1" ] && return 0
+  tem_frontend || return 0
+  [ -f "$FRONT_DIR/.env" ] || return 0
+
+  local destino
+  destino="$(grep -E '^VITE_API_BASE_URL=' "$FRONT_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2-)"
+  # tira aspas e espaços que alguém possa ter digitado à mão
+  destino="${destino//\"/}"; destino="${destino//\'/}"; destino="${destino// /}"
+  [ -z "$destino" ] && return 0
+  case "$destino" in *localhost*|*127.0.0.1*) return 0 ;; esac
+
+  # Não responde? Então é resto de outra rede, e a tela vai travar.
+  if curl -s -o /dev/null -m 4 "$destino/health/" 2>/dev/null; then
+    aviso "A tela vai falar com $destino (definido em $FRONT_DIR/.env), não com esta máquina."
+    aviso "Se não é o que você quer: rm $FRONT_DIR/.env"
+  else
+    erro "$FRONT_DIR/.env manda a tela falar com $destino — e esse endereço NÃO responde."
+    aviso "É o que sobra de um './resolv compartilhar' antigo, de quando seu IP era outro."
+    aviso "A tela vai abrir normalmente e o login vai ficar girando para sempre,"
+    aviso "porque o pedido sai para um endereço que ninguém atende."
+    aviso ""
+    aviso "  Para usar nesta máquina:   rm $FRONT_DIR/.env"
+    aviso "  Para publicar na rede:     ./resolv compartilhar"
+    aviso ""
+  fi
+}
+
 subir_frontend() {
   if ! tem_frontend; then
     aviso "Sem a pasta $FRONT_DIR/ — subindo só o backend."
     return 0
   fi
+  conferir_destino_do_front
   passo "Subindo frontend (Vite, porta 5174)"
   if front_no_ar; then
     # "a porta responde" NÃO é "o meu frontend está no ar". Um Vite de outro
@@ -704,6 +742,9 @@ env_incluir_origem() {
 # achou) e marca REDE_MUDOU=1 quando algo nos arquivos mudou de verdade, para
 # quem chamar decidir se vale reiniciar o que já estava no ar.
 REDE_MUDOU=0
+# 1 só durante './resolv compartilhar': lá o frontend/.env apontar para um
+# IP da rede é a intenção, não um resto esquecido.
+COMPARTILHANDO=0
 configurar_rede_local() {
   local ip; ip="$(ip_local)"
   if [ -z "$ip" ]; then
@@ -808,6 +849,7 @@ subir() {
 }
 
 compartilhar() {
+  COMPARTILHANDO=1
   detectar_modo
   conferir_ferramentas
   atualizar_codigo
