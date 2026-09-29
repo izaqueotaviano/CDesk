@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
 import { usePrefs } from '@/stores/prefs'
+import { SpriteMarca } from '@/ui/marca/IconeMarca'
 import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import '../styles/identidade.scss'
@@ -63,6 +64,9 @@ export function NovoShell({ children }: { children: ReactNode }) {
     <div
       className={'resolv-scope novo-shell' + (sidebarRecolhida ? ' novo-shell--recolhida' : '')}
     >
+      {/* Os <symbol> precisam estar no documento antes de qualquer <use>;
+          por isso o sprite entra aqui, uma vez, e não dentro do ícone. */}
+      <SpriteMarca />
       <Sidebar
         onAbrirBusca={() => setBuscaAberta(true)}
         gaveta={telaPequena ? { aberta: gavetaAberta, onFechar: () => setGavetaAberta(false) } : undefined}

@@ -241,8 +241,17 @@
         // texto, então leva o laranja legível.
         background: var(--laranja);
       }
+      // Ícone Tabler: a cor inteira vira o laranja legível, porque ele é
+      // de uma camada só.
       .sidebar-rail__icone i {
         color: var(--accent);
+      }
+      // Ícone da marca: só o DETALHE (`.a`) acende, e no laranja cheio — é
+      // exatamente o gesto que o kit descreve, e ele só existe porque o
+      // desenho tem duas camadas. O corpo do ícone segue a cor do texto.
+      .sidebar-rail__icone .i {
+        --i-a: var(--laranja);
+        --i-ao: 1;
       }
     }
     &--inerte {
