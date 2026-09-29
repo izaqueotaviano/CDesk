@@ -57,11 +57,13 @@
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background: var(--surface);
-    border: 1px solid var(--stroke-hover);
+    // o painel flutua sobre a tela: é o plano do console num cartão, com a
+    // sombra de peça flutuante (a única que o brief admite)
+    background: var(--surface-canvas);
+    border: 1px solid var(--stroke);
     border-bottom: none;
-    border-radius: var(--raio) var(--raio) 0 0;
-    box-shadow: 0 -2px 16px var(--sombra-forte);
+    border-radius: var(--raio-cartao) var(--raio-cartao) 0 0;
+    box-shadow: var(--sombra-flutuante);
     overflow: hidden;
     font-family: var(--f-ui);
     color: var(--text-primary);
@@ -77,34 +79,55 @@
       min-height: 0;
 
       .cc-conversa__mensagens {
-        padding: 10px 12px;
+        padding: 12px;
         gap: 10px;
       }
       .cc-msg {
         max-width: 90%;
       }
+      .cc-msg__avatar {
+        display: none; // no painel estreito o nome do autor basta
+      }
+      .cc-msg-editar {
+        margin-left: 0;
+      }
       .cc-conversa__banner,
-      .cc-conversa__erro {
+      .cc-conversa__erro,
+      .cc-conversa__aviso {
         padding: 8px 12px;
         font-size: 12px;
       }
-      .cc-composer {
-        padding: 8px 12px 10px;
+      .cc-envios {
+        padding: 8px 12px 0;
       }
-      .cc-composer__textarea {
-        min-height: 44px;
+      .cc-composer {
+        padding: 8px 10px 10px;
+      }
+      // os atalhos e os rótulos das ferramentas não cabem no painel: ficam
+      // os ícones (o nome acessível continua) e o Enviar vira o círculo
+      .cc-composer__dica {
+        display: none;
+      }
+      .cc-composer__rotulo,
+      .cc-composer__enviar-rotulo {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
       }
       .cc-composer__enviar {
-        padding: 6px 12px;
-        font-size: 12px;
+        width: 40px;
+        padding: 0;
+        justify-content: center;
       }
     }
   }
 
   // Alça de redimensionar: o canto superior esquerdo do painel (ele cresce
-  // pra cima e pra esquerda, porque está ancorado embaixo à direita). Fica
-  // sobre o cabeçalho colorido, invisível até o hover/foco — um triângulo
-  // sutil diz "aqui puxa".
+  // pra cima e pra esquerda, porque está ancorado embaixo à direita).
+  // Invisível até o hover/foco — um triângulo sutil diz "aqui puxa".
   &__redimensionar {
     position: absolute;
     top: 0;
@@ -112,83 +135,79 @@
     z-index: 2;
     width: 18px;
     height: 18px;
+    border-top-left-radius: var(--raio-cartao);
     cursor: nwse-resize;
     touch-action: none;
-    // A alça mora em cima do cabeçalho, que é a cor do atendimento — então
-    // ela se desenha na TINTA daquele tom (chat.scss publica `--tinta-do-tom`),
-    // não em branco fixo: sobre o amarelo da paleta o branco sumia.
     background: linear-gradient(
       135deg,
-      color-mix(in srgb, var(--tinta-do-tom, #ffffff) 55%, transparent) 0 45%,
+      color-mix(in srgb, var(--text-secondary) 55%, transparent) 0 45%,
       transparent 45%
     );
-    opacity: 0.6;
+    opacity: 0.5;
 
     &:hover,
     &:focus-visible {
       opacity: 1;
-      outline: 2px solid var(--tinta-do-tom, #ffffff);
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
 
-  // O cabeçalho é pintado pelo atributo `data-tom-chat` (chat.scss, paleta
-  // própria do chat): fundo na cor do atendimento, texto na tinta DAQUELE
-  // tom — quinze tons bem separados por matiz não cabem todos na mesma faixa
-  // de luminosidade, então o texto em cima vira com a cor (ver tokens.scss).
-  // O fallback aqui só existe pra quando o widget renderiza fora de
-  // .novo-shell.
+  // Cabeçalho NEUTRO (cartão com fio embaixo). Antes ele era pintado inteiro
+  // na cor do atendimento — com três painéis abertos, três faixas de cor
+  // viva no canto da tela. A cor ficou no anel do avatar (o atributo
+  // `data-tom-chat` daqui só publica `--tom-do-chat`, chat.scss), que ainda
+  // diz qual painel é qual sem pintar a tela.
   &__painel-cabecalho {
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 8px 8px 8px 22px; // deixa a alça de redimensionar livre
-    background: var(--text-primary);
-    color: var(--surface);
+    border-bottom: 1px solid var(--stroke);
+    background: var(--surface-card);
+    color: var(--text-primary);
   }
   &__painel-titulo {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    line-height: 1.2;
+    line-height: 1.25;
 
     strong {
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 600;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     small {
-      font-size: 11px;
-      opacity: 0.8;
+      font-size: 12px;
+      color: var(--text-secondary);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
   }
   &__icone {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     flex-shrink: 0;
     display: grid;
     place-items: center;
     border: none;
     border-radius: var(--raio);
     background: none;
-    color: inherit;
+    color: var(--text-secondary);
     cursor: pointer;
-    font-size: 15px;
+    font-size: 16px;
 
     &:hover {
-      // O véu é a própria tinta do tom diluída: sobre tom escuro ele clareia,
-      // sobre tom claro ele escurece — um `rgba` branco fixo só funcionava na
-      // metade da paleta.
-      background: color-mix(in srgb, var(--tinta-do-tom, #ffffff) 18%, transparent);
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
     }
     &:focus-visible {
-      outline: 2px solid var(--tinta-do-tom, #ffffff);
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
@@ -204,7 +223,7 @@
     top: calc(100% + 6px);
     right: 0;
     z-index: 3;
-    width: 260px;
+    width: 280px;
     max-height: 60vh;
     overflow-y: auto;
     padding: 6px;
@@ -212,8 +231,7 @@
     flex-direction: column;
     gap: 2px;
     background: var(--surface-card);
-    border: 1px solid var(--stroke-hover);
-    border-radius: var(--raio);
+    border-radius: var(--raio-cartao);
     box-shadow: var(--sombra-flutuante);
     color: var(--text-primary);
     text-align: left;
@@ -223,46 +241,52 @@
       align-items: center;
       gap: 8px;
       width: 100%;
-      padding: 7px 8px;
+      min-height: 32px;
+      padding: 0 8px;
       border: none;
       border-radius: var(--raio);
       background: none;
       color: inherit;
       font: inherit;
-      font-size: 12px;
+      font-size: 14px;
       text-align: left;
       cursor: pointer;
 
+      i {
+        font-size: 16px;
+        color: var(--text-secondary);
+      }
       &:hover {
-        background: var(--hover-soft);
+        background: var(--sidebar-hover);
       }
       &:focus-visible {
-        outline: 2px solid var(--accent);
+        outline: 2px solid var(--foco);
         outline-offset: -2px;
       }
     }
     hr {
       margin: 4px 0;
       border: none;
+      border-top: 1px solid var(--stroke);
     }
   }
   &__menu-info {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     margin: 0;
-    padding: 2px 8px 4px;
-    font-size: 11px;
-    color: var(--text-muted);
+    padding: 4px 8px 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
 
     strong {
-      font-size: 12px;
+      font-size: 14px;
       color: var(--text-primary);
     }
   }
   &__menu-protocolo {
     margin-top: 2px;
-    font-family: var(--f-mono);
+    font-variant-numeric: tabular-nums;
   }
 
   // ── Barra: balão + abas ───────────────────────────────────────────────────
@@ -272,10 +296,10 @@
     gap: 6px;
     padding: 6px 8px;
     background: var(--surface-card);
-    border: 1px solid var(--stroke-hover);
+    border: 1px solid var(--stroke);
     border-bottom: none;
-    border-radius: var(--raio) var(--raio) 0 0;
-    box-shadow: 0 -2px 12px var(--sombra-suave);
+    border-radius: var(--raio-cartao) var(--raio-cartao) 0 0;
+    box-shadow: var(--sombra-flutuante);
     font-family: var(--f-ui);
 
     // Sem atendimento, sem minimizado e sem fila, a bandeja só teria o balão
@@ -302,25 +326,22 @@
     border: none;
     border-radius: 50%;
     // Sólido escuro, como todo CTA primário: o briefing só admite UM acento,
-    // e ele é este. Era laranja cheio — a exceção do kit anterior, que aqui
-    // virava a única mancha de cor viva da tela e puxava o olho para o
-    // canto errado.
+    // e ele é este.
     background: var(--primario);
     color: var(--primario-sobre);
-    font-size: 19px;
+    font-size: 20px;
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: background 0.15s ease;
 
     &:hover {
-      background: var(--accent-hover);
+      background: var(--primario-hover);
     }
     &:focus-visible {
-      outline: 2px solid var(--accent);
+      outline: 2px solid var(--foco);
       outline-offset: 2px;
     }
     &--aberto {
-      background: var(--text-primary);
-      color: var(--surface);
+      background: var(--primario-hover);
     }
     // alguém esperando e ainda cabe: pulsa uma vez a cada 2s, pra chamar o
     // canto do olho sem virar alarme
@@ -328,30 +349,28 @@
       animation: minichat-pulso 2s ease-in-out infinite;
     }
   }
+  // O número no balão: pílula no par invertido do balão (claro sobre escuro
+  // no claro, e o contrário no escuro), com o recorte na cor da barra. Fila
+  // e não lidas são o mesmo sinal ("tem gente esperando você"); qual dos
+  // dois é, o nome acessível do balão diz por extenso.
   &__balao-badge {
     position: absolute;
     top: -4px;
     right: -4px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
     display: grid;
     place-items: center;
-    border-radius: 9px;
+    border-radius: 999px;
     border: 2px solid var(--surface-card);
-    background: var(--text-primary);
-    color: var(--surface);
-    font-family: var(--f-mono);
-    font-size: 10px;
-    font-weight: 700;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    box-shadow: inset 0 0 0 1px var(--stroke-hover);
+    font-size: 12px;
+    font-weight: 600;
     line-height: 1;
-
-    &--fila {
-      background: var(--away);
-      // --away é âmbar fechado no claro e âmbar CLARO no escuro; branco fixo
-      // dava 1,70:1 lá. O par mora em tokens.scss.
-      color: var(--texto-sobre-away);
-    }
+    font-variant-numeric: tabular-nums;
   }
 
   &__contador {
@@ -359,37 +378,33 @@
     align-items: center;
     gap: 4px;
     padding: 0 6px;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
   }
-  // A barra de um atendimento MINIMIZADO: nome + cor do atendimento + marcador
-  // de não lidas + o sinal de abrir — maior que a pílula antiga de propósito
-  // (a pessoa precisa achar e mirar isto rápido, entre uma tela e outra).
+  // A barra de um atendimento MINIMIZADO: avatar com o anel da cor do
+  // atendimento (o mesmo do cabeçalho do painel), nome, não lidas e o sinal
+  // de abrir. Sem a barrinha colorida de antes: o anel já faz esse papel.
   &__aba {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     max-width: 220px;
-    height: 36px;
-    padding: 0 8px 0 10px;
-    // a barrinha da esquerda repete a cor do painel — a aba e o cabeçalho
-    // dela são a mesma cor, e a pessoa acha o painel pelo tom
-    border-left: 4px solid var(--tom, var(--stroke));
-    border-radius: var(--raio);
-    background: var(--surface);
+    height: 40px;
+    padding: 0 6px 0 6px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
     color: var(--text-primary);
     font: inherit;
-    font-size: 12px;
+    font-size: 14px;
     cursor: pointer;
 
     &:hover {
-      border-color: var(--stroke-hover);
-      border-left-color: var(--tom, var(--stroke-hover));
-      background: color-mix(in srgb, var(--tom, var(--accent)) 8%, var(--surface));
+      background: var(--sidebar-hover);
     }
     &:focus-visible {
-      outline: 2px solid var(--tom, var(--accent));
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
@@ -398,64 +413,56 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  // O sinal de "abrir": maior que o resto do ícone do widget (28px em
-  // vez dos 22px comuns), preenchido na cor do atendimento — o pedido
-  // especificamente queria um botão de abrir MAIOR, não só um ícone discreto.
+  // O sinal de "abrir": um círculo cheio no cinza do item ativo — maior que
+  // um ícone solto, como o pedido original queria, mas sem cor própria.
   &__aba-abrir {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    background: var(--tom, var(--accent));
-    // preenchido com o tom do atendimento, então escreve com a tinta dele
-    color: var(--tinta-do-tom, var(--surface-card));
-    font-size: 13px;
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
+    font-size: 14px;
   }
   &__avatar {
-    width: 26px;
-    height: 26px;
-    flex-shrink: 0;
-    border-radius: 50%;
-    display: grid;
-    place-items: center;
-    background: var(--surface-alt);
-    color: var(--text-secondary);
-    font-size: 10px;
-    font-weight: 600;
-
-    // No cabeçalho colorido o avatar é um véu da tinta daquele tom — a cor
-    // já está no fundo; repetir a mesma cor no avatar o faria sumir.
-    &--cabecalho {
-      background: color-mix(in srgb, var(--tinta-do-tom, #ffffff) 22%, transparent);
-      color: var(--tinta-do-tom, #ffffff);
-    }
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
   }
   &__badge {
-    font-family: var(--f-mono);
-    font-size: 10px;
-    padding: 0 5px;
-    border-radius: var(--raio);
-    background: var(--surface-alt);
-    // Sobre fundo de marca, o texto é o token de superfície (branco no claro,
-    // escuro no escuro): o --accent CLAREIA no tema escuro e branco por cima
-    // cai para 2.45:1.
-    color: var(--text-secondary);
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
   }
   &__fila {
-    margin-left: 4px;
-    padding: 4px 10px;
+    margin-left: 2px;
+    min-height: 32px;
+    padding: 0 12px;
     border: none;
-    border-radius: var(--raio);
-    background: color-mix(in srgb, var(--away) 12%, transparent);
-    color: var(--away);
+    border-radius: 999px;
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
     font: inherit;
     font-size: 12px;
+    font-weight: 500;
     cursor: pointer;
 
     &:hover {
-      background: color-mix(in srgb, var(--away) 20%, transparent);
+      background: color-mix(in srgb, var(--text-primary) 12%, var(--surface-card));
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
     }
   }
 
@@ -467,8 +474,7 @@
     display: flex;
     flex-direction: column;
     background: var(--surface-card);
-    border: 1px solid var(--stroke-hover);
-    border-radius: var(--raio);
+    border-radius: var(--raio-cartao);
     box-shadow: var(--sombra-flutuante);
     font-family: var(--f-ui);
     color: var(--text-primary);
@@ -478,8 +484,9 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
-    font-size: 13px;
+    padding: 12px;
+    border-bottom: 1px solid var(--stroke);
+    font-size: 14px;
 
     .cc-link {
       margin-left: auto;
@@ -487,12 +494,15 @@
     }
   }
   &__fila-contador {
+    min-width: 20px;
     padding: 0 6px;
-    border-radius: var(--raio);
-    background: var(--surface-alt);
-    font-family: var(--f-mono);
-    font-size: 11px;
+    border-radius: 999px;
+    background: var(--sidebar-ativo);
+    font-size: 12px;
+    line-height: 20px;
+    text-align: center;
     color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
   }
   &__fila-aviso,
   &__fila-erro,
@@ -500,15 +510,21 @@
     margin: 0;
     padding: 10px 12px;
     font-size: 12px;
+    line-height: 1.45;
     color: var(--text-secondary);
+  }
+  &__fila-aviso {
+    margin: 8px 8px 0;
+    border-radius: var(--raio);
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
   }
   &__fila-erro {
     color: var(--danger);
   }
   &__fila-vazia {
-    padding: 22px 12px;
+    padding: 24px 16px;
     text-align: center;
-    color: var(--text-muted);
   }
   &__fila-lista {
     list-style: none;
@@ -517,55 +533,62 @@
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
   }
   &__fila-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     padding: 6px 6px 6px 8px;
     border-radius: var(--raio);
-    background: var(--surface);
+    --fundo-do-ponto: var(--surface-card);
+
+    &:hover {
+      background: var(--sidebar-hover);
+      --fundo-do-ponto: var(--sidebar-hover);
+    }
   }
   &__fila-texto {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
-    line-height: 1.25;
+    line-height: 1.3;
   }
   &__fila-nome {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   &__fila-meta {
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   &__pegar {
     flex-shrink: 0;
-    padding: 5px 10px;
+    height: 28px;
+    padding: 0 12px;
     border: none;
-    border-radius: var(--raio);
+    border-radius: 999px;
     background: var(--primario);
-    // `--surface-card` e não branco: ele inverte com o tema, e o acento
-    // também — no escuro o acento é claro (#ff8a63) e branco em cima
-    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
-    // lista.scss, inicio.scss).
+    // `--primario-sobre`: inverte com o tema junto do primário
     color: var(--primario-sobre);
     font: inherit;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
 
-    &:hover {
-      background: var(--accent-hover);
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
     }
     &:disabled {
       opacity: 0.5;
@@ -574,10 +597,12 @@
   }
 }
 
+// o anel que pulsa é o do próprio acento: chama o canto do olho sem trazer
+// uma segunda cor para a tela
 @keyframes minichat-pulso {
   0%,
   100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--away) 45%, transparent);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primario) 35%, transparent);
   }
   50% {
     box-shadow: 0 0 0 8px transparent;
@@ -587,5 +612,8 @@
 @media (prefers-reduced-motion: reduce) {
   .minichat__balao--atencao {
     animation: none;
+  }
+  .minichat__balao {
+    transition: none;
   }
 }

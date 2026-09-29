@@ -300,6 +300,12 @@ class ChatSerializer(serializers.ModelSerializer):
     #: Posição na fila (só com o chat `queued`): quantos estão na frente e a
     #: espera estimada — números, nunca quem. Ver `services/fila.py`.
     queue_position = serializers.SerializerMethodField()
+    #: Quem entrou na conversa sem ser o dono (supervisor, `join_chat`).
+    participants = serializers.SerializerMethodField()
+    #: Quem está OLHANDO pode entrar na conversa de outro agente ou assumi-la
+    #: (`chat_service.pode_supervisionar`). É do espectador, não do chat — mas
+    #: vem aqui para a tela não repetir a regra de papel do lado de lá.
+    can_supervise = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
@@ -319,8 +325,23 @@ class ChatSerializer(serializers.ModelSerializer):
             "rating", "rating_pending", "ticket_id", "ticket_reference",
             "ws_url",
             "queue_position",
+            "participants", "can_supervise",
         ]
         read_only_fields = [f for f in fields if f not in _EDITAVEIS_DO_CHAT]
+
+    @extend_schema_field({
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {"id": {"type": "integer"}, "full_name": {"type": "string"}},
+        },
+    })
+    def get_participants(self, obj) -> list[dict]:
+        # `.all()` e não `.filter()`: aproveita o prefetch da listagem
+        return [{"id": u.pk, "full_name": u.full_name} for u in obj.participants.all()]
+
+    def get_can_supervise(self, obj) -> bool:
+        return chat_service.pode_supervisionar(self.context["request"].user)
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

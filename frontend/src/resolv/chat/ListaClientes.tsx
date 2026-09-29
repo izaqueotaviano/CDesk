@@ -1,6 +1,7 @@
 import { useCaixaDeClientes, type LinhaDeCliente } from '@/api/chat'
 import { AvatarComPresenca } from './AvatarComPresenca'
-import { haQuanto } from './format'
+import { EsqueletoLista } from './Esqueletos'
+import { dataHoraDe, quandoCurto } from './format'
 
 /**
  * A caixa de entrada do console: uma linha por PESSOA, não por abertura.
@@ -32,34 +33,41 @@ export function ListaClientes({
   const { data, isLoading, isError, refetch } = useCaixaDeClientes()
 
   return (
-    <section className="cc-lista__secao">
+    <section className="cc-lista__secao" aria-labelledby="cc-conversas-titulo">
       <header className="cc-lista__cabecalho">
-        <h2>Conversas</h2>
-        <span className="cc-lista__contador">{data?.length ?? 0}</span>
+        <h2 id="cc-conversas-titulo">Conversas</h2>
+        {(data?.length ?? 0) > 0 && <span className="cc-lista__contador">{data?.length}</span>}
       </header>
 
-      {isLoading && <p className="cc-lista__vazio">Carregando…</p>}
+      {isLoading && <EsqueletoLista />}
       {isError && (
-        <p className="cc-lista__erro">
-          Não foi possível carregar.{' '}
+        <p className="cc-lista__erro" role="alert">
+          Não foi possível carregar as conversas.{' '}
           <button type="button" className="cc-link" onClick={() => void refetch()}>
             Tentar de novo
           </button>
         </p>
       )}
       {!isLoading && !isError && (data ?? []).length === 0 && (
-        <p className="cc-lista__vazio">Nenhuma conversa ainda.</p>
+        <p className="cc-lista__vazio">
+          Nenhuma conversa ainda. Pegue alguém da fila e a conversa aparece aqui.
+        </p>
       )}
 
-      {(data ?? []).map((linha) => (
-        <CardCliente
-          key={linha.client_id}
-          linha={linha}
-          ativo={selecionado === linha.client_id}
-          agoraMs={agoraMs}
-          onSelecionar={() => onSelecionar(linha.client_id)}
-        />
-      ))}
+      {(data ?? []).length > 0 && (
+        <ul className="cc-lista__itens">
+          {(data ?? []).map((linha) => (
+            <li key={linha.client_id}>
+              <CardCliente
+                linha={linha}
+                ativo={selecionado === linha.client_id}
+                agoraMs={agoraMs}
+                onSelecionar={() => onSelecionar(linha.client_id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
@@ -75,20 +83,40 @@ function CardCliente({
   agoraMs: number
   onSelecionar: () => void
 }) {
+  const naoLidas = linha.unread > 0
   return (
     <button
       type="button"
-      className={'cc-card' + (ativo ? ' cc-card--ativo' : '')}
+      className={'cc-card' + (ativo ? ' cc-card--ativo' : '') + (naoLidas ? ' cc-card--nao-lida' : '')}
+      aria-current={ativo ? 'true' : undefined}
       onClick={onSelecionar}
     >
       <AvatarComPresenca nome={linha.client_name} presenca={linha.client_presence} />
       <span className="cc-card__texto">
-        <span className="cc-card__nome">
-          {linha.client_name}
+        {/* o formato de mensageiro: quem e quando em cima, o que disse por
+            último embaixo (com as não lidas na ponta), e de onde é por fim */}
+        <span className="cc-card__linha">
+          <span className="cc-card__nome">{linha.client_name}</span>
           {linha.last_activity && (
-            <span className="cc-card__quando">{haQuanto(linha.last_activity, agoraMs)}</span>
+            <time
+              className="cc-card__quando"
+              dateTime={linha.last_activity}
+              title={dataHoraDe(linha.last_activity)}
+            >
+              {quandoCurto(linha.last_activity, agoraMs)}
+            </time>
           )}
         </span>
+        {(linha.last_message_preview || naoLidas) && (
+          <span className="cc-card__linha">
+            <span className="cc-card__preview">{linha.last_message_preview}</span>
+            {naoLidas && (
+              <span className="cc-card__badge" aria-label={`${linha.unread} não lidas`}>
+                {linha.unread > 99 ? '99+' : linha.unread}
+              </span>
+            )}
+          </span>
+        )}
         <span className="cc-card__meta">
           {linha.company_name}
           {/* quantas aberturas a thread costura — o número explica por que a
@@ -96,15 +124,7 @@ function CardCliente({
           {linha.sessions > 1 && ` · ${linha.sessions} atendimentos`}
           {linha.open_chat_id == null && ' · sem conversa aberta'}
         </span>
-        {linha.last_message_preview && (
-          <span className="cc-card__preview">{linha.last_message_preview}</span>
-        )}
       </span>
-      {linha.unread > 0 && (
-        <span className="cc-card__badge" aria-label={`${linha.unread} não lidas`}>
-          {linha.unread}
-        </span>
-      )}
     </button>
   )
 }

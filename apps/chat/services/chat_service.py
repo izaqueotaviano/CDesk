@@ -182,7 +182,10 @@ def can_send(user, chat: Chat) -> bool:
         return False
     if not user.is_internal:
         return chat.client_id == user.id
-    return chat.status == ChatStatus.ACTIVE and chat.agent_id == user.id
+    if chat.status != ChatStatus.ACTIVE:
+        return False
+    # quem ENTROU na conversa (supervisor, `join_chat`) escreve junto do dono
+    return chat.agent_id == user.id or participa(user, chat)
 
 
 # ---------------------------------------------------------------------- #
@@ -689,6 +692,9 @@ def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
         de = chat.agent
         chat.agent = to_agent
         chat.save(update_fields=["agent", "updated_at"])
+        # quem já estava na conversa como participante e agora a recebe
+        # passa a ser o dono — os dois papéis ao mesmo tempo não existem
+        chat.participants.remove(to_agent)
         ChatMessage.objects.create(
             chat=chat, is_system=True,
             body=(f"Atendimento transferido de {de.full_name} para {to_agent.full_name}."
@@ -709,6 +715,150 @@ def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
         "kind": "chat_transferred", "chat_id": chat.pk,
         "company": chat.company.name, "client_name": chat.client.full_name,
     })
+    return chat
+
+
+# ---------------------------------------------------------------------- #
+# Supervisão: entrar na conversa de outro agente, sair dela, assumi-la
+# ---------------------------------------------------------------------- #
+
+def pode_supervisionar(user) -> bool:
+    """Quem entra na conversa de OUTRO agente, ou a assume: admin e
+    supervisor.
+
+    O agente comum continua podendo ACOMPANHAR (a fila é única e todo
+    interno lê tudo), mas não fala por cima de um colega nem tira a
+    conversa dele — para isso existe a transferência, que é decisão de quem
+    atende. Mesmo atalho de papel que `transfer` já usa para o admin."""
+    return bool(
+        getattr(user, "is_internal", False)
+        and (user.is_admin or user.is_supervisor)
+    )
+
+
+def participa(user, chat: Chat) -> bool:
+    """`user` entrou nesta conversa como participante (não é o dono)."""
+    return chat.participants.filter(pk=user.pk).exists()
+
+
+def _sistema_na_sala(chat: Chat, body: str) -> ChatMessage:
+    """Grava a mensagem de sistema e a entrega AO VIVO na sala.
+
+    `take_chat`/`transfer` avisam a sala com um evento próprio e o front
+    recarrega a conversa; aqui a própria mensagem viaja, no mesmo formato
+    de uma mensagem comum (o que `tasks._serializar_sistema` já faz para o
+    aviso de inatividade) — quem está com a conversa aberta vê "fulano
+    entrou" na hora, dos dois lados, sem refetch."""
+    from apps.chat.serializers import ChatMessageSerializer
+
+    msg = ChatMessage.objects.create(chat=chat, is_system=True, body=body)
+    payload = dict(ChatMessageSerializer(msg).data)
+    transaction.on_commit(lambda: _sala(chat.pk, {"type": "chat.message", **payload}))
+    return msg
+
+
+def join_chat(*, chat: Chat, actor) -> Chat:
+    """Supervisor ENTRA na conversa de outro agente sem tirá-la dele.
+
+    Passa a escrever como o agente (mensagem e nota interna — ver
+    `can_send`), mas o atendimento continua do dono. Por isso entrar NÃO
+    consome vaga do limite de simultâneos: o teto conta conversas que a
+    pessoa atende, e quem entra para ajudar não passa a atender. Assumir
+    (abaixo) consome.
+
+    O cliente é avisado pela mensagem de sistema: é a mesma frase de quando
+    um agente pega o chat, porque para ele é a mesma coisa — tem mais alguém
+    falando do lado de cá.
+    """
+    if not pode_supervisionar(actor):
+        raise ChatRuleViolation(
+            "Só supervisor ou admin entra na conversa de outro agente.",
+            code="sem_permissao",
+        )
+    with transaction.atomic():
+        chat = Chat.objects.select_for_update().get(pk=chat.pk)
+        if chat.status != ChatStatus.ACTIVE:
+            raise ChatRuleViolation("Só dá para entrar numa conversa em atendimento.")
+        if chat.agent_id == actor.pk:
+            raise ChatRuleViolation("Esta conversa já é sua.")
+        if chat.participants.filter(pk=actor.pk).exists():
+            raise ChatRuleViolation("Você já está nesta conversa.")
+        chat.participants.add(actor)
+        _sistema_na_sala(chat, f"{actor.full_name} entrou na conversa.")
+    auditar(
+        chat=chat, actor=actor, action="update",
+        summary=f"{actor.full_name} entrou na conversa de "
+                f"{chat.agent.full_name if chat.agent else 'outro agente'}.",
+        changes={"participants": ["", actor.full_name]},
+    )
+    return chat
+
+
+def leave_chat(*, chat: Chat, actor) -> Chat:
+    """Quem entrou sai — o atendimento segue com o dono, como estava."""
+    with transaction.atomic():
+        chat = Chat.objects.select_for_update().get(pk=chat.pk)
+        if not chat.participants.filter(pk=actor.pk).exists():
+            raise ChatRuleViolation("Você não está participando desta conversa.")
+        chat.participants.remove(actor)
+        # conversa já encerrada não ganha mensagem nova: sair dela é só
+        # arrumação da lista de participantes, o cliente não precisa saber
+        if chat.status == ChatStatus.ACTIVE:
+            _sistema_na_sala(chat, f"{actor.full_name} saiu da conversa.")
+    auditar(
+        chat=chat, actor=actor, action="update",
+        summary=f"{actor.full_name} saiu da conversa.",
+        changes={"participants": [actor.full_name, ""]},
+    )
+    return chat
+
+
+def assume_chat(*, chat: Chat, actor) -> Chat:
+    """Supervisor ASSUME o atendimento: a conversa passa a ser dele.
+
+    É uma transferência que parte de quem recebe, então vale a mesma régua
+    da transferência — inclusive o limite de simultâneos de quem assume, que
+    agora ganha uma conversa para atender. Quem atendia sai da conversa (não
+    fica como participante): assumir é tirar, não somar; para somar existe
+    "entrar na conversa".
+    """
+    if not pode_supervisionar(actor):
+        raise ChatRuleViolation(
+            "Só supervisor ou admin assume a conversa de outro agente.",
+            code="sem_permissao",
+        )
+    if not sob_o_limite(actor):
+        raise ChatRuleViolation(
+            f"Você já está no limite de {ChatConfig.load().max_chats_per_agent} "
+            "chats simultâneos — encerre um para assumir este."
+        )
+    with transaction.atomic():
+        chat = Chat.objects.select_for_update().get(pk=chat.pk)
+        if chat.status != ChatStatus.ACTIVE:
+            raise ChatRuleViolation("Só dá para assumir uma conversa em atendimento.")
+        if chat.agent_id == actor.pk:
+            raise ChatRuleViolation("Esta conversa já é sua.")
+        de = chat.agent
+        chat.agent = actor
+        chat.save(update_fields=["agent", "updated_at"])
+        chat.participants.remove(actor)
+        ChatMessage.objects.create(
+            chat=chat, is_system=True,
+            body=(f"{actor.full_name} assumiu o atendimento de {de.full_name}."
+                  if de else f"{actor.full_name} assumiu a conversa."),
+        )
+    auditar(
+        chat=chat, actor=actor, action="assign",
+        summary=(f"{actor.full_name} assumiu o atendimento"
+                 + (f" (antes com {de.full_name})" if de else "")),
+        changes={"agent": [de.full_name if de else None, actor.full_name]},
+    )
+    # o MESMO evento da transferência: quem está com a sala aberta (o agente
+    # que atendia, o cliente) recarrega a conversa e as listas. Sem aviso
+    # pessoal para quem perdeu a conversa: o `chat_transferred` do canal
+    # pessoal toca som e diz "recebeu" — o contrário do que aconteceu com
+    # ele; a lista dele se acerta pelo refetch.
+    _sala(chat.pk, {"type": "chat.transferred", "agent_name": actor.full_name})
     return chat
 
 
@@ -924,6 +1074,9 @@ def reopen(*, chat: Chat, actor, note: str = "") -> Chat:
             "close_reason", "close_note", "closed_automatically",
             "queued_at", "reopen_count", "updated_at",
         ])
+        # quem tinha entrado no ciclo anterior não volta a escrever sozinho
+        # quando outro agente pegar a reabertura — entra de novo se precisar
+        chat.participants.clear()
         ChatMessage.objects.create(
             chat=chat, is_system=True, body="Conversa reaberta — aguardando atendimento.",
         )

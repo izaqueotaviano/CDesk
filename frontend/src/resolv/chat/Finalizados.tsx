@@ -7,6 +7,7 @@ import {
   type FiltrosFinalizados,
 } from '@/api/chat'
 import { AvatarComPresenca } from './AvatarComPresenca'
+import { EsqueletoLista } from './Esqueletos'
 import { dataHoraDe } from './format'
 
 /**
@@ -38,6 +39,11 @@ export function Finalizados({
 
   function mudar<K extends keyof FiltrosFinalizados>(campo: K, valor: FiltrosFinalizados[K]) {
     setFiltros((f) => ({ ...f, [campo]: valor || null }))
+  }
+
+  function limpar() {
+    setFiltros({ ordering: 'recentes' })
+    setBusca('')
   }
 
   const temFiltro =
@@ -157,42 +163,48 @@ export function Finalizados({
             <option value="nota_asc">Menor nota</option>
           </select>
 
-          <button
-            type="button"
-            className="cc-final__limpar"
-            onClick={() => {
-              setFiltros({ ordering: 'recentes' })
-              setBusca('')
-            }}
-          >
+          <button type="button" className="cc-final__limpar" onClick={limpar}>
             Limpar filtros
           </button>
         </div>
       )}
 
-      {isLoading && <p className="cc-lista__vazio">Carregando…</p>}
+      {isLoading && <EsqueletoLista rotulo="Carregando atendimentos finalizados" />}
       {isError && (
-        <p className="cc-lista__erro">
-          Não foi possível carregar.{' '}
+        <p className="cc-lista__erro" role="alert">
+          Não foi possível carregar os finalizados.{' '}
           <button type="button" className="cc-link" onClick={() => void refetch()}>
             Tentar de novo
           </button>
         </p>
       )}
       {!isLoading && !isError && (data ?? []).length === 0 && (
-        <p className="cc-lista__vazio">
-          {temFiltro ? 'Nada encontrado com esses filtros.' : 'Nenhum atendimento encerrado ainda.'}
-        </p>
+        <div className="cc-lista__vazio">
+          {temFiltro ? (
+            <>
+              <p>Nada encontrado com esses filtros.</p>
+              <button type="button" className="cc-link" onClick={limpar}>
+                Limpar filtros
+              </button>
+            </>
+          ) : (
+            <>
+              <p>Nenhum atendimento encerrado ainda.</p>
+              <p>Os que você encerrar ficam guardados aqui, com busca e filtros.</p>
+            </>
+          )}
+        </div>
       )}
 
-      {(data ?? []).map((c) => (
-        <CardFinalizado
-          key={c.id}
-          chat={c}
-          ativo={selecionado === c.id}
-          onSelecionar={() => onSelecionar(c.id)}
-        />
-      ))}
+      {(data ?? []).length > 0 && (
+        <ul className="cc-lista__itens">
+          {(data ?? []).map((c) => (
+            <li key={c.id}>
+              <CardFinalizado chat={c} ativo={selecionado === c.id} onSelecionar={() => onSelecionar(c.id)} />
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   )
 }
@@ -212,14 +224,15 @@ function CardFinalizado({
     <button
       type="button"
       className={'cc-card cc-card--final' + (ativo ? ' cc-card--ativo' : '')}
+      aria-current={ativo ? 'true' : undefined}
       onClick={onSelecionar}
     >
       {/* encerrado não mostra presença: o estado de agora não diz nada
           sobre uma conversa que já terminou */}
       <AvatarComPresenca nome={chat.client_name} />
       <span className="cc-card__texto">
-        <span className="cc-card__nome">
-          {chat.client_name}
+        <span className="cc-card__linha">
+          <span className="cc-card__nome">{chat.client_name}</span>
           <span className="cc-card__protocolo">#{chat.id}</span>
         </span>
         <span className="cc-card__meta">

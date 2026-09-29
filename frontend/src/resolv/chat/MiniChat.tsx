@@ -60,17 +60,9 @@ function BarraMinimizada({ chat, tom, onAbrir }: { chat: Chat; tom: IndiceDeChat
       aria-label={`Abrir conversa com ${chat.client_name}`}
       title={`${chat.client_name} · ${chat.company_name}`}
       onClick={onAbrir}
-      // `--tinta-do-tom` acompanha `--tom`: quem preenche com a cor do
-      // atendimento (o botão de abrir) escreve com a tinta daquele tom. Aqui
-      // o par vai à mão porque a barra minimizada NÃO carrega
-      // `data-tom-chat` — ela é clara, só o botão dentro dela é colorido.
-      style={
-        {
-          '--tom': `var(--chat-tom-${tom})`,
-          '--tinta-do-tom': `var(--chat-tom-${tom}-tinta)`,
-        } as React.CSSProperties
-      }
     >
+      {/* a cor do atendimento vai no ANEL do avatar — a mesma do cabeçalho
+          do painel quando ele abre, sem pintar a barra */}
       <AvatarComPresenca
         nome={chat.client_name}
         presenca={chat.status === 'active' ? chat.client_presence : null}
@@ -364,12 +356,12 @@ function FilaPopover({
       </header>
       {filaAberta === false && (
         <p className="minichat__fila-aviso">
-          Fila fechada — fora do horário de atendimento
-          {abreEm ? ` (abre ${new Date(abreEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })})` : ''}.
+          Fila fechada fora do horário de atendimento.
+          {abreEm ? ` Abre ${new Date(abreEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.` : ''}
         </p>
       )}
       {noLimite && (
-        <p className="minichat__fila-aviso">Você está no limite de {limite} atendimentos — encerre um para pegar outro.</p>
+        <p className="minichat__fila-aviso">Você está no limite de {limite} atendimentos. Encerre um para pegar outro.</p>
       )}
       {erro && (
         <p className="minichat__fila-erro" role="alert">
@@ -377,7 +369,9 @@ function FilaPopover({
         </p>
       )}
       {fila.length === 0 ? (
-        <p className="minichat__fila-vazia">Ninguém esperando agora.</p>
+        <p className="minichat__fila-vazia">
+          Ninguém esperando agora. Quem entrar na fila aparece aqui na hora.
+        </p>
       ) : (
         <ul className="minichat__fila-lista">
           {fila.map((c) => (

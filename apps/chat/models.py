@@ -60,6 +60,16 @@ class Chat(TimeStampedModel):
         max_length=10, choices=ChatStatus.choices,
         default=ChatStatus.QUEUED, db_index=True,
     )
+    # Quem ENTROU na conversa sem ser o dono dela — o supervisor que chega
+    # para ajudar ("Entrar na conversa", `chat_service.join_chat`). Escreve
+    # como o agente, mas o atendimento continua sendo de `agent`: o limite de
+    # simultâneos, "meus chats" e as métricas seguem contando só o dono. M2M,
+    # e não um segundo FK, porque nada impede dois supervisores na mesma
+    # conversa difícil.
+    participants = models.ManyToManyField(
+        "accounts.User", blank=True, related_name="chats_participando",
+        verbose_name="participantes",
+    )
 
     # nome interno dado pelo agente ("o cliente escreve qualquer coisa na
     # primeira mensagem") — vira o assunto do ticket na conversão

@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   LIMITE_MENSAGENS,
@@ -35,9 +35,17 @@ import type { Me } from '@/api/types'
 import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
 import { useChatUi } from '@/stores/chatUi'
+import { AvatarComPresenca } from './AvatarComPresenca'
 import { useAplicarMacroChat, useMacros, type Macro } from './dados'
-import { indiceDeChat, tomDeChat } from './tons'
+import { EsqueletoConversa, EsqueletoLista } from './Esqueletos'
 import { horaDe, iniciais, rotuloDoDia } from './format'
+import {
+  supervisaoDe,
+  useAssumirAtendimento,
+  useEntrarNaConversa,
+  useSairDaConversa,
+} from './supervisao'
+import { tomDeChat } from './tons'
 
 /** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme" — mesma função,
  *  copiada (não importada) de resolv/tickets/detalhe/Compositor.tsx: a casa
@@ -107,12 +115,25 @@ const ROTULO_PRIORIDADE_MACRO: Record<string, string> = {
   urgent: 'Urgente',
 }
 
+/** O estado da conexão só vira TEXTO quando pede atenção: "conectado" o
+ *  tempo todo no cabeçalho é ruído, e a falta dele é o que avisa. */
 const ROTULO_STATUS_SOCKET = {
   conectando: 'Conectando…',
   aberto: 'Conectado',
-  fechado: 'Sem conexão — reconectando',
-  recusado: 'Sem acesso — recarregue a página',
+  fechado: 'Sem conexão, reconectando',
+  recusado: 'Sem acesso. Recarregue a página',
 } as const
+
+/** Altura (px) acima da qual o compositor deixa de ser pílula: um campo de
+ *  uma linha tem 40px (20 de linha + 2×10 de respiro), e com duas linhas o
+ *  raio de pílula cortaria o texto nos cantos. */
+const ALTURA_DE_UMA_LINHA = 44
+const ALTURA_MAXIMA_DO_CAMPO = 160
+
+/** O motivo que o backend deu (`detail`), ou um genérico. */
+function mensagemDoErro(e: unknown, padrao: string): string {
+  return e instanceof ApiError ? (e.detail ?? padrao) : padrao
+}
 
 /** Quanto tempo entre dois sinais de "digitando" mandados pra sala. */
 const INTERVALO_DIGITANDO_MS = 2_000
@@ -386,18 +407,29 @@ interface Props {
    * compositor só.
    */
   historico?: ReactNode
+  /** Botões de navegação do cabeçalho, que dependem da largura da tela
+   *  (PaginaChat decide): voltar para a lista no celular, e abrir a folha
+   *  "Detalhes do cliente" quando o painel não cabe como coluna. */
+  navegacao?: NavegacaoDaConversa
+}
+
+export interface NavegacaoDaConversa {
+  onVoltar?: () => void
+  onDetalhes?: () => void
+  detalhesAbertos?: boolean
 }
 
 /**
  * A conversa aberta — para quem ATENDE. Ler, todo interno pode (é o que
- * permite supervisão); escrever, só quem pegou: o compositor só aparece
- * quando o backend aceitaria a mensagem (`can_send`), e nos outros casos
- * a tela diz o que fazer em vez de deixar um botão que ia falhar.
+ * permite supervisão); escrever, quem pegou e quem ENTROU na conversa
+ * (supervisor, ./supervisao): o compositor só aparece quando o backend
+ * aceitaria a mensagem (`can_send`), e nos outros casos a tela diz o que
+ * fazer em vez de deixar um botão que ia falhar.
  */
-export function ConversaChat({ chatId, me, compacto = false, historico }: Props) {
+export function ConversaChat({ chatId, me, compacto = false, historico, navegacao }: Props) {
   const idBase = useId()
   const navigate = useNavigate()
-  const { data: chat, isLoading, isError } = useChat(chatId)
+  const { data: chat, isLoading, isError, refetch: refetchChat } = useChat(chatId)
   const { data: mensagens, dataUpdatedAt } = useMensagensChat(chatId)
   // "agora" das faixas de dia = instante do último fetch, não Date.now()
   // em render (impuro) — o mesmo padrão da lista de tickets
@@ -418,6 +450,12 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const { data: macros } = useMacros()
   const aplicarMacro = useAplicarMacroChat(chatId)
   const editar = useEditarMensagemChat(chatId)
+  const entrar = useEntrarNaConversa(chatId)
+  const sair = useSairDaConversa(chatId)
+  const assumir = useAssumirAtendimento(chatId)
+  // "Assumir" tira a conversa de um colega: pede um segundo clique, na
+  // própria faixa, em vez de acontecer no primeiro toque
+  const [confirmandoAssumir, setConfirmandoAssumir] = useState(false)
 
   // Rascunho POR CONVERSA, compartilhado com o mini chat (stores/chatUi):
   // o que se digita aqui aparece lá e vice-versa — a mesma conversa pode ser
@@ -435,6 +473,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const [destaque, setDestaque] = useState<{ id: number; alvo: string } | null>(null)
   const apagarDestaque = useRef<number | undefined>(undefined)
   const fimMensagens = useRef<HTMLDivElement>(null)
+  const listaRef = useRef<HTMLDivElement>(null)
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const ultimoSinalDigitando = useRef(0)
   // Filtro do menu de macro: texto digitado + índice virtualmente "ativo" (o
@@ -465,10 +504,13 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   const total = mensagens?.length ?? 0
   const ultimoId = total > 0 ? mensagens![total - 1].id : null
 
-  // rola pro fim quando chega mensagem — inclusive a que vem pelo socket
+  // rola pro fim quando chega mensagem — inclusive a que vem pelo socket — e
+  // quando o compositor aparece (entrar na conversa, pegar): ele toma altura
+  // da rolagem, e a última mensagem ficaria escondida atrás dele
+  const compositorVisivel = chat ? supervisaoDe(chat, me).podeEscrever : false
   useEffect(() => {
     fimMensagens.current?.scrollIntoView({ block: 'end' })
-  }, [ultimoId])
+  }, [ultimoId, compositorVisivel])
 
   // marca como lidas o que o outro lado mandou, enquanto a conversa está
   // aberta E a aba visível — lido por quem não estava olhando não é lido
@@ -529,6 +571,40 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
     return () => clearTimeout(h)
   }, [aviso])
 
+  // Mensagem de SISTEMA nova ("fulano entrou na conversa", "assumiu o
+  // atendimento") muda quem pode escrever aqui — a lista de participantes e
+  // o dono moram no chat, não na mensagem. Recarrega o chat quando chega uma,
+  // para a faixa do rodapé e o compositor acompanharem sem F5. A primeira que
+  // se vê é a da abertura da tela: essa não conta.
+  const ultimoSistema = (mensagens ?? []).reduce<number | null>(
+    (ultimo, m) => (m.is_system ? m.id : ultimo),
+    null,
+  )
+  const sistemaVisto = useRef<number | null>(null)
+  useEffect(() => {
+    if (ultimoSistema == null || ultimoSistema === sistemaVisto.current) return
+    const primeiraVez = sistemaVisto.current == null
+    sistemaVisto.current = ultimoSistema
+    if (!primeiraVez) void refetchChat?.()
+  }, [ultimoSistema, refetchChat])
+
+  // O campo cresce com o texto (até um teto, depois rola) e, passando de
+  // uma linha, o compositor troca a pílula por um cartão de canto 12 — a
+  // classe vai direto no DOM: é medida de layout, não estado de tela.
+  useLayoutEffect(() => {
+    const campo = areaRef.current
+    if (!campo) return
+    // quem estava lendo o fim da conversa continua no fim quando o campo
+    // cresce e come altura da rolagem (no celular, é quase a tela toda)
+    const lista = listaRef.current
+    const noFim = lista != null && lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80
+    campo.style.height = 'auto'
+    const altura = campo.scrollHeight
+    if (altura > 0) campo.style.height = `${Math.min(altura, ALTURA_MAXIMA_DO_CAMPO)}px`
+    campo.parentElement?.classList.toggle('cc-composer__caixa--multilinha', altura > ALTURA_DE_UMA_LINHA)
+    if (noFim && lista) lista.scrollTop = lista.scrollHeight
+  }, [texto, chat?.status, chat?.agent_id])
+
   // erro e "fim do histórico" são POR conversa — quem troca de chat remonta
   // este componente (`key={chatId}` em PaginaChat), então esse estado nasce
   // zerado sem precisar de efeito de reset. O rascunho NÃO zera: mora no
@@ -536,22 +612,32 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
 
   if (isLoading) {
     return (
-      <section className="cc-conversa cc-conversa--estado">
-        <i className="ti ti-loader-2 cc-spin" />
+      <section className="cc-conversa cc-conversa--estado cc-conversa--carregando">
+        <EsqueletoConversa />
       </section>
     )
   }
   if (isError || !chat) {
     return (
       <section className="cc-conversa cc-conversa--estado">
-        <i className="ti ti-alert-triangle" />
+        <i className="ti ti-alert-triangle" aria-hidden="true" />
         <p>Não foi possível abrir esta conversa.</p>
+        <div className="cc-estado__acoes">
+          {navegacao?.onVoltar && (
+            <button type="button" className="cc-botao" onClick={navegacao.onVoltar}>
+              <i className="ti ti-arrow-left" aria-hidden="true" /> Voltar para a lista
+            </button>
+          )}
+          <button type="button" className="cc-botao" onClick={() => void refetchChat?.()}>
+            <i className="ti ti-refresh" aria-hidden="true" /> Tentar de novo
+          </button>
+        </div>
       </section>
     )
   }
 
-  const souOAgente = me != null && chat.agent_id === me.id
-  const podeEscrever = chat.status === 'active' && souOAgente
+  const sup = supervisaoDe(chat, me)
+  const { souOAgente, podeEscrever } = sup
   const socketAberto = status === 'aberto'
   const podeEnviarTexto = podeEscrever && socketAberto && texto.trim().length > 0
   // Mesma permissão do chamado (`macro.use`, apps/accounts/rbac.py) — o
@@ -694,10 +780,27 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
   return (
     <section className={'cc-conversa' + (compacto ? ' cc-conversa--compacta' : '')}>
       {!compacto && (
-      // a cor do atendimento (a mesma do avatar da pessoa) numa linha no topo:
-      // com várias conversas abertas no dia, o olho acha pela cor
-      <header className="cc-conversa__header" style={{ borderTop: `3px solid var(--chat-tom-${indiceDeChat(chat.client_name)})` }}>
-        <div>
+      // Sem faixa colorida no topo: a cor do atendimento ficou só no ANEL do
+      // avatar (o mesmo da lista), que identifica sem pintar a coluna.
+      <header className="cc-conversa__header">
+        {navegacao?.onVoltar && (
+          <button
+            type="button"
+            className="cc-icone cc-conversa__voltar"
+            aria-label="Voltar para a lista de conversas"
+            data-dica="Voltar"
+            onClick={navegacao.onVoltar}
+          >
+            <i className="ti ti-arrow-left" aria-hidden="true" />
+          </button>
+        )}
+        <AvatarComPresenca
+          nome={chat.client_name}
+          presenca={chat.status === 'active' ? chat.client_presence : null}
+          classe="cc-conversa__avatar"
+          fundo="canvas"
+        />
+        <div className="cc-conversa__identidade">
           <h1 className="cc-conversa__titulo">
             {chat.client_name}
             {chat.name && <span className="cc-conversa__nome-interno"> · {chat.name}</span>}
@@ -706,17 +809,15 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
             {chat.company_name}
             {chat.status === 'queued' && ' · na fila'}
             {chat.status === 'active' && chat.agent_name && ` · com ${chat.agent_name}`}
+            {sup.participantes.length > 0 &&
+              ` e ${sup.participantes.map((p) => p.full_name.split(' ')[0]).join(', ')}`}
             {chat.status === 'closed' && ' · encerrada'}
             {/* "o cliente ainda está na tela?" é a pergunta que decide entre
-                esperar a resposta e encerrar — some quando a conversa fecha */}
+                esperar a resposta e encerrar — some quando a conversa fecha.
+                A bolinha do avatar mostra; aqui vai por escrito. */}
+            {chat.status === 'active' && chat.client_presence && ' · '}
             {chat.status === 'active' && chat.client_presence && (
-              <span className={'cc-conversa__presenca cc-conversa__presenca--' + chat.client_presence}>
-                {/* `ti-point`, não `ti-point-filled`: o cheio só existe na
-                    variante `filled` da fonte, que é OUTRO arquivo — com a
-                    fonte regular esta bolinha nunca apareceu. Um ícone só não
-                    paga uma segunda fonte, e a presença já é dita por escrito
-                    ao lado. */}
-                <i className="ti ti-point" aria-hidden="true" />
+              <span className="cc-conversa__presenca">
                 {chat.client_presence === 'available'
                   ? 'cliente na tela'
                   : chat.client_presence === 'away'
@@ -727,12 +828,19 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
           </p>
         </div>
         <div className="cc-conversa__acoes-topo">
+          {/* a conexão só aparece quando falta: "conectado" o tempo todo era
+              ruído, e é a ausência dela que muda o que dá para fazer */}
+          {status !== 'aberto' && (
+            <span className={'cc-conversa__socket cc-conversa__socket--' + status} role="status">
+              {ROTULO_STATUS_SOCKET[status]}
+            </span>
+          )}
           <button
             type="button"
-            className={'cc-conversa__icone' + (buscando ? ' cc-conversa__icone--ativo' : '')}
+            className={'cc-icone' + (buscando ? ' cc-icone--ativo' : '')}
             aria-label="Buscar nesta conversa"
             aria-expanded={buscando}
-            title="Buscar nesta conversa"
+            data-dica="Buscar nesta conversa"
             onClick={() => {
               setBuscando((v) => !v)
               if (buscando) {
@@ -745,18 +853,26 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
           </button>
           <button
             type="button"
-            className={'cc-conversa__icone' + (painelMidia ? ' cc-conversa__icone--ativo' : '')}
+            className={'cc-icone' + (painelMidia ? ' cc-icone--ativo' : '')}
             aria-label="Anexos e links da conversa"
             aria-expanded={painelMidia}
-            title="Anexos e links da conversa"
+            data-dica="Anexos e links"
             onClick={() => setPainelMidia((v) => !v)}
           >
             <i className="ti ti-photo" aria-hidden="true" />
           </button>
-          <span className={'cc-conversa__socket cc-conversa__socket--' + status} title={ROTULO_STATUS_SOCKET[status]}>
-            <i className="ti ti-point" />
-            {ROTULO_STATUS_SOCKET[status]}
-          </span>
+          {navegacao?.onDetalhes && (
+            <button
+              type="button"
+              className={'cc-icone' + (navegacao.detalhesAbertos ? ' cc-icone--ativo' : '')}
+              aria-label="Detalhes do cliente"
+              aria-expanded={navegacao.detalhesAbertos === true}
+              data-dica="Detalhes do cliente"
+              onClick={navegacao.onDetalhes}
+            >
+              <i className="ti ti-info-circle" aria-hidden="true" />
+            </button>
+          )}
         </div>
       </header>
       )}
@@ -826,7 +942,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
         </form>
       )}
 
-      <div className="cc-conversa__mensagens">
+      <div className="cc-conversa__mensagens" ref={listaRef}>
         {historico}
         {total >= LIMITE_MENSAGENS && !fimDoHistorico && (
           <button
@@ -922,9 +1038,12 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
 
       {chat.status === 'queued' && (
         <div className="cc-conversa__banner">
-          <span>Este chat está na fila. Pegue para responder.</span>
+          <p className="cc-conversa__banner-texto">
+            <i className="ti ti-clock" aria-hidden="true" /> Este chat está na fila. Pegue para responder.
+          </p>
           <button
             type="button"
+            className="cc-botao cc-botao--primario"
             disabled={pegar.isPending}
             onClick={() =>
               pegar.mutate(chatId, {
@@ -937,17 +1056,107 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
         </div>
       )}
 
-      {chat.status === 'active' && !souOAgente && (
+      {/* Quem olha a conversa de outro agente. Supervisor e admin
+          (`can_supervise`) podem ENTRAR (escrevem junto; a conversa continua
+          do dono) ou ASSUMIR (a conversa passa para eles); os outros só leem. */}
+      {chat.status === 'active' && !souOAgente && !sup.participo && (
         <div className="cc-conversa__banner cc-conversa__banner--neutro">
-          <span>
-            Em atendimento por {chat.agent_name ?? 'outro agente'} — você está só acompanhando.
-          </span>
+          <p className="cc-conversa__banner-texto">
+            <i className="ti ti-eye" aria-hidden="true" /> Em atendimento por{' '}
+            {chat.agent_name ?? 'outro agente'}. Você está só acompanhando.
+          </p>
+          {(sup.podeEntrar || sup.podeAssumir) && !confirmandoAssumir && (
+            <div className="cc-conversa__banner-acoes">
+              {sup.podeEntrar && (
+                <button
+                  type="button"
+                  className="cc-botao"
+                  disabled={entrar.isPending}
+                  onClick={() => {
+                    setErroAcao(null)
+                    entrar.mutate(undefined, {
+                      onError: (e) => setErroAcao(mensagemDoErro(e, 'Não foi possível entrar na conversa.')),
+                    })
+                  }}
+                >
+                  <i className="ti ti-users" aria-hidden="true" /> Entrar na conversa
+                </button>
+              )}
+              {sup.podeAssumir && (
+                <button type="button" className="cc-botao" onClick={() => setConfirmandoAssumir(true)}>
+                  <i className="ti ti-user-check" aria-hidden="true" /> Assumir atendimento
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {chat.status === 'active' && sup.participo && (
+        <div className="cc-conversa__banner cc-conversa__banner--neutro">
+          <p className="cc-conversa__banner-texto">
+            <i className="ti ti-users" aria-hidden="true" /> Você entrou na conversa. Quem atende é{' '}
+            {chat.agent_name ?? 'outro agente'}.
+          </p>
+          {!confirmandoAssumir && (
+            <div className="cc-conversa__banner-acoes">
+              {sup.podeAssumir && (
+                <button type="button" className="cc-botao" onClick={() => setConfirmandoAssumir(true)}>
+                  <i className="ti ti-user-check" aria-hidden="true" /> Assumir atendimento
+                </button>
+              )}
+              <button
+                type="button"
+                className="cc-botao"
+                disabled={sair.isPending}
+                onClick={() => {
+                  setErroAcao(null)
+                  sair.mutate(undefined, {
+                    onError: (e) => setErroAcao(mensagemDoErro(e, 'Não foi possível sair da conversa.')),
+                  })
+                }}
+              >
+                <i className="ti ti-logout-2" aria-hidden="true" /> Sair da conversa
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {chat.status === 'active' && confirmandoAssumir && sup.podeAssumir && (
+        <div className="cc-conversa__banner cc-conversa__banner--confirmar" role="group" aria-label="Confirmar assumir atendimento">
+          <p className="cc-conversa__banner-texto">
+            Assumir o atendimento de {chat.agent_name ?? 'outro agente'}? A conversa passa para você e
+            sai da lista {chat.agent_name ? `de ${chat.agent_name.split(' ')[0]}` : 'dele'}.
+          </p>
+          <div className="cc-conversa__banner-acoes">
+            <button type="button" className="cc-botao" onClick={() => setConfirmandoAssumir(false)}>
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="cc-botao cc-botao--primario"
+              disabled={assumir.isPending}
+              onClick={() => {
+                setErroAcao(null)
+                assumir.mutate(undefined, {
+                  onSuccess: () => setConfirmandoAssumir(false),
+                  onError: (e) => {
+                    setConfirmandoAssumir(false)
+                    setErroAcao(mensagemDoErro(e, 'Não foi possível assumir o atendimento.'))
+                  },
+                })
+              }}
+            >
+              {assumir.isPending ? 'Assumindo…' : 'Assumir'}
+            </button>
+          </div>
         </div>
       )}
 
       {chat.status === 'closed' && (
         <div className="cc-conversa__banner cc-conversa__banner--neutro">
-          <span>
+          <span className="cc-conversa__banner-texto">
             Conversa encerrada.
             {chat.ticket_reference && (
               <>
@@ -963,6 +1172,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
           {!chat.ticket_id && (
             <button
               type="button"
+              className="cc-botao"
               disabled={reabrir.isPending}
               onClick={() =>
                 reabrir.mutate(undefined, {
@@ -979,9 +1189,19 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
       {painelMidia && !compacto && (
         <aside className="cc-midia" aria-label="Anexos e links desta conversa">
           <h2>Nesta conversa</h2>
-          {midia.isLoading && <p className="cc-midia__vazio">Carregando…</p>}
+          {midia.isLoading && <EsqueletoLista linhas={2} rotulo="Carregando anexos e links" />}
+          {midia.isError && (
+            <p className="cc-midia__vazio" role="alert">
+              Não foi possível carregar os anexos.{' '}
+              <button type="button" className="cc-link" onClick={() => void midia.refetch?.()}>
+                Tentar de novo
+              </button>
+            </p>
+          )}
           {midia.data && midia.data.files.length === 0 && midia.data.links.length === 0 && (
-            <p className="cc-midia__vazio">Nenhum anexo ou link ainda.</p>
+            <p className="cc-midia__vazio">
+              Nenhum anexo ou link ainda. Use Anexar no compositor, ou cole um print com Ctrl+V.
+            </p>
           )}
           {(midia.data?.files.length ?? 0) > 0 && (
             <>
@@ -1066,15 +1286,20 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
               </button>
             </div>
           )}
+          {/* A caixa é a pílula branca do compositor: campo e Enviar juntos,
+              as ferramentas logo abaixo, no plano. */}
+          <div className="cc-composer__caixa">
           <textarea
             ref={areaRef}
             className="cc-composer__textarea"
+            rows={1}
+            aria-label={modoNota ? 'Nota interna para a equipe' : 'Mensagem para o cliente'}
             placeholder={
               !socketAberto
-                ? 'Sem conexão — o texto espera a conexão voltar; anexos continuam indo.'
+                ? 'Sem conexão. O texto espera a conexão voltar; anexos continuam indo.'
                 : modoNota
-                  ? 'Anotação para a equipe — o cliente não vê…'
-                  : 'Escreva para o cliente… (Enter envia, Shift+Enter quebra linha, Ctrl+V cola print)'
+                  ? 'Anotação para a equipe (o cliente não vê)'
+                  : 'Escreva para o cliente'
             }
             value={texto}
             onChange={(e) => aoDigitar(e.target.value)}
@@ -1091,6 +1316,16 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
               }
             }}
           />
+            <button
+              type="button"
+              className={'cc-composer__enviar' + (modoNota ? ' cc-composer__enviar--nota' : '')}
+              disabled={!podeEnviarTexto}
+              onClick={enviar}
+            >
+              <i className={'ti ' + (modoNota ? 'ti-lock' : 'ti-arrow-up')} aria-hidden="true" />
+              <span className="cc-composer__enviar-rotulo">{modoNota ? 'Salvar nota' : 'Enviar'}</span>
+            </button>
+          </div>
           <div className="cc-composer__rodape">
             <div className="cc-composer__ferramentas">
               <button
@@ -1100,8 +1335,8 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                 title="Anexo vai por REST — funciona mesmo sem conexão de socket. Ctrl+V cola print."
                 onClick={() => inputAnexo.current?.click()}
               >
-                <i className="ti ti-paperclip" />
-                Anexar
+                <i className="ti ti-paperclip" aria-hidden="true" />
+                <span className="cc-composer__rotulo">Anexar</span>
               </button>
 
               {/* `aria-pressed` e não um checkbox: é um interruptor de MODO do
@@ -1149,7 +1384,8 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
                       setMenuMacro((v) => !v)
                     }}
                   >
-                    <i className="ti ti-bolt" aria-hidden="true" /> Aplicar macro…
+                    <i className="ti ti-bolt" aria-hidden="true" />{' '}
+                    <span className="cc-composer__rotulo">Aplicar macro…</span>
                   </button>
                   {menuMacro && (
                     <div className="cc-composer__macro-painel">
@@ -1258,14 +1494,9 @@ export function ConversaChat({ chatId, me, compacto = false, historico }: Props)
               )}
             </div>
 
-            <button
-              type="button"
-              className={'cc-composer__enviar' + (modoNota ? ' cc-composer__enviar--nota' : '')}
-              disabled={!podeEnviarTexto}
-              onClick={enviar}
-            >
-              {modoNota ? 'Salvar nota' : 'Enviar'}
-            </button>
+            {/* os atalhos saíram do placeholder: numa pílula de uma linha ele
+                era cortado no meio, e no celular não há Shift nem Ctrl */}
+            <span className="cc-composer__dica">Enter envia · Shift+Enter quebra linha</span>
           </div>
         </div>
       )}

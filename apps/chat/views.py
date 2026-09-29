@@ -86,7 +86,9 @@ class ChatViewSet(viewsets.GenericViewSet):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     def get_queryset(self):
-        return chat_service.visible_chats(self.request.user)
+        # `participants` sai em todo chat serializado (ChatSerializer): sem o
+        # prefetch, uma página da fila pagaria uma consulta por linha
+        return chat_service.visible_chats(self.request.user).prefetch_related("participants")
 
     def _get_chat(self):
         chat = self.get_object()  # 404 fora do escopo: não vaza existência
@@ -564,6 +566,45 @@ class ChatViewSet(viewsets.GenericViewSet):
                 chat=chat, actor=request.user, to_agent=para,
                 note=ser.validated_data.get("note", ""),
             )
+        except ChatRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(self.get_serializer(chat).data)
+
+    # --- supervisão: entrar, sair, assumir ------------------------------- #
+    # Sem corpo nenhum: quem age é quem está logado, e a conversa é a da URL.
+    # A regra (quem pode, limite de simultâneos) mora no serviço; a porta só
+    # recusa cedo, com 403, o que nunca seria aceito.
+
+    @action(detail=True, methods=["post"])
+    def join(self, request, pk=None):
+        """Supervisor entra na conversa de outro agente, sem tirá-la dele."""
+        chat = self._get_chat()
+        if not chat_service.pode_supervisionar(request.user):
+            raise PermissionDenied("Só supervisor ou admin entra na conversa de outro agente.")
+        try:
+            chat = chat_service.join_chat(chat=chat, actor=request.user)
+        except ChatRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(self.get_serializer(chat).data)
+
+    @action(detail=True, methods=["post"])
+    def leave(self, request, pk=None):
+        """Quem entrou sai; o atendimento segue com o dono."""
+        chat = self._get_chat()
+        try:
+            chat = chat_service.leave_chat(chat=chat, actor=request.user)
+        except ChatRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(self.get_serializer(chat).data)
+
+    @action(detail=True, methods=["post"])
+    def assume(self, request, pk=None):
+        """Supervisor assume o atendimento — a conversa passa a ser dele."""
+        chat = self._get_chat()
+        if not chat_service.pode_supervisionar(request.user):
+            raise PermissionDenied("Só supervisor ou admin assume a conversa de outro agente.")
+        try:
+            chat = chat_service.assume_chat(chat=chat, actor=request.user)
         except ChatRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         return Response(self.get_serializer(chat).data)

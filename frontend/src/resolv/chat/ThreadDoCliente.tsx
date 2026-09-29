@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { useMarcarThreadLida } from '@/api/chat'
 import type { Me } from '@/api/types'
@@ -6,7 +7,8 @@ import {
   type MensagemLinhaDoTempo,
   type SessaoLinhaDoTempo,
 } from '@/portal/api/chats'
-import { Bolha, ConversaChat } from './ConversaChat'
+import { Bolha, ConversaChat, type NavegacaoDaConversa } from './ConversaChat'
+import { EsqueletoConversa } from './Esqueletos'
 import { dataHoraDe } from './format'
 
 /**
@@ -35,13 +37,17 @@ export function ThreadDoCliente({
   clienteId,
   chatAtualId,
   me,
+  navegacao,
 }: {
   clienteId: number
   /** A abertura VIVA do cliente, quando existe; senão a mais recente. É a
    *  que recebe mensagem nova e a que desenha o compositor. */
   chatAtualId: number
   me: Me | undefined
+  /** Voltar e "Detalhes do cliente" do cabeçalho — repassado à conversa. */
+  navegacao?: NavegacaoDaConversa
 }) {
+  const queryClient = useQueryClient()
   const [cursores, setCursores] = useState<(number | undefined)[]>([undefined])
   const { mensagens, sessoes, carregando, erro, temMais } = useConversaContinua(
     cursores,
@@ -83,11 +89,22 @@ export function ThreadDoCliente({
           Carregar atendimentos anteriores
         </button>
       )}
-      {carregando && mensagens.length === 0 && (
-        <p className="cc-conversa__vazio">Carregando o histórico…</p>
-      )}
+      {carregando && mensagens.length === 0 && <EsqueletoConversa />}
       {erro != null && (
-        <p className="cc-thread__erro">Não foi possível carregar os atendimentos anteriores.</p>
+        <p className="cc-thread__erro" role="alert">
+          Não foi possível carregar os atendimentos anteriores.{' '}
+          {/* refaz só as páginas desta pessoa — a mesma chave que
+              `useConversaContinua` monta (portal/api/chats.ts) */}
+          <button
+            type="button"
+            className="cc-link"
+            onClick={() =>
+              void queryClient.refetchQueries({ queryKey: ['portal', 'chats', 'continua', clienteId] })
+            }
+          >
+            Tentar de novo
+          </button>
+        </p>
       )}
 
       {idsAnteriores.map((id) => (
@@ -106,7 +123,15 @@ export function ThreadDoCliente({
     </div>
   )
 
-  return <ConversaChat key={`thread-${chatAtualId}`} chatId={chatAtualId} me={me} historico={historico} />
+  return (
+    <ConversaChat
+      key={`thread-${chatAtualId}`}
+      chatId={chatAtualId}
+      me={me}
+      historico={historico}
+      navegacao={navegacao}
+    />
+  )
 }
 
 /** Um atendimento já encerrado dentro da rolagem: o marco de abertura, as
