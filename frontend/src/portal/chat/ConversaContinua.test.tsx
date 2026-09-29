@@ -82,7 +82,7 @@ describe('ConversaContinua', () => {
     montar()
     await screen.findByText('mensagem 2')
     const link = screen.getByRole('link', { name: /PDF/ })
-    expect(link).toHaveAttribute('href', 'http://localhost:8000/api/v1/chat/timeline/export/')
+    expect(link).toHaveAttribute('href', '/api/v1/chat/timeline/export/')
   })
 
   it('sem mensagens, mostra o vazio', async () => {

@@ -59,11 +59,13 @@ describe('urlBaseDoSocket — de onde vem o WebSocket', () => {
     expect(urlBaseDoSocket()).toBe(`ws://${window.location.host}`)
   })
 
-  it('em dev sem variável nenhuma, usa a porta fixa do backend (o Vite não faz proxy de /ws/)', () => {
+  it('em dev sem variável nenhuma, também usa a origem da página (o Vite proxia /ws/)', () => {
     vi.stubEnv('VITE_WS_BASE_URL', '')
     vi.stubEnv('VITE_API_BASE_URL', '')
     vi.stubEnv('DEV', true)
-    expect(urlBaseDoSocket()).toBe('ws://localhost:8000')
+    // Mesma resposta que em produção de propósito: o dev deixou de ter uma
+    // segunda origem, e é o proxy do Vite que entrega /ws/ ao Django.
+    expect(urlBaseDoSocket()).toBe(`ws://${window.location.host}`)
   })
 
   it('deriva da URL da API trocando o esquema (https → wss)', () => {

@@ -29,13 +29,21 @@
 // deles precisa desta mesma base, senão o navegador resolve contra a origem
 // do Vite (5174) em vez da API (8000) e o avatar 404.
 //
-// Sem a variável, o build de PRODUÇÃO usa a própria origem ('' → URL relativa:
-// `/api/v1/...`), que é o que o nginx de deploy/ espera — `/api/` e `/ws/`
-// no mesmo host da SPA. O `localhost:8000` só vale no dev server do Vite
-// (porta 5173, API em outra porta). Antes o fallback era localhost SEMPRE, e
-// um build sem `.env.production` saía apontando pra máquina de quem buildou.
-export const API_BASE_URL: string =
-  import.meta.env.VITE_API_BASE_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '')
+// Sem a variável, a base é VAZIA — URL relativa (`/api/v1/...`), ou seja, a
+// própria origem da página. Vale nos dois ambientes: em produção quem entrega
+// é o nginx (deploy/nginx/resolv.conf serve /api/ e /ws/ no mesmo host da
+// SPA); em desenvolvimento, o proxy do Vite (vite.config.ts).
+//
+// Antes o dev apontava para `http://localhost:8000`, uma segunda origem. Isso
+// obriga o navegador a pedir permissão (preflight OPTIONS) antes de cada POST
+// e a mandar cookie entre origens — um caminho a mais para dar errado, que
+// não existe em produção e que o `curl` não reproduz (ele não manda
+// preflight). Quando esse caminho travava, o backend parecia sadio e a tela
+// não entrava, sem nada para ler.
+//
+// Continua dando para apontar para outro backend com `VITE_API_BASE_URL`, que
+// ganha do proxy — é assim que `./resolv compartilhar` publica na rede local.
+export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export class ApiError extends Error {
   status: number

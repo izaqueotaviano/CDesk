@@ -58,17 +58,15 @@ const CODIGOS_TERMINAIS = new Set([1008, 4401, 4403, 4404])
 
 /**
  * De onde vem o WebSocket, nesta ordem: `VITE_WS_BASE_URL` explícita; a URL
- * da API com o esquema trocado (http→ws, https→wss); em DEV sem variável
- * nenhuma, a porta fixa do backend (`ws://localhost:8000` — o mesmo padrão de
- * `api/client.ts`, porque o Vite não faz proxy de `/ws/`); em produção sem
- * variável, a origem da própria página (o nginx serve `/ws/` no mesmo host).
+ * da API com o esquema trocado (http→ws, https→wss); sem variável nenhuma, a
+ * origem da própria página — que serve nos dois ambientes, porque o nginx de
+ * produção e o proxy do Vite em dev (com `ws: true`) entregam `/ws/` no mesmo
+ * host da SPA.
  */
 export function urlBaseDoSocket(): string {
   const explicita = import.meta.env.VITE_WS_BASE_URL as string | undefined
   if (explicita) return explicita.replace(/\/+$/, '')
-  const api =
-    (import.meta.env.VITE_API_BASE_URL as string | undefined) ||
-    (import.meta.env.DEV ? 'http://localhost:8000' : '')
+  const api = (import.meta.env.VITE_API_BASE_URL as string | undefined) || ''
   if (api) return api.replace(/^http/, 'ws').replace(/\/+$/, '')
   if (typeof window !== 'undefined' && window.location?.host) {
     const protocolo = window.location.protocol === 'https:' ? 'wss:' : 'ws:'

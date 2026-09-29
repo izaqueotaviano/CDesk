@@ -54,7 +54,7 @@ describe('SecaoMeusDados', () => {
       jsonDe([{ id: 5, kind: 'export', status: 'done', has_export: true, error: '', rejection_reason: '', created_at: '2026-09-01T00:00:00Z' }])
     montar()
     const link = await screen.findByRole('link', { name: /Baixar/ })
-    expect(link).toHaveAttribute('href', 'http://localhost:8000/api/v1/audit/lgpd/5/download/')
+    expect(link).toHaveAttribute('href', '/api/v1/audit/lgpd/5/download/')
   })
 
   it('pedido em andamento desabilita o botão de pedir de novo', async () => {
