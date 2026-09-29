@@ -124,16 +124,35 @@
   // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
   // central que ele abre. Um <input> aqui teria dois lugares para digitar a
   // mesma coisa.
+  // ── Rótulo de seção ───────────────────────────────────────────────────────
+  // O respiro ACIMA é o que faz o trabalho: ele é que separa os dois blocos.
+  // O texto é só a legenda desse vão, em caixa baixa e no tom mais silencioso
+  // — se ele gritasse, viraria mais um item de navegação.
+  &__secao {
+    margin: 20px 0 4px;
+    padding: 0 10px;
+    font-size: 12px;
+    line-height: 1.33;
+    color: var(--text-muted);
+    user-select: none;
+  }
+  // Recolhida não há espaço para texto: sobra o vão, que continua separando.
+  .sidebar-rail--recolhida & {
+    &__secao { margin: 14px 0 2px; font-size: 0; }
+  }
+
   &__busca {
     display: flex;
     align-items: center;
     gap: 8px;
     height: 34px;
     margin: 12px 12px 4px;
-    padding: 0 8px;
+    padding: 0 12px;
     flex-shrink: 0;
-    border: none;
-    border-radius: var(--raio);
+    // Cápsula e fio de 1px: as duas coisas que o briefing pede num campo de
+    // entrada, e as únicas bordas que sobreviveram à limpeza.
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--r-total, 999px);
     background: var(--surface-card);
     color: var(--text-secondary);
     font-family: var(--f-ui);

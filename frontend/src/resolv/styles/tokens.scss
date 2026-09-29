@@ -39,9 +39,15 @@
   // não entrou — o pedido original já tinha fixado cartão/tabela em branco
   // puro, e isso não mudou.
   --surface: #ffffff;
-  --surface-alt: #f6f5f3;    // sidebar e cromo: MESMO fundo do app
-  --surface-card: #ffffff;
-  --surface-canvas: #f6f5f3;
+  // TRÊS degraus de luminância, e é deles que vem a divisão da tela — não de
+  // linha. O cromo (sidebar, moldura) é o mais escuro; o painel de conteúdo
+  // sobe um degrau para o creme; o cartão dentro dele sobe até o branco.
+  //
+  // Dar o mesmo tom ao cromo e ao painel, como ficou na rodada anterior,
+  // apagou a fronteira entre navegação e conteúdo: a tela virou um campo só.
+  --surface-alt: #f6f5f3;      // sidebar, barra de abas, moldura
+  --surface-canvas: #faf9f5;   // o painel onde a página vive
+  --surface-card: #ffffff;     // cartão, campo, composer
   // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
   // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
   // branco puro) uma borda derivada de preto ficava clara demais. Mesma

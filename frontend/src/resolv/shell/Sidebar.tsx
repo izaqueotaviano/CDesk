@@ -19,7 +19,7 @@
  * title é desenhado pelo navegador FORA do documento, então não tem como
  * invadir a área de trabalho nem empurrar layout.
  */
-import { useEffect, useRef, type KeyboardEvent } from 'react'
+import { Fragment, useEffect, useRef, type KeyboardEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
@@ -43,6 +43,10 @@ export type Item = {
    *  inventar um símbolo aproximado é pior que manter o certo. */
   route: string
   enabled: boolean
+  /** Abre uma seção nova na sidebar, com este rótulo acima. Opcional e só
+   *  lido aqui — BarraDeAbas e BuscaComando consomem a mesma lista e não
+   *  têm seção. */
+  grupo?: string
 }
 
 // Exportado: BarraDeAbas.tsx e BuscaComando.tsx reusam esta MESMA lista — abas
@@ -54,7 +58,7 @@ export const NAV: Item[] = [
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
-  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
+  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true, grupo: 'Gestão' },
   { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: true },
   { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
   { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
@@ -222,6 +226,15 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
         <nav className="sidebar-rail__nav">
           {NAV.map((item) => {
             const badge = item.id === 'chat' && conversas > 0 ? (conversas > 9 ? '9+' : conversas) : null
+            // Um rótulo de seção antes do item que abre o grupo. Onze itens
+            // numa lista corrida viram uma parede: o vão e o rótulo dão o
+            // ritmo que separa "o que eu faço o dia todo" de "o que eu
+            // configuro de vez em quando".
+            const cabecalho = item.grupo ? (
+              <p key={`g-${item.id}`} className="sidebar-rail__secao" aria-hidden="true">
+                {item.grupo}
+              </p>
+            ) : null
             const rotulo =
               item.id === 'chat' && badge
                 ? `${item.label} — ${conversas} ${conversas === 1 ? 'conversa' : 'conversas'}`
@@ -229,8 +242,9 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
                   ? item.label
                   : `${item.label} · em breve`
             return (
+              <Fragment key={item.id}>
+              {cabecalho}
               <button
-                key={item.id}
                 type="button"
                 className={
                   'sidebar-rail__item' +
@@ -264,6 +278,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
                   </span>
                 )}
               </button>
+              </Fragment>
             )
           })}
         </nav>

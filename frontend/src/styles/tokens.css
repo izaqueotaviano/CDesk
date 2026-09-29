@@ -181,9 +181,12 @@
      a ordem de luminância (cromo < canvas < superfície) é a de sempre, mas
      os valores agora são os do kit v2. O calor mora nos neutros (pedra, não
      cinza puro) e no laranja, não numa superfície creme. */
-  --canvas:             #f6f5f3;   /* fundo do app */
+  /* Três degraus de luminância, e é deles que vem a divisão da tela — não de
+     linha. O cromo é o mais escuro, o conteúdo sobe para o creme, o cartão
+     sobe até o branco. */
+  --canvas:             #faf9f5;   /* onde a página vive */
   --superficie:         #ffffff;   /* cartão, campo, composer */
-  --superficie-sutil:   #faf9f5;   /* o creme */
+  --superficie-sutil:   #f6f5f3;   /* cromo: sidebar, barra, moldura */
   --superficie-elevada: #ffffff;
   /* A sidebar tem o MESMO fundo do app, não um degrau próprio: o que a
      separa do conteúdo é o espaço, não um bloco de cor. */
