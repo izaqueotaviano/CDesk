@@ -87,14 +87,18 @@
      posição, hover e foco; não precisam de traço, e com ele ficam ilegíveis.
 
      `text-underline-offset` afasta o traço da base da letra para não cortar
-     o rabo do "g" e do "p". */
-  :is(p, li, dd, blockquote, .prosa) a {
+     o rabo do "g" e do "p".
+
+     O `:not(nav a)` tira a lista de navegação (<nav><ul><li><a>): o `li` do
+     seletor é para lista de TEXTO, e o índice das Configurações do portal
+     saía todo sublinhado. */
+  :is(p, li, dd, blockquote, .prosa) a:not(nav a) {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
     text-decoration-color: var(--borda-controle);
   }
-  :is(p, li, dd, blockquote, .prosa) a:hover {
+  :is(p, li, dd, blockquote, .prosa) a:not(nav a):hover {
     text-decoration-color: currentColor;
   }
 }

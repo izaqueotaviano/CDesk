@@ -15,7 +15,7 @@
  *   - "Mais", um menu com o que se abre de vez em quando (avisos, notas,
  *     relatórios, auditoria, configurações). Seis destinos a menos na
  *     coluna é o que deixa espaço para…
- *   - "Recentes", os tickets abertos, só em texto — a lista de conversas da
+ *   - "Trabalhando agora", os tickets abertos, só em texto — a lista de conversas da
  *     referência. Recolhida, some, como lá;
  *   - no rodapé, só a conta. Notificações e tema subiram para o canto
  *     superior direito (NovoShell), que é onde a referência os põe.
@@ -33,7 +33,7 @@ import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { usePrefs } from '@/stores/prefs'
 import { useTabs } from '@/stores/tabs'
-import { ListaRecentes } from './ListaRecentes'
+import { ListaTrabalho } from './ListaTrabalho'
 import { MenuFlutuante } from './MenuFlutuante'
 import { MenuPresenca } from './MenuPresenca'
 import './sidebar.scss'
@@ -91,14 +91,14 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
   const gavetaAberta = emGaveta && gaveta.aberta
 
   // UM estado ativo por vez na sidebar inteira. O ticket aberto acende na
-  // lista Recentes, "novo" acende em Novo ticket — e "Tickets" só acende na
-  // lista em si. Exceção: se o ticket da tela não está visível em Recentes
+  // lista "Trabalhando agora", "novo" acende em Novo ticket — e "Tickets" só
+  // acende na lista em si. Exceção: se o ticket da tela não está visível lá
   // (barra recolhida, ou o resumo ainda não chegou), quem acende é Tickets,
   // para a pessoa nunca ficar sem saber onde está.
   const caminho = location.pathname
   const naNovoTicket = caminho === '/chamados/novo'
   const idNaRota = caminho.match(/^\/chamados\/(\d+)$/)?.[1]
-  const ticketVisivelEmRecentes = useTabs((st) =>
+  const ticketVisivelNaLista = useTabs((st) =>
     idNaRota !== undefined && st.tabs.some((a) => a.tipo === 'ticket' && String(a.ticketId) === idNaRota),
   )
   const ativo = (r: string) => {
@@ -106,7 +106,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
     if (r === '/chamados') {
       if (caminho === '/chamados') return true
       if (naNovoTicket) return false
-      if (idNaRota) return recolhida || !ticketVisivelEmRecentes
+      if (idNaRota) return recolhida || !ticketVisivelNaLista
       return caminho.startsWith('/chamados/')
     }
     return caminho === r || caminho.startsWith(`${r}/`)
@@ -337,8 +337,8 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
         </nav>
 
         {!recolhida && (
-          <div className="sidebar-rail__recentes">
-            <ListaRecentes />
+          <div className="sidebar-rail__trabalho">
+            <ListaTrabalho />
           </div>
         )}
 

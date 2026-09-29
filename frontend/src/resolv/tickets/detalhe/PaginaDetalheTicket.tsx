@@ -253,7 +253,7 @@ export function PaginaDetalheTicket() {
   const abrirTicket = useTabs((s) => s.abrirTicket)
 
   // Registra/atualiza a aba deste ticket assim que os dados chegam — é o que
-  // alimenta a lista Recentes da sidebar e o espelho no servidor (docs/06).
+  // alimenta a lista "Trabalhando agora" da sidebar e o espelho no servidor (docs/06).
   useEffect(() => {
     if (!ticket) return
     abrirTicket(ticket.id, {
@@ -272,7 +272,7 @@ export function PaginaDetalheTicket() {
   return (
     <div className="detalhe">
       {/* Sem role="tabpanel": os tickets abertos deixaram de ser abas (são a
-          lista Recentes da sidebar, com aria-current), e um tabpanel sem a
+          lista "Trabalhando agora" da sidebar, com aria-current), e um tabpanel sem a
           aba que o nomeia seria um marco órfão para o leitor de tela. */}
       <div className="detalhe__painel">
 

@@ -5,7 +5,7 @@ import { useLogout } from '@/api/mutations/useLogout'
 import type { Me } from '@/api/types'
 import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
-import { usePrefs, type Tema } from '@/stores/prefs'
+import { ACAO_DO_TEMA, useTemaResolvido, type Tema } from '@/stores/prefs'
 import { Avatar } from '@/ui/Avatar'
 import { urlDoAvatar } from '../api/conta'
 import { cn } from '../lib/cn'
@@ -13,8 +13,6 @@ import { Button } from '../ui/button'
 import { Toaster } from '../ui/toaster'
 import { ITENS_NAV } from './nav'
 
-const PROXIMO_TEMA: Record<Tema, Tema> = { claro: 'escuro', escuro: 'sistema', sistema: 'claro' }
-const ROTULO_TEMA: Record<Tema, string> = { claro: 'tema claro', escuro: 'tema escuro', sistema: 'tema do sistema' }
 const ICONE_TEMA: Record<Tema, Icon> = { claro: IconSun, escuro: IconMoon, sistema: IconDeviceDesktop }
 
 /**
@@ -29,19 +27,18 @@ const ITEM =
 const ITEM_ATIVO = 'bg-navegacao-ativo font-medio hover:bg-navegacao-ativo'
 
 /**
- * Alterna claro → escuro → sistema. A escolha persiste (stores/prefs). O
- * rótulo anuncia a AÇÃO ("Usar tema escuro"), como o BotaoTema do console —
+ * Troca o tema com a MESMA regra do BotaoTema do console: todo clique muda
+ * a tela, e "acompanhar o sistema" continua no ciclo (`proximaPreferencia`,
+ * stores/prefs). A escolha persiste. O rótulo e o ícone anunciam a AÇÃO —
  * quem usa leitor de tela ouve o que o clique faz, não o que já está ligado.
  */
 export function AlternarTema({ variante = 'icone', className }: { variante?: 'icone' | 'linha'; className?: string }) {
-  const tema = usePrefs((s) => s.tema)
-  const setTema = usePrefs((s) => s.setTema)
-  const proximo = PROXIMO_TEMA[tema]
-  const acao = `Usar ${ROTULO_TEMA[proximo]}`
-  const Icone = ICONE_TEMA[proximo]
+  const { proxima, ciclar } = useTemaResolvido()
+  const acao = ACAO_DO_TEMA[proxima]
+  const Icone = ICONE_TEMA[proxima]
   if (variante === 'linha') {
     return (
-      <button type="button" className={cn(ITEM, className)} onClick={() => setTema(proximo)} aria-label={acao} title={acao}>
+      <button type="button" className={cn(ITEM, className)} onClick={ciclar} aria-label={acao} title={acao}>
         <span className="grid size-5 place-items-center">
           <Icone stroke={1.75} aria-hidden="true" />
         </span>
@@ -52,7 +49,7 @@ export function AlternarTema({ variante = 'icone', className }: { variante?: 'ic
     )
   }
   return (
-    <Button variant="ghost" size="icon-sm" className={className} onClick={() => setTema(proximo)} aria-label={acao} title={acao}>
+    <Button variant="ghost" size="icon-sm" className={className} onClick={ciclar} aria-label={acao} title={acao}>
       <Icone stroke={1.75} />
     </Button>
   )

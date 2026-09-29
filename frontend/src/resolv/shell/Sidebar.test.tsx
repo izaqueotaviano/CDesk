@@ -6,7 +6,7 @@ import { usePrefs } from '@/stores/prefs'
 import { useTabs } from '@/stores/tabs'
 import { Sidebar } from './Sidebar'
 
-// Recentes lê o store de abas, que importa o espelho no servidor — aqui ele
+// "Trabalhando agora" lê o store de abas, que importa o espelho no servidor — aqui ele
 // não entra (docs/06-abas-frontend.md).
 vi.mock('@/api/tabs', () => ({
   getTabsServidor: vi.fn(() => new Promise(() => {})),
@@ -137,18 +137,18 @@ describe('Sidebar — um estado ativo por vez', () => {
       reconciliando: false,
     })
 
-  it('com o ticket em Recentes, é ele que acende — "Tickets" não', () => {
+  it('com o ticket em "Trabalhando agora", é ele que acende — "Tickets" não', () => {
     abrirTicket()
     montar('/chamados/5')
     expect(screen.getByRole('button', { name: '#1005 · Impressora' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
   })
 
-  it('recolhida, Recentes some e quem acende no ticket é "Tickets"', () => {
+  it('recolhida, "Trabalhando agora" some e quem acende no ticket é "Tickets"', () => {
     abrirTicket()
     usePrefs.setState({ sidebarRecolhida: true })
     montar('/chamados/5')
-    expect(screen.queryByRole('region', { name: 'Recentes' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Trabalhando agora' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
   })
 

@@ -198,6 +198,11 @@
      de `--sidebar-hover`/`--sidebar-ativo` do console (resolv/tokens.scss). */
   --navegacao-hover:    #f0efec;
   --navegacao-ativo:    #eae9e6;
+  /* Campo escuro do login (login.css). Escuro nos DOIS temas, porque o texto
+     em cima dele é claro e fixo — seguir `--primario` o deixava claro no
+     tema escuro, com o texto sumindo. No escuro desce um degrau abaixo do
+     fundo da página, para continuar sendo o campo que se destaca. */
+  --login-painel:       #242424;
 
   /* Duas famílias de linha, de propósito:
      --divisoria      estrutura (cartão, tabela, divisória) — a `--line`
@@ -290,6 +295,7 @@
   --fundo-selecionado:  #333332;
   --navegacao-hover:    #252524;
   --navegacao-ativo:    #2b2b2a;
+  --login-painel:       #0f0f0e;
 
   --divisoria:      #323230;
   --borda-controle: #3d3d3a;
@@ -353,6 +359,7 @@
     --fundo-selecionado:  #333332;
     --navegacao-hover:    #252524;
     --navegacao-ativo:    #2b2b2a;
+    --login-painel:       #0f0f0e;
 
     --divisoria:      #323230;
     --borda-controle: #3d3d3a;

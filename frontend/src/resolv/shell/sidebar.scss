@@ -9,7 +9,7 @@
 //
 // As medidas saem da referência (Copilot): mesmo fundo do conteúdo, um fio
 // vertical de 1px na borda, linhas de 32px em 14px regular, e nenhuma linha
-// horizontal separando zonas — o vão antes de "Recentes" e o rodapé colado
+// horizontal separando zonas — o vão antes de "Trabalhando agora" e o rodapé
 // embaixo já dizem onde uma zona acaba.
 .sidebar-rail {
   position: fixed;
@@ -111,7 +111,7 @@
   }
 
   // ── Navegação ─────────────────────────────────────────────────────────────
-  // Não cresce: quem ocupa o resto da altura é a lista Recentes, e é ela que
+  // Não cresce: quem ocupa o resto da altura é "Trabalhando agora", e é ela que
   // rola quando há muitos tickets abertos — a navegação fica sempre inteira.
   &__nav {
     display: flex;
@@ -145,7 +145,7 @@
       background: var(--sidebar-hover);
     }
     // Ativo: o pill claro e um degrau de peso. É o mesmo estado — e a mesma
-    // aparência — na navegação e na lista Recentes: um ativo por vez na
+    // aparência — na navegação e em "Trabalhando agora": um ativo por vez na
     // sidebar inteira.
     &--ativo,
     &--ativo:hover {
@@ -223,9 +223,9 @@
     line-height: 1;
   }
 
-  // ── Recentes ──────────────────────────────────────────────────────────────
-  // Ocupa o que sobra da altura e rola sozinha (lista-recentes.scss).
-  &__recentes {
+  // ── Trabalhando agora ─────────────────────────────────────────────────────
+  // Ocupa o que sobra da altura e rola sozinha (lista-trabalho.scss).
+  &__trabalho {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
@@ -256,7 +256,7 @@
 
   // ── Recolhida ─────────────────────────────────────────────────────────────
   // Como na referência: o topo vira só o botão de expandir, a coluna vira só
-  // ícones, Recentes some, e o rodapé fica só com o avatar. O nome de cada
+  // ícones, "Trabalhando agora" some, e o rodapé fica só com o avatar. O nome de cada
   // ícone vem do `title` nativo (fora do documento, não cobre conteúdo).
   &--recolhida {
     .sidebar-rail__topo {

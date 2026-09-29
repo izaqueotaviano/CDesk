@@ -71,7 +71,7 @@
    painel virou esse mesmo sólido, liso. Sem a grade, quem carrega o campo é
    o texto — que é o que deveria carregar desde o começo. */
 .login-painel {
-  background-color: var(--primario);
+  background-color: var(--login-painel);
 }
 
 .login-painel__cartao {

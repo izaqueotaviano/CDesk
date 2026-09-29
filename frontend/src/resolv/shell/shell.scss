@@ -5,8 +5,8 @@
 // 1px na borda da sidebar — é a divisão da referência (Copilot). Antes o
 // conteúdo vivia num painel creme arredondado apoiado sobre um cromo mais
 // escuro, com uma barra de abas de navegador fundida nele; lia como duas
-// janelas empilhadas. As abas de ticket viraram a lista "Recentes" da
-// sidebar (ListaRecentes.tsx), e com elas saíram a moldura e o painel.
+// janelas empilhadas. As abas de ticket viraram a lista "Trabalhando agora"
+// da sidebar (ListaTrabalho.tsx), e com elas saíram a moldura e o painel.
 //
 // `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
 // `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa

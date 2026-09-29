@@ -12,12 +12,19 @@ import { useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEve
 import { useLocation, useNavigate } from 'react-router-dom'
 import { chaveAba, useTabs, type Aba, type AbaTicket } from '@/stores/tabs'
 import { MenuFlutuante, type ItemDoMenu } from './MenuFlutuante'
-import './lista-recentes.scss'
+import './lista-trabalho.scss'
 
 /**
- * "Recentes" — os tickets abertos, como a lista de conversas da sidebar da
- * referência (Copilot): só texto, uma linha cada, o fechar aparecendo no
- * hover.
+ * "Trabalhando agora" — os tickets abertos, no desenho da lista de conversas
+ * da sidebar da referência (Copilot): só texto, uma linha cada, o fechar
+ * aparecendo no hover.
+ *
+ * Não se chama "Recentes" de propósito: não é histórico. Entra o ticket que
+ * a pessoa abriu, fica até ela fechar, sem limite e sem expirar, na ordem em
+ * que ela deixou (reabrir não move; arrastar reordena). É a mesa de trabalho
+ * que ela monta — posição estável vale mais aqui do que "o mais recente no
+ * topo". "Abertos" e "Em andamento" ficaram de fora porque já são status de
+ * ticket.
  *
  * Substitui a barra de abas horizontal que ficava no topo do conteúdo. O
  * contrato do store não mudou (`stores/tabs.ts`, docs/06-abas-frontend.md):
@@ -55,7 +62,7 @@ function temRascunho(aba: AbaTicket): boolean {
   return aba.draft.trim().length > 0
 }
 
-export function ListaRecentes() {
+export function ListaTrabalho() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const todas = useTabs((s) => s.tabs)
@@ -180,13 +187,13 @@ export function ListaRecentes() {
     : []
 
   return (
-    <section className="recentes" aria-labelledby="recentes-titulo">
-      <h2 id="recentes-titulo" className="recentes__titulo">
-        Recentes
+    <section className="trabalho" aria-labelledby="trabalho-titulo">
+      <h2 id="trabalho-titulo" className="trabalho__titulo">
+        Trabalhando agora
       </h2>
       <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoArrastar}>
         <SortableContext items={tickets.map((t) => t.chave)} strategy={verticalListSortingStrategy}>
-          <ul className="recentes__lista">
+          <ul className="trabalho__lista">
             {tickets.map((aba, i) => (
               <ItemRecente
                 key={aba.chave}
@@ -258,16 +265,16 @@ function ItemRecente({ aba, ativa, tabIndex, registrar, onAbrir, onFechar, onTec
       ref={setNodeRef}
       style={estilo}
       className={
-        'recentes__item' +
-        (ativa ? ' recentes__item--ativo' : '') +
-        (isDragging ? ' recentes__item--arrastando' : '')
+        'trabalho__item' +
+        (ativa ? ' trabalho__item--ativo' : '') +
+        (isDragging ? ' trabalho__item--arrastando' : '')
       }
       onContextMenu={onMenu}
     >
       <button
         type="button"
         ref={registrar}
-        className="recentes__abrir"
+        className="trabalho__abrir"
         aria-label={nome}
         aria-current={ativa ? 'page' : undefined}
         aria-keyshortcuts="Delete"
@@ -286,12 +293,12 @@ function ItemRecente({ aba, ativa, tabIndex, registrar, onAbrir, onFechar, onTec
           }
         }}
       >
-        <span className="recentes__texto">{titulo}</span>
-        {rascunho && <span className="recentes__rascunho" aria-hidden="true" />}
+        <span className="trabalho__texto">{titulo}</span>
+        {rascunho && <span className="trabalho__rascunho" aria-hidden="true" />}
       </button>
       <button
         type="button"
-        className="recentes__fechar"
+        className="trabalho__fechar"
         aria-label={`Fechar ${ref}`}
         title="Fechar"
         tabIndex={-1}

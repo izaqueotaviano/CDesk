@@ -43,31 +43,50 @@ afterEach(() => {
 describe('Botão de tema (shell Resolv)', () => {
   const botao = (nome: string) => screen.getByRole('button', { name: nome })
 
-  it('nasce em "sistema" e oferece sair dele para o claro', () => {
+  it('nasce em "sistema" e o primeiro clique troca o que está na tela', () => {
     sistemaPrefere(false)
     render(<BotaoTema />)
 
     // Padrão de fábrica: ninguém escolheu nada, então a aparência é a do SO.
+    // O computador está claro — oferecer "claro" seria um clique morto.
     expect(usePrefs.getState().tema).toBe('sistema')
-    expect(botao('Usar tema claro')).toBeInTheDocument()
+    fireEvent.click(botao('Usar tema escuro'))
+    expect(usePrefs.getState().tema).toBe('escuro')
+    expect(atributoResolv()).toBe('escuro')
   })
 
-  it('cicla claro → escuro → sistema → claro, e volta ao automático', () => {
+  it('num computador claro alterna sistema ↔ escuro, e volta ao automático', () => {
+    sistemaPrefere(false)
+    act(() => usePrefs.getState().setTema('escuro'))
+    render(<BotaoTema />)
+
+    // O degrau que evita ficar preso: sem ele, quem clicasse uma vez nunca
+    // mais voltava a acompanhar o sistema.
+    fireEvent.click(botao('Acompanhar o sistema'))
+    expect(usePrefs.getState().tema).toBe('sistema')
+
+    fireEvent.click(botao('Usar tema escuro'))
+    expect(usePrefs.getState().tema).toBe('escuro')
+  })
+
+  it('num computador escuro, o automático oferece o claro', () => {
+    sistemaPrefere(true)
+    render(<BotaoTema />)
+
+    fireEvent.click(botao('Usar tema claro'))
+    expect(usePrefs.getState().tema).toBe('claro')
+    fireEvent.click(botao('Acompanhar o sistema'))
+    expect(usePrefs.getState().tema).toBe('sistema')
+  })
+
+  it('"claro" fixo num computador claro vai para o escuro, não para o automático', () => {
+    // Voltar ao automático ali não mudaria nada na tela.
     sistemaPrefere(false)
     act(() => usePrefs.getState().setTema('claro'))
     render(<BotaoTema />)
 
     fireEvent.click(botao('Usar tema escuro'))
     expect(usePrefs.getState().tema).toBe('escuro')
-    expect(atributoResolv()).toBe('escuro')
-
-    // O degrau que faltava: sem ele, quem clicasse uma vez ficava preso em
-    // claro/escuro e nunca mais voltava a acompanhar o sistema.
-    fireEvent.click(botao('Acompanhar o sistema'))
-    expect(usePrefs.getState().tema).toBe('sistema')
-
-    fireEvent.click(botao('Usar tema claro'))
-    expect(usePrefs.getState().tema).toBe('claro')
   })
 
   it('em "sistema" deixa o atributo do Resolv ausente e resolve o do cvz em JS', () => {
@@ -134,6 +153,7 @@ describe('Botão de tema (shell Resolv)', () => {
   it('renderiza sem matchMedia (SSR/jsdom cru) sem quebrar', () => {
     render(<BotaoTema />)
 
-    expect(botao('Usar tema claro')).toBeInTheDocument()
+    // Sem matchMedia, "sistema" resolve para claro — o próximo é o escuro.
+    expect(botao('Usar tema escuro')).toBeInTheDocument()
   })
 })

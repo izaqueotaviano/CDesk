@@ -1,11 +1,11 @@
-// "Recentes" — os tickets abertos na sidebar (ListaRecentes.tsx).
+// "Trabalhando agora" — os tickets abertos na sidebar (ListaTrabalho.tsx).
 //
 // As medidas saem da lista de conversas da referência (Copilot): linha de
 // ~30px, 14px em peso regular, e o texto começando na MESMA coluna do rótulo
 // da seção — não na coluna dos rótulos da navegação lá em cima. É isso que
 // separa, sem precisar de linha, "para onde eu vou" (ícone + rótulo) de "no
 // que eu estou trabalhando" (só o texto).
-.recentes {
+.trabalho {
   display: flex;
   flex-direction: column;
   min-height: 0;

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useTabs, type Aba } from '@/stores/tabs'
-import { ListaRecentes } from './ListaRecentes'
+import { ListaTrabalho } from './ListaTrabalho'
 
 // O espelho no servidor é irrelevante aqui (e `fechar` o agenda com 2s de
 // folga): a aba é local e síncrona por contrato — docs/06-abas-frontend.md.
@@ -35,7 +35,7 @@ function montar(abas: Aba[], rota = '/chamados/1') {
   useTabs.setState({ tabs: abas, active: null, reconciliando: false })
   return render(
     <MemoryRouter initialEntries={[rota]}>
-      <ListaRecentes />
+      <ListaTrabalho />
       <Routes>
         <Route path="*" element={<Rota />} />
       </Routes>
@@ -46,7 +46,7 @@ function montar(abas: Aba[], rota = '/chamados/1') {
 const rota = () => screen.getByTestId('rota').textContent
 
 /** O × de cada linha. Não dá para achar por papel e nome: fora do hover e
- *  sem ser o ticket atual ele está em display:none (lista-recentes.scss, e o
+ *  sem ser o ticket atual ele está em display:none (lista-trabalho.scss, e o
  *  jsdom não simula :hover), e um nó oculto tem nome acessível vazio. */
 function fecharDe(rotulo: string) {
   const botao = document.querySelector<HTMLButtonElement>(`button[aria-label="${rotulo}"]`)
@@ -66,10 +66,10 @@ afterEach(() => {
   useTabs.setState({ tabs: [], active: null, reconciliando: false })
 })
 
-describe('ListaRecentes — o que aparece', () => {
+describe('ListaTrabalho — o que aparece', () => {
   it('sem ticket aberto não renderiza nada — nem o título da seção', () => {
     montar([{ tipo: 'secao', rota: '/clientes', titulo: 'Clientes', icone: 'ti ti-users' }], '/clientes')
-    expect(screen.queryByText('Recentes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Trabalhando agora')).not.toBeInTheDocument()
   })
 
   it('mostra só os tickets, pelo assunto; abas de seção herdadas ficam de fora', () => {
@@ -78,7 +78,7 @@ describe('ListaRecentes — o que aparece', () => {
       { tipo: 'secao', rota: '/clientes', titulo: 'Clientes', icone: 'ti ti-users' },
       ticket(2, '#1002'),
     ])
-    const lista = screen.getByRole('region', { name: 'Recentes' })
+    const lista = screen.getByRole('region', { name: 'Trabalhando agora' })
     expect(within(lista).getAllByRole('listitem')).toHaveLength(2)
     expect(within(lista).getByText('Assunto #1001')).toBeInTheDocument()
     expect(within(lista).queryByText('Clientes')).not.toBeInTheDocument()
@@ -103,7 +103,7 @@ describe('ListaRecentes — o que aparece', () => {
   })
 })
 
-describe('ListaRecentes — fechar', () => {
+describe('ListaTrabalho — fechar', () => {
   it('pergunta antes de fechar um ticket com rascunho e não fecha quando a pessoa desiste', () => {
     confirmar.mockReturnValue(false)
     montar([ticket(1, '#1001', 'já escrevi metade da resposta'), ticket(2, '#1002')])
@@ -157,7 +157,7 @@ describe('ListaRecentes — fechar', () => {
   })
 })
 
-describe('ListaRecentes — teclado', () => {
+describe('ListaTrabalho — teclado', () => {
   it('só um item entra na ordem de tabulação: o ticket da tela', () => {
     montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/2')
     const [a, b, c] = within(screen.getByRole('list')).getAllByRole('button', { name: /· Assunto/ })
@@ -180,7 +180,7 @@ describe('ListaRecentes — teclado', () => {
   })
 })
 
-describe('ListaRecentes — menu de contexto', () => {
+describe('ListaTrabalho — menu de contexto', () => {
   it('"Fechar os outros" deixa só o escolhido', () => {
     montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/1')
     fireEvent.contextMenu(screen.getByRole('button', { name: '#1002 · Assunto #1002' }), { clientX: 40, clientY: 80 })

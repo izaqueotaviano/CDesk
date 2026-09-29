@@ -42,7 +42,7 @@ describe('stores/tabs — reordenar', () => {
   })
 
   it('reordenar só as chaves de ticket preserva as abas de seção antigas no fim', () => {
-    // É o que a lista Recentes faz: ela só conhece tickets, e uma aba de seção
+    // É o que a lista "Trabalhando agora" faz: ela só conhece tickets, e uma aba de seção
     // herdada de antes (localStorage) não pode sumir por causa disso.
     useTabs.setState({
       tabs: [

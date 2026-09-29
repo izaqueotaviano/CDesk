@@ -21,7 +21,7 @@ import { CONSULTA_TELA_PEQUENA, useConsultaDeMidia } from './useConsultaDeMidia'
  * o resto do app (visual Tailwind) ficam de fora.
  *
  * A estrutura segue a referência (Copilot): a navegação e o que está aberto
- * moram na SIDEBAR — os tickets abertos viraram a lista "Recentes" dela, no
+ * moram na SIDEBAR — os tickets abertos viraram a lista "Trabalhando agora" dela, no
  * lugar da antiga barra de abas —, e o topo fica com dois ícones no canto
  * (notificações e tema). `buscaAberta` e `gavetaAberta` moram aqui, não
  * dentro dos componentes, porque dois lugares abrem cada um: o item "Buscar"

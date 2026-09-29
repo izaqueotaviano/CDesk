@@ -140,6 +140,8 @@ export function useTemaResolvido(): {
   /** A PREFERÊNCIA guardada — inclui "sistema", que `tema` já resolveu. */
   preferencia: Tema
   ciclar: () => void
+  /** Para onde `ciclar` vai — é o que o rótulo do botão anuncia. */
+  proxima: Tema
 } {
   const preferencia = usePrefs((s) => s.tema)
   const setTema = usePrefs((s) => s.setTema)
@@ -163,17 +165,40 @@ export function useTemaResolvido(): {
     [tema, setTema],
   )
 
-  // Ciclo de TRÊS posições: claro → escuro → sistema → claro.
-  //
-  // `alternar` (dois estados) continua existindo para quem já o usa, mas o
-  // botão do console passou a usar este. O motivo é simples: o padrão de
-  // fábrica é "sistema", e com um alternador de dois estados quem clicasse
-  // uma vez ficava preso em claro/escuro para sempre — não havia volta para
-  // o automático fora do seletor do portal, que a equipe nem vê.
-  const ciclar = useCallback(() => {
-    const proxima: Record<Tema, Tema> = { claro: 'escuro', escuro: 'sistema', sistema: 'claro' }
-    setTema(proxima[preferencia])
-  }, [preferencia, setTema])
+  // `alternar` (dois estados) continua existindo para quem já o usa; os
+  // botões de tema usam este. Ver `proximaPreferencia`.
+  const proxima = proximaPreferencia(preferencia, sistemaEscuro)
+  const ciclar = useCallback(() => setTema(proxima), [proxima, setTema])
 
-  return { tema, alternar, preferencia, ciclar }
+  return { tema, alternar, preferencia, ciclar, proxima }
+}
+
+/**
+ * Para onde o botão de tema vai a seguir. Duas regras:
+ *
+ * 1. TODO clique muda o que está na tela. O ciclo fixo claro → escuro →
+ *    sistema tinha um clique morto: no padrão de fábrica ("sistema") num
+ *    computador claro, o primeiro clique ia para "claro" e nada mudava — com
+ *    o rótulo "Usar tema claro" em cima de uma tela já clara.
+ * 2. "Sistema" continua alcançável. Com um alternador de dois estados, quem
+ *    clicasse uma vez ficava preso em claro/escuro para sempre.
+ *
+ * Então: em "sistema", vai para o oposto do que se vê; numa escolha fixa,
+ * volta para "sistema" se isso mudar a tela, e senão vai para o outro fixo.
+ * Num computador claro isso dá sistema → escuro → sistema…; "claro" fixo só
+ * se alcança pelo seletor do portal, e na tela ele é igual ao automático.
+ */
+export function proximaPreferencia(preferencia: Tema, sistemaEscuro: boolean): Tema {
+  const doSistema: TemaResolvido = sistemaEscuro ? 'escuro' : 'claro'
+  if (preferencia === 'sistema') return doSistema === 'escuro' ? 'claro' : 'escuro'
+  if (doSistema !== preferencia) return 'sistema'
+  return preferencia === 'claro' ? 'escuro' : 'claro'
+}
+
+/** O rótulo do botão anuncia a PRÓXIMA ação, não o estado atual — "Tema
+ *  claro" seria ambíguo: é o que está ligado ou o que vou ligar? */
+export const ACAO_DO_TEMA: Record<Tema, string> = {
+  claro: 'Usar tema claro',
+  escuro: 'Usar tema escuro',
+  sistema: 'Acompanhar o sistema',
 }
