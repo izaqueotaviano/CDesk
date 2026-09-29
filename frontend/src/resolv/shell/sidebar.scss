@@ -1,48 +1,50 @@
-// Sidebar do shell — expandida (240px), recolhida (54px) e gaveta (tela
+// Sidebar do shell — expandida (248px), recolhida (52px) e gaveta (tela
 // pequena).
 //
 // A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
 // shell.scss, na raiz, porque quem se mexe junto é o conteúdo — o corpo lê a
 // mesma variável para o próprio recuo e nunca fica por baixo da barra em
 // nenhum dos dois estados. Aqui ficam só a aparência e o layout interno.
-// (O fallback de 240px cobre a barra renderizada fora do shell, como no teste.)
+// (O fallback de 248px cobre a barra renderizada fora do shell, como no teste.)
 //
-// Sem borda vertical à direita: a separação já vem da diferença de fundo
-// (cromo #f0f0f0 contra o painel de conteúdo), e a linha por cima disso
-// engrossava a moldura à toa. As linhas horizontais que existem — abaixo do
-// cabeçalho e acima do rodapé — marcam as zonas, não a borda.
+// As medidas saem da referência (Copilot): mesmo fundo do conteúdo, um fio
+// vertical de 1px na borda, linhas de 32px em 14px regular, e nenhuma linha
+// horizontal separando zonas — o vão antes de "Recentes" e o rodapé colado
+// embaixo já dizem onde uma zona acaba.
 .sidebar-rail {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
   z-index: 100;
-  width: var(--largura-sidebar, 240px);
+  width: var(--largura-sidebar, 248px);
   display: flex;
   flex-direction: column;
   background: var(--surface-alt);
-  color: var(--texto-cromo);
+  border-right: 1px solid var(--stroke);
+  color: var(--text-primary);
   transition: width 0.15s ease;
 
-  // ── Cabeçalho: marca + alternador ─────────────────────────────────────────
+  // ── Topo: marca + recolher ────────────────────────────────────────────────
   &__topo {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 4px;
     height: 52px;
-    padding: 0 8px 0 12px;
+    padding: 0 8px;
     flex-shrink: 0;
   }
 
+  // A marca é texto, como o "Copilot" da referência — o logo ao lado é
+  // pequeno de propósito, para o nome ser o que se lê.
   &__marca {
     display: flex;
     align-items: center;
-    gap: 10px;
-    flex: 1;
+    gap: 8px;
     min-width: 0;
-    height: 36px;
-    padding: 0 4px;
+    height: 32px;
+    padding: 0 8px 0 6px;
     border: none;
     border-radius: var(--raio);
     background: transparent;
@@ -51,19 +53,17 @@
     cursor: pointer;
 
     &:hover {
-      background: var(--stroke);
+      background: var(--sidebar-hover);
     }
     &:focus-visible {
-      outline: 2px solid var(--accent);
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
 
-  // Caixa fixa de 32px em volta da marca: é o que centraliza o logo no rail
-  // recolhido e mantém o nome alinhado ao lado dele no expandido.
   &__logo {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -71,19 +71,17 @@
   }
 
   &__logo-mark {
-    width: 20px;
+    width: 15px;
     height: auto;
     color: var(--text-primary);
   }
 
   &__marca-nome {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 17px;
+    font-weight: 600;
     letter-spacing: -0.01em;
     color: var(--text-primary);
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
   &__alternar {
@@ -100,172 +98,72 @@
     cursor: pointer;
 
     i {
-      font-size: 17px;
+      font-size: 18px;
     }
     &:hover {
-      background: var(--stroke);
+      background: var(--sidebar-hover);
       color: var(--text-primary);
     }
     &:focus-visible {
-      outline: 2px solid var(--accent);
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
 
-  // Recolhida: o alternador desce pra uma linha própria abaixo da marca.
-  &__linha-alternar {
-    display: flex;
-    justify-content: center;
-    padding: 6px 0;
-    flex-shrink: 0;
-  }
-
-  // ── Busca ─────────────────────────────────────────────────────────────────
-  // Parece um campo (é a porta da busca), mas é BOTÃO: quem digita é o painel
-  // central que ele abre. Um <input> aqui teria dois lugares para digitar a
-  // mesma coisa.
-  // ── Rótulo de seção ───────────────────────────────────────────────────────
-  // O respiro ACIMA é o que faz o trabalho: ele é que separa os dois blocos.
-  // O texto é só a legenda desse vão, em caixa baixa e no tom mais silencioso
-  // — se ele gritasse, viraria mais um item de navegação.
-  &__secao {
-    margin: 20px 0 4px;
-    padding: 0 10px;
-    font-size: 12px;
-    line-height: 1.33;
-    color: var(--text-muted);
-    user-select: none;
-  }
-  // Recolhida não há espaço para texto: sobra o vão, que continua separando.
-  .sidebar-rail--recolhida & {
-    &__secao { margin: 14px 0 2px; font-size: 0; }
-  }
-
-  &__busca {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    height: 34px;
-    margin: 12px 12px 4px;
-    padding: 0 12px;
-    flex-shrink: 0;
-    // Cápsula e fio de 1px: as duas coisas que o briefing pede num campo de
-    // entrada, e as únicas bordas que sobreviveram à limpeza.
-    border: 1px solid var(--borda-campo);
-    border-radius: var(--r-total, 999px);
-    background: var(--surface-card);
-    color: var(--text-secondary);
-    font-family: var(--f-ui);
-    font-size: 13px;
-    text-align: left;
-    cursor: pointer;
-
-    i {
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-    // Sem borda, o hover precisa de outro sinal — mesmo fundo que o item de
-    // navegação usa (var(--stroke)) em vez de escurecer uma borda que não
-    // existe mais.
-    &:hover {
-      background: var(--stroke);
-    }
-    &:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 1px;
-    }
-  }
-
-  &__busca-rotulo {
-    flex: 1;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-  }
-
-  &__busca-atalho {
-    flex-shrink: 0;
-    padding: 2px 5px;
-    border-radius: var(--raio);
-    background: var(--surface-alt);
-    font-family: var(--f-mono);
-    font-size: 10px;
-    line-height: 1.4;
-    color: var(--text-muted);
-  }
-
   // ── Navegação ─────────────────────────────────────────────────────────────
+  // Não cresce: quem ocupa o resto da altura é a lista Recentes, e é ela que
+  // rola quando há muitos tickets abertos — a navegação fica sempre inteira.
   &__nav {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    flex: 1;
-    min-height: 0;
-    padding: 8px 12px;
-    overflow-y: auto;
-    // A rolagem é da lista, não da barra: com 11 itens mais as zonas fixas,
-    // uma janela baixa cortaria o rodapé (conta e tema) se a barra inteira
-    // rolasse junto.
-    overflow-x: hidden;
+    gap: 1px;
+    flex-shrink: 0;
+    padding: 4px 8px;
   }
 
   &__item {
     position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
-    min-height: 36px;
-    padding: 0 10px;
+    height: 32px;
+    padding: 0 8px;
     flex-shrink: 0;
     border: none;
     border-radius: var(--raio);
     background: transparent;
-    color: var(--texto-cromo);
+    color: var(--text-primary);
     font-family: var(--f-ui);
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     text-align: left;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background 0.12s ease;
 
     &:hover {
-      background: var(--stroke);
-      color: var(--text-primary);
+      background: var(--sidebar-hover);
     }
-    // Ativo: um pill claro e o peso da fonte. Só isso.
-    //
-    // Saíram daqui a barrinha vertical da borda esquerda e o laranja no
-    // ícone. Os dois marcavam a mesma coisa três vezes — fundo, trilho e
-    // cor —, e o briefing pede o contrário: hierarquia por espaço e peso,
-    // sem cor de marca na navegação. O pill sozinho já responde "você está
-    // aqui", e o negrito confirma para quem não separa tom de cinza.
-    &--ativo {
+    // Ativo: o pill claro e um degrau de peso. É o mesmo estado — e a mesma
+    // aparência — na navegação e na lista Recentes: um ativo por vez na
+    // sidebar inteira.
+    &--ativo,
+    &--ativo:hover {
       background: var(--sidebar-ativo);
-      color: var(--text-primary);
-      font-weight: 600;
-    }
-    &--inerte {
-      color: var(--text-muted);
-      cursor: default;
-      &:hover {
-        background: transparent;
-        color: var(--text-muted);
-      }
+      font-weight: 500;
     }
     &:focus-visible {
-      outline: 2px solid var(--accent);
+      outline: 2px solid var(--foco);
       outline-offset: -2px;
     }
   }
 
-  // Caixa do ícone: tem tamanho fixo para os rótulos alinharem numa coluna só,
-  // e é ela (não o botão inteiro) que ancora o selo — senão, com a barra
-  // expandida, o selo ia parar na ponta direita da linha.
+  // Caixa do ícone: tamanho fixo para os rótulos alinharem numa coluna só, e
+  // é ela (não o botão inteiro) que ancora o selo de conversas.
   &__icone {
     position: relative;
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -274,11 +172,26 @@
     i {
       font-size: 18px;
       line-height: 1;
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
   }
-  &__item:hover &__icone i {
-    color: var(--text-primary);
+
+  // O círculo cheio da ação primária — o "Novo chat" da referência. Sai dos
+  // tokens de ação, então inverte sozinho no tema escuro (círculo claro,
+  // sinal escuro).
+  &__novo {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--primario);
+
+    i {
+      font-size: 12px;
+      color: var(--primario-sobre);
+    }
   }
 
   &__rotulo {
@@ -289,53 +202,46 @@
     text-overflow: ellipsis;
   }
 
-  &__em-breve {
-    flex-shrink: 0;
-    font-size: 10px;
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-
   // Selo de conversas sobre o ícone de Chats — a contagem vive onde a pessoa
   // olha para achar o chat, sem ocupar uma linha própria.
   &__badge {
     position: absolute;
-    top: -4px;
-    right: -7px;
+    top: -5px;
+    right: -8px;
     min-width: 15px;
     height: 15px;
     padding: 0 3px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: var(--raio);
-    background: var(--surface-alt);
-    // `--surface-card` e não branco: ele inverte com o tema, e o acento
-    // também — no escuro o acento é claro (#ff8a63) e branco em cima
-    // dava 2,32:1. É a convenção do resto do escopo (chat.scss,
-    // lista.scss, inicio.scss).
-    color: var(--text-secondary);
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
     font-family: var(--f-ui);
     font-size: 9px;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1;
   }
 
-  // ── Zona utilitária (rodapé) ──────────────────────────────────────────────
-  &__zona-utilitaria {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    flex-shrink: 0;
-    padding: 8px 12px 10px;
-    width: 100%;
+  // ── Recentes ──────────────────────────────────────────────────────────────
+  // Ocupa o que sobra da altura e rola sozinha (lista-recentes.scss).
+  &__recentes {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 8px 8px;
+  }
 
-    // Os painéis destes itens nascem pensados para uma barra HORIZONTAL —
-    // abrem para baixo (Popover.scss: `top: calc(100% + 4px)`). Numa coluna
-    // colada na borda esquerda isso jogaria o painel para fora da tela;
-    // reancorado para abrir à DIREITA e crescer para CIMA (`bottom: 0`), que é
-    // o único sentido que nunca estoura — estes são os itens mais próximos do
-    // rodapé da janela.
+  // ── Conta (rodapé) ────────────────────────────────────────────────────────
+  &__conta {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding: 8px;
+
+    // O menu da conta nasce pensado para abrir PARA BAIXO (Popover.scss).
+    // Colado no rodapé da janela, isso o jogaria para fora da tela; aqui ele
+    // abre à direita e cresce para CIMA, o único sentido que nunca estoura.
     .popover {
       display: block;
       width: 100%;
@@ -349,65 +255,33 @@
   }
 
   // ── Recolhida ─────────────────────────────────────────────────────────────
-  // Tudo que é texto sai; o que sobra centraliza. Nada de tooltip em
-  // pseudo-elemento: o nome vem do `title` nativo (fora do documento, não
-  // empurra nem cobre conteúdo).
+  // Como na referência: o topo vira só o botão de expandir, a coluna vira só
+  // ícones, Recentes some, e o rodapé fica só com o avatar. O nome de cada
+  // ícone vem do `title` nativo (fora do documento, não cobre conteúdo).
   &--recolhida {
     .sidebar-rail__topo {
       justify-content: center;
       padding: 0;
     }
-    .sidebar-rail__marca {
-      flex: none;
-      width: 40px;
-      justify-content: center;
-      padding: 0;
-    }
-    .sidebar-rail__marca-nome,
-    .sidebar-rail__busca-rotulo,
-    .sidebar-rail__busca-atalho,
     .sidebar-rail__rotulo,
-    .sidebar-rail__em-breve,
     .menu-presenca__nome {
       display: none;
     }
-    .sidebar-rail__busca {
-      width: 40px;
-      margin: 8px auto 0;
-      justify-content: center;
-      padding: 0;
-      background: transparent;
-      color: var(--texto-cromo);
-
-      &:hover {
-        background: var(--stroke);
-      }
-    }
     .sidebar-rail__nav {
       align-items: center;
-      padding: 8px 0;
+      padding: 4px 0;
     }
     .sidebar-rail__item,
     .menu-presenca__gatilho {
-      width: 40px;
+      width: 36px;
       justify-content: center;
       gap: 0;
       padding: 0;
-      min-height: 40px;
     }
-    // Sem espaço pra barrinha à esquerda do ícone: o ativo se diz pelo fundo
-    // e pela cor do ícone.
-    .sidebar-rail__item--ativo::before {
-      display: none;
-    }
-    .sidebar-rail__zona-utilitaria {
-      align-items: center;
-      padding: 8px 0 10px;
-      // A linha divisória acompanha a largura do rail em vez de atravessar a
-      // barra inteira: colada nas bordas ela virava um traço largo demais para
-      // 64px.
-      margin: 0 12px;
-      width: auto;
+    .sidebar-rail__conta {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
     }
   }
 }
@@ -415,7 +289,7 @@
 // ── Gaveta (tela pequena) ───────────────────────────────────────────────────
 // Abaixo de 768px a barra sai do fluxo de vez: o corpo não recua (shell.scss
 // zera `--largura-sidebar`) e ela entra por cima do conteúdo, com véu, quando
-// o botão de menu da barra de abas pede. Fechada, fica fora da tela E
+// o botão de menu da barra superior pede. Fechada, fica fora da tela E
 // `visibility: hidden` — some da ordem de tabulação sem precisar desmontar.
 .sidebar-veu {
   position: fixed;
@@ -426,7 +300,8 @@
 
 @media (max-width: 767px) {
   .sidebar-rail--gaveta {
-    width: min(280px, 85vw);
+    width: min(288px, 85vw);
+    border-right: none;
     transform: translateX(-100%);
     visibility: hidden;
     box-shadow: var(--sombra-flutuante);

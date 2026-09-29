@@ -253,7 +253,7 @@ export function PaginaDetalheTicket() {
   const abrirTicket = useTabs((s) => s.abrirTicket)
 
   // Registra/atualiza a aba deste ticket assim que os dados chegam — é o que
-  // alimenta a BarraDeAbas e o espelho no servidor (docs/06).
+  // alimenta a lista Recentes da sidebar e o espelho no servidor (docs/06).
   useEffect(() => {
     if (!ticket) return
     abrirTicket(ticket.id, {
@@ -271,20 +271,10 @@ export function PaginaDetalheTicket() {
 
   return (
     <div className="detalhe">
-      {/* O painel que a aba ativa controla — único elemento com esse papel na
-          árvore (trocar de aba navega para outra rota, não empilha um segundo
-          painel ao lado). `aria-labelledby` aponta para o id que a barra de
-          abas do shell expõe por aba de ticket (`aba-tab-${ticketId}`,
-          resolv/shell/BarraDeAbas.tsx — a barra migrou pra lá na Fase 2, fora
-          desta página, porque agora cobre seções também, não só tickets); o
-          vínculo completa o padrão WAI-ARIA de tabs — a aba já era role="tab"
-          e navegável, só não dizia qual painel ela abre. */}
-      <div
-        role="tabpanel"
-        id="detalhe-painel-ticket"
-        aria-labelledby={`aba-tab-${ticketId}`}
-        className="detalhe__painel"
-      >
+      {/* Sem role="tabpanel": os tickets abertos deixaram de ser abas (são a
+          lista Recentes da sidebar, com aria-current), e um tabpanel sem a
+          aba que o nomeia seria um marco órfão para o leitor de tela. */}
+      <div className="detalhe__painel">
 
       {isError ? (
         <div className="detalhe__estado detalhe__estado--erro" role="alert">

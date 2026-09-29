@@ -1,17 +1,24 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePrefs } from '@/stores/prefs'
+import { useTabs } from '@/stores/tabs'
 import { Sidebar } from './Sidebar'
+
+// Recentes lê o store de abas, que importa o espelho no servidor — aqui ele
+// não entra (docs/06-abas-frontend.md).
+vi.mock('@/api/tabs', () => ({
+  getTabsServidor: vi.fn(() => new Promise(() => {})),
+  putTabsServidor: vi.fn(() => new Promise(() => {})),
+}))
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
 }
 
-// A Sidebar ganhou a zona utilitária na Fase 2 (busca, notificações, tema,
-// presença) — monta `useMe`, chat (fila/meus) e notificações de verdade, daí
-// o stub de fetch que os testes anteriores (só navegação) não precisavam.
+// A Sidebar monta `useMe`, o chat (fila/meus, para o selo) e a presença de
+// verdade, daí o stub de fetch.
 beforeEach(() => {
   vi.stubGlobal(
     'fetch',
@@ -32,7 +39,6 @@ beforeEach(() => {
         )
       }
       if (u.pathname === '/api/v1/chat/chats/') return Promise.resolve(jsonDe([]))
-      if (u.pathname === '/api/v1/notifications/') return Promise.resolve(jsonDe({ results: [], unread_count: 0 }))
       return Promise.resolve(jsonDe({}, 404))
     }),
   )
@@ -42,71 +48,118 @@ afterEach(() => {
   // A preferência é um singleton de módulo persistido: sem devolver ao padrão,
   // a barra recolhida num teste vaza para o seguinte.
   usePrefs.setState({ sidebarRecolhida: false })
+  useTabs.setState({ tabs: [], active: null, reconciliando: false })
 })
 
-function montar() {
+function montar(rota = '/inicio', onAbrirBusca = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/inicio']}>
+      <MemoryRouter initialEntries={[rota]}>
+        <Sidebar onAbrirBusca={onAbrirBusca} />
         <Routes>
-          <Route path="/inicio" element={<Sidebar onAbrirBusca={vi.fn()} />} />
-          <Route path="/clientes" element={<p>tela de clientes</p>} />
-          <Route path="/configuracoes" element={<p>tela de configurações</p>} />
-          <Route path="/notas" element={<p>tela de notas</p>} />
+          <Route path="*" element={<Rota />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   )
 }
 
-describe('Sidebar — links que antes eram mortos', () => {
-  it('"Clientes" leva pra /clientes, não pro /empresas inexistente', () => {
+function Rota() {
+  return <output data-testid="rota">{useLocation().pathname}</output>
+}
+const rota = () => screen.getByTestId('rota').textContent
+
+function abrirMais() {
+  fireEvent.click(screen.getByRole('button', { name: /^Mais/ }))
+  return screen.getByRole('menu', { name: 'Mais seções' })
+}
+
+describe('Sidebar — navegação principal', () => {
+  it('"Novo ticket" é a ação primária e abre a tela de novo ticket', () => {
+    montar()
+    fireEvent.click(screen.getByRole('button', { name: 'Novo ticket' }))
+    expect(rota()).toBe('/chamados/novo')
+  })
+
+  it('os destinos do dia a dia ficam na coluna: "Clientes" leva pra /clientes', () => {
     montar()
     fireEvent.click(screen.getByRole('button', { name: 'Clientes' }))
-    expect(screen.getByText('tela de clientes')).toBeInTheDocument()
+    expect(rota()).toBe('/clientes')
   })
 
-  it('"Configurações" leva pra /configuracoes, não pro /admin inexistente', () => {
-    montar()
-    fireEvent.click(screen.getByRole('button', { name: 'Configurações' }))
-    expect(screen.getByText('tela de configurações')).toBeInTheDocument()
-  })
-
-  it('os dois não ficam mais marcados como inertes', () => {
-    montar()
-    expect(screen.getByRole('button', { name: 'Clientes' })).not.toHaveAttribute('aria-disabled')
-    expect(screen.getByRole('button', { name: 'Configurações' })).not.toHaveAttribute('aria-disabled')
-  })
-
-  it('"Notas" saiu de "em breve" e leva pra /notas', () => {
-    montar()
-    expect(screen.getByRole('button', { name: 'Notas' })).not.toHaveAttribute('aria-disabled')
-    fireEvent.click(screen.getByRole('button', { name: 'Notas' }))
-    expect(screen.getByText('tela de notas')).toBeInTheDocument()
-  })
-
-  it('"Calendário" continua inerte — sem rota real ainda', () => {
-    montar()
-    expect(screen.getByRole('button', { name: /Calendário/ })).toHaveAttribute('aria-disabled', 'true')
-  })
-})
-
-describe('Sidebar — zona utilitária (Fase 2: absorveu a Topbar)', () => {
   it('clicar em "Buscar" chama o gatilho recebido por prop, não abre o próprio painel', () => {
     const abrirBusca = vi.fn()
-    render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter initialEntries={['/inicio']}>
-          <Sidebar onAbrirBusca={abrirBusca} />
-        </MemoryRouter>
-      </QueryClientProvider>,
-    )
-
+    montar('/inicio', abrirBusca)
     fireEvent.click(screen.getByRole('button', { name: 'Buscar e navegar' }))
     expect(abrirBusca).toHaveBeenCalledOnce()
   })
 
+  it('o item da tela atual é o único com aria-current', () => {
+    montar('/clientes')
+    expect(screen.getByRole('button', { name: 'Clientes' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Início' })).not.toHaveAttribute('aria-current')
+  })
+})
+
+describe('Sidebar — menu "Mais"', () => {
+  it('guarda os destinos secundários, fora da coluna', () => {
+    montar()
+    expect(screen.queryByRole('button', { name: 'Configurações' })).not.toBeInTheDocument()
+    const menu = abrirMais()
+    for (const nome of ['Avisos', 'Notas', 'Relatórios', 'Auditoria e LGPD', 'Configurações']) {
+      expect(within(menu).getByRole('menuitem', { name: nome })).toBeInTheDocument()
+    }
+  })
+
+  it('"Configurações" leva pra /configuracoes', () => {
+    montar()
+    fireEvent.click(within(abrirMais()).getByRole('menuitem', { name: 'Configurações' }))
+    expect(rota()).toBe('/configuracoes')
+  })
+
+  it('"Calendário" continua inerte — sem rota real ainda', () => {
+    montar()
+    expect(within(abrirMais()).getByRole('menuitem', { name: /Calendário/ })).toHaveAttribute('aria-disabled', 'true')
+  })
+
+  it('numa tela secundária, "Mais" acende e diz onde a pessoa está', () => {
+    montar('/notas')
+    expect(screen.getByRole('button', { name: 'Mais — você está em Notas' })).toHaveAttribute('aria-expanded', 'false')
+  })
+})
+
+describe('Sidebar — um estado ativo por vez', () => {
+  const abrirTicket = () =>
+    useTabs.setState({
+      tabs: [{ tipo: 'ticket', ticketId: 5, resumo: { id: 5, reference: '#1005', subject: 'Impressora', status: 'open', requester_display: 'Beto' }, scroll: 0, draft: '' }],
+      active: 'ticket:5',
+      reconciliando: false,
+    })
+
+  it('com o ticket em Recentes, é ele que acende — "Tickets" não', () => {
+    abrirTicket()
+    montar('/chamados/5')
+    expect(screen.getByRole('button', { name: '#1005 · Impressora' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('recolhida, Recentes some e quem acende no ticket é "Tickets"', () => {
+    abrirTicket()
+    usePrefs.setState({ sidebarRecolhida: true })
+    montar('/chamados/5')
+    expect(screen.queryByRole('region', { name: 'Recentes' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('na tela de novo ticket acende "Novo ticket", não "Tickets"', () => {
+    montar('/chamados/novo')
+    expect(screen.getByRole('button', { name: 'Novo ticket' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
+  })
+})
+
+describe('Sidebar — recolher, e o selo de conversas', () => {
   it('recolhe e expande, guardando a escolha na preferência do app', () => {
     const { container } = montar()
 
@@ -122,14 +175,15 @@ describe('Sidebar — zona utilitária (Fase 2: absorveu a Topbar)', () => {
     expect(barra).not.toHaveClass('sidebar-rail--recolhida')
   })
 
-  it('recolhida, os itens continuam nomeados para o teclado e o leitor de tela', () => {
+  it('recolhida, os itens continuam nomeados e a marca sai do topo', () => {
     usePrefs.setState({ sidebarRecolhida: true })
     montar()
 
     // O rótulo visível some no CSS, mas o nome acessível não depende dele:
     // é o `aria-label` do botão que responde por ele nos dois estados.
     expect(screen.getByRole('button', { name: 'Clientes' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Configurações' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Novo ticket' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /ir para o Início/ })).not.toBeInTheDocument()
   })
 
   it('o selo de conversas some quando a fila e os atendimentos estão vazios', async () => {
@@ -159,7 +213,6 @@ describe('Sidebar — zona utilitária (Fase 2: absorveu a Topbar)', () => {
           const status = u.searchParams.get('status')
           return Promise.resolve(jsonDe(status === 'queued' ? [{ id: 1 }, { id: 2 }] : [{ id: 3 }]))
         }
-        if (u.pathname === '/api/v1/notifications/') return Promise.resolve(jsonDe({ results: [], unread_count: 0 }))
         return Promise.resolve(jsonDe({}, 404))
       }),
     )

@@ -9,10 +9,14 @@
   min-height: 0;
 
   // ---------------------------------------------------------------- views panel
+  // Mesmo plano do resto da tela, com o fio de 1px à direita — a divisão da
+  // sidebar do shell, repetida um nível abaixo. Um painel branco aqui era a
+  // única ilha de outra cor entre a navegação e a tabela.
   &__views {
     width: 256px;
     flex-shrink: 0;
-    background: var(--surface-card);
+    background: transparent;
+    border-right: 1px solid var(--stroke);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -420,7 +424,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-card);
+    background: transparent;
     border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
@@ -430,7 +434,7 @@
       color: var(--text-secondary);
     }
     &:hover {
-      border-color: var(--stroke-hover);
+      background: var(--sidebar-hover);
       color: var(--text-primary);
     }
   }
@@ -445,7 +449,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--surface-card);
+    background: transparent;
     border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
@@ -453,7 +457,7 @@
       font-size: 14px;
     }
     &:hover {
-      border-color: var(--stroke-hover);
+      background: var(--sidebar-hover);
       color: var(--text-primary);
     }
   }
@@ -461,7 +465,8 @@
   &__lista {
     display: flex;
     flex-direction: column;
-    padding: 8px 0;
+    gap: 1px;
+    padding: 4px 8px;
   }
 
   &__item {
@@ -472,28 +477,26 @@
     justify-content: space-between;
     gap: 8px;
     text-align: left;
-    padding: 9px 16px;
+    min-height: 32px;
+    padding: 0 8px;
     border: none;
-    border-left: 2px solid transparent;
+    border-radius: var(--raio);
     background: transparent;
     font-family: var(--f-ui);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 400;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     cursor: pointer;
-    transition: background 0.1s ease, color 0.1s ease;
+    transition: background 0.1s ease;
     &:hover {
-      background: var(--surface-alt);
-      color: var(--text-primary);
+      background: var(--sidebar-hover);
     }
-    &--ativo {
-      background: color-mix(in srgb, var(--accent) 6%, transparent);
-      border-left-color: var(--accent);
-      color: var(--accent);
+    // O mesmo pill da sidebar: é o mesmo tipo de escolha ("onde estou"), um
+    // nível abaixo — sem a barra lateral e sem cor de ação.
+    &--ativo,
+    &--ativo:hover {
+      background: var(--sidebar-ativo);
       font-weight: 500;
-      .views-panel__contagem {
-        color: var(--accent);
-      }
     }
     &--inerte {
       color: var(--text-muted);
@@ -554,7 +557,7 @@
     color: var(--text-secondary);
     cursor: pointer;
     &:hover {
-      border-color: var(--stroke-hover);
+      background: var(--sidebar-hover);
       color: var(--text-primary);
     }
   }

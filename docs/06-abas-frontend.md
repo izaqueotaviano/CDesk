@@ -58,3 +58,18 @@ de trabalho, e nunca chega perto do PUT/GET — é puramente local
 virou uma união (`AbaTicket | AbaSecao`); `active` deixou de ser o
 `ticketId` cru e passou a ser a `chaveAba` (string, `ticket:ID` ou
 `secao:ROTA`) — só isso muda pra quem consumia o store direto.
+
+## Lista "Recentes" (shell no desenho do Copilot)
+
+A barra de abas horizontal saiu do topo do conteúdo. Os tickets abertos
+aparecem agora na sidebar, na lista **Recentes**
+(`resolv/shell/ListaRecentes.tsx`): uma linha por ticket, só o assunto, com o
+× no hover, clique do meio e Delete para fechar, menu de contexto para fechar
+em lote, arrastar para reordenar e setas para mover o foco. O contrato acima
+não mudou — quem abre a aba continua sendo `PaginaDetalheTicket`, e o
+espelho no servidor segue igual.
+
+As abas de **seção** deixaram de ser criadas e mostradas: repetiam a
+navegação que está logo acima, na mesma sidebar. O tipo `AbaSecao` continua no
+store só para não quebrar quem ainda tem uma salva no `localStorage`; a lista
+Recentes as ignora e `reordenar` as manda para o fim sem perdê-las.

@@ -1,70 +1,73 @@
 /**
- * Sidebar do shell — três formas: EXPANDIDA (240px, ícone + rótulo),
- * RECOLHIDA (64px, só ícone) e, em tela pequena, GAVETA por cima do conteúdo
- * (abre pelo botão de menu da barra de abas, fecha no véu, no X, no Esc ou
+ * Sidebar do shell — três formas: EXPANDIDA (248px, ícone + rótulo),
+ * RECOLHIDA (52px, só ícone) e, em tela pequena, GAVETA por cima do conteúdo
+ * (abre pelo botão de menu da barra superior, fecha no véu, no X, no Esc ou
  * ao navegar). Expandida/recolhida é preferência de quem usa e fica salva
  * (`stores/prefs`); a gaveta é estado de tela e mora no NovoShell.
  *
- * Zonas, de cima para baixo: o cabeçalho (marca, que também é o atalho para
- * o Início, e o botão de recolher — que, recolhida, desce pra uma linha
- * própria abaixo da marca), a busca, a navegação, e a zona utilitária
- * (notificações, tema, conta) no rodapé, porque `__nav` tem `flex: 1`.
+ * O desenho segue a referência (Copilot), zona por zona:
  *
- * Só os itens com rota real navegam; Calendário segue visível mas inerte
+ *   - topo: a marca (atalho para o Início) e o botão de recolher. Recolhida,
+ *     sobra só o botão — como na referência;
+ *   - a ação primária, "Novo ticket", com o ícone em círculo cheio: é o
+ *     "Novo chat" daqui;
+ *   - "Buscar", como item comum, e os cinco destinos do dia a dia;
+ *   - "Mais", um menu com o que se abre de vez em quando (avisos, notas,
+ *     relatórios, auditoria, configurações). Seis destinos a menos na
+ *     coluna é o que deixa espaço para…
+ *   - "Recentes", os tickets abertos, só em texto — a lista de conversas da
+ *     referência. Recolhida, some, como lá;
+ *   - no rodapé, só a conta. Notificações e tema subiram para o canto
+ *     superior direito (NovoShell), que é onde a referência os põe.
+ *
+ * Só os itens com rota real navegam; Calendário segue no "Mais", inerte
  * ("em breve"), em vez de levar a um 404.
  *
- * Sem tooltip de pseudo-elemento: o `::after` que existia aqui escapava por
- * cima do conteúdo quando a barra estava recolhida. Quem dá o nome do ícone
- * agora é o `aria-label` (leitor de tela) mais o `title` nativo (mouse) — o
- * title é desenhado pelo navegador FORA do documento, então não tem como
- * invadir a área de trabalho nem empurrar layout.
+ * O nome de cada ícone vem do `aria-label` (leitor de tela) mais o `title`
+ * nativo (mouse) — o title é desenhado pelo navegador FORA do documento,
+ * então não invade a área de trabalho com a barra recolhida.
  */
-import { Fragment, useEffect, useRef, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { usePrefs } from '@/stores/prefs'
-import { BotaoTema } from './BotaoTema'
+import { useTabs } from '@/stores/tabs'
+import { ListaRecentes } from './ListaRecentes'
+import { MenuFlutuante } from './MenuFlutuante'
 import { MenuPresenca } from './MenuPresenca'
-import { PainelNotificacoes } from './PainelNotificacoes'
 import './sidebar.scss'
 
 export type Item = {
   id: string
   label: string
-  /** Classe Tabler (`ti ti-*`) — o fallback, e o que a barra de abas e a
-   *  busca ainda consomem (as duas mostram o ícone em 16px, onde a segunda
-   *  camada do desenho da marca não se lê de qualquer jeito). */
+  /** Classe Tabler (`ti ti-*`) — a mesma na sidebar, no "Mais" e na busca. */
   icon: string
-  /** Símbolo do conjunto AUTORAL da Convertize, quando existe um fiel. O
-   *  sprite dele é desenhado para painel de LOJA (cart, box, truck, store),
-   *  então o genérico cobre — e o vocabulário de helpdesk (ticket, aviso)
-   *  não existe lá. Quem não tem equivalente fica no Tabler, de propósito:
-   *  inventar um símbolo aproximado é pior que manter o certo. */
   route: string
   enabled: boolean
-  /** Abre uma seção nova na sidebar, com este rótulo acima. Opcional e só
-   *  lido aqui — BarraDeAbas e BuscaComando consomem a mesma lista e não
-   *  têm seção. */
-  grupo?: string
+  /** Mora no menu "Mais", não na coluna. Só a Sidebar lê: a busca (Ctrl K)
+   *  consome a mesma lista e mostra todos os destinos. */
+  mais?: boolean
 }
 
-// Exportado: BarraDeAbas.tsx e BuscaComando.tsx reusam esta MESMA lista — abas
-// de seção e o grupo "Navegar" da busca vêm daqui, uma fonte só, sem duplicar
-// nome/ícone/rota em três lugares. A ORDEM aqui é a ordem que aparece nos três.
+// Exportado: BuscaComando.tsx reusa esta MESMA lista no grupo "Navegar" —
+// uma fonte só de nome, ícone e rota. A ORDEM aqui é a ordem nos dois.
 export const NAV: Item[] = [
   { id: 'inicio', label: 'Início', icon: 'ti ti-home', route: '/inicio', enabled: true },
   { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
-  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true, grupo: 'Gestão' },
-  { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: true },
-  { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true },
-  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true },
-  { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false },
-  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: true },
+  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true, mais: true },
+  { id: 'notas', label: 'Notas', icon: 'ti ti-note', route: '/notas', enabled: true, mais: true },
+  { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', route: '/relatorios', enabled: true, mais: true },
+  { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', route: '/auditoria', enabled: true, mais: true },
+  { id: 'config', label: 'Configurações', icon: 'ti ti-settings', route: '/configuracoes', enabled: true, mais: true },
+  { id: 'calendario', label: 'Calendário', icon: 'ti ti-calendar', route: '/calendario', enabled: false, mais: true },
 ]
+
+const PRINCIPAIS = NAV.filter((n) => !n.mais)
+const SECUNDARIOS = NAV.filter((n) => n.mais)
 
 interface Props {
   onAbrirBusca: () => void
@@ -87,8 +90,31 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
   const recolhida = preferenciaRecolhida && !emGaveta
   const gavetaAberta = emGaveta && gaveta.aberta
 
-  const ativo = (r: string) =>
-    r === '/inicio' ? location.pathname === '/inicio' : location.pathname.startsWith(r)
+  // UM estado ativo por vez na sidebar inteira. O ticket aberto acende na
+  // lista Recentes, "novo" acende em Novo ticket — e "Tickets" só acende na
+  // lista em si. Exceção: se o ticket da tela não está visível em Recentes
+  // (barra recolhida, ou o resumo ainda não chegou), quem acende é Tickets,
+  // para a pessoa nunca ficar sem saber onde está.
+  const caminho = location.pathname
+  const naNovoTicket = caminho === '/chamados/novo'
+  const idNaRota = caminho.match(/^\/chamados\/(\d+)$/)?.[1]
+  const ticketVisivelEmRecentes = useTabs((st) =>
+    idNaRota !== undefined && st.tabs.some((a) => a.tipo === 'ticket' && String(a.ticketId) === idNaRota),
+  )
+  const ativo = (r: string) => {
+    if (r === '/inicio') return caminho === '/inicio'
+    if (r === '/chamados') {
+      if (caminho === '/chamados') return true
+      if (naNovoTicket) return false
+      if (idNaRota) return recolhida || !ticketVisivelEmRecentes
+      return caminho.startsWith('/chamados/')
+    }
+    return caminho === r || caminho.startsWith(`${r}/`)
+  }
+
+  const [maisAberto, setMaisAberto] = useState(false)
+  const maisRef = useRef<HTMLButtonElement>(null)
+  const secundarioAtual = SECUNDARIOS.find((n) => n.enabled && ativo(n.route))
 
   // O contador é real: fila + meus atendimentos, atualizado pelo socket (a
   // bridge invalida as duas chaves a cada chat_queued/chat_taken).
@@ -184,108 +210,139 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
         onKeyDown={aoTeclarNaGaveta}
       >
         <div className="sidebar-rail__topo">
-          {/* Marca + atalho para o Início. Não é um SELETOR de workspace: esta
-              instalação atende um espaço só, e um seletor que não troca nada
-              seria enfeite. O dia em que houver mais de um, o menu entra aqui. */}
-          <button
-            type="button"
-            className="sidebar-rail__marca"
-            aria-label="Resolv — ir para o Início"
-            title="Resolv — ir para o Início"
-            onClick={() => navigate('/inicio')}
-          >
-            <span className="sidebar-rail__logo">
-              <svg className="sidebar-rail__logo-mark" viewBox="0 0 236 270" fill="none" aria-hidden="true">
-                <path
-                  d="M128.101 0C151.417 0 170.802 4.03 186.255 12.09C201.98 19.88 213.909 29.82 222.042 41.91C230.447 54 235.056 67.16 235.869 81.4C236.683 95.64 233.7 109.08 226.923 121.7C220.145 134.33 209.707 145.21 195.609 154.34C181.511 163.48 163.617 168.99 141.928 170.87C139.217 170.87 136.506 172.21 133.795 174.9C131.355 177.31 130.135 180.13 130.135 183.36C130.135 186.58 132.033 189.54 135.828 192.22C139.624 194.64 146.808 195.85 157.382 195.85H223.262V269.6H162.668C146.402 269.6 132.71 267.72 121.595 263.96C110.75 260.19 102.074 255.36 95.568 249.45C89.061 243.54 84.588 236.96 82.148 229.7C79.979 222.18 79.572 214.79 80.928 207.54C82.554 200.02 85.808 193.16 90.688 186.99C95.839 180.54 102.346 175.3 110.208 171.27H65.881V269.6L0 270V0H128.101ZM116.308 116.46C132.575 116.46 144.775 113.24 152.908 106.79C161.042 100.34 165.108 93.36 165.108 85.84C165.108 78.04 161.042 70.93 152.908 64.48C144.775 58.03 132.575 54.81 116.308 54.81H65.881V116.46H116.308Z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <span className="sidebar-rail__marca-nome">Resolv</span>
-          </button>
-          {/* Expandida (ou gaveta): o botão fica na mesma linha da marca. */}
-          {!recolhida && alternar}
+          {/* Recolhida, o topo é só o botão de expandir — como na referência.
+              A marca volta quando há espaço para o nome ao lado. */}
+          {!recolhida && (
+            <button
+              type="button"
+              className="sidebar-rail__marca"
+              aria-label="Resolv — ir para o Início"
+              title="Resolv — ir para o Início"
+              onClick={() => navigate('/inicio')}
+            >
+              <span className="sidebar-rail__logo">
+                <svg className="sidebar-rail__logo-mark" viewBox="0 0 236 270" fill="none" aria-hidden="true">
+                  <path
+                    d="M128.101 0C151.417 0 170.802 4.03 186.255 12.09C201.98 19.88 213.909 29.82 222.042 41.91C230.447 54 235.056 67.16 235.869 81.4C236.683 95.64 233.7 109.08 226.923 121.7C220.145 134.33 209.707 145.21 195.609 154.34C181.511 163.48 163.617 168.99 141.928 170.87C139.217 170.87 136.506 172.21 133.795 174.9C131.355 177.31 130.135 180.13 130.135 183.36C130.135 186.58 132.033 189.54 135.828 192.22C139.624 194.64 146.808 195.85 157.382 195.85H223.262V269.6H162.668C146.402 269.6 132.71 267.72 121.595 263.96C110.75 260.19 102.074 255.36 95.568 249.45C89.061 243.54 84.588 236.96 82.148 229.7C79.979 222.18 79.572 214.79 80.928 207.54C82.554 200.02 85.808 193.16 90.688 186.99C95.839 180.54 102.346 175.3 110.208 171.27H65.881V269.6L0 270V0H128.101ZM116.308 116.46C132.575 116.46 144.775 113.24 152.908 106.79C161.042 100.34 165.108 93.36 165.108 85.84C165.108 78.04 161.042 70.93 152.908 64.48C144.775 58.03 132.575 54.81 116.308 54.81H65.881V116.46H116.308Z"
+                    fill="currentColor"
+                  />
+                </svg>
+              </span>
+              <span className="sidebar-rail__marca-nome">Resolv</span>
+            </button>
+          )}
+          {alternar}
         </div>
-        {/* Recolhida não cabe ao lado da marca: ganha uma linha só dele,
-            logo abaixo — mesmo lugar, mesma leitura, sem apertar a marca. */}
-        {recolhida && <div className="sidebar-rail__linha-alternar">{alternar}</div>}
-
-        <button
-          type="button"
-          className="sidebar-rail__busca"
-          aria-label="Buscar e navegar"
-          title="Buscar e navegar (Ctrl K)"
-          onClick={onAbrirBusca}
-        >
-          <i className="ti ti-search" aria-hidden="true" />
-          <span className="sidebar-rail__busca-rotulo">Buscar</span>
-          <kbd className="sidebar-rail__busca-atalho">Ctrl K</kbd>
-        </button>
 
         <nav className="sidebar-rail__nav">
-          {NAV.map((item) => {
+          {/* A ação primária. Círculo cheio, como o "Novo chat" da referência:
+              é o único ícone preenchido da coluna, e por isso o que o olho
+              encontra primeiro. */}
+          <button
+            type="button"
+            className={'sidebar-rail__item sidebar-rail__item--primaria' + (naNovoTicket ? ' sidebar-rail__item--ativo' : '')}
+            aria-label="Novo ticket"
+            title="Novo ticket"
+            aria-current={naNovoTicket ? 'page' : undefined}
+            onClick={() => navigate('/chamados/novo')}
+          >
+            <span className="sidebar-rail__icone">
+              <span className="sidebar-rail__novo" aria-hidden="true">
+                <i className="ti ti-plus" />
+              </span>
+            </span>
+            <span className="sidebar-rail__rotulo" aria-hidden="true">
+              Novo ticket
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="sidebar-rail__item"
+            aria-label="Buscar e navegar"
+            title="Buscar e navegar (Ctrl K)"
+            aria-keyshortcuts="Control+K Meta+K"
+            onClick={onAbrirBusca}
+          >
+            <span className="sidebar-rail__icone">
+              <i className="ti ti-search" aria-hidden="true" />
+            </span>
+            <span className="sidebar-rail__rotulo" aria-hidden="true">
+              Buscar
+            </span>
+          </button>
+
+          {PRINCIPAIS.map((item) => {
             const badge = item.id === 'chat' && conversas > 0 ? (conversas > 9 ? '9+' : conversas) : null
-            // Um rótulo de seção antes do item que abre o grupo. Onze itens
-            // numa lista corrida viram uma parede: o vão e o rótulo dão o
-            // ritmo que separa "o que eu faço o dia todo" de "o que eu
-            // configuro de vez em quando".
-            const cabecalho = item.grupo ? (
-              <p key={`g-${item.id}`} className="sidebar-rail__secao" aria-hidden="true">
-                {item.grupo}
-              </p>
-            ) : null
             const rotulo =
               item.id === 'chat' && badge
                 ? `${item.label} — ${conversas} ${conversas === 1 ? 'conversa' : 'conversas'}`
-                : item.enabled
-                  ? item.label
-                  : `${item.label} · em breve`
+                : item.label
             return (
-              <Fragment key={item.id}>
-              {cabecalho}
               <button
+                key={item.id}
                 type="button"
-                className={
-                  'sidebar-rail__item' +
-                  (ativo(item.route) ? ' sidebar-rail__item--ativo' : '') +
-                  (item.enabled ? '' : ' sidebar-rail__item--inerte')
-                }
+                className={'sidebar-rail__item' + (ativo(item.route) ? ' sidebar-rail__item--ativo' : '')}
                 aria-label={rotulo}
                 title={rotulo}
                 aria-current={ativo(item.route) ? 'page' : undefined}
-                aria-disabled={item.enabled ? undefined : true}
-                onClick={() => item.enabled && navigate(item.route)}
+                onClick={() => navigate(item.route)}
               >
                 <span className="sidebar-rail__icone">
-                  {/* Tabler, monolinear, sempre. O sprite da marca saiu daqui:
-                      ele é de forma CHEIA com uma camada de detalhe colorida,
-                      e o briefing pede traço fino, monocromático e uniforme.
-                      Misturar as duas famílias numa mesma coluna deixava
-                      metade dos itens parecendo estar selecionado. */}
                   <i className={item.icon} aria-hidden="true" />
                   {badge != null && <span className="sidebar-rail__badge">{badge}</span>}
                 </span>
                 {/* aria-hidden: o nome acessível do botão já é o `aria-label`
-                    completo (com a contagem de conversas); sem isto o leitor de
-                    tela lia o rótulo duas vezes. */}
+                    completo (com a contagem de conversas); sem isto o leitor
+                    de tela lia o rótulo duas vezes. */}
                 <span className="sidebar-rail__rotulo" aria-hidden="true">
                   {item.label}
                 </span>
-                {!item.enabled && (
-                  <span className="sidebar-rail__em-breve" aria-hidden="true">
-                    em breve
-                  </span>
-                )}
               </button>
-              </Fragment>
             )
           })}
+
+          {/* "Mais" acende quando a tela atual é um dos destinos dele — a
+              pessoa sabe que está numa área secundária, e o nome acessível
+              diz qual. */}
+          <button
+            ref={maisRef}
+            type="button"
+            className={'sidebar-rail__item' + (secundarioAtual ? ' sidebar-rail__item--ativo' : '')}
+            aria-label={secundarioAtual ? `Mais — você está em ${secundarioAtual.label}` : 'Mais'}
+            title="Mais"
+            aria-haspopup="menu"
+            aria-expanded={maisAberto}
+            onClick={() => setMaisAberto((v) => !v)}
+          >
+            <span className="sidebar-rail__icone">
+              <i className="ti ti-dots" aria-hidden="true" />
+            </span>
+            <span className="sidebar-rail__rotulo" aria-hidden="true">
+              Mais
+            </span>
+          </button>
+          <MenuFlutuante
+            aberto={maisAberto}
+            onFechar={() => setMaisAberto(false)}
+            rotulo="Mais seções"
+            obterAncora={() => maisRef.current}
+            itens={SECUNDARIOS.map((n) => ({
+              rotulo: n.enabled ? n.label : `${n.label} · em breve`,
+              icone: n.icon,
+              desabilitado: !n.enabled,
+              onSelecionar: () => navigate(n.route),
+            }))}
+          />
         </nav>
 
-        <div className="sidebar-rail__zona-utilitaria">
-          <PainelNotificacoes />
-          <BotaoTema />
+        {!recolhida && (
+          <div className="sidebar-rail__recentes">
+            <ListaRecentes />
+          </div>
+        )}
+
+        <div className="sidebar-rail__conta">
           <MenuPresenca />
         </div>
       </aside>

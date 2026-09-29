@@ -28,7 +28,16 @@ module.exports = {
           sutil:   'var(--superficie-sutil)',
           elevada: 'var(--superficie-elevada)',
         },
-        navegacao:   'var(--navegacao)',
+        navegacao: {
+          DEFAULT: 'var(--navegacao)',
+          hover:   'var(--navegacao-hover)',
+          ativo:   'var(--navegacao-ativo)',
+        },
+        // Véus translúcidos de estado (sobre qualquer fundo). `bg-hover` e
+        // `bg-ativo` eram usados sem existir aqui — o Tailwind não gerava
+        // nada e o hover do Botao secundário/fantasma estava morto.
+        hover: 'var(--hover)',
+        ativo: 'var(--ativo)',
         divisoria:   'var(--divisoria)',
         'borda-controle': 'var(--borda-controle)',
         // Linha de CAMPO (input/select/textarea) — mais escura que a
@@ -118,16 +127,14 @@ module.exports = {
         'icone-sm': '12px', 'icone-md': '16px', 'icone-lg': '20px', 'icone-xl': '24px',
         'sidebar-larga': '240px', 'sidebar-recolhida': '64px',
         'alvo-minimo': '24px', 'altura-controle': '34px',
-        'respiro-painel': 'var(--respiro-painel)',
       },
 
       // Um raio só (2px) — sm/md/lg/xl continuam existindo por NOME porque
       // 50 arquivos os usam, mas todos resolvem pro mesmo valor (tokens.css).
-      // `total` é forma (avatar, interruptor, ponto), não estilo; `painel` é
-      // a exceção do shell, como `--raio-painel` no console.
+      // `total` é forma (avatar, interruptor, ponto), não estilo.
       borderRadius: {
         sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)', xl: 'var(--r-xl)',
-        total: 'var(--r-total)', painel: 'var(--r-painel)',
+        total: 'var(--r-total)',
       },
       borderWidth:  { DEFAULT: '1px', fina: '1px' },
 

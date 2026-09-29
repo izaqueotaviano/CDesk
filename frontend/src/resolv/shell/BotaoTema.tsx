@@ -1,10 +1,8 @@
 import { useTemaResolvido } from '@/stores/prefs'
 
 /**
- * Sol/lua/monitor da zona utilitária da Sidebar. Reaproveita
- * `.sidebar-rail__item` — a mesma classe de qualquer ícone de navegação da
- * barra — em vez de ganhar scss próprio: o alvo de clique de 40px (acima dos
- * 24px da WCAG 2.5.8), o hover e o tooltip CSS saem iguais aos dos vizinhos.
+ * Sol/lua/monitor no canto superior direito — um dos dois ícones da barra
+ * superior (shell.scss, `novo-shell__icone`), como na referência.
  *
  * TRÊS posições, não duas. O padrão de fábrica é "sistema", e com um
  * alternador de dois estados quem clicasse uma vez ficava preso em
@@ -26,17 +24,12 @@ export function BotaoTema() {
   const acao = PROXIMO[preferencia]
 
   return (
-    <button type="button" className="sidebar-rail__item" aria-label={acao} title={acao} onClick={ciclar}>
-      <span className="sidebar-rail__icone">
-        {/* Elementos literais, e não um ternário dentro do `className`: o
-            gerador do subset procura o par `ti ti-*` escrito por extenso. */}
-        {preferencia === 'claro' && <i className="ti ti-sun" aria-hidden="true" />}
-        {preferencia === 'escuro' && <i className="ti ti-moon" aria-hidden="true" />}
-        {preferencia === 'sistema' && <i className="ti ti-device-desktop" aria-hidden="true" />}
-      </span>
-      <span className="sidebar-rail__rotulo" aria-hidden="true">
-        {acao}
-      </span>
+    <button type="button" className="novo-shell__icone" aria-label={acao} title={acao} onClick={ciclar}>
+      {/* Elementos literais, e não um ternário dentro do `className`: o
+          gerador do subset procura o par `ti ti-*` escrito por extenso. */}
+      {preferencia === 'claro' && <i className="ti ti-sun" aria-hidden="true" />}
+      {preferencia === 'escuro' && <i className="ti ti-moon" aria-hidden="true" />}
+      {preferencia === 'sistema' && <i className="ti ti-device-desktop" aria-hidden="true" />}
     </button>
   )
 }

@@ -1,25 +1,26 @@
-// Shell do design system Resolv: sidebar fixa + corpo (barra de abas +
-// painel de conteúdo).
+// Shell do console: sidebar fixa à esquerda, e à direita uma barra superior
+// mínima sobre o conteúdo.
 //
-// O fundo do shell inteiro é o CROMO (`--surface-alt`): sidebar, barra de
-// abas e a moldura em volta do painel são a mesma cor, e o conteúdo vive num
-// painel arredondado (`__painel`, `--surface-canvas`) apoiado sobre ele, com
-// um respiro na direita e embaixo — a leitura é a de uma janela de navegador:
-// a aba ativa se funde no painel (barra-de-abas.scss) e o painel é a página.
+// Tudo no MESMO plano (`--surface-canvas`), dividido por um fio vertical de
+// 1px na borda da sidebar — é a divisão da referência (Copilot). Antes o
+// conteúdo vivia num painel creme arredondado apoiado sobre um cromo mais
+// escuro, com uma barra de abas de navegador fundida nele; lia como duas
+// janelas empilhadas. As abas de ticket viraram a lista "Recentes" da
+// sidebar (ListaRecentes.tsx), e com elas saíram a moldura e o painel.
 //
 // `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
 // `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa
 // saber o quanto recuar. Uma variável só, lida pelos dois, é o que garante que
 // o conteúdo nunca fica por baixo da barra em nenhum dos estados.
 .novo-shell {
-  --largura-sidebar: 240px;
+  --largura-sidebar: 248px;
 
   display: flex;
   min-height: 100vh;
-  background: var(--surface-alt);
+  background: var(--surface-canvas);
 
   &--recolhida {
-    --largura-sidebar: 54px;
+    --largura-sidebar: 52px;
   }
 
   &__corpo {
@@ -29,17 +30,62 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    // Quem rola é o painel, não o corpo: a barra de abas fica sempre à vista
-    // sem precisar de `sticky`, e o painel arredondado corta o próprio
-    // conteúdo nos cantos.
+    // Quem rola é o painel, não o corpo: a barra superior fica sempre à
+    // vista sem precisar de `sticky`.
     overflow: hidden;
-    padding: 0 var(--respiro-painel) var(--respiro-painel) 0;
     transition: margin-left 0.15s ease;
   }
 
-  // O painel é o antigo `__conteudo` mais a rolagem que era do corpo — a
-  // coluna flex continua (as páginas de altura cheia, como o detalhe do
-  // ticket, dependem disso) e `#resolv-corpo` veio junto.
+  // Barra superior. Sem fundo próprio, sem borda: são dois ícones num canto,
+  // como na referência — um andar a mais de cromo em cima de cada tela era
+  // exatamente o peso que se quis tirar.
+  &__topo {
+    flex-shrink: 0;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px 0 16px;
+  }
+
+  &__topo-lado {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  // Botão só-ícone da barra superior: notificações, tema e, em tela pequena,
+  // o menu. Alvo de 32px (acima dos 24px da WCAG 2.5.8); o ícone é o mesmo
+  // Tabler monolinear do resto.
+  &__icone {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  // O painel é a página: rola, e é o alvo do "pular para o conteúdo"
+  // (`#resolv-corpo`). A coluna flex continua porque as páginas de altura
+  // cheia (o detalhe do ticket, o chat) dependem dela.
   &__painel {
     flex: 1;
     min-height: 0;
@@ -47,32 +93,17 @@
     flex-direction: column;
     overflow-y: auto;
     background: var(--surface-canvas);
-    // Canto de cima à esquerda reto por padrão: é onde a aba Início, a
-    // primeira, se funde no painel. Quando a ativa é outra, o canto volta a
-    // ser curvo (`--canto-esquerdo`) — igual ao navegador.
-    border-radius: 0 var(--raio-painel) var(--raio-painel) var(--raio-painel);
-    transition: border-top-left-radius 0.15s ease;
-
-    &--canto-esquerdo {
-      border-top-left-radius: var(--raio-painel);
-    }
   }
 }
 
 // Abaixo de 768px a sidebar vira gaveta por cima do conteúdo (sidebar.scss):
-// o corpo não recua nada, e o painel ocupa a tela inteira, sem moldura — em
-// 390px de largura os 12px de respiro e o canto arredondado só roubariam
-// espaço.
+// o corpo não recua nada, e a barra superior ganha o botão que abre a gaveta.
 @media (max-width: 767px) {
   .novo-shell {
     --largura-sidebar: 0px;
 
-    &__corpo {
-      padding: 0;
-    }
-    &__painel,
-    &__painel--canto-esquerdo {
-      border-radius: 0;
+    &__topo {
+      padding: 0 8px;
     }
   }
 }

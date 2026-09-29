@@ -542,7 +542,14 @@ export function MiniChat() {
         />
       )}
 
-      <div className="minichat__barra" role="toolbar" aria-label="Meus atendimentos">
+      <div
+        className={
+          'minichat__barra' +
+          (meusChats.length === 0 && minimizados.length === 0 && naFila === 0 ? ' minichat__barra--so-balao' : '')
+        }
+        role="toolbar"
+        aria-label="Meus atendimentos"
+      >
         <button
           type="button"
           className={'minichat__balao' + (chamaAtencao ? ' minichat__balao--atencao' : '') + (filaAberta ? ' minichat__balao--aberto' : '')}

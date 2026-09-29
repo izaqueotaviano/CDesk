@@ -7,25 +7,26 @@ import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import '../styles/identidade.scss'
 import './shell.scss'
-import { BarraDeAbas } from './BarraDeAbas'
+import { BotaoTema } from './BotaoTema'
 import { BuscaComando } from './BuscaComando'
+import { PainelNotificacoes } from './PainelNotificacoes'
 import { Sidebar } from './Sidebar'
 import { CONSULTA_TELA_PEQUENA, useConsultaDeMidia } from './useConsultaDeMidia'
 
 /**
- * Shell do design system Resolv: sidebar fixa (expandida/recolhida, ou
- * gaveta em tela pequena) + corpo com barra de abas de navegador e o painel
- * de conteúdo arredondado (shell.scss). A classe `resolv-scope` liga os
- * tokens SCSS (tokens.scss) só aqui dentro — o login e o resto do app (visual
- * Tailwind) ficam de fora.
+ * Shell do console: sidebar fixa (expandida/recolhida, ou gaveta em tela
+ * pequena) + corpo com uma barra superior mínima e o painel de conteúdo, tudo
+ * no mesmo plano, dividido por um fio de 1px (shell.scss). A classe
+ * `resolv-scope` liga os tokens SCSS (tokens.scss) só aqui dentro — o login e
+ * o resto do app (visual Tailwind) ficam de fora.
  *
- * Fase 2 da unificação de shell: a Topbar saiu — a busca, notificações, tema
- * e presença/conta/sair migraram pra zona utilitária da Sidebar, e o espaço
- * que a Topbar ocupava é agora a `BarraDeAbas` (tickets + seções abertas,
- * como abas de navegador). `buscaAberta` e `gavetaAberta` moram aqui, não
- * dentro dos componentes, porque dois lugares abrem cada um — o ícone da
- * Sidebar e o atalho Ctrl/⌘K global abrem a busca; o botão de menu da barra
- * de abas abre a gaveta, que a própria Sidebar fecha.
+ * A estrutura segue a referência (Copilot): a navegação e o que está aberto
+ * moram na SIDEBAR — os tickets abertos viraram a lista "Recentes" dela, no
+ * lugar da antiga barra de abas —, e o topo fica com dois ícones no canto
+ * (notificações e tema). `buscaAberta` e `gavetaAberta` moram aqui, não
+ * dentro dos componentes, porque dois lugares abrem cada um: o item "Buscar"
+ * da sidebar e o atalho Ctrl/⌘K global abrem a busca; o botão de menu da
+ * barra superior abre a gaveta, que a própria sidebar fecha.
  */
 export function NovoShell({ children }: { children: ReactNode }) {
   // canal pessoal (ws/me/) — recebe os ticket_event do backend para o realtime.
@@ -55,26 +56,36 @@ export function NovoShell({ children }: { children: ReactNode }) {
   // Sair da tela pequena também fecha — a gaveta não existe lá.
   const gavetaAberta = gavetaPedida && telaPequena
 
-  // A aba Início é sempre a primeira: com ela ativa o canto esquerdo do
-  // painel fica reto (é a aba que se funde ali); com qualquer outra, curvo.
-  const inicioAtiva = pathname === '/inicio'
-
   return (
     <div
       className={'resolv-scope novo-shell' + (sidebarRecolhida ? ' novo-shell--recolhida' : '')}
     >
-      {/* Os <symbol> precisam estar no documento antes de qualquer <use>;
-          por isso o sprite entra aqui, uma vez, e não dentro do ícone. */}
       <Sidebar
         onAbrirBusca={() => setBuscaAberta(true)}
         gaveta={telaPequena ? { aberta: gavetaAberta, onFechar: () => setGavetaAberta(false) } : undefined}
       />
       <div className="novo-shell__corpo">
-        <BarraDeAbas onAbrirNavegacao={telaPequena ? () => setGavetaAberta(true) : undefined} />
-        <main
-          className={'novo-shell__painel' + (inicioAtiva ? '' : ' novo-shell__painel--canto-esquerdo')}
-          id="resolv-corpo"
-        >
+        <header className="novo-shell__topo">
+          <div className="novo-shell__topo-lado">
+            {/* Só em tela pequena: lá a sidebar é gaveta e precisa de porta. */}
+            {telaPequena && (
+              <button
+                type="button"
+                className="novo-shell__icone"
+                aria-label="Abrir menu de navegação"
+                title="Menu"
+                onClick={() => setGavetaAberta(true)}
+              >
+                <i className="ti ti-menu-2" aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          <div className="novo-shell__topo-lado">
+            <PainelNotificacoes />
+            <BotaoTema />
+          </div>
+        </header>
+        <main className="novo-shell__painel" id="resolv-corpo">
           {children}
         </main>
       </div>

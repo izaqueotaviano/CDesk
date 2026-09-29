@@ -277,6 +277,17 @@
     border-radius: var(--raio) var(--raio) 0 0;
     box-shadow: 0 -2px 12px var(--sombra-suave);
     font-family: var(--f-ui);
+
+    // Sem atendimento, sem minimizado e sem fila, a bandeja só teria o balão
+    // dentro: vira um balão solto, flutuando acima da borda da janela. A
+    // bandeja branca vazia colada no rodapé lia como um pedaço de janela
+    // cortado no plano da tela.
+    &--so-balao {
+      padding: 0 0 16px;
+      background: none;
+      border: none;
+      box-shadow: none;
+    }
   }
 
   // O balão: a porta da fila. Redondo de propósito — é o único elemento

@@ -13,7 +13,7 @@ export function TabBar() {
   const navigate = useNavigate()
 
   // Esta barra é só de TICKETS (base Tailwind antiga, /app) — desde a Fase 2
-  // o store passou a guardar abas de seção também (resolv/shell/BarraDeAbas),
+  // o store passou a guardar abas de seção também (shell novo, Fase 2),
   // que esta base nunca cria mas pode HERDAR do mesmo store compartilhado
   // (ex.: a pessoa abriu /clientes no shell novo antes de cair aqui). Filtrar
   // é o que evita acessar `.resumo` (só existe em aba de ticket) numa aba de

@@ -14,7 +14,7 @@ const CHAVE_MOSTRAR_EVENTOS = 'resolv-conversa-mostrar-eventos'
 // O espelho no servidor é irrelevante aqui — `atualizarScroll` nunca chama
 // `sincronizarComServidor` (contrato em stores/tabs.ts: scroll é local), mas
 // o MÓDULO importa `@/api/tabs` de qualquer jeito; mesma precaução de
-// BarraDeAbas.test.tsx.
+// ListaRecentes.test.tsx.
 vi.mock('@/api/tabs', () => ({
   getTabsServidor: vi.fn(() => new Promise(() => {})),
   putTabsServidor: vi.fn(() => new Promise(() => {})),

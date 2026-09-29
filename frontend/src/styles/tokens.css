@@ -142,8 +142,6 @@
   /* Três raios: 8 no que é controle, 12 no que é superfície, cápsula no que
      é campo de entrada (busca e composer). */
   --r-xs: 8px; --r-sm: 8px; --r-md: 12px; --r-lg: 12px; --r-xl: 12px; --r-total: 999px;
-  --r-painel: 12px;
-  --respiro-painel: 12px;
   /* 0,7px é a espessura de TODA linha no v2 (`--hairline`): borda, divisória
      e contorno. Numa tela comum o navegador resolve para menos de um pixel
      físico, que é justamente o traço fino que o kit quer. */
@@ -181,12 +179,12 @@
      a ordem de luminância (cromo < canvas < superfície) é a de sempre, mas
      os valores agora são os do kit v2. O calor mora nos neutros (pedra, não
      cinza puro) e no laranja, não numa superfície creme. */
-  /* Três degraus de luminância, e é deles que vem a divisão da tela — não de
-     linha. O cromo é o mais escuro, o conteúdo sobe para o creme, o cartão
-     sobe até o branco. */
-  --canvas:             #faf9f5;   /* onde a página vive */
+  /* Sidebar e conteúdo no MESMO plano, divididos por um fio de 1px — como a
+     referência (Copilot). Só o que é superfície de verdade sobe de tom:
+     cartão, campo e composer, em branco. */
+  --canvas:             #f6f5f3;   /* conteúdo */
   --superficie:         #ffffff;   /* cartão, campo, composer */
-  --superficie-sutil:   #f6f5f3;   /* cromo: sidebar, barra, moldura */
+  --superficie-sutil:   #faf9f5;   /* preenchimento discreto dentro do conteúdo */
   --superficie-elevada: #ffffff;
   /* A sidebar tem o MESMO fundo do app, não um degrau próprio: o que a
      separa do conteúdo é o espaço, não um bloco de cor. */
@@ -195,6 +193,11 @@
      translúcido lá embaixo, que continua servindo de véu sobre cor. */
   --fundo-hover:        #f5f5f5;
   --fundo-selecionado:  #ebebeb;
+  /* Hover e ativo de item SOBRE o plano (sidebar do portal). Os dois acima
+     foram pensados sobre branco: #f5f5f5 some no #f6f5f3. Os mesmos valores
+     de `--sidebar-hover`/`--sidebar-ativo` do console (resolv/tokens.scss). */
+  --navegacao-hover:    #f0efec;
+  --navegacao-ativo:    #eae9e6;
 
   /* Duas famílias de linha, de propósito:
      --divisoria      estrutura (cartão, tabela, divisória) — a `--line`
@@ -285,6 +288,8 @@
   --navegacao:          #1a1a19;
   --fundo-hover:        #2a2a29;
   --fundo-selecionado:  #333332;
+  --navegacao-hover:    #252524;
+  --navegacao-ativo:    #2b2b2a;
 
   --divisoria:      #323230;
   --borda-controle: #3d3d3a;
@@ -346,6 +351,8 @@
     --navegacao:          #1a1a19;
     --fundo-hover:        #2a2a29;
     --fundo-selecionado:  #333332;
+    --navegacao-hover:    #252524;
+    --navegacao-ativo:    #2b2b2a;
 
     --divisoria:      #323230;
     --borda-controle: #3d3d3a;

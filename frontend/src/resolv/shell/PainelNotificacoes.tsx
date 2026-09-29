@@ -145,17 +145,12 @@ export function PainelNotificacoes() {
     <Popover
       align="end"
       trigger={(props) => (
-        <button type="button" className="sidebar-rail__item" aria-label="Notificações" title="Notificações" {...props}>
-          {/* Mesma estrutura ícone+rótulo dos itens de navegação: é o que faz
-              o selo ancorar no SINO (e não na ponta da linha) e os rótulos
-              alinharem numa coluna só com a barra expandida. */}
-          <span className="sidebar-rail__icone">
-            <i className="ti ti-bell" aria-hidden="true" />
-            {naoLidas > 0 && <span className="painel-notif__badge">{naoLidas > 9 ? '9+' : naoLidas}</span>}
-          </span>
-          <span className="sidebar-rail__rotulo" aria-hidden="true">
-            Notificações
-          </span>
+        <button type="button" className="novo-shell__icone" aria-label="Notificações" title="Notificações" {...props}>
+          {/* No canto superior direito, fora da sidebar: fica à vista com a
+              barra expandida, recolhida ou em gaveta — o selo de não lidas
+              não some junto com a navegação. */}
+          <i className="ti ti-bell" aria-hidden="true" />
+          {naoLidas > 0 && <span className="painel-notif__badge">{naoLidas > 9 ? '9+' : naoLidas}</span>}
         </button>
       )}
     >

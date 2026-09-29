@@ -1,0 +1,128 @@
+// "Recentes" — os tickets abertos na sidebar (ListaRecentes.tsx).
+//
+// As medidas saem da lista de conversas da referência (Copilot): linha de
+// ~30px, 14px em peso regular, e o texto começando na MESMA coluna do rótulo
+// da seção — não na coluna dos rótulos da navegação lá em cima. É isso que
+// separa, sem precisar de linha, "para onde eu vou" (ícone + rótulo) de "no
+// que eu estou trabalhando" (só o texto).
+.recentes {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  &__titulo {
+    margin: 20px 0 4px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.33;
+    color: var(--text-muted);
+  }
+
+  &__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-radius: var(--raio);
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+
+    // O ativo ganha o mesmo pill claro do item ativo da navegação: é UM
+    // estado ativo na sidebar inteira, com uma aparência só.
+    &--ativo,
+    &--ativo:hover {
+      background: var(--sidebar-ativo);
+    }
+
+    &--arrastando {
+      z-index: 1;
+      background: var(--surface-card);
+      box-shadow: 0 4px 12px rgba(36, 36, 36, 0.08);
+    }
+  }
+
+  &__abrir {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 400;
+    text-align: left;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+
+  // Assunto longo corta com reticências; o texto inteiro está no `title`.
+  &__texto {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  // Rascunho não enviado: um ponto, não uma palavra — a linha tem 200px e o
+  // aviso completo já está no nome acessível e na pergunta ao fechar.
+  &__rascunho {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  // O fechar só aparece quando a linha está sob o ponteiro, com foco, ou é a
+  // ativa — como na referência, onde a lista em repouso é só texto. Fora do
+  // Tab de propósito (o Delete fecha, e o nome acessível anuncia o atalho).
+  &__fechar {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    margin-right: 3px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+
+    // Um degrau acima do fundo da linha, que já está em hover ou ativa.
+    &:hover {
+      background: var(--stroke);
+      color: var(--text-primary);
+    }
+  }
+
+  &__item:hover &__fechar,
+  &__item:focus-within &__fechar,
+  &__item--ativo &__fechar {
+    display: inline-flex;
+  }
+}
