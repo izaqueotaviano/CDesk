@@ -109,3 +109,51 @@ describe('erro de campo — o DRF manda lista OU string, e a tela precisa dos do
     expect(erro.fieldErrors).toBeUndefined()
   })
 })
+
+describe('teto de tempo', () => {
+  /** `fetch` que aceita o pedido e nunca responde — só reage ao abort. */
+  function fetchQueNuncaResponde() {
+    return vi.fn(
+      (_url: string, init: RequestInit) =>
+        new Promise<Response>((_resolver, rejeitar) => {
+          init.signal?.addEventListener('abort', () =>
+            rejeitar(new DOMException('Aborted', 'AbortError')),
+          )
+        }),
+    )
+  }
+
+  afterEach(() => vi.useRealTimers())
+
+  it('desiste do pedido pendurado e devolve erro que a tela consegue mostrar', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', fetchQueNuncaResponde())
+
+    const erro = await (async () => {
+      const p = api.post('/api/v1/auth/login/', { email: 'a@b.c', password: 'x' }).catch((e) => e)
+      await vi.advanceTimersByTimeAsync(25_000)
+      return p
+    })()
+
+    // Sem isto o botão fica em "Entrando…" para sempre: `isPending` da mutação
+    // só desce quando a promessa termina, e um fetch pendurado não termina.
+    expect(erro).toBeInstanceOf(ApiError)
+    expect((erro as ApiError).code).toBe('tempo_esgotado')
+    expect((erro as ApiError).detail).toMatch(/não respondeu a tempo/)
+  })
+
+  it('cancelamento de quem chama continua AbortError, não vira tempo esgotado', async () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('fetch', fetchQueNuncaResponde())
+
+    const controle = new AbortController()
+    const p = api.get('/api/v1/search/?q=a', { signal: controle.signal }).catch((e) => e)
+    controle.abort()
+    const erro = await p
+
+    // A busca que muda de termo cancela a anterior de propósito — isso não é
+    // falha para mostrar, e não pode ser confundido com servidor mudo.
+    expect(erro).not.toBeInstanceOf(ApiError)
+    expect((erro as DOMException).name).toBe('AbortError')
+  })
+})

@@ -51,6 +51,44 @@ aoDeslogar(() => {
   router.navigate(paraLogin, { replace: true })
 })
 
+// Em DESENVOLVIMENTO o service worker fica desligado de propósito
+// (vite.config.ts, `devOptions.enabled: false`) — quem o registra é o plugin,
+// e só no build de produção. Então um service worker registrado nesta origem
+// durante o dev só pode ter sobrado de um `npm run build` + preview antigo.
+//
+// E ele não fica quieto: serve o `index.html` daquele build, que aponta para
+// arquivos que o `git pull` já renomeou (TELA BRANCA), e intercepta as
+// chamadas de /api/ mesmo para outra origem, porque o escopo do service
+// worker é a PÁGINA, não o destino (BOTÃO GIRANDO PARA SEMPRE). Os dois
+// sintomas parecem bug do sistema e não são — e ninguém adivinha que a causa
+// é um build de semanas atrás, porque `Cmd+Shift+R` não desregistra nada:
+// o hard reload pula o cache HTTP, não o service worker.
+//
+// Aqui não há o que preservar: em dev o número certo de service workers é
+// zero. Remove, limpa os caches e recarrega uma vez — na volta a lista já
+// está vazia e nada mais acontece.
+if (import.meta.env.DEV && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+  void navigator.serviceWorker
+    .getRegistrations()
+    .then(async (registros) => {
+      if (registros.length === 0) return
+      console.warn(
+        `[resolv] ${registros.length} service worker(s) de um build antigo nesta origem. ` +
+          'Removendo e recarregando — em desenvolvimento não deve existir nenhum.',
+      )
+      await Promise.all(registros.map((r) => r.unregister()))
+      if ('caches' in window) {
+        const chaves = await caches.keys()
+        await Promise.all(chaves.map((c) => caches.delete(c)))
+      }
+      window.location.reload()
+    })
+    .catch(() => {
+      // navegador sem permissão para listar (janela anônima, política do
+      // site): não há o que limpar e não é motivo para derrubar o app.
+    })
+}
+
 const raiz = document.getElementById('root')
 if (!raiz) throw new Error('#root não encontrado em index.html')
 

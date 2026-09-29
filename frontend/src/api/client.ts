@@ -101,40 +101,83 @@ interface Opcoes extends Omit<RequestInit, 'body'> {
   body?: unknown
 }
 
+/**
+ * Teto de tempo de uma chamada.
+ *
+ * `fetch` só rejeita sozinho quando a conexão FALHA. Quando alguém no meio do
+ * caminho ACEITA o pedido e não devolve resposta — service worker de um build
+ * antigo, extensão do navegador, proxy — ele espera para sempre, e não existe
+ * erro nenhum para a tela mostrar. O efeito é o botão preso em "Entrando…",
+ * sem mensagem e sem saída: a pessoa não tem o que ler nem o que tentar.
+ *
+ * Aconteceu de verdade, e a falta de teto foi o que transformou um problema
+ * de máquina numa tela morta. 25s é folgado de propósito: a chamada mais
+ * lenta do uso normal fica muito abaixo disso, e relatório pesado é
+ * assíncrono (Celery) — ninguém espera dentro do `fetch`.
+ */
+const TEMPO_LIMITE_MS = 25_000
+
 async function requisitar<T>(path: string, opcoes: Opcoes = {}): Promise<T> {
-  const { body, headers, method = 'GET', ...resto } = opcoes
+  const { body, headers, method = 'GET', signal: sinalDeFora, ...resto } = opcoes
   const precisaCsrf = method !== 'GET' && method !== 'HEAD'
   const ehFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
-  const resp = await fetch(`${API_BASE_URL}${path}`, {
-    ...resto,
-    method,
-    credentials: 'include', // sessão vai no cookie
-    headers: {
-      // FormData: NÃO fixar Content-Type — o browser põe o boundary do
-      // multipart sozinho (usado no reply com anexos).
-      ...(body !== undefined && !ehFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(precisaCsrf ? { 'X-CSRFToken': lerCsrfToken() ?? '' } : {}),
-      ...headers,
-    },
-    body: body === undefined ? undefined : ehFormData ? (body as FormData) : JSON.stringify(body),
-  })
+  // Controlador próprio para abortar por TEMPO sem tirar de quem chama o
+  // direito de abortar por VONTADE (a busca que muda, o chat que troca de
+  // conversa). `estourou` separa os dois na hora de montar o erro: tempo
+  // esgotado é falha para mostrar; cancelamento é decisão de quem chamou e
+  // segue subindo como `AbortError`, que é o que esses pontos já esperam.
+  const controle = new AbortController()
+  let estourou = false
+  const relogio = setTimeout(() => {
+    estourou = true
+    controle.abort()
+  }, TEMPO_LIMITE_MS)
+  const repassarAborto = () => controle.abort()
+  sinalDeFora?.addEventListener('abort', repassarAborto, { once: true })
+  if (sinalDeFora?.aborted) controle.abort()
 
-  // `/auth/me/` fica de fora: `RotaProtegida` já trata o 401 dela sozinha
-  // (e sabe se manda para /login ou /login/cliente, o que este handler
-  // global não sabe). Disparar os dois pro mesmo 401 mandaria a pessoa pro
-  // login errado quando o portal expira.
-  if (resp.status === 401 && !path.endsWith('/auth/me/')) {
-    aoReceber401?.()
+  try {
+    const resp = await fetch(`${API_BASE_URL}${path}`, {
+      ...resto,
+      method,
+      credentials: 'include', // sessão vai no cookie
+      signal: controle.signal,
+      headers: {
+        // FormData: NÃO fixar Content-Type — o browser põe o boundary do
+        // multipart sozinho (usado no reply com anexos).
+        ...(body !== undefined && !ehFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...(precisaCsrf ? { 'X-CSRFToken': lerCsrfToken() ?? '' } : {}),
+        ...headers,
+      },
+      body: body === undefined ? undefined : ehFormData ? (body as FormData) : JSON.stringify(body),
+    })
+
+    // `/auth/me/` fica de fora: `RotaProtegida` já trata o 401 dela sozinha
+    // (e sabe se manda para /login ou /login/cliente, o que este handler
+    // global não sabe). Disparar os dois pro mesmo 401 mandaria a pessoa pro
+    // login errado quando o portal expira.
+    if (resp.status === 401 && !path.endsWith('/auth/me/')) {
+      aoReceber401?.()
+    }
+
+    if (resp.status === 204) return undefined as T
+
+    const contentType = resp.headers.get('content-type') ?? ''
+    const payload = contentType.includes('application/json') ? await resp.json() : await resp.text()
+
+    if (!resp.ok) throw new ApiError(resp.status, payload)
+    return payload as T
+  } catch (erro) {
+    if (!estourou) throw erro
+    throw new ApiError(0, {
+      detail: 'O servidor não respondeu a tempo. Verifique se a API está no ar e tente de novo.',
+      code: 'tempo_esgotado',
+    })
+  } finally {
+    clearTimeout(relogio)
+    sinalDeFora?.removeEventListener('abort', repassarAborto)
   }
-
-  if (resp.status === 204) return undefined as T
-
-  const contentType = resp.headers.get('content-type') ?? ''
-  const payload = contentType.includes('application/json') ? await resp.json() : await resp.text()
-
-  if (!resp.ok) throw new ApiError(resp.status, payload)
-  return payload as T
 }
 
 /**
