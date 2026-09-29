@@ -57,6 +57,9 @@ export const NAV: Item[] = [
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', marca: 'chat', route: '/chat', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', marca: 'grid', route: '/quadro', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', marca: 'users', route: '/clientes', enabled: true },
+  // Sem símbolo da marca por DECISÃO, não por esquecimento: o sprite do kit
+  // não tem megafone, e ficou definido manter o Tabler em vez de encomendar
+  // um desenho novo. É o único contorno fino da navegação.
   { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
   { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', marca: 'analytics', route: '/relatorios', enabled: true },
   { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', marca: 'shield', route: '/auditoria', enabled: true },
