@@ -13,7 +13,6 @@
     width: 256px;
     flex-shrink: 0;
     background: var(--surface-card);
-    border-right: 1px solid var(--stroke);
     display: flex;
     flex-direction: column;
     overflow-y: auto;
@@ -109,11 +108,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--primario);
-    // Sobre fundo de marca o texto sai do token de superfície: --accent clareia
-    // no escuro (tokens.scss:77) e branco por cima reprova o AA.
-    color: var(--primario-sobre);
-    border: none;
+    // Secundário, e por isso OUTLINE — não sólido. O sólido escuro é do CTA
+    // primário, e só dele; lado a lado com "Novo chamado" os dois pesavam
+    // igual e a tela não dizia mais qual era a ação principal.
+    background: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
     cursor: pointer;
     i {
@@ -159,7 +159,6 @@
     height: 34px;
     padding: 2px;
     background: var(--surface-card);
-    border: 1px solid var(--stroke);
     border-radius: var(--raio);
   }
   &__densidade-btn {
@@ -203,7 +202,6 @@
     height: 34px;
     padding: 0 10px;
     background: var(--surface-card);
-    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     i {
@@ -267,7 +265,6 @@
     height: 28px;
     padding: 0 8px;
     background: var(--surface-card);
-    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     font-family: var(--f-ui);
     font-size: 12px;
@@ -328,7 +325,6 @@
     padding: 64px 24px;
     color: var(--text-muted);
     background: var(--surface-card);
-    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     i {
       font-size: 32px;
@@ -369,7 +365,6 @@
       gap: 4px;
       padding: 6px 12px;
       background: var(--surface-card);
-      border: 1px solid var(--stroke);
       border-radius: var(--raio);
       font-size: 12px;
       font-weight: 500;
@@ -400,7 +395,6 @@
     gap: 8px;
     height: 48px;
     padding: 0 12px;
-    border-bottom: 1px solid var(--stroke);
     flex-shrink: 0;
     i {
       font-size: 15px;
@@ -426,7 +420,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--stroke);
     background: var(--surface-card);
     border-radius: var(--raio);
     color: var(--text-secondary);
@@ -452,7 +445,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid var(--stroke);
     background: var(--surface-card);
     border-radius: var(--raio);
     color: var(--text-secondary);
@@ -598,7 +590,6 @@
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border: 1px solid var(--stroke);
     border-radius: var(--raio);
   }
 
@@ -607,7 +598,6 @@
     top: 0;
     z-index: 1;
     background: var(--surface-alt);
-    border-bottom: 1px solid var(--stroke);
     text-align: left;
     padding: 0 12px;
     height: 40px;
@@ -629,8 +619,8 @@
   // segunda classe aqui é o que garante a vitória, esteja este bloco antes
   // ou depois do outro.
   &.tickets-tabela--confortavel {
-    thead th { height: 44px; }
-    tbody td { height: 52px; }
+    thead th { height: 48px; }
+    tbody td { height: 68px; }
   }
 
   &__sort {
@@ -661,9 +651,12 @@
   }
 
   tbody td {
+    // Respiro vertical. Sem divisória entre as linhas, é o ESPAÇO que
+    // separa um registro do seguinte — e 44px de altura deixava o olho
+    // colar duas linhas numa só. O briefing é explícito: espaçamento
+    // generoso entre itens de lista é essencial.
     padding: 0 12px;
-    height: 44px;
-    border-bottom: 1px solid var(--stroke);
+    height: 56px;
     color: var(--text-primary);
     vertical-align: middle;
   }

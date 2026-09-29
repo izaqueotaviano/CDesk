@@ -23,9 +23,9 @@
   // título editorial (saudação da Início, título de tela) — serifada e
   // decorativa, número nela fica ilegível. JetBrains Mono segue só em dado
   // técnico (id, referência de ticket, atalho) — nunca em texto corrido.
-  --f-ui: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --f-mono: 'JetBrains Mono', monospace;
-  --f-display: 'Tenor Sans', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --f-ui: Inter, sans-serif;
+  --f-mono: Inter, sans-serif;
+  --f-display: Inter, sans-serif;
 
   // ── Superfícies ──
   // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em

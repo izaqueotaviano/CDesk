@@ -129,9 +129,9 @@ $sp-4: 16px; $sp-5: 24px; $sp-6: 32px;
 $sp-7: 48px; $sp-8: 64px;
 
 // --- tipografia --------------------------------------------------------------
-$f-ui:      var(--f-ui, Inter, ui-sans-serif, -apple-system, 'Segoe UI', sans-serif);
-$f-mono:    var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
-$f-display: var(--f-display, 'Tenor Sans', ui-serif, Georgia, serif);
+$f-ui: Inter, sans-serif;
+$f-mono: Inter, sans-serif;
+$f-display: Inter, sans-serif;
 
 $w-light:    300; // texto corrido
 $w-regular:  400;

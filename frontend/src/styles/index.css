@@ -74,4 +74,22 @@
   .assinatura-mensagem :is(p, div) + :is(p, div) {
     margin-top: 4px;
   }
+
+  /* LINK.
+     O acento deixou de ser o laranja e virou a própria tinta, então cor não
+     distingue mais link de texto corrido. O sublinhado assume esse trabalho —
+     e é o sinal melhor de qualquer jeito: funciona para quem não separa
+     matiz, que é a razão de a WCAG 1.4.1 pedir que a cor nunca seja o único
+     portador de significado.
+     `underline-offset` afasta o traço da base da letra para o sublinhado não
+     cortar o rabo do "g" e do "p". */
+  a:not([class*="botao"]):not([class*="btn"]):not([class*="sidebar"]):not([class*="aba"]) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--borda-controle);
+  }
+  a:not([class*="botao"]):not([class*="btn"]):not([class*="sidebar"]):not([class*="aba"]):hover {
+    text-decoration-color: currentColor;
+  }
 }

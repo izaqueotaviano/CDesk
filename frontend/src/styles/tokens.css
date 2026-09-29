@@ -82,7 +82,10 @@
      diálogo, saudação da Início): é serifada e decorativa, e número nela
      fica ilegível — por isso nunca em botão, tabela ou valor.
      Self-hosted por @fontsource em src/main.tsx, como as demais. */
-  --f-ui: "Segoe UI", Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  /* INTER, e só. Ela é auto-hospedada (@fontsource em main.tsx), então a
+     tela sai idêntica no Mac, no Windows e no Linux — com "Segoe UI" na
+     frente, quem estivesse no Windows veria outra fonte e outra métrica. */
+  --f-ui: Inter, sans-serif;
   /* Uma família só. `--f-mono` e `--f-display` continuam existindo porque ~50
      arquivos os consomem, mas apontam para a MESMA pilha: trocar a fonte de
      um rótulo pequeno era o que fazia a tela parecer um painel técnico em vez
@@ -246,9 +249,15 @@
   /* As três sombras do kit. O nível 1 volta a existir (o v2 usa uma sombra
      de 1px em cartão elevado), mas cartão comum continua se separando do
      fundo pela LINHA, não por sombra. */
-  --elevacao-1: 0 1px 2px rgba(41, 37, 36, .06);
-  --elevacao-2: 0 9px 22px rgba(40, 38, 32, .10);
-  --elevacao-3: 0 22px 56px rgba(28, 25, 23, .20);
+  /* Sem sombra. O que separa um bloco do fundo é o TOM (branco sobre greige)
+     e o espaço em volta, não uma penumbra — é o que faz a tela ler como
+     documento e não como pilha de cartões flutuando.
+     Os três níveis continuam existindo porque ~16 regras os consomem; só o
+     que flutua DE VERDADE sobre o conteúdo (menu, popover, modal) guarda uma
+     sombra, e bem discreta, porque ali ela informa profundidade real. */
+  --elevacao-1: none;
+  --elevacao-2: 0 4px 12px rgba(36, 36, 36, .06);
+  --elevacao-3: 0 12px 32px rgba(36, 36, 36, .10);
   --sobreposicao: rgba(12, 10, 9, .44);  /* véu atrás do modal */
   --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 

@@ -89,9 +89,9 @@ module.exports = {
       // Estas pilhas são LITERAIS: o Tailwind não lê `--f-ui`, então mudar
       // só o token não muda `font-ui` coisa nenhuma. Já mordeu uma vez.
       fontFamily: {
-        ui:      ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        mono:    ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-        display: ['Segoe UI', 'Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        ui:      ['Inter', 'sans-serif'],
+        mono:    ['Inter', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
       },
 
       // escala base 14px razão 1,125
