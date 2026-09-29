@@ -90,7 +90,7 @@ function LinhaDoTempo({ ticket }: { ticket: TicketDetalhe }) {
                   p.estado === 'atual' && 'border-acento bg-acento-suave text-acento',
                   p.estado === 'atual' && p.tom === 'alerta' && 'border-alerta bg-alerta-suave text-alerta',
                   p.estado === 'feito' && p.tom === 'neutro' && 'border-neutro-400 bg-neutro-400',
-                  p.estado === 'futuro' && 'border-divisoria bg-superficie text-tinta-terciaria',
+                  p.estado === 'futuro' && ' bg-superficie text-tinta-terciaria',
                 )}
                 aria-hidden="true"
               >
@@ -141,7 +141,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
               aria-checked={nota === n}
               onClick={() => setNota(n)}
               className={cn(
-                'grid size-9 place-items-center rounded-lg border border-divisoria bg-superficie text-corpo font-medio transition-colors hover:border-acento',
+                'grid size-9 place-items-center rounded-lg  bg-superficie text-corpo font-medio transition-colors hover:border-acento',
                 nota === n && 'border-acento bg-acento text-acento-sobre',
               )}
             >
@@ -195,7 +195,7 @@ function Anexos({ msg }: { msg: Mensagem }) {
     <ul className="mt-2 flex flex-wrap gap-2" aria-label="Anexos">
       {msg.attachments.map((a) =>
         a.is_downloadable === false || !a.url ? (
-          <li key={a.id} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda text-tinta-secundaria" title="Em verificação de segurança">
+          <li key={a.id} className="inline-flex items-center gap-1.5 rounded-lg  bg-navegacao px-2.5 py-1 text-legenda text-tinta-secundaria" title="Em verificação de segurança">
             <IconLock className="size-3" aria-hidden="true" />
             {a.filename} · em verificação
           </li>
@@ -205,7 +205,7 @@ function Anexos({ msg }: { msg: Mensagem }) {
               href={urlApi(a.url)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-superficie px-2.5 py-1 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
+              className="inline-flex items-center gap-1.5 rounded-lg  bg-superficie px-2.5 py-1 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
             >
               <IconPaperclip className="size-3" aria-hidden="true" />
               {a.filename}
@@ -239,7 +239,7 @@ function MensagemDoTicket({
   const doSuporte = msg.author_is_internal
   return (
     <article
-      className={cn('flex gap-2.5 rounded-md border border-divisoria bg-superficie px-3.5 py-3', doSuporte && 'border-l-2 border-l-acento')}
+      className={cn('flex gap-2.5 rounded-md  bg-superficie px-3.5 py-3', doSuporte && 'border-l-2 border-l-acento')}
       aria-label={`Mensagem de ${msg.author_name}`}
     >
       <Avatar nome={msg.author_name} urlFoto={msg.author_avatar ? urlApi(msg.author_avatar) : null} tamanho="sm" />
@@ -650,7 +650,7 @@ export function PaginaTicket() {
                       setTexto((t) => (t.trim() ? `${t}\n${r.texto}` : r.texto))
                       areaRef.current?.focus()
                     }}
-                    className="h-7 rounded-md border border-divisoria bg-superficie px-3 text-pequeno text-tinta-secundaria transition-colors hover:border-acento hover:bg-acento-suave hover:text-acento"
+                    className="h-7 rounded-md  bg-superficie px-3 text-pequeno text-tinta-secundaria transition-colors hover:border-acento hover:bg-acento-suave hover:text-acento"
                   >
                     {r.rotulo}
                   </button>
@@ -671,7 +671,7 @@ export function PaginaTicket() {
             {anexos.length > 0 && (
               <ul className="flex flex-wrap gap-2" aria-label="Anexos a enviar">
                 {anexos.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda">
+                  <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg  bg-navegacao px-2.5 py-1 text-legenda">
                     <IconPaperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
                     <span className="max-w-[200px] truncate">{f.name}</span>
                     <span className="text-tinta-terciaria">{tamanhoArquivo(f.size)}</span>

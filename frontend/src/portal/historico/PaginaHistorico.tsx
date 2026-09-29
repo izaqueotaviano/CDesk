@@ -53,7 +53,7 @@ function desdeDoPeriodo(periodo: Periodo, agoraMs: number): string | undefined {
  *  estreitas), não três cartões altos empilhados. */
 function CartaoNumero({ rotulo, valor, icone: Icone, detalhe }: { rotulo: string; valor: number | undefined; icone: Icon; detalhe?: string }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-3 sm:gap-3 sm:p-5">
+    <div className="flex flex-col gap-2 rounded-xl  bg-superficie p-3 sm:gap-3 sm:p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="text-legenda font-medio text-tinta-secundaria sm:text-pequeno">{rotulo}</span>
         <span className="hidden size-8 place-items-center rounded-lg bg-navegacao text-tinta-secundaria sm:grid">
@@ -150,7 +150,7 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
 
 function LinhaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: boolean }) {
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-xl  bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className="fonte-mono text-legenda text-acento">{ticket.reference}</span>
@@ -177,7 +177,7 @@ function LinhaChat({ chat, max, agoraMs }: { chat: Chat; max: number; agoraMs: n
   const rel = relativo(chat.closed_at ?? chat.queued_at, agoraMs)
   const quando = rel.startsWith('há') || rel === 'agora' ? `${rel} (${dataHora(chat.closed_at)})` : `em ${dataHora(chat.closed_at)}`
   return (
-    <li className="flex flex-col gap-3 rounded-xl border border-divisoria bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
+    <li className="flex flex-col gap-3 rounded-xl  bg-superficie p-4 sm:flex-row sm:items-center sm:gap-4">
       <span className="hidden size-10 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria sm:grid">
         <IconHeadset className="size-4" aria-hidden="true" />
       </span>

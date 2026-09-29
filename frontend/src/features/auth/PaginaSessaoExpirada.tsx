@@ -1,5 +1,4 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Clock } from 'lucide-react'
 import { buttonVariants } from '@/portal/ui/button'
 
 /** Rota pública citada em docs/07-arquitetura-frontend.md ("/sessao-expirada"),
@@ -12,7 +11,7 @@ export function PaginaSessaoExpirada() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas px-6 text-center text-tinta">
       <span className="grid size-12 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
-        <Clock className="size-6" aria-hidden="true" />
+        <i className="ti ti-clock" aria-hidden="true" />
       </span>
       <h1 className="text-titulo-lg font-forte tracking-display">Sua sessão expirou</h1>
       <p className="max-w-sm text-corpo text-tinta-secundaria">

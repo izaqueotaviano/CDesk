@@ -32,7 +32,7 @@ function LinhaSessao({
   encerrando: boolean
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-divisoria bg-navegacao/60 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg  bg-navegacao/60 px-4 py-3">
       <IconDeviceDesktop className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-pequeno font-medio text-tinta">
@@ -151,7 +151,7 @@ export function SecaoAcessos() {
         </div>
       </div>
 
-      <div className="border-t border-divisoria pt-4">
+      <div className="pt-4">
         <h3 className="mb-1 text-pequeno font-medio text-tinta">Atividade recente</h3>
         {events.length === 0 ? (
           <EstadoVazio icone={IconClock} titulo="Nenhuma atividade ainda" descricao="Logins, trocas de senha e sessões encerradas aparecem aqui." className="py-4" />

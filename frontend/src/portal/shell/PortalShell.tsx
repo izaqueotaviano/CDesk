@@ -90,7 +90,7 @@ function Sidebar({ me }: { me: Me | undefined }) {
   const logout = useLogout()
   return (
     <aside className="hidden w-[240px] shrink-0 flex-col bg-navegacao text-tinta-cromo md:flex" aria-label="Menu do portal">
-      <div className="flex h-[52px] shrink-0 items-center border-b border-divisoria pl-3 pr-2">
+      <div className="flex h-[52px] shrink-0 items-center  pl-3 pr-2">
         <Marca me={me} />
       </div>
 
@@ -110,7 +110,7 @@ function Sidebar({ me }: { me: Me | undefined }) {
         ))}
       </nav>
 
-      <div className="flex shrink-0 flex-col gap-0.5 border-t border-divisoria px-3 pb-2.5 pt-2">
+      <div className="flex shrink-0 flex-col gap-0.5  px-3 pb-2.5 pt-2">
         <AlternarTema variante="linha" />
         {me && (
           <Link
@@ -145,7 +145,7 @@ function Sidebar({ me }: { me: Me | undefined }) {
 
 function TopoCelular({ me }: { me: Me | undefined }) {
   return (
-    <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between border-b border-divisoria bg-navegacao px-3 md:hidden">
+    <header className="sticky top-0 z-20 flex h-[52px] items-center justify-between  bg-navegacao px-3 md:hidden">
       <Marca me={me} compacta />
       <div className="flex items-center gap-1">
         <AlternarTema />
@@ -163,7 +163,7 @@ function BarraInferior() {
   const itens = ITENS_NAV.filter((i) => i.noCelular)
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-30 border-t border-divisoria bg-navegacao pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-30  bg-navegacao pb-[env(safe-area-inset-bottom)] md:hidden"
       aria-label="Navegação principal"
     >
       <ul className="grid" style={{ gridTemplateColumns: `repeat(${itens.length}, minmax(0, 1fr))` }}>

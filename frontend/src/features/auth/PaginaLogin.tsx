@@ -4,7 +4,6 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { z } from 'zod'
-import { ArrowLeft, Eye, EyeOff, Headset, LifeBuoy, MailCheck, ShieldCheck, Smartphone, Ticket, type LucideIcon } from 'lucide-react'
 import { useConfirmar2fa, useReenviar2fa } from '@/api/mutations/use2fa'
 import { precisaDeCodigo, useLogin } from '@/api/mutations/useLogin'
 import { MARCA_PADRAO, urlDaImagemDeMarca, useMarcaLogin, type MarcaLogin, type PublicoLogin } from '@/api/branding'
@@ -46,7 +45,8 @@ interface Contexto {
   /** Rótulo em versalete acima do título — o `.ds-eyebrow` do Convertize.
    *  Fala do PÚBLICO, não da marca, que o admin renomeia. */
   eyebrow: string
-  icones: LucideIcon[]
+  /** Classes `ti ti-*` do webfont Tabler — a única família do produto. */
+  icones: string[]
   placeholderEmail: string
   outroPublico: { pergunta: string; acao: string; rota: string }
 }
@@ -57,7 +57,7 @@ const CONTEXTOS: Record<PublicoLogin, Contexto> = {
     titulo: 'Entrar no portal',
     subtitulo: 'Acompanhe seus chamados, fale com a equipe e avalie o atendimento.',
     eyebrow: 'Acesso do cliente',
-    icones: [Ticket, Headset, LifeBuoy],
+    icones: ['ti ti-ticket', 'ti ti-headset', 'ti ti-lifebuoy'],
     placeholderEmail: 'voce@suaempresa.com.br',
     outroPublico: { pergunta: 'É da equipe de suporte?', acao: 'Entrar no painel', rota: '/login' },
   },
@@ -66,7 +66,7 @@ const CONTEXTOS: Record<PublicoLogin, Contexto> = {
     titulo: 'Entrar no painel',
     subtitulo: 'A fila, o chat e os indicadores da equipe.',
     eyebrow: 'Acesso da equipe',
-    icones: [Ticket, Headset, ShieldCheck],
+    icones: ['ti ti-ticket', 'ti ti-headset', 'ti ti-shield-check'],
     placeholderEmail: 'voce@empresa.com.br',
     outroPublico: { pergunta: 'É cliente?', acao: 'Acessar o portal', rota: '/login/cliente' },
   },
@@ -120,7 +120,7 @@ function Marca({ nome, className }: { nome: string; className?: string }) {
  * Não é `aria-hidden`: headline e destaques são texto de verdade, e o leitor
  * de tela lê depois do formulário (ordem do DOM), que é onde interessa.
  */
-function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: LucideIcon[] }) {
+function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: string[] }) {
   const imagem = urlDaImagemDeMarca(marca?.image_url ?? null)
   const temTexto = Boolean(marca && (marca.headline || marca.highlights.length > 0))
   return (
@@ -139,10 +139,10 @@ function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: LucideI
             {marca.highlights.length > 0 && (
               <ul className={cn('flex flex-col gap-2.5 text-pequeno text-tinta-secundaria', marca.headline && 'mt-4')}>
                 {marca.highlights.map((texto, i) => {
-                  const Icone = icones[i] ?? icones[icones.length - 1]
+                  const icone = icones[i] ?? icones[icones.length - 1]
                   return (
                     <li key={texto} className="flex items-start gap-2.5">
-                      <Icone className="login-destaque__icone mt-0.5 size-4 shrink-0 text-acento" aria-hidden="true" />
+                      <i className={`login-destaque__icone mt-0.5 shrink-0 text-acento ${icone}`} aria-hidden="true" />
                       {texto}
                     </li>
                   )
@@ -367,7 +367,7 @@ export function PaginaLogin() {
                       aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
                       aria-pressed={mostrarSenha}
                     >
-                      {mostrarSenha ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                      {mostrarSenha ? <i className="ti ti-eye-off" /> : <i className="ti ti-eye" />}
                     </button>
                   </div>
                   <ErroCampo id={`${idBase}-senha-erro`}>{form.formState.errors.password?.message}</ErroCampo>
@@ -393,11 +393,11 @@ export function PaginaLogin() {
                 aria-busy={confirmar2fa.isPending}
               >
                 <button type="button" onClick={voltar} className="inline-flex w-fit items-center gap-1 text-pequeno text-tinta-secundaria hover:text-tinta">
-                  <ArrowLeft className="size-4" aria-hidden="true" /> Voltar
+                  <i className="ti ti-arrow-left" aria-hidden="true" /> Voltar
                 </button>
                 <header className="flex flex-col items-center gap-3 text-center">
                   <span className="login-selo-2fa grid size-11 place-items-center rounded-md bg-acento-suave text-acento">
-                    {metodo === 'totp' ? <Smartphone className="size-5" aria-hidden="true" /> : <MailCheck className="size-5" aria-hidden="true" />}
+                    {metodo === 'totp' ? <i className="ti ti-device-mobile" aria-hidden="true" /> : <i className="ti ti-mail-check" aria-hidden="true" />}
                   </span>
                   <div>
                     <p className="login-eyebrow">Verificação em duas etapas</p>
@@ -468,7 +468,7 @@ export function PaginaLogin() {
         </div>
 
         <footer className="flex items-center justify-center gap-1 text-center text-legenda text-tinta-terciaria">
-          <ShieldCheck className="size-3.5 shrink-0" aria-hidden="true" /> Conexão segura · verificação em duas etapas disponível
+          <i className="ti ti-shield-check shrink-0" aria-hidden="true" /> Conexão segura · verificação em duas etapas disponível
         </footer>
       </main>
 

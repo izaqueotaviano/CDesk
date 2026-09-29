@@ -243,7 +243,7 @@ export function Conversa({
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-divisoria p-4">
+      <header className="flex items-center gap-3  p-4">
         {onVoltar && (
           <Button variant="ghost" size="icon-sm" onClick={onVoltar} aria-label="Voltar para a lista" className="md:hidden">
             <IconArrowLeft />
@@ -319,7 +319,7 @@ export function Conversa({
       {buscando && (
         <form
           role="search"
-          className="flex flex-wrap items-center gap-2 border-b border-divisoria px-4 py-2"
+          className="flex flex-wrap items-center gap-2  px-4 py-2"
           onSubmit={(e) => {
             e.preventDefault()
             setTermo(rascunhoBusca)
@@ -473,24 +473,24 @@ export function Conversa({
       </div>
 
       {chat.ticket_reference && (
-        <p className="border-t border-divisoria px-4 py-2 text-pequeno text-tinta-secundaria">
+        <p className="px-4 py-2 text-pequeno text-tinta-secundaria">
           Esta conversa virou o chamado <strong className="text-tinta">{chat.ticket_reference}</strong>.
         </p>
       )}
 
       {(erro || erroSocket) && (
-        <p role="alert" className="border-t border-divisoria px-4 py-2 text-pequeno text-perigo">
+        <p role="alert" className="px-4 py-2 text-pequeno text-perigo">
           {erro ?? erroSocket}
         </p>
       )}
 
       {anexos.fila.length > 0 && (
-        <div className="flex flex-col gap-2 border-t border-divisoria p-3" aria-label="Anexos em envio">
+        <div className="flex flex-col gap-2  p-3" aria-label="Anexos em envio">
           {anexos.fila.map((envio) => (
             <div
               key={envio.id}
               className={cn(
-                'flex items-center gap-2 rounded-md border border-divisoria bg-superficie px-2 py-1.5',
+                'flex items-center gap-2 rounded-md  bg-superficie px-2 py-1.5',
                 envio.estado === 'erro' && 'border-perigo',
               )}
             >
@@ -532,7 +532,7 @@ export function Conversa({
       )}
 
       {aberta && (
-        <div className="flex flex-col gap-2 border-t border-divisoria p-3">
+        <div className="flex flex-col gap-2  p-3">
           {respondendo && (
             <div className="flex items-center gap-2 rounded-md border-l-2 border-acento bg-navegacao px-2 py-1">
               <span className="shrink-0 text-legenda font-medio text-acento">

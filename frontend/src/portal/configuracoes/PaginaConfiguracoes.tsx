@@ -38,7 +38,7 @@ export function PaginaConfiguracoes() {
           <a
             key={s.id}
             href={`#${s.id}`}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-total border border-divisoria bg-superficie px-3 py-1.5 text-pequeno font-medio text-tinta-secundaria hover:border-borda-controle hover:text-tinta"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-total  bg-superficie px-3 py-1.5 text-pequeno font-medio text-tinta-secundaria hover:border-borda-controle hover:text-tinta"
           >
             <s.icone className="size-3.5" aria-hidden="true" />
             {s.rotulo}

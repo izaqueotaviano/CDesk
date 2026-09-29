@@ -43,7 +43,7 @@ function QrDoAutenticador({ uri }: { uri: string }) {
     <div
       role="img"
       aria-label="QR code para o aplicativo autenticador"
-      className="size-44 overflow-hidden rounded-lg border border-divisoria bg-white p-1 [&_svg]:size-full"
+      className="size-44 overflow-hidden rounded-lg  bg-white p-1 [&_svg]:size-full"
       // SVG gerado pela biblioteca a partir da URI — não é conteúdo de terceiros
       dangerouslySetInnerHTML={{ __html: svg }}
     />
@@ -226,7 +226,7 @@ export function SecaoSeguranca() {
         </span>
       }
     >
-      <div className="flex flex-wrap items-center gap-3 rounded-lg border border-divisoria bg-navegacao/60 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-3 rounded-lg  bg-navegacao/60 px-4 py-3">
         <resumo.Icone className={cn('size-5', ligada ? 'text-ok' : 'text-tinta-secundaria')} aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="text-pequeno font-medio text-tinta">{resumo.titulo}</p>
@@ -269,7 +269,7 @@ export function SecaoSeguranca() {
       </div>
 
       {ligada && !ativando && !desligando && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-divisoria pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3  pt-4">
           <p className="text-pequeno text-tinta-secundaria">
             Método atual: <strong className="text-tinta">{metodoAtual === 'totp' ? 'aplicativo autenticador' : 'e-mail'}</strong>
           </p>
@@ -295,7 +295,7 @@ export function SecaoSeguranca() {
                   onClick={() => setAtivando({ metodo: o.valor, setup: null })}
                   className={cn(
                     'flex gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color] hover:border-borda-controle',
-                    ativo ? 'border-acento ring-1 ring-acento' : 'border-divisoria',
+                    ativo ? 'border-acento ring-1 ring-acento' : '',
                   )}
                 >
                   <o.icone className={cn('mt-0.5 size-4 shrink-0', ativo ? 'text-acento' : 'text-tinta-secundaria')} aria-hidden="true" />

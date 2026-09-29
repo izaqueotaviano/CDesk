@@ -77,19 +77,24 @@
 
   /* LINK.
      O acento deixou de ser o laranja e virou a própria tinta, então cor não
-     distingue mais link de texto corrido. O sublinhado assume esse trabalho —
-     e é o sinal melhor de qualquer jeito: funciona para quem não separa
-     matiz, que é a razão de a WCAG 1.4.1 pedir que a cor nunca seja o único
-     portador de significado.
-     `underline-offset` afasta o traço da base da letra para o sublinhado não
-     cortar o rabo do "g" e do "p". */
-  a:not([class*="botao"]):not([class*="btn"]):not([class*="sidebar"]):not([class*="aba"]) {
+     distingue mais link de texto corrido. Quem assume esse trabalho é o
+     sublinhado — mas SÓ onde o problema existe: link INLINE, no meio de uma
+     frase. É a isso que a WCAG 1.4.1 se refere ("dentro de um bloco de
+     texto"), e foi onde a primeira versão desta regra errou: ela sublinhava
+     todo <a>, e no portal isso pintou navegação, botões, datas e títulos de
+     cartão — a tela inteira virou link.
+     Item de navegação, linha de lista e cartão clicável se anunciam por
+     posição, hover e foco; não precisam de traço, e com ele ficam ilegíveis.
+
+     `text-underline-offset` afasta o traço da base da letra para não cortar
+     o rabo do "g" e do "p". */
+  :is(p, li, dd, blockquote, .prosa) a {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
     text-decoration-color: var(--borda-controle);
   }
-  a:not([class*="botao"]):not([class*="btn"]):not([class*="sidebar"]):not([class*="aba"]):hover {
+  :is(p, li, dd, blockquote, .prosa) a:hover {
     text-decoration-color: currentColor;
   }
 }

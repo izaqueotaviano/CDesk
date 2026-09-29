@@ -134,7 +134,13 @@ if (typeof window !== 'undefined') {
  * (portal/configuracoes/SecaoAparencia) continua falando com `setTema` direto,
  * porque lá "sistema" é uma opção de verdade, não um estado intermediário.
  */
-export function useTemaResolvido(): { tema: TemaResolvido; alternar: () => void } {
+export function useTemaResolvido(): {
+  tema: TemaResolvido
+  alternar: () => void
+  /** A PREFERÊNCIA guardada — inclui "sistema", que `tema` já resolveu. */
+  preferencia: Tema
+  ciclar: () => void
+} {
   const preferencia = usePrefs((s) => s.tema)
   const setTema = usePrefs((s) => s.setTema)
   const [sistemaEscuro, setSistemaEscuro] = useState(sistemaPrefereEscuro)
@@ -157,5 +163,17 @@ export function useTemaResolvido(): { tema: TemaResolvido; alternar: () => void 
     [tema, setTema],
   )
 
-  return { tema, alternar }
+  // Ciclo de TRÊS posições: claro → escuro → sistema → claro.
+  //
+  // `alternar` (dois estados) continua existindo para quem já o usa, mas o
+  // botão do console passou a usar este. O motivo é simples: o padrão de
+  // fábrica é "sistema", e com um alternador de dois estados quem clicasse
+  // uma vez ficava preso em claro/escuro para sempre — não havia volta para
+  // o automático fora do seletor do portal, que a equipe nem vê.
+  const ciclar = useCallback(() => {
+    const proxima: Record<Tema, Tema> = { claro: 'escuro', escuro: 'sistema', sistema: 'claro' }
+    setTema(proxima[preferencia])
+  }, [preferencia, setTema])
+
+  return { tema, alternar, preferencia, ciclar }
 }

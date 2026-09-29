@@ -25,7 +25,7 @@ function mensagem(e: unknown, padrao: string): string {
 function LinhaPedido({ pedido }: { pedido: PedidoDeDados }) {
   const status = ROTULO_STATUS[pedido.status]
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-divisoria bg-navegacao/60 px-4 py-3">
+    <div className="flex flex-wrap items-center gap-3 rounded-lg  bg-navegacao/60 px-4 py-3">
       <IconFileText className="size-5 shrink-0 text-tinta-secundaria" aria-hidden="true" />
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-2 text-pequeno font-medio text-tinta">

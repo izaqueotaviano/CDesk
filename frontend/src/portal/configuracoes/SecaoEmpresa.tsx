@@ -145,7 +145,7 @@ export function SecaoEmpresa() {
       </dl>
 
       {podeEditar ? (
-        <div className="grid gap-4 border-t border-divisoria pt-5 sm:grid-cols-2">
+        <div className="grid gap-4  pt-5 sm:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={`${idBase}-razao`}>Razão social</Label>
             <Input
@@ -176,7 +176,7 @@ export function SecaoEmpresa() {
           </Ajuda>
         </div>
       ) : (
-        <dl className="grid gap-4 border-t border-divisoria pt-5 sm:grid-cols-2">
+        <dl className="grid gap-4  pt-5 sm:grid-cols-2">
           <Dado rotulo="Razão social">{dados.legal_name || '—'}</Dado>
           <Dado rotulo="CNPJ">{dados.tax_id || '—'}</Dado>
         </dl>

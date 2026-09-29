@@ -1,6 +1,6 @@
 /* GERADO por scripts/gerar_subset_icones.py — não edite à mão.
  *
- * Subset da fonte Tabler Icons (98 ícones, os que o produto usa)
+ * Subset da fonte Tabler Icons (103 ícones, os que o produto usa)
  * com o CSS de cada um. Antes isto vinha de CDN, que a CSP de produção não
  * libera — ver o cabeçalho do script.
  *
@@ -65,9 +65,12 @@
 .ti-clock::before { content: "\ea70"; }
 .ti-copy::before { content: "\ea7a"; }
 .ti-corner-down-right::before { content: "\ea7d"; }
+.ti-device-desktop::before { content: "\ea89"; }
+.ti-device-mobile::before { content: "\ea8a"; }
 .ti-dots::before { content: "\ea95"; }
 .ti-dots-vertical::before { content: "\ea94"; }
 .ti-download::before { content: "\ea96"; }
+.ti-eye::before { content: "\ea9a"; }
 .ti-eye-off::before { content: "\ecf0"; }
 .ti-file-download::before { content: "\ea9d"; }
 .ti-file-plus::before { content: "\eaa0"; }
@@ -83,11 +86,13 @@
 .ti-layout-grid::before { content: "\edba"; }
 .ti-layout-sidebar-left-collapse::before { content: "\f004"; }
 .ti-layout-sidebar-left-expand::before { content: "\f005"; }
+.ti-lifebuoy::before { content: "\eadd"; }
 .ti-link::before { content: "\eade"; }
 .ti-loader-2::before { content: "\f226"; }
 .ti-lock::before { content: "\eae2"; }
 .ti-logout-2::before { content: "\fa7e"; }
 .ti-mail::before { content: "\eae5"; }
+.ti-mail-check::before { content: "\f939"; }
 .ti-menu-2::before { content: "\ec42"; }
 .ti-message-2::before { content: "\eaec"; }
 .ti-message-circle-2::before { content: "\eaed"; }

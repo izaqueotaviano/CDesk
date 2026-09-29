@@ -172,7 +172,7 @@ export function SecaoSenha() {
         <ul id={`${idBase}-regras`} className="grid gap-1.5 sm:grid-cols-2" aria-label="Requisitos da senha">
           {lista.map((r) => (
             <li key={r.id} className={cn('flex items-center gap-2 text-legenda', r.ok ? 'text-ok' : 'text-tinta-secundaria')}>
-              <span className={cn('grid size-4 shrink-0 place-items-center rounded-total border', r.ok ? 'border-ok bg-ok text-white' : 'border-divisoria')} aria-hidden="true">
+              <span className={cn('grid size-4 shrink-0 place-items-center rounded-total border', r.ok ? 'border-ok bg-ok text-white' : '')} aria-hidden="true">
                 {r.ok && <IconCheck className="size-3" />}
               </span>
               {r.texto}

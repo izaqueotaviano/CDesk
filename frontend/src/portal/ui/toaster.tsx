@@ -16,7 +16,7 @@ export function Toaster() {
       richColors
       toastOptions={{
         classNames: {
-          toast: 'rounded-md border border-divisoria bg-superficie text-tinta shadow-elevacao-3 font-ui',
+          toast: 'rounded-md  bg-superficie text-tinta shadow-elevacao-3 font-ui',
           description: 'text-tinta-secundaria',
         },
       }}

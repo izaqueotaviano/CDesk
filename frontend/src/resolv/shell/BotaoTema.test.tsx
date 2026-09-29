@@ -41,74 +41,85 @@ afterEach(() => {
 })
 
 describe('Botão de tema (shell Resolv)', () => {
-  it('oferece o tema escuro quando a tela está clara', () => {
+  const botao = (nome: string) => screen.getByRole('button', { name: nome })
+
+  it('nasce em "sistema" e oferece sair dele para o claro', () => {
     sistemaPrefere(false)
     render(<BotaoTema />)
 
-    expect(screen.getByRole('button', { name: 'Usar tema escuro' })).toBeInTheDocument()
+    // Padrão de fábrica: ninguém escolheu nada, então a aparência é a do SO.
+    expect(usePrefs.getState().tema).toBe('sistema')
+    expect(botao('Usar tema claro')).toBeInTheDocument()
   })
 
-  it('alterna para o escuro, guarda a escolha e passa a oferecer a volta', () => {
+  it('cicla claro → escuro → sistema → claro, e volta ao automático', () => {
     sistemaPrefere(false)
+    act(() => usePrefs.getState().setTema('claro'))
     render(<BotaoTema />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Usar tema escuro' }))
-
-    expect(atributoResolv()).toBe('escuro')
+    fireEvent.click(botao('Usar tema escuro'))
     expect(usePrefs.getState().tema).toBe('escuro')
-    expect(screen.getByRole('button', { name: 'Usar tema claro' })).toBeInTheDocument()
+    expect(atributoResolv()).toBe('escuro')
+
+    // O degrau que faltava: sem ele, quem clicasse uma vez ficava preso em
+    // claro/escuro e nunca mais voltava a acompanhar o sistema.
+    fireEvent.click(botao('Acompanhar o sistema'))
+    expect(usePrefs.getState().tema).toBe('sistema')
+
+    fireEvent.click(botao('Usar tema claro'))
+    expect(usePrefs.getState().tema).toBe('claro')
   })
 
-  it('leva o shell cvz junto: as telas de /clientes e /relatorios não clareiam ao navegar', () => {
-    // Regressão da colisão de tema: o cvz lê `data-theme` e não tem fallback de
-    // prefers-color-scheme nenhum, então ele PRECISA ser carimbado em JS —
-    // senão o Popover e o Modal do cvz que o shell Resolv reaproveita
-    // desenhariam uma moldura branca em volta de painéis escuros.
-    sistemaPrefere(false)
-    render(<BotaoTema />)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Usar tema escuro' }))
-    expect(atributoCvz()).toBe('dark')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Usar tema claro' }))
-    expect(atributoCvz()).toBe('light')
-  })
-
-  it('nasce escuro quando ninguém escolheu e o sistema está no escuro', () => {
+  it('em "sistema" deixa o atributo do Resolv ausente e resolve o do cvz em JS', () => {
     sistemaPrefere(true)
     act(() => usePrefs.getState().setTema('sistema'))
     render(<BotaoTema />)
 
-    expect(screen.getByRole('button', { name: 'Usar tema claro' })).toBeInTheDocument()
-    // Em "sistema" o atributo do Resolv fica AUSENTE de propósito: quem pinta
-    // é o `@media (prefers-color-scheme: dark)` do tokens.scss, já no primeiro
-    // paint. O do cvz não tem esse fallback, então é resolvido aqui.
+    // Ausente de propósito: quem pinta é o `@media (prefers-color-scheme)` do
+    // tokens.css, já no primeiro paint. O cvz não tem esse fallback.
     expect(atributoResolv()).toBeNull()
     expect(atributoCvz()).toBe('dark')
   })
 
-  it('mantém o claro de quem escolheu claro mesmo com o sistema no escuro', () => {
+  it('leva o shell cvz junto: /clientes e /relatorios não clareiam ao navegar', () => {
+    // Regressão da colisão de tema: o cvz lê `data-theme` e não tem fallback
+    // de prefers-color-scheme, então PRECISA ser carimbado em JS — senão o
+    // Popover e o Modal do cvz que o shell Resolv reaproveita desenhariam
+    // uma moldura branca em volta de painéis escuros.
+    sistemaPrefere(false)
+    act(() => usePrefs.getState().setTema('claro'))
+    render(<BotaoTema />)
+
+    fireEvent.click(botao('Usar tema escuro'))
+    expect(atributoCvz()).toBe('dark')
+
+    fireEvent.click(botao('Acompanhar o sistema'))
+    expect(atributoCvz()).toBe('light')
+  })
+
+  it('quem escolheu claro ignora o sistema no escuro', () => {
     sistemaPrefere(true)
     act(() => usePrefs.getState().setTema('claro'))
     render(<BotaoTema />)
 
     expect(atributoResolv()).toBe('claro')
     expect(atributoCvz()).toBe('light')
-    expect(screen.getByRole('button', { name: 'Usar tema escuro' })).toBeInTheDocument()
   })
 
-  it('acompanha o sistema ao vivo enquanto ninguém escolheu, e para de acompanhar depois da escolha', () => {
+  it('quem escolheu para de acompanhar o sistema', () => {
+    // O ouvinte que RE-CARIMBA em "sistema" é de módulo (prefs.ts), registrado
+    // no import — antes deste stub existir —, então ele não está no conjunto
+    // do `sistemaPrefere`. O que dá para observar aqui é o outro lado, que é
+    // o que importa: depois da escolha, mexer no SO não muda mais nada.
     const so = sistemaPrefere(false)
     render(<BotaoTema />)
 
+    act(() => usePrefs.getState().setTema('claro'))
     so.mudarPara(true)
-    expect(screen.getByRole('button', { name: 'Usar tema claro' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Usar tema claro' }))
     so.mudarPara(false)
-    so.mudarPara(true)
+
     expect(atributoResolv()).toBe('claro')
-    expect(screen.getByRole('button', { name: 'Usar tema escuro' })).toBeInTheDocument()
+    expect(atributoCvz()).toBe('light')
   })
 
   it('solta o ouvinte do sistema ao desmontar', () => {
@@ -120,9 +131,9 @@ describe('Botão de tema (shell Resolv)', () => {
     expect(so.quantidadeDeOuvintes()).toBe(0)
   })
 
-  it('renderiza no claro quando o ambiente não tem matchMedia (SSR/jsdom cru)', () => {
+  it('renderiza sem matchMedia (SSR/jsdom cru) sem quebrar', () => {
     render(<BotaoTema />)
 
-    expect(screen.getByRole('button', { name: 'Usar tema escuro' })).toBeInTheDocument()
+    expect(botao('Usar tema claro')).toBeInTheDocument()
   })
 })

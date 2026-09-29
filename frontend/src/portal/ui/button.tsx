@@ -20,8 +20,8 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default: 'bg-primario text-primario-sobre hover:bg-primario-hover',
-        secondary: 'border-divisoria bg-superficie text-tinta hover:border-tinta-terciaria hover:bg-navegacao',
-        outline: 'border-divisoria bg-transparent text-tinta hover:bg-navegacao',
+        secondary: ' bg-superficie text-tinta hover:border-tinta-terciaria hover:bg-navegacao',
+        outline: ' bg-transparent text-tinta hover:bg-navegacao',
         ghost: 'text-tinta-secundaria hover:bg-navegacao hover:text-tinta',
         inverse: 'bg-tinta text-superficie hover:opacity-90',
         destructive: 'bg-perigo text-white hover:brightness-90',

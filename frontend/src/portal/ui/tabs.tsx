@@ -16,7 +16,7 @@ export const TabsList = forwardRef<ElementRef<typeof TabsPrimitive.List>, Compon
         ref={ref}
         className={cn(
           // rola na horizontal no celular em vez de quebrar em duas linhas
-          'flex max-w-full items-end overflow-x-auto border-b border-divisoria [scrollbar-width:none]',
+          'flex max-w-full items-end overflow-x-auto  [scrollbar-width:none]',
           className,
         )}
         {...props}

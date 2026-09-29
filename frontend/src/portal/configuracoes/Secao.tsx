@@ -26,7 +26,7 @@ export function Secao({ id, icone: Icone, titulo, descricao, children, rodape }:
         </div>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">{children}</CardContent>
-      {rodape && <CardFooter className="flex-wrap justify-between gap-3 border-t border-divisoria pt-4 md:pt-4">{rodape}</CardFooter>}
+      {rodape && <CardFooter className="flex-wrap justify-between gap-3  pt-4 md:pt-4">{rodape}</CardFooter>}
     </Card>
   )
 }

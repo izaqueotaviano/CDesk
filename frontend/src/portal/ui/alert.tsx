@@ -8,10 +8,10 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        info: 'border-divisoria border-l-acento [&_svg]:text-acento',
-        warning: 'border-divisoria border-l-alerta [&_svg]:text-alerta',
-        success: 'border-divisoria border-l-ok [&_svg]:text-ok',
-        destructive: 'border-divisoria border-l-perigo [&_svg]:text-perigo',
+        info: ' border-l-acento [&_svg]:text-acento',
+        warning: ' border-l-alerta [&_svg]:text-alerta',
+        success: ' border-l-ok [&_svg]:text-ok',
+        destructive: ' border-l-perigo [&_svg]:text-perigo',
       },
     },
     defaultVariants: { variant: 'info' },

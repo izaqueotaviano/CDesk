@@ -62,7 +62,11 @@ $identity-text: (
 
 // --- stroke ------------------------------------------------------------------
 $stroke-w:        1px;
-$border:          $stroke-w solid $stroke;
+// Sem moldura. As 44 caixas e divisórias do admin desenhavam com esta
+// variável; agora o que separa um bloco do fundo é o TOM e o espaço.
+// `$border-field` (campo de entrada) continua intacto — é a única
+// borda que o briefing mantém.
+$border:          none;
 
 // Campo de entrada tem linha PRÓPRIA, mais escura: input precisa se anunciar
 // como editável, e com a cor da linha estrutural (mais clara) o formulário

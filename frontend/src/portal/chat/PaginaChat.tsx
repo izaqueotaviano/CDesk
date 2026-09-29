@@ -61,7 +61,7 @@ function Lista({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-divisoria p-4">
+      <div className="flex items-center justify-between gap-2  p-4">
         <h1 className="text-titulo-sm font-forte">Chat</h1>
         <Button size="sm" disabled={travado || iniciando} onClick={onIniciar} title={travado ? motivoTravado : undefined}>
           <IconMessagePlus /> {iniciando ? 'Abrindo…' : vivo ? 'Continuar' : 'Novo chat'}
@@ -200,8 +200,8 @@ export function PaginaChat() {
 
   return (
     <div className="flex h-[calc(100vh-7.5rem)] flex-col gap-4 md:h-[calc(100vh-6rem)]">
-      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-md border border-divisoria bg-superficie md:grid-cols-[320px_1fr]">
-        <div className={algoAberto ? 'hidden border-divisoria md:block md:border-r' : 'border-divisoria md:block md:border-r'}>
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-md  bg-superficie md:grid-cols-[320px_1fr]">
+        <div className={algoAberto ? 'hidden  md:block md:border-r' : ' md:block md:border-r'}>
           <Lista
             vivo={vivo.data}
             historico={historico.data}

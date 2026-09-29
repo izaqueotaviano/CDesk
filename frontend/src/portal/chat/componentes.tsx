@@ -151,7 +151,7 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
               target="_blank"
               rel="noreferrer"
               title={`${f.filename} · ${tamanhoArquivo(f.size_bytes)}`}
-              className="block overflow-hidden rounded-md border border-divisoria hover:border-acento"
+              className="block overflow-hidden rounded-md  hover:border-acento"
             >
               <img
                 src={urlApi(f.url)}
@@ -167,7 +167,7 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
               href={urlApi(f.url)}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex min-h-6 items-center gap-1.5 rounded-md border border-divisoria bg-superficie px-2 py-0.5 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
+              className="inline-flex min-h-6 items-center gap-1.5 rounded-md  bg-superficie px-2 py-0.5 text-legenda text-acento hover:border-acento hover:bg-acento-suave"
             >
               {/* ícone pelo TIPO detectado no servidor, não pela extensão */}
               <IconeDeArquivo tipo={f.content_type} />
@@ -178,11 +178,10 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
         ) : (
           <li
             key={f.id}
-            className="inline-flex min-h-6 items-center gap-1.5 rounded-md border border-divisoria bg-navegacao px-2 py-0.5 text-legenda text-tinta-secundaria"
+            className="inline-flex min-h-6 items-center gap-1.5 rounded-md  bg-navegacao px-2 py-0.5 text-legenda text-tinta-secundaria"
           >
             <IconLock className="size-3" aria-hidden="true" />
-            {/* o motivo por extenso: cada caso pede uma ação diferente, e
-                "bloqueado" sozinho não diz qual */}
+            {/* o motivo por extenso: cada caso pede uma ação diferente, e "bloqueado" sozinho não diz qual */}
             {f.filename} · {motivoIndisponivel(f)}
           </li>
         ),
@@ -247,7 +246,7 @@ export function Mensagem({
       className={cn(
         'group flex gap-2.5 rounded-md border px-3.5 py-3',
         // suporte em branco, o meu em azul suave — como qualquer mensageiro
-        doSuporte ? 'border-divisoria bg-superficie' : 'border-acento/20 bg-acento-suave',
+        doSuporte ? ' bg-superficie' : 'border-acento/20 bg-acento-suave',
         emFoco && 'ring-2 ring-acento',
       )}
       aria-label={`Mensagem de ${msg.author_name}`}

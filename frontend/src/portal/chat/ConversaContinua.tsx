@@ -58,7 +58,7 @@ export function ConversaContinua({ onVoltar }: { onVoltar?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-divisoria p-4">
+      <header className="flex items-center gap-3  p-4">
         {onVoltar && (
           <Button variant="ghost" size="icon-sm" onClick={onVoltar} aria-label="Voltar para a lista" className="md:hidden">
             <IconArrowLeft />
@@ -73,7 +73,7 @@ export function ConversaContinua({ onVoltar }: { onVoltar?: () => void }) {
         </a>
       </header>
 
-      <form onSubmit={buscar} className="flex gap-2 border-b border-divisoria p-3">
+      <form onSubmit={buscar} className="flex gap-2  p-3">
         <Input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}

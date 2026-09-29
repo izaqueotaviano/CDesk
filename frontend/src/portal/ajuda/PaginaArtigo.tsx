@@ -24,13 +24,13 @@ const ESTILO_ARTIGO = [
   '[&_ul]:mt-4 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:mt-1.5',
   '[&_a]:text-acento [&_a]:underline [&_a]:underline-offset-2',
   '[&_strong]:font-forte',
-  '[&_img]:mt-4 [&_img]:rounded-lg [&_img]:border [&_img]:border-divisoria',
+  '[&_img]:mt-4 [&_img]:rounded-lg [&_img]:border [&_img]:',
   '[&_figure]:mt-4 [&_figcaption]:mt-1.5 [&_figcaption]:text-legenda [&_figcaption]:text-tinta-secundaria',
   '[&_blockquote]:mt-4 [&_blockquote]:border-l-2 [&_blockquote]:border-acento [&_blockquote]:pl-4 [&_blockquote]:text-tinta-secundaria',
   '[&_code]:rounded [&_code]:bg-navegacao [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-pequeno [&_code]:fonte-mono',
   '[&_pre]:mt-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-navegacao [&_pre]:p-4 [&_pre]:text-pequeno',
-  '[&_table]:mt-4 [&_table]:w-full [&_table]:text-pequeno [&_th]:border-b [&_th]:border-divisoria [&_th]:p-2 [&_th]:text-left [&_td]:border-b [&_td]:border-divisoria [&_td]:p-2',
-  '[&_hr]:my-6 [&_hr]:border-divisoria',
+  '[&_table]:mt-4 [&_table]:w-full [&_table]:text-pequeno [&_th]:border-b [&_th]: [&_th]:p-2 [&_th]:text-left [&_td]:border-b [&_td]: [&_td]:p-2',
+  '[&_hr]:my-6 [&_hr]:',
 ].join(' ')
 
 function Esqueleto() {
@@ -185,7 +185,7 @@ export function PaginaArtigo() {
               <Link
                 key={r.id}
                 to={`/portal/ajuda/${r.id}`}
-                className="rounded-xl border border-divisoria bg-superficie p-4 text-pequeno font-medio text-tinta transition-colors hover:border-acento hover:text-acento"
+                className="rounded-xl  bg-superficie p-4 text-pequeno font-medio text-tinta transition-colors hover:border-acento hover:text-acento"
               >
                 {r.title}
               </Link>

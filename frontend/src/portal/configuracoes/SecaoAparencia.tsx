@@ -17,7 +17,7 @@ function Miniatura({ tema }: { tema: Tema }) {
   const painel = escuro ? 'bg-neutro-800' : 'bg-white'
   const linha = escuro ? 'bg-neutro-600' : 'bg-neutro-200'
   return (
-    <span aria-hidden="true" className={cn('flex h-16 w-full overflow-hidden rounded-lg border border-divisoria', tema === 'sistema' ? 'bg-gradient-to-r from-neutro-50 to-neutro-900' : fundo)}>
+    <span aria-hidden="true" className={cn('flex h-16 w-full overflow-hidden rounded-lg ', tema === 'sistema' ? 'bg-gradient-to-r from-neutro-50 to-neutro-900' : fundo)}>
       <span className={cn('h-full w-1/4', tema === 'sistema' ? 'bg-white/70' : painel)} />
       <span className="flex flex-1 flex-col gap-1.5 p-2">
         <span className={cn('h-1.5 w-3/4 rounded-total', tema === 'sistema' ? 'bg-neutro-300' : linha)} />
@@ -54,7 +54,7 @@ export function SecaoAparencia() {
               onClick={() => setTema(t.valor)}
               className={cn(
                 'flex flex-col gap-3 rounded-xl border bg-superficie p-3 text-left transition-[border-color] hover:border-borda-controle',
-                ativo ? 'border-acento ring-1 ring-acento' : 'border-divisoria',
+                ativo ? 'border-acento ring-1 ring-acento' : '',
               )}
             >
               <Miniatura tema={t.valor} />

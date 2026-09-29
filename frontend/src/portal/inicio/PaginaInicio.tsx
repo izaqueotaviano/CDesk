@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { IconArrowRight, IconClock, IconHeadset, IconMessageCircle, IconMessagePlus, IconPlus, IconStar, IconTicket, type Icon } from '@tabler/icons-react'
+import { IconClock, IconHeadset, IconMessageCircle, IconMessagePlus, IconPlus, IconStar, IconTicket, type Icon } from '@tabler/icons-react'
 import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useChatsRecentes, useContagemChatsAtivos } from '../api/chats'
@@ -32,7 +32,7 @@ function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: Ca
     <Link
       to={para}
       className={cn(
-        'group flex flex-col gap-3 rounded-md border border-divisoria bg-superficie p-5 transition-[border-color] hover:border-borda-controle',
+        'group flex flex-col gap-3 rounded-md  bg-superficie p-5 transition-[border-color] hover:border-borda-controle',
         ativo && 'border-alerta/40',
       )}
     >
@@ -47,10 +47,11 @@ function CartaoResumo({ rotulo, valor, icone: Icone, para, destaque, ajuda }: Ca
       ) : (
         <span className={cn('font-mono text-display font-medio leading-nenhuma text-tinta', ativo && 'text-alerta')}>{valor}</span>
       )}
-      <span className="flex items-center gap-1 text-legenda text-tinta-terciaria">
-        {ajuda ?? 'Ver'}
-        <IconArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-      </span>
+      {/* Sem a seta que vinha colada no rótulo. O cartão inteiro é o alvo do
+          clique — a seta repetia por grafismo o que a própria palavra já
+          diz, e três delas lado a lado viravam ruído numa fileira que
+          deveria ser só número e rótulo. */}
+      <span className="text-legenda text-tinta-terciaria">{ajuda ?? 'Ver'}</span>
     </Link>
   )
 }
@@ -66,7 +67,7 @@ function LinhaChat({ chat, agoraMs }: { chat: Chat; agoraMs: number }) {
   return (
     <Link
       to={`/portal/chat?chat=${chat.id}`}
-      className="group flex items-center gap-3 rounded-md border border-divisoria bg-superficie p-4 transition-[border-color] hover:border-borda-controle"
+      className="group flex items-center gap-3 rounded-md  bg-superficie p-4 transition-[border-color] hover:border-borda-controle"
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-total bg-navegacao text-tinta-secundaria">
         <IconHeadset className="size-4" aria-hidden="true" />
@@ -264,7 +265,7 @@ export function PaginaInicio() {
           <CardContent className="flex flex-col gap-2">
             {chats.isLoading ? (
               [0, 1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-3 rounded-md border border-divisoria p-4">
+                <div key={i} className="flex items-center gap-3 rounded-md  p-4">
                   <Skeleton className="size-9 rounded-total" />
                   <div className="flex-1 space-y-2">
                     <Skeleton className="h-4 w-1/2" />

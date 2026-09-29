@@ -47,7 +47,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
     <Link
       to={`/portal/tickets/${ticket.id}`}
       className={cn(
-        'group flex flex-col gap-2 rounded-xl border border-divisoria bg-superficie p-4 transition-[border-color] hover:border-borda-controle sm:flex-row sm:items-center sm:gap-4',
+        'group flex flex-col gap-2 rounded-xl  bg-superficie p-4 transition-[border-color] hover:border-borda-controle sm:flex-row sm:items-center sm:gap-4',
         aguardandoVoce && 'border-alerta/40 bg-alerta-suave/30',
       )}
     >
@@ -97,7 +97,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
 
 export function EsqueletoCartaoTicket() {
   return (
-    <div className="flex items-center gap-4 rounded-xl border border-divisoria bg-superficie p-4">
+    <div className="flex items-center gap-4 rounded-xl  bg-superficie p-4">
       <div className="flex-1 space-y-2">
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-4 w-2/3" />

@@ -217,7 +217,7 @@ export function PaginaNovoTicket() {
           {anexos.length > 0 && (
             <ul className="flex flex-wrap gap-2" aria-label="Anexos">
               {anexos.map((f, i) => (
-                <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border border-divisoria bg-navegacao px-2.5 py-1 text-legenda">
+                <li key={`${f.name}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg  bg-navegacao px-2.5 py-1 text-legenda">
                   <IconPaperclip className="size-3 text-tinta-secundaria" aria-hidden="true" />
                   <span className="max-w-[200px] truncate">{f.name}</span>
                   <span className="text-tinta-terciaria">{tamanhoArquivo(f.size)}</span>
@@ -230,7 +230,7 @@ export function PaginaNovoTicket() {
           )}
           <ErroCampo>{erros.files}</ErroCampo>
 
-          <div className="flex flex-col gap-3 border-t border-divisoria pt-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3  pt-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => inputAnexo.current?.click()}>
                 <IconPaperclip /> Anexar

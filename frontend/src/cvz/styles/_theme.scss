@@ -52,26 +52,26 @@
   // (nav e canvas — só referência de VALOR, não código); o card de lá
   // (#fafafa) não entrou, cartão/tabela seguem em branco puro.
   --cvz-surface:         #ffffff;
-  --cvz-canvas:          #f5f5f5;
-  --cvz-chrome:          #f0efed;
+  --cvz-canvas:          #f6f5f3;
+  --cvz-chrome:          #f6f5f3;
   --cvz-raised:          #ffffff;
   // Hex fixo, não mais preto translúcido: sobre o novo `--cvz-canvas`
   // (#f8f8f7, não mais branco puro) uma borda derivada de preto ficava
   // clara demais — mesma troca e mesmo motivo do lado resolv
   // (resolv/styles/tokens.scss). `--cvz-field-border`, abaixo, é outra
   // família e não muda.
-  --cvz-stroke:          #e7e5e4;
+  --cvz-stroke:          #e5e4e2;
   // DIVERGÊNCIA do kit, a mesma dos outros dois arquivos: o `--control-line`
   // dele dá 1,73:1 e reprova em 1.4.11. Este é o degrau `--cz-n500` da rampa
   // do próprio kit, que passa nos dois temas.
-  --cvz-field-border:    #777169;
-  --cvz-hover:           #e7e5e4;
+  --cvz-field-border:    #8e8983;
+  --cvz-hover:           #f5f5f5;
   --cvz-hover-soft:      rgba(41, 37, 36, 0.05);
 
-  --cvz-text:            #292524;
-  --cvz-text-hover:      #1c1917;
-  --cvz-text-secondary:  #4e4e4e;
-  --cvz-text-muted:      #6f6a63;
+  --cvz-text:            #242424;
+  --cvz-text-hover:      #141414;
+  --cvz-text-secondary:  #616161;
+  --cvz-text-muted:      #767676;
   --cvz-text-on-color:   #ffffff;
   --cvz-text-on-accent:  #ffffff;
 
@@ -144,11 +144,11 @@
   // chrome < canvas < corpo < cartão dos dois temas.
   --cvz-canvas:          #0c0a09;
   --cvz-chrome:          #0f0d0c;
-  --cvz-raised:          #231f1d;
-  --cvz-stroke:          #3a3532;
+  --cvz-raised:          #2a2a29;
+  --cvz-stroke:          #323230;
   // Campo continua um degrau acima da linha estrutural, como no claro — só
   // que subindo (mais claro), porque aqui o contraste se ganha clareando.
-  --cvz-field-border:    #777169;
+  --cvz-field-border:    #7c7a75;
   --cvz-hover:           #231f1d;
   --cvz-hover-soft:      rgba(245, 245, 245, 0.08);
 

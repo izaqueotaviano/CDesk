@@ -13,7 +13,7 @@ const badgeVariants = cva(
   {
     variants: {
       variant: {
-        neutro: 'border-divisoria bg-navegacao text-tinta-secundaria',
+        neutro: ' bg-navegacao text-tinta-secundaria',
         acento: 'bg-acento-suave text-acento',
         ok: 'bg-ok-suave text-ok',
         alerta: 'bg-alerta-suave text-alerta',
