@@ -132,17 +132,28 @@ function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: string[
         </>
       )}
 
-      <div className="relative flex h-full flex-col justify-end gap-5 p-8 xl:p-10">
+      {/* Centrado, e sem cartão. Num campo calmo o texto não precisa de
+          moldura — é a mesma regra que o briefing dá para a resposta no chat
+          ("sem balão, texto direto sobre o fundo, largura de leitura"). Com
+          a grade que saiu, um cartão pequeno ancorado no canto deixava 600px
+          de carvão morto em cima; centrar faz o texto ocupar o campo, que é
+          o trabalho dele. */}
+      <div className="relative flex h-full flex-col justify-center gap-10 p-10 xl:p-16">
         {marca && temTexto && (
-          <div className="login-painel__cartao ml-auto w-full max-w-[380px] rounded-md border border-divisoria bg-superficie p-5 shadow-[var(--elevacao-3)]">
-            {marca.headline && <p className="text-corpo-lg font-forte leading-justa tracking-titulo text-tinta">{marca.headline}</p>}
+          <div className="login-painel__bloco max-w-[42ch]">
+            {marca.headline && (
+              <p className="text-titulo-lg font-normal leading-justa tracking-display text-[#faf9f5]">{marca.headline}</p>
+            )}
             {marca.highlights.length > 0 && (
-              <ul className={cn('flex flex-col gap-2.5 text-pequeno text-tinta-secundaria', marca.headline && 'mt-4')}>
+              <ul className={cn('flex flex-col gap-4 text-corpo leading-solta text-[#b5b3ae]', marca.headline && 'mt-8')}>
                 {marca.highlights.map((texto, i) => {
                   const icone = icones[i] ?? icones[icones.length - 1]
                   return (
-                    <li key={texto} className="flex items-start gap-2.5">
-                      <i className={`login-destaque__icone mt-0.5 shrink-0 text-acento ${icone}`} aria-hidden="true" />
+                    <li key={texto} className="flex items-start gap-3">
+                      {/* Cor fixa, e não `text-acento`: o acento virou o
+                          próprio carvão, e sobre o painel escuro isso seria
+                          carvão em cima de carvão — ícone invisível. */}
+                      <i className={`login-destaque__icone mt-1 shrink-0 text-[#8b8983] ${icone}`} aria-hidden="true" />
                       {texto}
                     </li>
                   )
@@ -151,7 +162,7 @@ function PainelDaMarca({ marca, icones }: { marca: Marca | null; icones: string[
             )}
           </div>
         )}
-        <p className={cn('login-painel__rodape text-center font-mono text-legenda', imagem ? 'text-white/75' : 'text-tinta-terciaria')}>
+        <p className={cn('login-painel__rodape text-legenda', imagem ? 'text-white/75' : 'text-[#8b8983]')}>
           Resolv · sistema de atendimento
         </p>
       </div>
@@ -315,7 +326,6 @@ export function PaginaLogin() {
             {passo === 'credenciais' ? (
               <form className="relative flex flex-col gap-4" onSubmit={form.handleSubmit(enviarCredenciais)} noValidate aria-busy={login.isPending}>
                 <header className="login-cabecalho">
-                  <p className="login-eyebrow">{contexto.eyebrow}</p>
                   <h1 className="login-titulo text-titulo font-forte tracking-display">{contexto.titulo}</h1>
                   <p className="mt-2 text-pequeno leading-normal text-tinta-secundaria">{subtitulo}</p>
                 </header>
