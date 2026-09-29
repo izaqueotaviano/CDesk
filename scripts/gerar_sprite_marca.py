@@ -62,6 +62,16 @@ def simbolos_do_kit(js: str) -> dict[str, str]:
     }
 
 
+def desenhados_aqui() -> set[str]:
+    """Símbolos que ESTE projeto desenhou na gramática do kit (sprite-proprio.ts).
+    Não saem do `convertize.js`, então pedir um deles não é erro — é só não
+    ser assunto deste gerador."""
+    arquivo = SAIDA / "sprite-proprio.ts"
+    if not arquivo.exists():
+        return set()
+    return set(re.findall(r'^  ([a-z0-9-]+):', arquivo.read_text(encoding="utf-8"), re.M))
+
+
 def nomes_usados() -> set[str]:
     usados: set[str] = set()
     for arquivo in (FRONT / "src").rglob("*"):
@@ -80,7 +90,8 @@ def main() -> int:
     todos = simbolos_do_kit(js)
     usados = nomes_usados()
 
-    desconhecidos = sorted(n for n in usados if n not in todos)
+    proprios = desenhados_aqui()
+    desconhecidos = sorted(n for n in usados if n not in todos and n not in proprios)
     if desconhecidos:
         print("AVISO: o código pede símbolos que o sprite do kit não tem:", file=sys.stderr)
         for n in desconhecidos:
@@ -114,7 +125,9 @@ export const SPRITE = `{corpo}`
 ''',
         encoding="utf-8",
     )
-    print(f"{len(manter)} símbolos · {bytes_totais / 1024:.1f} KB · {SAIDA.relative_to(RAIZ)}")
+    print(f"{len(manter)} símbolos do kit · {bytes_totais / 1024:.1f} KB · {SAIDA.relative_to(RAIZ)}")
+    if proprios:
+        print(f"  (+ {len(proprios)} desenhado(s) aqui: {' '.join(sorted(proprios))})")
     print("  " + " ".join(manter))
     return 0
 

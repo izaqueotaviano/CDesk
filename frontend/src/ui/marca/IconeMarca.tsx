@@ -1,5 +1,8 @@
 import { useEffect } from 'react'
 import { SPRITE, type NomeDeIcone } from './sprite'
+
+export type { NomeDeIcone }
+import { SIMBOLOS_PROPRIOS } from './sprite-proprio'
 import './icone-marca.scss'
 
 /**
@@ -13,12 +16,15 @@ import './icone-marca.scss'
  * se anunciar sem precisar de fundo colorido — a regra do v2 ("o detalhe do
  * ícone fica laranja no item ativo").
  */
+/** Os símbolos desenhados aqui, na gramática do kit — ver sprite-proprio.ts. */
+export type NomeProprio = keyof typeof SIMBOLOS_PROPRIOS
+
 export function IconeMarca({
   nome,
   tamanho = 'md',
   className,
 }: {
-  nome: NomeDeIcone
+  nome: NomeDeIcone | NomeProprio
   /** 16 / 20 / 24px — as três medidas do kit. */
   tamanho?: 'sm' | 'md' | 'lg'
   className?: string
@@ -47,7 +53,8 @@ export function SpriteMarca() {
     caixa.id = 'cvz-sprite'
     caixa.setAttribute('aria-hidden', 'true')
     caixa.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'
-    caixa.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${SPRITE}</svg>`
+    const proprios = Object.values(SIMBOLOS_PROPRIOS).join('')
+    caixa.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg">${SPRITE}${proprios}</svg>`
     document.body.prepend(caixa)
   }, [])
   return null

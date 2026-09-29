@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { extname, join, relative } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { NOMES_DO_SPRITE, SPRITE } from './sprite'
+import { SIMBOLOS_PROPRIOS } from './sprite-proprio'
 
 /**
  * O sprite da marca é um SUBSET, gerado por scripts/gerar_sprite_marca.py a
@@ -31,7 +32,9 @@ describe('sprite da marca', () => {
     }
     expect(pedidos.size).toBeGreaterThan(0)
 
-    const faltando = [...pedidos].filter(([nome]) => !NOMES_DO_SPRITE.includes(nome as never))
+    // Duas origens: o subset gerado do kit e o que foi desenhado aqui.
+    const disponiveis = new Set<string>([...NOMES_DO_SPRITE, ...Object.keys(SIMBOLOS_PROPRIOS)])
+    const faltando = [...pedidos].filter(([nome]) => !disponiveis.has(nome))
     expect(
       faltando.map(([nome, onde]) => `${nome} (${onde})`),
       'símbolo fora do sprite — rode `.venv/bin/python scripts/gerar_sprite_marca.py <convertize.js>`',
@@ -46,5 +49,16 @@ describe('sprite da marca', () => {
     // biblioteca; se o subset perdesse as classes, o detalhe não acenderia
     // no item ativo e ninguém notaria até alguém olhar a tela.
     expect(SPRITE).toMatch(/class="a"/)
+  })
+
+  it('o que foi desenhado aqui segue a gramática do kit', () => {
+    for (const [nome, svg] of Object.entries(SIMBOLOS_PROPRIOS)) {
+      expect(svg, `${nome}: precisa do id que o <use> procura`).toContain(`id="i-${nome}"`)
+      expect(svg, `${nome}: 24×24, como todo símbolo do kit`).toContain('viewBox="0 0 24 24"')
+      // Sem a segunda camada o símbolo não acende no item ativo, e fica
+      // visivelmente mais "chapado" que os vizinhos — que é exatamente o
+      // problema que ele foi desenhado para resolver.
+      expect(svg, `${nome}: precisa da camada de detalhe (.a)`).toMatch(/class="[^"]*\ba\b/)
+    }
   })
 })

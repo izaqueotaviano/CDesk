@@ -28,7 +28,7 @@ import { BotaoTema } from './BotaoTema'
 import { MenuPresenca } from './MenuPresenca'
 import { PainelNotificacoes } from './PainelNotificacoes'
 import { IconeMarca } from '@/ui/marca/IconeMarca'
-import type { NomeDeIcone } from '@/ui/marca/sprite'
+import type { NomeDeIcone, NomeProprio } from '@/ui/marca/IconeMarca'
 import './sidebar.scss'
 
 export type Item = {
@@ -43,7 +43,7 @@ export type Item = {
    *  então o genérico cobre — e o vocabulário de helpdesk (ticket, aviso)
    *  não existe lá. Quem não tem equivalente fica no Tabler, de propósito:
    *  inventar um símbolo aproximado é pior que manter o certo. */
-  marca?: NomeDeIcone
+  marca?: NomeDeIcone | NomeProprio
   route: string
   enabled: boolean
 }
@@ -57,10 +57,11 @@ export const NAV: Item[] = [
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', marca: 'chat', route: '/chat', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', marca: 'grid', route: '/quadro', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', marca: 'users', route: '/clientes', enabled: true },
-  // Sem símbolo da marca por DECISÃO, não por esquecimento: o sprite do kit
-  // não tem megafone, e ficou definido manter o Tabler em vez de encomendar
-  // um desenho novo. É o único contorno fino da navegação.
-  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', route: '/avisos', enabled: true },
+  // O sprite do kit não tem megafone — ele é desenhado para painel de loja.
+  // Manter o Tabler aqui deixava o único contorno fino no meio de formas
+  // cheias, e lia como defeito; então este símbolo foi DESENHADO na gramática
+  // do kit (ver ui/marca/sprite-proprio.ts), não copiado dele.
+  { id: 'avisos', label: 'Avisos', icon: 'ti ti-speakerphone', marca: 'megafone', route: '/avisos', enabled: true },
   { id: 'relatorios', label: 'Relatórios', icon: 'ti ti-chart-bar', marca: 'analytics', route: '/relatorios', enabled: true },
   { id: 'auditoria', label: 'Auditoria e LGPD', icon: 'ti ti-shield-check', marca: 'shield', route: '/auditoria', enabled: true },
   { id: 'config', label: 'Configurações', icon: 'ti ti-settings', marca: 'sliders', route: '/configuracoes', enabled: true },
