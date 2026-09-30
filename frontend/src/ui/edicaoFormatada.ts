@@ -7,7 +7,7 @@
  * aplicá-la com `insertText`, que mantém o Ctrl+Z do navegador funcionando:
  * trocar o `value` do textarea por inteiro apaga o histórico de desfazer.
  *
- * O que cada botão escreve é o subconjunto de `textoFormatado.ts` — nada que
+ * O que cada botão escreve é o subconjunto de `analiseDeTexto.ts` — nada que
  * a renderização não reconheça.
  */
 

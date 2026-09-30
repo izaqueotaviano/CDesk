@@ -1,5 +1,5 @@
 import type { Me } from '@/api/types'
-import { paraTextoSimples } from '@/ui/textoFormatado'
+import { paraTextoSimples } from '@/ui/analiseDeTexto'
 import { formatarDataHora } from '../format'
 import { useAcoesTicket } from './dados'
 import type { TicketDetalhe } from './tiposDetalhe'

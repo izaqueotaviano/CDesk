@@ -1,5 +1,5 @@
 import { Fragment, useMemo, type ReactNode } from 'react'
-import { analisarTexto, type NoInline } from './textoFormatado'
+import { analisarTexto, type NoInline } from './analiseDeTexto'
 import './texto-formatado.css'
 
 /** Uma menção já resolvida pelo servidor (`MentionSerializer`): `key` é o
@@ -57,7 +57,7 @@ function renderizarNos(nos: NoInline[], mencoes: Map<string, MencaoResolvida> | 
 
 /**
  * O corpo de uma mensagem com a formatação leve aplicada (ver
- * `textoFormatado.ts` para o que conta como formatação). Mesma peça no console
+ * `analiseDeTexto.ts` para o que conta como formatação). Mesma peça no console
  * do agente e no portal do cliente: o texto é o mesmo, então o desenho também.
  *
  * Não usa `dangerouslySetInnerHTML` em lugar nenhum — o texto vira nó de texto,

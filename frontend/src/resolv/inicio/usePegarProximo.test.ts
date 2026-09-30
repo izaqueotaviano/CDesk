@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { createElement, type ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { NadaParaPegar, usePegarProximo, useQuantosSemDono } from './pegarProximo'
+import { NadaParaPegar, usePegarProximo, useQuantosSemDono } from './usePegarProximo'
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })

@@ -1,7 +1,7 @@
 import { useId } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '@/api/client'
-import { NadaParaPegar, usePegarProximo, useQuantosSemDono } from './pegarProximo'
+import { NadaParaPegar, usePegarProximo, useQuantosSemDono } from './usePegarProximo'
 
 /**
  * A ação principal da Início: pegar o chamado sem responsável mais urgente e

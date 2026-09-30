@@ -690,7 +690,7 @@ class TicketViewSet(viewsets.GenericViewSet):
         e `skip_locked` faz o segundo clique pular para o próximo da fila em
         vez de esperar pelo mesmo.
 
-        A ordem é a da tela (resolv/inicio/pegarProximo.ts): o prazo de SLA de
+        A ordem é a da tela (resolv/inicio/usePegarProximo.ts): o prazo de SLA de
         resolução que vence primeiro (sem prazo por último), depois a
         prioridade mais alta, depois o mais antigo. "Aguardando o cliente"
         fica de fora — ali a bola está com o cliente.

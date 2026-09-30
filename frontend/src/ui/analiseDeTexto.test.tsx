@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { TextoFormatado } from './TextoFormatado'
-import { analisarTexto, hrefSeguro, paraTextoSimples, temFormatacao } from './textoFormatado'
+import { analisarTexto, hrefSeguro, paraTextoSimples, temFormatacao } from './analiseDeTexto'
 
 function html(texto: string, mencoes?: { key: string; name: string; is_active?: boolean }[]) {
   const { container } = render(<TextoFormatado texto={texto} mencoes={mencoes} />)
