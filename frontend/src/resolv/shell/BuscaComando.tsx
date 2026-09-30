@@ -2,7 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 
 import { useNavigate } from 'react-router-dom'
 import { useFocusTrap } from '@/cvz/hooks'
 import { MINIMO_PARA_BUSCAR, useBuscaGlobal } from '@/api/busca'
-import { NAV } from './Sidebar'
+import { NAV } from './nav'
 import './busca-comando.scss'
 
 /** Uma linha do painel, já achatada — os quatro grupos têm campos diferentes,

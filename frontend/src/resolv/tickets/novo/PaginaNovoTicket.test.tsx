@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '@/api/client'
+import { useTabs } from '@/stores/tabs'
 import { PaginaNovoTicket } from './PaginaNovoTicket'
 
 const abrirMock = vi.hoisted(() => vi.fn())
@@ -284,7 +285,21 @@ async function preencherObrigatorios(nomeCliente = 'Beto Barros') {
   fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Olá, segue.' } })
 }
 
+/** As abas abertas como o console as teria: a de "Novo ticket" e mais uma. */
+function abrirAbasComNovo() {
+  useTabs.setState({
+    tabs: [
+      { tipo: 'secao', rota: '/tickets/novo', titulo: 'Novo ticket', icone: 'ti ti-file-plus' },
+      { tipo: 'secao', rota: '/quadro', titulo: 'Quadro', icone: 'ti ti-layout-grid' },
+    ],
+    active: 'secao:/tickets/novo',
+    reconciliando: false,
+  })
+}
+const rotasDasAbas = () => useTabs.getState().tabs.map((a) => (a.tipo === 'secao' ? a.rota : String(a.ticketId)))
+
 beforeEach(() => {
+  useTabs.setState({ tabs: [], active: null, reconciliando: false })
   abrirMock.mockReset()
   recarregarEquipesMock.mockReset()
   recarregarCategoriasMock.mockReset()
@@ -635,6 +650,49 @@ describe('PaginaNovoTicket', () => {
       expect(screen.getByText('Escolha para quem o ticket é aberto.')).toBeInTheDocument()
     })
     expect(abrirMock).not.toHaveBeenCalled()
+  })
+
+  it('ao abrir o ticket, a aba "Novo ticket" fecha: cumpriu o papel', async () => {
+    abrirMock.mockResolvedValue({ ticket: { id: 42, reference: 'TD-00042' }, pendencias: [] })
+    abrirAbasComNovo()
+    montar()
+    await preencherObrigatorios()
+
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
+
+    expect(await screen.findByText('detalhe do chamado')).toBeInTheDocument()
+    expect(rotasDasAbas()).toEqual(['/quadro'])
+  })
+
+  it('ao cancelar, a aba "Novo ticket" também fecha', () => {
+    abrirAbasComNovo()
+    montar()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
+
+    expect(screen.getByText('lista de chamados')).toBeInTheDocument()
+    expect(rotasDasAbas()).toEqual(['/quadro'])
+  })
+
+  it('na confirmação com pendências a aba fica até a pessoa sair; "abrir outro" a mantém', async () => {
+    abrirMock.mockResolvedValue({
+      ticket: { id: 7, reference: 'TD-00007' },
+      pendencias: ['as etiquetas não foram aplicadas'],
+    })
+    abrirAbasComNovo()
+    montar()
+    await preencherObrigatorios('Ana Almeida')
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Abrir outro ticket para Ana Almeida' }))
+    expect(rotasDasAbas()).toEqual(['/tickets/novo', '/quadro'])
+
+    // sair para a lista fecha
+    abrirMock.mockClear()
+    await preencherObrigatorios('Ana Almeida')
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Voltar para a lista' }))
+    expect(rotasDasAbas()).toEqual(['/quadro'])
   })
 
   it('chamado aberto não deixa rascunho para a próxima abertura', async () => {

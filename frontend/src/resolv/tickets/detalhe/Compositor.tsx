@@ -161,9 +161,13 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const { data: cfgSistema } = useSistemaCfg()
   const limites = limitesDeAnexo(cfgSistema)
   const { responder, aplicarMacro, agendarResposta } = useAcoesTicket(ticket.id)
-  const rascunhoInicial = useTabs(
-    (s) => s.tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === ticket.id)?.draft ?? '',
-  )
+  // Sem aba ainda (o ticket acabou de abrir, e a aba nasce logo depois deste
+  // render), vale o rascunho guardado quando a aba anterior deste ticket foi
+  // fechada: reabrir o ticket devolve o texto.
+  const rascunhoInicial = useTabs((s) => {
+    const aba = s.tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === ticket.id)
+    return aba ? aba.draft : (s.rascunhosGuardados.find((r) => r.ticketId === ticket.id)?.draft ?? '')
+  })
   const atualizarRascunho = useTabs((s) => s.atualizarRascunho)
 
   const perms = me?.permissions ?? []

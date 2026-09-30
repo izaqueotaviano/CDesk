@@ -167,7 +167,10 @@ export function PainelNotificacoes() {
   function abrir(n: Notificacao, fechar: () => void) {
     if (n.read_at == null) marcarLida.mutate(n.id)
     fechar()
-    if (n.url) navigate(n.url)
+    // Uma notificação gravada quando as rotas do console ainda se chamavam
+    // /chamados: ir direto para /tickets evita a rota de redirecionamento, que
+    // fica fora do shell e o desmontaria (e à barra de abas) no caminho.
+    if (n.url) navigate(n.url.replace(/^\/chamados(?=\/|$)/, '/tickets'))
   }
 
   return (

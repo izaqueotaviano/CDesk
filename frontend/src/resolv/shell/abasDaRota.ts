@@ -1,4 +1,5 @@
-import { NAV } from './Sidebar'
+import { chaveDeSecao, chaveDeTicket } from '@/stores/tabs'
+import { NAV } from './nav'
 
 /**
  * Da URL para a aba: as regras que dizem qual aba da barra (BarraDeAbas.tsx)
@@ -24,6 +25,10 @@ export interface DefinicaoDeSecao {
   icone: string
 }
 
+/** A lista de tickets: única seção cujo prefixo `/tickets/...` pertence a
+ *  outras coisas (o ticket aberto, o "novo"). */
+const ROTA_DA_LISTA = '/tickets'
+
 /** Chave da aba fixa. Não colide com as do store (`ticket:`/`secao:`). */
 export const CHAVE_INICIO = 'inicio'
 
@@ -31,7 +36,7 @@ export const CHAVE_INICIO = 'inicio'
  *  aba própria: o "Novo ticket" é a ação primária dela, e a conta mora no
  *  menu do rodapé. */
 const SECOES_EXTRAS: DefinicaoDeSecao[] = [
-  { rota: '/tickets/novo', rotulo: 'Novo ticket', icone: 'ti ti-plus' },
+  { rota: '/tickets/novo', rotulo: 'Novo ticket', icone: 'ti ti-file-plus' },
   { rota: '/conta', rotulo: 'Minha conta', icone: 'ti ti-user-circle' },
 ]
 
@@ -47,19 +52,23 @@ export const SECOES: DefinicaoDeSecao[] = [
   ...SECOES_EXTRAS,
 ]
 
-/** Sem a barra final: `/tickets/` e `/tickets` são a mesma tela. */
+/** Sem a barra final e sem diferenciar caixa: `/tickets/` e `/Tickets` são a
+ *  mesma tela (o React Router também não diferencia). */
 function normalizar(pathname: string): string {
-  return pathname.length > 1 ? pathname.replace(/\/+$/, '') || '/' : pathname
+  return (pathname.length > 1 ? pathname.replace(/\/+$/, '') || '/' : pathname).toLowerCase()
 }
 
 /** A seção da rota, pelo maior prefixo que casa (`/tickets/novo` ganha de
  *  `/tickets`). Não olha para ticket: `/tickets/27` é responsabilidade de
- *  `ticketDaRota`, e só cai aqui se a pessoa pedir um caminho desconhecido. */
+ *  `ticketDaRota`. Por isso a lista `/tickets` só casa com ela mesma: um
+ *  `/tickets/abc` (ou qualquer outro caminho que não seja um ticket nem o
+ *  "novo") é rota desconhecida e não acende a aba Tickets. */
 export function secaoDaRota(pathname: string): DefinicaoDeSecao | undefined {
   const caminho = normalizar(pathname)
   let melhor: DefinicaoDeSecao | undefined
   for (const secao of SECOES) {
-    const casa = caminho === secao.rota || caminho.startsWith(`${secao.rota}/`)
+    const casa =
+      caminho === secao.rota || (secao.rota !== ROTA_DA_LISTA && caminho.startsWith(`${secao.rota}/`))
     if (casa && (!melhor || secao.rota.length > melhor.rota.length)) melhor = secao
   }
   return melhor
@@ -87,9 +96,9 @@ export interface AbaDaRota {
 export function abaDaRota(pathname: string): AbaDaRota | null {
   if (normalizar(pathname) === '/inicio') return { chave: CHAVE_INICIO }
   const ticket = ticketDaRota(pathname)
-  if (ticket !== undefined) return { chave: `ticket:${ticket}` }
+  if (ticket !== undefined) return { chave: chaveDeTicket(ticket) }
   const secao = secaoDaRota(pathname)
-  return secao ? { chave: `secao:${secao.rota}`, secao } : null
+  return secao ? { chave: chaveDeSecao(secao.rota), secao } : null
 }
 
 /** Depois de fechar `fechadas`, a aba mais próxima de `origem` que continua

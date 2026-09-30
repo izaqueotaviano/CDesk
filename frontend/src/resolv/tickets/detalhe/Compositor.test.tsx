@@ -154,7 +154,37 @@ beforeEach(() => {
   config = CONFIG_PADRAO
   macros = []
   alvosMencao = []
-  useTabs.setState({ tabs: [], active: null, reconciliando: false })
+  useTabs.setState({ tabs: [], active: null, reconciliando: false, rascunhosGuardados: [] })
+})
+
+describe('Compositor — rascunho que sobrevive à aba', () => {
+  it('nasce com o texto da aba do ticket', () => {
+    useTabs.setState({
+      tabs: [{ tipo: 'ticket', ticketId: TICKET.id, scroll: 0, draft: 'resposta que já estava na aba' }],
+    })
+    montar()
+
+    expect(screen.getByRole('textbox', { name: 'Resposta ao cliente' })).toHaveValue('resposta que já estava na aba')
+  })
+
+  it('sem aba ainda (o ticket acabou de reabrir), volta com o rascunho guardado quando a aba foi fechada', () => {
+    useTabs.setState({
+      tabs: [],
+      rascunhosGuardados: [
+        { ticketId: TICKET.id, draft: 'texto de antes de fechar a aba' },
+        { ticketId: 999, draft: 'de outro ticket' },
+      ],
+    })
+    montar()
+
+    expect(screen.getByRole('textbox', { name: 'Resposta ao cliente' })).toHaveValue('texto de antes de fechar a aba')
+  })
+
+  it('sem aba e sem guardado, começa vazio', () => {
+    montar()
+
+    expect(screen.getByRole('textbox', { name: 'Resposta ao cliente' })).toHaveValue('')
+  })
 })
 
 describe('Compositor — anexo conferido antes de subir', () => {

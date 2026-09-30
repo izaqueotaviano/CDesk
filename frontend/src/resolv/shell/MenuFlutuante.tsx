@@ -12,7 +12,7 @@ import './menu-flutuante.scss'
  * serve para um menu que nasce onde o mouse clicou, e não gerencia foco nem
  * setas entre itens — aqui é um `role="menu"` de verdade (padrão WAI-ARIA):
  * o foco entra no primeiro item ao abrir, setas circulam, Esc/Tab/clique fora
- * fecham, e Esc e a escolha de um item devolvem o foco pra âncora.
+ * fecham, e Esc, Tab e a escolha de um item devolvem o foco pra âncora.
  *
  * `position: fixed` + medição no `useLayoutEffect`: o menu é posicionado
  * depois de saber o próprio tamanho, e recua se for estourar a janela — a
@@ -178,8 +178,11 @@ export function MenuFlutuante({
         break
       case 'Tab':
         // Menu não é lugar de tabular: Tab sai dele (e fecha), como num menu
-        // nativo do sistema — o foco segue pra onde o Tab levaria.
-        onFechar()
+        // nativo do sistema. O foco volta ao gatilho e o Tab (sem
+        // `preventDefault`) segue dali: a próxima parada depois dele, ou a
+        // anterior com Shift+Tab. Sem isto o menu, que mora no fim do DOM,
+        // largava o foco em outro canto da tela.
+        fecharEDevolverFoco()
         break
     }
   }

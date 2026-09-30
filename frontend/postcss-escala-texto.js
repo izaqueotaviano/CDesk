@@ -9,7 +9,7 @@
  *   Chromium, `100vh` dentro de um elemento com zoom 1,25 vira 125% da tela
  *   (o shell do console e a sidebar usam `height: 100vh` e passam a rolar), e
  *   `getBoundingClientRect` devolve coordenadas já ampliadas, então tudo que
- *   posiciona pelo ponteiro (menu de contexto da "Trabalhando agora", arrasto
+ *   posiciona pelo ponteiro (menu de contexto das abas, arrasto
  *   do quadro e da lista, redimensionar o mini chat) sai deslocado pelo mesmo
  *   fator. Consertar isso seria mexer em cada um desses pontos.
  * - `rem` não alcança nada: o CSS do produto escreve tamanho de fonte em px

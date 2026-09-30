@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import type { TicketResumo } from '@/api/tabs'
 import type { Me } from '@/api/types'
 import { useTabs } from '@/stores/tabs'
 import { useAtalhos } from '../../atalhos/useAtalhos'
@@ -95,7 +96,7 @@ function Esqueleto() {
 
 /** Os tickets abertos, na ordem da barra de abas (as abas de página ficam de
  *  fora): é por eles que `[` e `]` andam. */
-function vizinhosNaListaDeTrabalho(ids: number[], atual: number) {
+function vizinhosNasAbasDeTicket(ids: number[], atual: number) {
   const i = ids.indexOf(atual)
   return {
     anterior: i > 0 ? ids[i - 1] : undefined,
@@ -137,7 +138,7 @@ function DetalheCarregado({
   const presentes = usePresencaTicket(ticket.id, me?.id, me?.is_internal === true)
   // string e não lista: o seletor devolve um valor comparável por igualdade,
   // e a tela não re-renderiza a cada rascunho gravado nas abas
-  const idsDeTrabalho = useTabs((s) =>
+  const idsDasAbas = useTabs((s) =>
     s.tabs.flatMap((a) => (a.tipo === 'ticket' ? [a.ticketId] : [])).join(','),
   )
   const [modalFechar, setModalFechar] = useState(false)
@@ -188,8 +189,8 @@ function DetalheCarregado({
     })
   }
 
-  const { anterior, proximo } = vizinhosNaListaDeTrabalho(
-    idsDeTrabalho ? idsDeTrabalho.split(',').map(Number) : [],
+  const { anterior, proximo } = vizinhosNasAbasDeTicket(
+    idsDasAbas ? idsDasAbas.split(',').map(Number) : [],
     ticket.id,
   )
 
@@ -312,6 +313,19 @@ function DetalheCarregado({
   )
 }
 
+/** O que a aba do topo mostra do ticket. */
+function resumoDoTicket(ticket: TicketDetalhe): TicketResumo {
+  return {
+    id: ticket.id,
+    reference: ticket.reference,
+    subject: ticket.subject,
+    status: ticket.status,
+    stage_color: ticket.stage_color,
+    requester_display: ticket.requester_display,
+    company_name: ticket.company_name,
+  }
+}
+
 export function PaginaDetalheTicket() {
   const { id } = useParams<{ id: string }>()
   const ticketId = Number(id)
@@ -327,23 +341,25 @@ export function PaginaDetalheTicket() {
   } = useTicketDetalhe(ticketId)
   const { data: me } = useMe()
   const abrirTicket = useTabs((s) => s.abrirTicket)
+  const atualizarResumo = useTabs((s) => s.atualizarResumo)
 
   // Registra/atualiza a aba deste ticket assim que os dados chegam — é o que
   // alimenta a aba do ticket na barra do topo e o espelho no servidor (docs/06).
   useEffect(() => {
     if (!ticket) return
-    abrirTicket(ticket.id, {
-      id: ticket.id,
-      reference: ticket.reference,
-      subject: ticket.subject,
-      status: ticket.status,
-      stage_color: ticket.stage_color,
-      requester_display: ticket.requester_display,
-      company_name: ticket.company_name,
-    })
+    abrirTicket(ticket.id, resumoDoTicket(ticket))
     // só quando o id/identidade muda
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticket?.id, ticket?.reference, ticket?.subject])
+
+  // A etapa, o status ou a empresa mudaram com a pessoa dentro do ticket (outra
+  // pessoa mexeu, chegou um evento): a aba acompanha, sem reabrir nem
+  // sincronizar com o servidor (o resumo do espelho vem do próprio servidor).
+  useEffect(() => {
+    if (ticket) atualizarResumo(ticket.id, resumoDoTicket(ticket))
+    // `ticket` inteiro mudaria a cada refetch; só estes campos entram na aba.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.id, ticket?.status, ticket?.stage_color, ticket?.requester_display, ticket?.company_name])
 
   return (
     <div className="detalhe">

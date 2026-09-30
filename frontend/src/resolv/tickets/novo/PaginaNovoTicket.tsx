@@ -13,6 +13,7 @@ import { api, ApiError, type Paginado } from '@/api/client'
 import { MINIMO_PARA_BUSCAR, useBuscaGlobal, type SolicitanteEncontrado } from '@/api/busca'
 import { useMe } from '@/api/queries/useMe'
 import { useSistemaCfg } from '@/cvz/configuracoes/dados'
+import { chaveDeSecao, useTabs } from '@/stores/tabs'
 import { identidadeDe } from '@/ui/identidade'
 import {
   useAbrirTicket,
@@ -236,6 +237,14 @@ function SeletorCampo({
  */
 export function PaginaNovoTicket() {
   const navigate = useNavigate()
+  /** Sair desta tela (criou o ticket, desistiu, foi para a lista): a aba "Novo
+   *  ticket" cumpriu o papel e fecha, como uma aba de tarefa concluída num
+   *  navegador. Ficar com ela aberta deixaria um formulário vazio ao lado do
+   *  ticket que acabou de nascer. */
+  function sairPara(destino: string) {
+    useTabs.getState().fechar(chaveDeSecao('/tickets/novo'))
+    navigate(destino)
+  }
   const idBase = useId()
   const { data: me } = useMe()
 
@@ -859,7 +868,7 @@ export function PaginaNovoTicket() {
         })
         return
       }
-      navigate(`/tickets/${ticket.id}`)
+      sairPara(`/tickets/${ticket.id}`)
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors) {
         // O cliente HTTP normaliza as duas formas do backend — `["msg"]` do
@@ -897,7 +906,7 @@ export function PaginaNovoTicket() {
     if (sujo && !window.confirm('Descartar o ticket que você começou a escrever?')) return
     enviadoRef.current = true
     limparRascunho()
-    navigate('/tickets')
+    sairPara('/tickets')
   }
 
   function aoTeclar(e: KeyboardEvent<HTMLDivElement>) {
@@ -959,14 +968,14 @@ export function PaginaNovoTicket() {
             <button
               type="button"
               className="compositor__botao"
-              onClick={() => navigate(`/tickets/${criado.id}`)}
+              onClick={() => sairPara(`/tickets/${criado.id}`)}
             >
               Abrir {criado.referencia}
             </button>
             <button type="button" className="novo__cancelar" onClick={abrirOutroParaMesmoCliente}>
               Abrir outro ticket{criado.cliente ? ` para ${criado.cliente}` : ''}
             </button>
-            <button type="button" className="novo__link" onClick={() => navigate('/tickets')}>
+            <button type="button" className="novo__link" onClick={() => sairPara('/tickets')}>
               Voltar para a lista
             </button>
           </div>

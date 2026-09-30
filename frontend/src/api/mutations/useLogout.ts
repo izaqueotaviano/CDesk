@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '@/api/client'
 import { desconectarCanalPessoal } from '@/realtime/bridge'
 import { useChatUi } from '@/stores/chatUi'
+import { useTabs } from '@/stores/tabs'
 
 /**
  * A armadilha documentada (docs/10-frontend-novo.md): esquecer o header
@@ -24,9 +25,11 @@ export function useLogout() {
     mutationFn: () => api.post<void>('/api/v1/auth/logout/'),
     onSuccess: () => {
       desconectarCanalPessoal()
-      // painéis e rascunhos do mini chat persistem no localStorage — a
-      // próxima pessoa nesta máquina não pode herdá-los
+      // painéis e rascunhos do mini chat e as abas abertas (com os rascunhos
+      // delas) persistem no localStorage — a próxima pessoa nesta máquina não
+      // pode herdá-los
       useChatUi.getState().limparTudo()
+      useTabs.getState().limparTudo()
       queryClient.clear()
       navigate('/login', { replace: true })
     },

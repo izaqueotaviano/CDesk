@@ -21,6 +21,7 @@ import { RouterProvider } from 'react-router-dom'
 import { aoDeslogar } from '@/api/client'
 import { desconectarCanalPessoal } from '@/realtime/bridge'
 import { useChatUi } from '@/stores/chatUi'
+import { useTabs } from '@/stores/tabs'
 import { router } from './routes'
 import './styles/index.css'
 
@@ -46,6 +47,8 @@ aoDeslogar(() => {
   // logar nesta aba herda um socket morto em vez de um novo.
   desconectarCanalPessoal()
   useChatUi.getState().limparTudo()
+  // abas e rascunhos ficam no localStorage, que é da máquina e não da pessoa
+  useTabs.getState().limparTudo()
   queryClient.clear()
   const paraLogin = window.location.pathname.startsWith('/portal') ? '/login/cliente' : '/login'
   router.navigate(paraLogin, { replace: true })

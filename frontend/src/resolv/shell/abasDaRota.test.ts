@@ -42,7 +42,8 @@ describe('abasDaRota: qual aba a URL acende', () => {
       '/tickets/novo': 'Novo ticket',
       '/conta': 'Minha conta',
     })
-    expect(secaoDaRota('/tickets/novo')?.icone).toBe('ti ti-plus')
+    // ícone de arquivo com "+", e não só "+": a aba fica ao lado do botão de nova aba
+    expect(secaoDaRota('/tickets/novo')?.icone).toBe('ti ti-file-plus')
     expect(secaoDaRota('/conta')?.icone).toBe('ti ti-user-circle')
     // A Início é fixa e o Calendário ainda não tem tela: nenhum dos dois é seção.
     expect(rotulos['/inicio']).toBeUndefined()
@@ -57,6 +58,19 @@ describe('abasDaRota: qual aba a URL acende', () => {
   it('rota desconhecida não acende aba nenhuma', () => {
     expect(abaDaRota('/calendario')).toBeNull()
     expect(abaDaRota('/qualquer/coisa')).toBeNull()
+  })
+
+  it('/tickets/<qualquer coisa> que não é número nem "novo" não cai na aba Tickets', () => {
+    expect(abaDaRota('/tickets/abc')).toBeNull()
+    expect(abaDaRota('/tickets/27/x')).toBeNull()
+    expect(abaDaRota('/tickets')?.chave).toBe('secao:/tickets')
+  })
+
+  it('a caixa e a barra final não mudam a aba (o React Router também não diferencia)', () => {
+    expect(abaDaRota('/Quadro')?.chave).toBe('secao:/quadro')
+    expect(abaDaRota('/TICKETS/27')?.chave).toBe('ticket:27')
+    expect(abaDaRota('/Tickets/Novo/')?.chave).toBe('secao:/tickets/novo')
+    expect(abaDaRota('/INICIO')).toEqual({ chave: CHAVE_INICIO })
   })
 })
 

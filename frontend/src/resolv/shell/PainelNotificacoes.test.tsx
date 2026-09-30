@@ -8,6 +8,8 @@ import { PainelNotificacoes } from './PainelNotificacoes'
 const NOTIFICACOES = [
   { id: 1, kind: 'ticket_assigned', title: 'Ticket atribuído a você: T-0007', body: 'Impressora não liga', url: '/tickets/7', ticket_id: 7, actor_name: 'Ana', read_at: null, created_at: '2026-09-06T00:00:00Z' },
   { id: 2, kind: 'mention', title: 'Samuel mencionou você', body: 'pode olhar?', url: '/tickets/9#mensagem-3', ticket_id: 9, actor_name: 'Samuel', read_at: '2026-09-05T00:00:00Z', created_at: '2026-09-05T00:00:00Z' },
+  // gravada quando as rotas do console ainda se chamavam /chamados
+  { id: 3, kind: 'ticket_assigned', title: 'Ticket antigo: T-0002', body: 'Gravada com o endereço antigo', url: '/chamados/2', ticket_id: 2, actor_name: 'Ana', read_at: '2026-09-04T00:00:00Z', created_at: '2026-09-04T00:00:00Z' },
 ]
 
 let chamadas: { url: string; metodo: string }[]
@@ -86,6 +88,15 @@ describe('PainelNotificacoes', () => {
     fireEvent.click(await screen.findByText('Ticket atribuído a você: T-0007'))
 
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/notifications/1/read/' && c.metodo === 'POST')).toBe(true))
+    expect(await screen.findByText('detalhe do ticket')).toBeInTheDocument()
+  })
+
+  it('notificação gravada com o endereço antigo (/chamados/2) vai direto para /tickets/2', async () => {
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: 'Notificações' }))
+    fireEvent.click(await screen.findByText('Ticket antigo: T-0002'))
+
+    // sem a rota de redirecionamento no meio (ela fica fora do shell)
     expect(await screen.findByText('detalhe do ticket')).toBeInTheDocument()
   })
 

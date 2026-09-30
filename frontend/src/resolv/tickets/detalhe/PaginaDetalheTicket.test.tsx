@@ -52,9 +52,17 @@ vi.mock('./ModalFecharTicket', () => ({
 const meMock: { data: unknown } = { data: undefined }
 vi.mock('@/api/queries/useMe', () => ({ useMe: () => meMock }))
 let tabsMock: { tipo: 'ticket'; ticketId: number }[] = []
+const abrirTicketMock = vi.fn()
+const atualizarResumoMock = vi.fn()
 vi.mock('@/stores/tabs', () => ({
-  useTabs: (seletor: (s: { abrirTicket: () => void; tabs: unknown[] }) => unknown) =>
-    seletor({ abrirTicket: vi.fn(), tabs: tabsMock }),
+  useTabs: (
+    seletor: (s: { abrirTicket: () => void; atualizarResumo: () => void; tabs: unknown[] }) => unknown,
+  ) =>
+    seletor({
+      abrirTicket: abrirTicketMock as () => void,
+      atualizarResumo: atualizarResumoMock as () => void,
+      tabs: tabsMock,
+    }),
 }))
 const navegar = vi.fn()
 vi.mock('react-router-dom', async (original) => ({
@@ -169,6 +177,8 @@ function montar() {
 beforeEach(() => {
   meMock.data = undefined
   tabsMock = []
+  abrirTicketMock.mockReset()
+  atualizarResumoMock.mockReset()
   navegar.mockReset()
   fecharNoServidor.mockReset().mockResolvedValue(ticket({ status: 'closed' }))
   atribuirNoServidor.mockReset().mockResolvedValue(ticket({ assignee_id: 7 }))
@@ -181,6 +191,39 @@ beforeEach(() => {
     isFetching: false,
     dataUpdatedAt: 1000,
   }
+})
+
+describe('PaginaDetalheTicket — aba do ticket na barra do topo', () => {
+  it('abre a aba com o resumo do ticket assim que os dados chegam', () => {
+    montar()
+
+    expect(abrirTicketMock).toHaveBeenCalledTimes(1)
+    expect(abrirTicketMock).toHaveBeenCalledWith(
+      42,
+      expect.objectContaining({
+        id: 42,
+        reference: '#1042',
+        subject: 'Impressora fiscal não emite',
+        stage_color: '#888888',
+        company_name: 'Acme Marketing',
+      }),
+    )
+  })
+
+  it('a etapa que muda com a pessoa dentro do ticket chega à aba (sem reabrir nem reativar)', () => {
+    const { rerender } = montar()
+    atualizarResumoMock.mockClear()
+
+    estadoQuery = { ...estadoQuery, data: ticket({ stage_color: '#ff0000', status: 'pending_customer' }) }
+    rerender(pagina())
+
+    expect(atualizarResumoMock).toHaveBeenLastCalledWith(
+      42,
+      expect.objectContaining({ stage_color: '#ff0000', status: 'pending_customer' }),
+    )
+    // abrir é só para quando o ticket muda de identidade (referência, assunto)
+    expect(abrirTicketMock).toHaveBeenCalledTimes(1)
+  })
 })
 
 describe('PaginaDetalheTicket — faixa "chamado atualizado por baixo" (item 20)', () => {

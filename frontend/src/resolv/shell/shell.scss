@@ -37,13 +37,15 @@
     transition: margin-left 0.15s ease;
   }
 
-  // Barra superior: uma linha de 48px com as abas à esquerda (a faixa toma o
-  // espaço que sobra e rola sozinha) e os dois ícones fixos à direita. Sem
-  // fundo próprio e sem borda: um andar a mais de cromo em cima de cada tela
-  // era exatamente o peso que se quis tirar, e a aba ativa já se destaca.
+  // Barra superior: uma linha de 52px (a mesma do topo da sidebar, então o
+  // centro das abas cai na linha da marca "Resolv") com as abas à esquerda (a
+  // faixa toma o espaço que sobra e rola sozinha) e os dois ícones fixos à
+  // direita. Sem fundo próprio e sem borda: um andar a mais de cromo em cima
+  // de cada tela era exatamente o peso que se quis tirar, e a aba ativa já se
+  // destaca.
   &__topo {
     flex-shrink: 0;
-    height: 48px;
+    height: 52px;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -109,7 +111,9 @@
   .novo-shell {
     --largura-sidebar: 0px;
 
+    // Sem sidebar ao lado para alinhar: a linha volta aos 48px.
     &__topo {
+      height: 48px;
       padding: 0 8px;
       gap: 4px;
     }

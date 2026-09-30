@@ -65,6 +65,20 @@ describe('MenuFlutuante — menu WAI-ARIA', () => {
     expect(acao).toHaveBeenCalledOnce()
   })
 
+  it('Tab fecha o menu e devolve o foco ao gatilho, de onde o Tab segue (sem ser cancelado)', () => {
+    render(<Cenario itens={[{ rotulo: 'Agir', onSelecionar: vi.fn() }]} />)
+    const gatilho = screen.getByRole('button', { name: 'abrir' })
+    fireEvent.click(gatilho)
+
+    // `fireEvent` devolve false quando o evento foi cancelado (preventDefault):
+    // o navegador só faz o Tab andar a partir do gatilho se não for.
+    const seguiu = fireEvent.keyDown(screen.getByRole('menu'), { key: 'Tab' })
+
+    expect(seguiu).toBe(true)
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+    expect(gatilho).toHaveFocus()
+  })
+
   it('clique fora fecha', () => {
     render(
       <>

@@ -8,7 +8,7 @@
 // cartão do resto do produto. O hover usa o `--sidebar-hover` da sidebar, então
 // os dois lados do shell respondem ao ponteiro do mesmo jeito.
 //
-// Medidas: aba de 32px centrada na linha de 48px do topo, raio `--raio`, 2px
+// Medidas: aba de 32px centrada na linha do topo (52px; 48px no celular), raio `--raio`, 2px
 // entre abas. Como no Chrome, a aba de ticket mede até 220px e encolhe até
 // 120px conforme as abas se acumulam; passando disso a faixa rola na
 // horizontal, sem barra de rolagem visível e com um esmaecido na ponta
@@ -122,12 +122,18 @@
       color: var(--text-primary);
     }
 
-    &--arrastando {
+    // O ponteiro está sobre a aba durante o arrasto, então o `:hover` (mais
+    // específico) ganharia do fundo de cartão: no escuro a aba levantada ficava
+    // quase transparente, com o texto da vizinha aparecendo por baixo.
+    &--arrastando,
+    &--arrastando:hover {
       z-index: 2;
       background: var(--surface-card);
       border-color: var(--stroke-hover);
       color: var(--text-primary);
-      box-shadow: var(--sombra-flutuante);
+      // Sombra curta: a faixa corta o que passa de 48px de altura (overflow-y),
+      // e uma sombra longa terminaria numa linha reta.
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
       cursor: grabbing;
       transition: none;
     }
@@ -142,15 +148,18 @@
     }
   }
 
-  // O botão que é a aba: ocupa o invólucro inteiro menos o "x".
+  // O botão que é a aba: ocupa o invólucro inteiro menos o "x". Sobe sobre o
+  // fio de 1px do invólucro (margem negativa), para a área clicável ter os 32px
+  // da aba e não 30.
   &__abrir {
     display: flex;
     align-items: center;
     gap: 6px;
     flex: 1 1 auto;
     min-width: 0;
-    height: 100%;
-    padding: 0 4px 0 10px;
+    height: calc(100% + 2px);
+    margin: -1px 0 -1px -1px;
+    padding: 0 4px 0 11px;
     border: 0;
     border-radius: inherit;
     background: transparent;
@@ -184,17 +193,38 @@
     }
   }
 
-  // Mesmo degrau de peso do item ativo da sidebar. A largura da aba é fixa,
-  // então o texto não desloca nada em volta.
+  // A Início não tem "x": sem o espaço dele à direita, o texto ficava a 4px da
+  // borda, contra 11px à esquerda.
+  &__aba--fixa &__abrir {
+    padding-right: 11px;
+  }
+
+  // Mesmo degrau de peso do item ativo da sidebar.
   &__aba--ativa &__abrir {
     font-weight: 500;
   }
 
+  // `overflow: hidden` é o que dá a reticência, e corta o que passa da caixa
+  // de linha: com `line-height: 1` (13px) a cauda de g, p, q, y e ç saía
+  // cortada. A caixa tem folga de sobra (a aba tem 32px).
   &__titulo {
     flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.4;
+
+    // Reserva a largura do texto no peso da aba ativa (`data-t` é o próprio
+    // título): as abas de seção medem o que têm, e sem isto ficar em destaque
+    // as alargava em ~1px e empurrava as vizinhas.
+    &::after {
+      content: attr(data-t);
+      display: block;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      font-weight: 500;
+    }
   }
 
   // Referência do ticket (TD-00027): em tom discreto, antes do assunto. É o
@@ -215,9 +245,9 @@
     flex: none;
   }
 
-  // Rascunho não enviado: um anel vazio antes do "x". A pergunta ao fechar
-  // saiu (o rascunho vive no localStorage enquanto a aba existe), então esta
-  // marca é o aviso de que fechar descarta esse texto.
+  // Rascunho não enviado: um anel vazio antes do "x". Fechar não pergunta
+  // nada (o store guarda o texto e o devolve ao reabrir o ticket), então esta
+  // marca só avisa que há uma resposta começada naquele ticket.
   &__rascunho {
     width: 6px;
     height: 6px;
@@ -227,10 +257,22 @@
     flex: none;
   }
 
-  // Aba de ticket apertada (abaixo de ~190px de conteúdo): a referência sai e
-  // sobra o assunto, que é o que ajuda a reconhecer o ticket. A referência
-  // continua no tooltip e no nome acessível.
+  // Aba de ticket apertada (abaixo de ~190px de conteúdo): tudo se junta um
+  // pouco para a referência continuar ao lado do assunto. É ela que distingue
+  // dois tickets de assunto parecido ("Horas de manutenção... Acme" e "...
+  // Bravo"), e o tooltip não existe em tela de toque.
   @container (max-width: 190px) {
+    &__abrir {
+      gap: 5px;
+      padding-left: 9px;
+    }
+    &__ref {
+      font-size: 10.5px;
+    }
+  }
+  // Quase no mínimo (120px): não sobra espaço para os dois, e o assunto ganha.
+  // A referência continua no tooltip e no nome acessível.
+  @container (max-width: 150px) {
     &__ref {
       display: none;
     }
@@ -241,6 +283,7 @@
   // ativa, o hover e o foco o mostram. `opacity` e não `display`: continua no
   // DOM e no leitor de tela. Fica fora do Tab (o Delete fecha a aba focada).
   &__fechar {
+    position: relative;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -280,14 +323,29 @@
     opacity: 1;
   }
 
+  // O "x" que ficou (em parte) sob o esmaecido da ponta da faixa some: tocar
+  // nele fecharia uma aba que a pessoa nem enxerga (BarraDeAbas.tsx marca a
+  // aba com `data-x-coberto`).
+  &__aba[data-x-coberto] &__fechar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
   // Sem ponteiro que paire, o "x" tem de estar sempre à mão. Alvo mais alto,
-  // para o dedo (a aba tem 32px).
+  // para o dedo (a aba tem 32px): o desenho é de 28px e a área tocável chega a
+  // 32 com o `::after`.
   @media (hover: none) {
     &__fechar {
       opacity: 1;
       width: 28px;
       height: 28px;
       margin-right: 1px;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+      }
     }
   }
 
@@ -324,6 +382,28 @@
     &__fechar,
     &__novo {
       transition: none;
+    }
+  }
+
+  // Alto contraste do sistema: as cores do plano e do cartão somem, então a
+  // aba ativa se marca pelo fio (cor de destaque do sistema), as inativas
+  // ficam sem fio, e o que era feito de sombra ou de fundo (o anel do
+  // rascunho, o ponto da etapa) passa a ter borda ou mantém a cor.
+  @media (forced-colors: active) {
+    &__aba {
+      border-color: Canvas;
+    }
+    &__aba--ativa,
+    &__aba--ativa:hover {
+      border-color: Highlight;
+    }
+    &__rascunho {
+      box-shadow: none;
+      border: 1.5px solid CanvasText;
+      box-sizing: border-box;
+    }
+    &__etapa {
+      forced-color-adjust: none;
     }
   }
 }

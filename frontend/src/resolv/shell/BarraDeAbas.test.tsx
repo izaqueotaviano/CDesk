@@ -1,6 +1,8 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
-import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter, useLocation, useNavigate, useNavigationType } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { putTabsServidor } from '@/api/tabs'
 import { useTabs, type Aba } from '@/stores/tabs'
 import { BarraDeAbas } from './BarraDeAbas'
 
@@ -15,12 +17,13 @@ const reconciliarOriginal = useTabs.getState().reconciliar
 let reconciliar: Mock<() => Promise<void>>
 
 beforeEach(() => {
+  vi.mocked(putTabsServidor).mockClear()
   reconciliar = vi.fn<() => Promise<void>>(() => Promise.resolve())
-  useTabs.setState({ reconciliar })
+  useTabs.setState({ reconciliar, rascunhosGuardados: [] })
 })
 
 afterEach(() => {
-  useTabs.setState({ tabs: [], active: null, reconciliando: false, reconciliar: reconciliarOriginal })
+  useTabs.setState({ tabs: [], active: null, reconciliando: false, reconciliar: reconciliarOriginal, rascunhosGuardados: [] })
 })
 
 function ticket(id: number, extra: { subject?: string; draft?: string; semResumo?: boolean; company?: string } = {}): Aba {
@@ -54,6 +57,7 @@ function Local() {
   return (
     <>
       <output data-testid="rota">{pathname}</output>
+      <output data-testid="tipo-de-navegacao">{useNavigationType()}</output>
       <button type="button" onClick={() => navigate('/quadro')}>
         ir para o quadro
       </button>
@@ -78,6 +82,9 @@ function montar(rotaInicial: string, abas: Aba[] = [], ativa: string | null = nu
 const nomesDasAbas = () => screen.getAllByRole('tab').map((t) => t.getAttribute('aria-label'))
 const chavesDoStore = () => useTabs.getState().tabs.map((a) => (a.tipo === 'ticket' ? `ticket:${a.ticketId}` : `secao:${a.rota}`))
 const aba = (nome: string | RegExp) => screen.getByRole('tab', { name: nome })
+/** O "x" é só para o ponteiro e fica fora da árvore de acessibilidade
+ *  (`aria-hidden`): não se acha por papel, só pelo rótulo. */
+const botaoFechar = (nome: string) => screen.getByLabelText(`Fechar aba ${nome}`)
 
 describe('BarraDeAbas: Início fixa e abas do store', () => {
   it('a Início é a primeira aba mesmo sem nenhuma outra, e não tem botão de fechar', () => {
@@ -87,7 +94,7 @@ describe('BarraDeAbas: Início fixa e abas do store', () => {
     expect(abas).toHaveLength(1)
     expect(abas[0]).toHaveAccessibleName('Início')
     expect(abas[0]).toHaveAttribute('aria-selected', 'true')
-    expect(screen.queryByRole('button', { name: /Fechar aba Início/ })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Fechar aba Início/)).not.toBeInTheDocument()
     // fixa: fica fora do store
     expect(useTabs.getState().tabs).toEqual([])
   })
@@ -104,15 +111,18 @@ describe('BarraDeAbas: Início fixa e abas do store', () => {
     const t = aba(/TD-00027/)
     expect(within(t).getByText('TD-00027')).toHaveClass('barra-de-abas__ref')
     expect(within(t).getByText('Teclado sem resposta ao pressionar qualquer tecla')).toHaveClass('barra-de-abas__titulo')
-    expect(t).toHaveAttribute('title', 'TD-00027 · Teclado sem resposta ao pressionar qualquer tecla\nAcme Marketing')
+    // o tooltip fica no invólucro: no botão viraria a descrição acessível e
+    // repetiria o nome a cada foco
+    expect(t.parentElement).toHaveAttribute('title', 'TD-00027 · Teclado sem resposta ao pressionar qualquer tecla\nAcme Marketing')
+    expect(t).not.toHaveAttribute('title')
   })
 
   it('enquanto o resumo não chegou, a aba do ticket diz "Ticket #27"', () => {
     montar('/inicio', [ticket(27, { semResumo: true })])
 
     const t = aba('Ticket #27')
-    expect(t).toHaveAttribute('title', 'Ticket #27')
-    expect(screen.getByRole('button', { name: 'Fechar aba Ticket #27' })).toBeInTheDocument()
+    expect(t.parentElement).toHaveAttribute('title', 'Ticket #27')
+    expect(botaoFechar('Ticket #27')).toBeInTheDocument()
   })
 
   it('sem assunto, a referência é o próprio título (não aparece duas vezes)', () => {
@@ -128,7 +138,7 @@ describe('BarraDeAbas: Início fixa e abas do store', () => {
     montar('/inicio', [ticket(1, { draft: 'já escrevi metade' }), ticket(2, { draft: '  \n ' })])
 
     expect(aba(/TD-00001/)).toHaveAccessibleName('TD-00001 Assunto 1, rascunho não enviado')
-    expect(aba(/TD-00001/).getAttribute('title')).toContain('Rascunho não enviado')
+    expect(aba(/TD-00001/).parentElement?.getAttribute('title')).toContain('Rascunho não enviado')
     expect(aba(/TD-00001/).querySelector('.barra-de-abas__rascunho')).not.toBeNull()
     // espaço em branco não conta como rascunho
     expect(aba(/TD-00002/).querySelector('.barra-de-abas__rascunho')).toBeNull()
@@ -138,9 +148,27 @@ describe('BarraDeAbas: Início fixa e abas do store', () => {
     montar('/inicio', [ticket(1)])
 
     const t = aba(/TD-00001/)
-    const x = screen.getByRole('button', { name: 'Fechar aba TD-00001' })
+    const x = botaoFechar('TD-00001')
     expect(t.contains(x)).toBe(false)
     expect(t.parentElement).toBe(x.parentElement)
+  })
+
+  it('o "x" é só do ponteiro: fora da árvore de acessibilidade e do Tab, e não rouba o foco ao clicar', () => {
+    montar('/inicio', [ticket(1)])
+
+    const x = botaoFechar('TD-00001')
+    // um tablist só pode conter abas (axe: aria-required-children)
+    expect(x).toHaveAttribute('aria-hidden', 'true')
+    expect(x).toHaveAttribute('tabindex', '-1')
+    // o mousedown cancelado é o que impede o clique de mover o foco para o botão
+    expect(fireEvent.mouseDown(x)).toBe(false)
+  })
+
+  it('o atalho de fechar é anunciado na aba (Delete e Backspace), e a Início não tem', () => {
+    montar('/inicio', [ticket(1)])
+
+    expect(aba(/TD-00001/)).toHaveAttribute('aria-keyshortcuts', 'Delete Backspace')
+    expect(aba('Início')).not.toHaveAttribute('aria-keyshortcuts')
   })
 })
 
@@ -221,9 +249,53 @@ describe('BarraDeAbas: a aba ativa vem da URL', () => {
     expect(screen.getByRole('tab', { name: 'Início' })).toHaveAttribute('aria-selected', 'false')
   })
 
-  it('a aba do ticket nasce quando a página carrega os dados, e já nasce acesa (a rota estava lá)', () => {
-    montar('/tickets/27')
+  it('/tickets/abc (nem ticket nem "novo") é rota desconhecida: não acende nem cria a aba Tickets', () => {
+    montar('/tickets/abc')
+
     expect(nomesDasAbas()).toEqual(['Início'])
+    expect(chavesDoStore()).toEqual([])
+  })
+
+  it('a caixa da URL não importa (o React Router serve a página do mesmo jeito)', () => {
+    montar('/Quadro')
+
+    expect(nomesDasAbas()).toEqual(['Início', 'Quadro'])
+    expect(aba('Quadro')).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('ticket na URL sem aba ainda: uma aba provisória "Ticket #27" já acende, sem esperar os dados', () => {
+    montar('/tickets/27')
+
+    expect(nomesDasAbas()).toEqual(['Início', 'Ticket #27'])
+    expect(aba('Ticket #27')).toHaveAttribute('aria-selected', 'true')
+    expect(aba('Início')).toHaveAttribute('aria-selected', 'false')
+    // provisória: não é do store, então não persiste nem vai ao servidor
+    expect(chavesDoStore()).toEqual([])
+  })
+
+  it('a aba provisória some ao sair da rota do ticket', () => {
+    montar('/tickets/12345')
+    expect(nomesDasAbas()).toEqual(['Início', 'Ticket #12345'])
+
+    fireEvent.click(screen.getByRole('button', { name: 'ir para o quadro' }))
+
+    expect(nomesDasAbas()).toEqual(['Início', 'Quadro'])
+  })
+
+  it('fechar a aba provisória (ticket que não carrega) sai da rota, para a vizinha, sem tocar no store', () => {
+    montar('/tickets/12345', [ticket(1)])
+    expect(nomesDasAbas()).toEqual(['Início', 'TD-00001 Assunto 1', 'Ticket #12345'])
+
+    fireEvent.click(botaoFechar('Ticket #12345'))
+
+    expect(rota()).toBe('/tickets/1')
+    expect(chavesDoStore()).toEqual(['ticket:1'])
+    expect(nomesDasAbas()).toEqual(['Início', 'TD-00001 Assunto 1'])
+  })
+
+  it('a aba do ticket nasce quando a página carrega os dados, no lugar da provisória, e já acesa', () => {
+    montar('/tickets/27')
+    expect(nomesDasAbas()).toEqual(['Início', 'Ticket #27'])
 
     act(() => {
       useTabs.getState().abrirTicket(27, {
@@ -244,6 +316,16 @@ describe('BarraDeAbas: a aba ativa vem da URL', () => {
 
     expect(reconciliar).toHaveBeenCalledTimes(1)
     // o que já estava guardado aparece na hora
+    expect(aba(/TD-00001/)).toBeInTheDocument()
+  })
+
+  it('se a reconciliação falha (sem rede), a barra segue com o que já tinha, sem erro solto', async () => {
+    reconciliar.mockRejectedValueOnce(new Error('sem rede'))
+    montar('/inicio', [ticket(1)])
+
+    await act(async () => {})
+
+    expect(reconciliar).toHaveBeenCalledTimes(1)
     expect(aba(/TD-00001/)).toBeInTheDocument()
   })
 
@@ -296,17 +378,26 @@ describe('BarraDeAbas: fechar', () => {
   it('fechar a aba ativa navega para a da direita', () => {
     montar('/tickets/2', [ticket(1), ticket(2), ticket(3)], 'ticket:2')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba TD-00002' }))
+    fireEvent.click(botaoFechar('TD-00002'))
 
     expect(chavesDoStore()).toEqual(['ticket:1', 'ticket:3'])
     expect(rota()).toBe('/tickets/3')
     expect(aba(/TD-00003/)).toHaveAttribute('aria-selected', 'true')
   })
 
+  it('fechar a ativa troca a entrada do histórico: o Voltar não traz de volta a página fechada', () => {
+    montar('/tickets/2', [ticket(1), ticket(2), ticket(3)], 'ticket:2')
+    expect(screen.getByTestId('tipo-de-navegacao').textContent).toBe('POP')
+
+    fireEvent.click(botaoFechar('TD-00002'))
+
+    expect(screen.getByTestId('tipo-de-navegacao').textContent).toBe('REPLACE')
+  })
+
   it('se a ativa era a última, navega para a da esquerda', () => {
     montar('/tickets/3', [ticket(1), ticket(2), ticket(3)], 'ticket:3')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba TD-00003' }))
+    fireEvent.click(botaoFechar('TD-00003'))
 
     expect(rota()).toBe('/tickets/2')
     expect(useTabs.getState().active).toBe('ticket:2')
@@ -315,7 +406,7 @@ describe('BarraDeAbas: fechar', () => {
   it('a vizinha pode ser uma seção: vai para a rota dela', () => {
     montar('/tickets/2', [secao('/quadro', 'Quadro'), ticket(2)], 'ticket:2')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba TD-00002' }))
+    fireEvent.click(botaoFechar('TD-00002'))
 
     expect(rota()).toBe('/quadro')
     expect(aba('Quadro')).toHaveAttribute('aria-selected', 'true')
@@ -324,7 +415,7 @@ describe('BarraDeAbas: fechar', () => {
   it('sem nenhuma outra, cai no Início', () => {
     montar('/tickets/1', [ticket(1)], 'ticket:1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba TD-00001' }))
+    fireEvent.click(botaoFechar('TD-00001'))
 
     expect(chavesDoStore()).toEqual([])
     expect(rota()).toBe('/inicio')
@@ -334,7 +425,7 @@ describe('BarraDeAbas: fechar', () => {
   it('se a ativa era a primeira e a única depois da Início, também volta ao Início', () => {
     montar('/quadro', [secao('/quadro', 'Quadro')], 'secao:/quadro')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba Quadro' }))
+    fireEvent.click(botaoFechar('Quadro'))
 
     expect(rota()).toBe('/inicio')
   })
@@ -342,7 +433,7 @@ describe('BarraDeAbas: fechar', () => {
   it('fechar uma aba inativa não navega', () => {
     montar('/tickets/1', [ticket(1), ticket(2)], 'ticket:1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Fechar aba TD-00002' }))
+    fireEvent.click(botaoFechar('TD-00002'))
 
     expect(chavesDoStore()).toEqual(['ticket:1'])
     expect(rota()).toBe('/tickets/1')
@@ -385,12 +476,42 @@ describe('BarraDeAbas: fechar', () => {
     expect(aba(/TD-00003/)).toHaveFocus()
   })
 
+  it('fechar não perde o rascunho: fica guardado e volta com o ticket reaberto', () => {
+    montar('/tickets/2', [ticket(1, { draft: 'resposta longa começada' }), ticket(2)], 'ticket:2')
+
+    // por qualquer caminho: x, Delete, menu ("Fechar as da esquerda")
+    fireEvent.keyDown(aba(/TD-00001/), { key: 'Delete' })
+
+    expect(chavesDoStore()).toEqual(['ticket:2'])
+    expect(useTabs.getState().rascunhosGuardados).toEqual([{ ticketId: 1, draft: 'resposta longa começada' }])
+
+    act(() => {
+      useTabs.getState().abrirTicket(1)
+    })
+    const reaberta = useTabs.getState().tabs.find((a) => a.tipo === 'ticket' && a.ticketId === 1)
+    expect(reaberta?.tipo === 'ticket' && reaberta.draft).toBe('resposta longa começada')
+    expect(useTabs.getState().rascunhosGuardados).toEqual([])
+  })
+
+  it('"Fechar todas" e o x também guardam os rascunhos de todas as abas fechadas', () => {
+    montar('/inicio', [ticket(1, { draft: 'um' }), ticket(2), ticket(3, { draft: 'três' })])
+
+    fireEvent.click(botaoFechar('TD-00002'))
+    fireEvent.contextMenu(aba('Início'))
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Fechar todas' }))
+
+    expect(chavesDoStore()).toEqual([])
+    expect(useTabs.getState().rascunhosGuardados).toEqual([
+      { ticketId: 1, draft: 'um' },
+      { ticketId: 3, draft: 'três' },
+    ])
+  })
+
   it('fechar uma seção não chama o servidor (só ticket é espelhado)', async () => {
-    const { putTabsServidor } = await import('@/api/tabs')
     vi.useFakeTimers()
     try {
       montar('/quadro', [secao('/quadro', 'Quadro'), secao('/notas', 'Notas')], 'secao:/quadro')
-      fireEvent.click(screen.getByRole('button', { name: 'Fechar aba Notas' }))
+      fireEvent.click(botaoFechar('Notas'))
       vi.advanceTimersByTime(5000)
       expect(putTabsServidor).not.toHaveBeenCalled()
     } finally {
@@ -407,7 +528,7 @@ describe('BarraDeAbas: menu de contexto', () => {
   }
   const escolher = (nome: string) => fireEvent.click(screen.getByRole('menuitem', { name: nome }))
 
-  it('tem as cinco ações, na ordem', () => {
+  it('tem as cinco ações de fechar, na ordem, e as de mover (a alternativa a arrastar)', () => {
     tres()
     const menu = abrirMenu(/TD-00002/)
 
@@ -417,7 +538,65 @@ describe('BarraDeAbas: menu de contexto', () => {
       'Fechar as da direita',
       'Fechar as da esquerda',
       'Fechar todas',
+      'Mover para a esquerda',
+      'Mover para a direita',
     ])
+  })
+
+  it('"Mover para a esquerda/direita" reordena sem arrastar, e o foco fica na aba movida', () => {
+    tres()
+    abrirMenu(/TD-00002/)
+    escolher('Mover para a direita')
+    expect(chavesDoStore()).toEqual(['ticket:1', 'ticket:3', 'ticket:2'])
+    expect(aba(/TD-00002/)).toHaveFocus()
+    // a ativa segue sendo a da URL: mover não navega
+    expect(rota()).toBe('/tickets/2')
+
+    abrirMenu(/TD-00002/)
+    // agora é a última: não há para onde ir à direita
+    expect(screen.getByRole('menuitem', { name: 'Mover para a direita' })).toBeDisabled()
+    escolher('Mover para a esquerda')
+    expect(chavesDoStore()).toEqual(['ticket:1', 'ticket:2', 'ticket:3'])
+    abrirMenu(/TD-00002/)
+    escolher('Mover para a esquerda')
+    expect(chavesDoStore()).toEqual(['ticket:2', 'ticket:1', 'ticket:3'])
+
+    // a primeira das abas do store não passa da Início
+    abrirMenu(/TD-00002/)
+    expect(screen.getByRole('menuitem', { name: 'Mover para a esquerda' })).toBeDisabled()
+  })
+
+  it('a Início não se move: as duas ações de mover ficam desabilitadas nela', () => {
+    tres()
+    const menu = abrirMenu('Início')
+
+    expect(within(menu).getByRole('menuitem', { name: 'Mover para a esquerda' })).toBeDisabled()
+    expect(within(menu).getByRole('menuitem', { name: 'Mover para a direita' })).toBeDisabled()
+  })
+
+  it('aberto pelo teclado (sem botão do mouse), o menu nasce logo abaixo da aba', () => {
+    tres()
+    const t = aba(/TD-00002/)
+    vi.spyOn(t.parentElement!, 'getBoundingClientRect').mockReturnValue({
+      left: 300, right: 420, top: 8, bottom: 40, width: 120, height: 32, x: 300, y: 8, toJSON: () => ({}),
+    })
+    // Shift+F10 / tecla de menu: `button` -1 e nenhum botão pressionado; o
+    // ponto do evento (o centro da aba) não pode ser o lugar do menu.
+    fireEvent.contextMenu(t, { button: -1, buttons: 0, clientX: 360, clientY: 24 })
+
+    const menu = screen.getByRole('menu', { name: 'Ações da aba' })
+    // O jsdom não mede o menu; a âncora vem da posição pedida ao MenuFlutuante,
+    // que a escreve no style. O teto da janela (MARGEM) ainda vale.
+    expect(menu.style.top).toBe('40px')
+  })
+
+  it('aberto pelo botão direito do mouse, o menu nasce no ponteiro', () => {
+    tres()
+    fireEvent.contextMenu(aba(/TD-00002/), { button: 2, buttons: 2, clientX: 333, clientY: 25 })
+
+    const menu = screen.getByRole('menu', { name: 'Ações da aba' })
+    expect(menu.style.left).toBe('333px')
+    expect(menu.style.top).toBe('25px')
   })
 
   it('"Fechar" fecha a aba do clique; sendo a ativa, navega para a vizinha', () => {
@@ -561,13 +740,56 @@ describe('BarraDeAbas: teclado (padrão WAI-ARIA de tabs)', () => {
     expect(abas[0]).toHaveAttribute('tabindex', '0')
   })
 
-  it('Enter ativa a aba focada (o botão nativo dispara o clique)', () => {
+  it('Enter na aba focada ativa e navega', async () => {
     montar('/inicio', [ticket(1)])
     const t = aba(/TD-00001/)
     t.focus()
-    // O clique nativo do Enter/Espaço em <button> não é simulado pelo jsdom.
-    fireEvent.click(t)
+
+    await userEvent.setup().keyboard('{Enter}')
 
     expect(rota()).toBe('/tickets/1')
+  })
+
+  it('o tabIndex 0 acompanha o foco real, também quando ele chega por outro caminho (Esc do menu, clique)', () => {
+    montar('/tickets/2', [ticket(1), ticket(2), ticket(3)], 'ticket:2')
+
+    act(() => aba(/TD-00003/).focus())
+
+    expect(aba(/TD-00003/)).toHaveAttribute('tabindex', '0')
+    expect(aba(/TD-00002/)).toHaveAttribute('tabindex', '-1')
+  })
+
+  describe('rolagem da faixa', () => {
+    // O jsdom não tem layout: cada aba mede 100px, a faixa mostra 300px.
+    let rolar: Mock
+    beforeEach(() => {
+      vi.spyOn(HTMLElement.prototype, 'offsetLeft', 'get').mockImplementation(function (this: HTMLElement) {
+        const abas = [...document.querySelectorAll('.barra-de-abas__aba')]
+        return Math.max(0, abas.indexOf(this)) * 100
+      })
+      vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100)
+      vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) {
+        return this.classList.contains('barra-de-abas__rolagem') ? 300 : 0
+      })
+      rolar = vi.fn()
+    })
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('as setas levam a faixa junto: a aba focada não fica meio escondida sob o esmaecido', () => {
+      montar('/inicio', [ticket(1), ticket(2), ticket(3), ticket(4), ticket(5)])
+      const faixa = document.querySelector<HTMLElement>('.barra-de-abas__rolagem')!
+      faixa.scrollTo = rolar as unknown as typeof faixa.scrollTo
+
+      const abas = screen.getAllByRole('tab')
+      abas[0]!.focus()
+      fireEvent.keyDown(abas[0]!, { key: 'End' })
+
+      // a última aba (índice 5) termina em 600: com a margem de 24px e a faixa
+      // de 300px, a faixa rola até 324
+      expect(abas[5]).toHaveFocus()
+      expect(rolar).toHaveBeenLastCalledWith(expect.objectContaining({ left: 324 }))
+    })
   })
 })
