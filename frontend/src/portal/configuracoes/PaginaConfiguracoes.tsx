@@ -1,4 +1,4 @@
-import { IconBuilding, IconDeviceDesktop, IconFileText, IconKey, IconMail, IconPalette, IconShieldCheck, IconUser, IconUsers, type Icon } from '@tabler/icons-react'
+import { IconBuilding, IconDeviceDesktop, IconFileText, IconKey, IconMail, IconPalette, IconShieldCheck, IconTextSize, IconUser, IconUsers, type Icon } from '@tabler/icons-react'
 import { useMe } from '@/api/queries/useMe'
 import { SecaoAcessos } from './SecaoAcessos'
 import { SecaoAparencia } from './SecaoAparencia'
@@ -9,6 +9,7 @@ import { SecaoPerfil } from './SecaoPerfil'
 import { PERMISSAO_PESSOAS, SecaoPessoasEmpresa } from './SecaoPessoasEmpresa'
 import { SecaoSeguranca } from './SecaoSeguranca'
 import { SecaoSenha } from './SecaoSenha'
+import { SecaoTamanhoTexto } from './SecaoTamanhoTexto'
 
 /** `permissao`: a seção só aparece (no menu e na página) para quem a tem. */
 const SECOES: { id: string; rotulo: string; icone: Icon; permissao?: string }[] = [
@@ -17,6 +18,7 @@ const SECOES: { id: string; rotulo: string; icone: Icon; permissao?: string }[] 
   { id: 'pessoas', rotulo: 'Pessoas da empresa', icone: IconUsers, permissao: PERMISSAO_PESSOAS },
   { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: IconMail },
   { id: 'aparencia', rotulo: 'Aparência', icone: IconPalette },
+  { id: 'texto', rotulo: 'Tamanho do texto', icone: IconTextSize },
   { id: 'senha', rotulo: 'Alterar senha', icone: IconKey },
   { id: 'seguranca', rotulo: 'Verificação em duas etapas', icone: IconShieldCheck },
   { id: 'acessos', rotulo: 'Sessões e acesso', icone: IconDeviceDesktop },
@@ -75,6 +77,7 @@ export function PaginaConfiguracoes() {
           <SecaoPessoasEmpresa />
           <SecaoNotificacoes />
           <SecaoAparencia />
+          <SecaoTamanhoTexto />
           <SecaoSenha />
           <SecaoSeguranca />
           <SecaoAcessos />

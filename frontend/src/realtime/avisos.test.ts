@@ -190,6 +190,53 @@ describe('Avisos de segundo plano', () => {
   })
 })
 
+describe('Som das notificações', () => {
+  /** O store é reimportado junto com o módulo (resetModules): precisa ser
+   *  a MESMA instância que o avisos.ts lê. */
+  async function prefs() {
+    return (await import('@/stores/prefs')).usePrefs
+  }
+
+  it('desligado cala só o bipe: a marca no título e o aviso do sistema continuam', async () => {
+    await carregarModulo()
+    ;(await prefs()).getState().setSomNotificacoes(false)
+
+    ouvinte!({ type: 'chat_queued', client_name: 'Ana', company: 'Acme' })
+    await cederAoLoop()
+
+    expect(hertzTocados).toHaveLength(0)
+    expect(document.title).toBe('● Resolv')
+    expect(avisosCriados).toHaveLength(1)
+  })
+
+  it('vale já no próximo aviso, sem recarregar a página, nos dois sentidos', async () => {
+    await carregarModulo()
+    const usePrefs = await prefs()
+
+    usePrefs.getState().setSomNotificacoes(false)
+    ouvinte!({ type: 'notification', kind: 'mention', title: 'Te citaram' })
+    await cederAoLoop()
+    expect(hertzTocados).toHaveLength(0)
+
+    usePrefs.getState().setSomNotificacoes(true)
+    ouvinte!({ type: 'notification', kind: 'mention', title: 'Te citaram de novo' })
+    await cederAoLoop()
+    expect(hertzTocados).toHaveLength(1)
+  })
+
+  it('a escolha salva no aparelho é respeitada desde a primeira carga', async () => {
+    localStorage.setItem(
+      'resolv:prefs',
+      JSON.stringify({ state: { somNotificacoes: false }, version: 1 }),
+    )
+    await carregarModulo()
+
+    ouvinte!({ type: 'notification', kind: 'ticket_created', title: 'Novo chamado' })
+    await cederAoLoop()
+    expect(hertzTocados).toHaveLength(0)
+  })
+})
+
 describe('Permissão do aviso do sistema', () => {
   it('sem permissão concedida, o som e o título ainda avisam — só o SO não', async () => {
     stubarNotification('default')

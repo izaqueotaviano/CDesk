@@ -9,6 +9,7 @@ import {
   ligarAvisosDoSistema,
   type EstadoAviso,
 } from '@/realtime/avisos'
+import { usePrefs } from '@/stores/prefs'
 import './notificacoes.scss'
 
 const ICONE_TIPO: Record<string, string> = {
@@ -118,6 +119,34 @@ function AvisosDoSistema() {
 }
 
 /**
+ * "Som das notificações" no cabeçalho do sino — o mesmo interruptor de
+ * Minha conta → Notificações (é a mesma preferência, `stores/prefs`, que
+ * sobe para a conta). Fica no cabeçalho, e não no rodapé junto do aviso do
+ * computador, porque é o ajuste que se procura NA HORA: o bipe tocou numa
+ * reunião, a pessoa abre o sino e cala ali mesmo.
+ *
+ * Botão com `aria-pressed`, não um switch: é um ícone, e o nome acessível
+ * ("Som das notificações") somado ao estado ("pressionado") diz tudo. O
+ * `title` diz a AÇÃO, como o botão de tema.
+ */
+function BotaoSom() {
+  const ligado = usePrefs((s) => s.somNotificacoes)
+  const setSom = usePrefs((s) => s.setSomNotificacoes)
+  return (
+    <button
+      type="button"
+      className="painel-notif__som"
+      aria-label="Som das notificações"
+      aria-pressed={ligado}
+      title={ligado ? 'Desligar o som' : 'Ligar o som'}
+      onClick={() => setSom(!ligado)}
+    >
+      <i className={ligado ? 'ti ti-volume' : 'ti ti-volume-off'} aria-hidden="true" />
+    </button>
+  )
+}
+
+/**
  * Conteúdo do dropdown do sino — a fiação já existia esperando por isto:
  * `realtime/bridge.ts` invalida `['notifications']` a cada evento de socket
  * desde sempre, sem nenhum hook consumindo a chave. `unread_count` real no
@@ -158,11 +187,14 @@ export function PainelNotificacoes() {
         <div className="painel-notif">
           <header className="painel-notif__cabecalho">
             <strong>Notificações</strong>
-            {naoLidas > 0 && (
-              <button type="button" onClick={() => marcarTodas.mutate()} disabled={marcarTodas.isPending}>
-                Marcar todas como lidas
-              </button>
-            )}
+            <span className="painel-notif__acoes">
+              {naoLidas > 0 && (
+                <button type="button" onClick={() => marcarTodas.mutate()} disabled={marcarTodas.isPending}>
+                  Marcar todas como lidas
+                </button>
+              )}
+              <BotaoSom />
+            </span>
           </header>
           {notificacoes.length === 0 ? (
             <p className="painel-notif__vazio">Nenhuma notificação por aqui.</p>

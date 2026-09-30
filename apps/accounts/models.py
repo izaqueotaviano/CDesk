@@ -339,6 +339,34 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     # Forma: {"enabled": bool, "start": "09:00", "end": "18:00", "days": [1..7]}
     personal_hours = models.JSONField(default=dict, blank=True)
 
+    # --- conforto de quem usa o produto o dia inteiro ---
+    # Moram na conta, e não só no navegador, pelo mesmo motivo de
+    # `ui_density`: quem precisa de texto maior precisa dele no notebook de
+    # casa também, e quem silenciou o bipe não quer ouvi-lo de novo porque
+    # trocou de computador. O navegador guarda uma cópia (stores/prefs.ts)
+    # só para a primeira pintura não sair no tamanho errado.
+    #
+    # Tamanho do texto: VAZIO é o padrão do produto (a escala 12/14/16/28);
+    # os outros dois multiplicam essa escala no front (ver
+    # frontend/postcss-escala-texto.js). O fator mora lá, não aqui: é
+    # decisão de desenho, e o servidor só precisa lembrar a escolha.
+    ui_text_size = models.CharField(
+        max_length=10, blank=True, default="",
+        choices=[("", "Padrão"), ("large", "Grande"), ("larger", "Maior")],
+    )
+    # Bipe dos avisos (frontend/src/realtime/avisos.ts). Só o SOM: o título
+    # da aba e a notificação do sistema continuam valendo com ele desligado.
+    notification_sound = models.BooleanField(default=True)
+    # Minutos sem mexer no Resolv até o status virar "Ausente" sozinho — só
+    # para quem estava "Disponível", e só o próprio front desfaz (na próxima
+    # atividade). 0 = nunca. Os valores são fechados porque a tela é um
+    # seletor, e um número livre ("7 minutos") não ajuda ninguém a decidir.
+    auto_away_minutes = models.PositiveSmallIntegerField(
+        default=15,
+        choices=[(0, "Nunca"), (5, "5 minutos"), (10, "10 minutos"),
+                 (15, "15 minutos"), (30, "30 minutos")],
+    )
+
     # --- verificação em duas etapas ---
     # Vazio = desligada. O método só é gravado depois que o usuário confirma
     # um código válido (ver TwoFactorConfirmView) — nunca fica "meio ativado".

@@ -50,6 +50,39 @@
         cursor: default;
       }
     }
+
+    // Som das notificações: ícone de 32px (alvo de toque do resto do
+    // cabeçalho), fundo só no hover. Desligado, o ícone risca e a cor não
+    // muda — o estado já está no desenho e no `aria-pressed`; cor aqui
+    // leria como alerta.
+    .painel-notif__som {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: var(--raio);
+      color: var(--text-secondary);
+      font-size: 17px;
+
+      &:hover {
+        background: var(--surface-alt);
+        color: var(--text-primary);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  &__acoes {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    // o ícone de 32px não pode empurrar o cabeçalho para baixo: a margem
+    // negativa devolve o respiro que ele come do padding de 12px
+    margin: -6px -8px -6px 0;
   }
 
   &__lista {
@@ -116,7 +149,9 @@
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--accent);  // ponto de não lida: estado real, no acento único (laranja só no logo)
+    // ponto de não lida no acento (carvão/claro), não no laranja: a
+    // linguagem atual tem UM acento, e o ícone da linha não lida já usa ele
+    background: var(--accent);
   }
 
   &__vazio {

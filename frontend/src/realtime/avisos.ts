@@ -1,3 +1,4 @@
+import { usePrefs } from '@/stores/prefs'
 import { assinarEventoPessoal } from './bridge'
 
 /**
@@ -134,8 +135,15 @@ export function emSegundoPlano(): boolean {
  * base, e um oscilador de 120 ms cumpre o papel sem trazer binário pro
  * repositório. Se o navegador bloquear (autoplay antes de qualquer gesto),
  * falha em silêncio — as outras duas entregas ainda avisam.
+ *
+ * "Som das notificações" desligado (o sino e Minha conta) cala SÓ isto: a
+ * marca no título e o aviso do sistema são silenciosos e continuam, porque
+ * quem desliga o som quase sempre divide a sala com alguém, não quer deixar
+ * de saber que chegou algo. Lido na hora do bipe, e não na assinatura, para
+ * valer já no próximo aviso (inclusive vindo de outra aba — stores/prefs).
  */
 function bipar(vezes: number, timbre: Timbre) {
+  if (!usePrefs.getState().somNotificacoes) return
   try {
     const ctx = new AudioContext()
     for (let i = 0; i < vezes; i++) {

@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useSincronizarPreferencias } from '@/stores/sincronizarPrefs'
 import { definirNavegacao, iniciarAvisos } from './avisos'
 
 /**
@@ -13,6 +14,11 @@ import { definirNavegacao, iniciarAvisos } from './avisos'
  */
 export function useAvisos() {
   const navigate = useNavigate()
+
+  // As preferências da conta (som dos avisos, tamanho do texto, densidade)
+  // entram aqui porque este é o único hook que os DOIS shells autenticados
+  // já montam — e o som, a primeira delas, é justamente destes avisos.
+  useSincronizarPreferencias()
 
   useEffect(() => {
     definirNavegacao((url) => navigate(url))

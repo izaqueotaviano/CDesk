@@ -4,9 +4,11 @@ import { useLogout } from '@/api/mutations/useLogout'
 import { PRESENCAS, ROTULO_PRESENCA, useMudarPresenca } from '@/api/presenca'
 import { useMe } from '@/api/queries/useMe'
 import type { Presence } from '@/api/types'
+import { usePrefs } from '@/stores/prefs'
 import { identidadeDe } from '@/ui/identidade'
 import { abrirPainelAtalhos } from '../atalhos/estado'
 import { iniciais } from '../chat/format'
+import { esquecerAusenciaAutomatica, useAusenciaAutomatica } from './ausenciaAutomatica'
 import './menu-presenca.scss'
 
 const ICONE_PRESENCA: Record<Presence, string> = {
@@ -38,6 +40,10 @@ export function MenuPresenca() {
   const { data: usuario } = useMe()
   const mudar = useMudarPresenca()
   const logout = useLogout()
+  const minutosAusencia = usePrefs((s) => s.ausenciaAutomatica)
+  // O vigia mora aqui porque este menu é o dono do status de quem está
+  // logado e fica montado em toda tela do console (resolv/shell/Sidebar).
+  useAusenciaAutomatica()
 
   const nome = usuario?.full_name ?? '—'
   const presenca = usuario?.presence
@@ -47,6 +53,10 @@ export function MenuPresenca() {
   const interno = usuario?.is_internal !== false
 
   function escolher(nova: Presence, fechar: () => void) {
+    // Escolha à mão, mesmo a do status que já está valendo: dali em diante
+    // ele é da pessoa, e a ausência automática não o desfaz na próxima
+    // atividade (ausenciaAutomatica.ts, regra 2).
+    esquecerAusenciaAutomatica()
     if (nova !== presenca) mudar.mutate(nova)
     fechar()
   }
@@ -128,6 +138,15 @@ export function MenuPresenca() {
                   )
                 })}
               </div>
+
+              {/* A regra da ausência automática à vista de quem escolhe o
+                  status: sem isto, "fiquei Ausente sozinho" parece defeito.
+                  Onde mudar é "Minha conta", logo abaixo. */}
+              <p className="menu-presenca__dica">
+                {minutosAusencia > 0
+                  ? `Ausente sozinho após ${minutosAusencia} min sem uso.`
+                  : 'Ausência automática desligada.'}
+              </p>
 
               {mudar.isError && (
                 // Sem botão de "tentar de novo": as três opções continuam ali

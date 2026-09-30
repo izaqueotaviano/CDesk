@@ -44,6 +44,14 @@ from apps.audit.models import AuditAction, AuditLog
 from apps.customers.services import quota as quota_service
 from apps.notifications.services import queue_email
 
+# Preferências de conforto (models.User, bloco "conforto de quem usa o produto
+# o dia inteiro"). Uma tupla só para leitura (`MeSerializer`) e escrita
+# (`ProfileUpdateSerializer`): as duas listas já divergiram antes com
+# `ui_density`, e um campo que se escreve mas não volta no `/auth/me/` faz a
+# tela "desfazer" a escolha no próximo carregamento. A validação vem das
+# `choices` do model — valor fora da lista é 400, sem código aqui.
+CAMPOS_DE_CONFORTO = ("ui_text_size", "notification_sound", "auto_away_minutes")
+
 
 class MeSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
@@ -76,6 +84,8 @@ class MeSerializer(serializers.ModelSerializer):
             # é o resultado DEPOIS da higienização, não o que foi digitado
             "signature_render",
             "ui_language", "ui_density", "personal_hours",
+            # conforto (Minha conta → Aparência / Notificações / Status)
+            *CAMPOS_DE_CONFORTO,
         ]
 
     def get_signature_render(self, obj) -> str:
@@ -527,7 +537,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ["full_name", "avatar_url", "job_title", "phone",
                   "signature", "signature_kind", "signature_html", "signature_image_url",
-                  "ui_language", "ui_density", "personal_hours"]
+                  "ui_language", "ui_density", "personal_hours", *CAMPOS_DE_CONFORTO]
         extra_kwargs = {"full_name": {"required": False}}
 
     def validate_avatar_url(self, value):

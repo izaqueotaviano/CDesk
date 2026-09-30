@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { usePrefs } from '@/stores/prefs'
 import { MenuPresenca } from './MenuPresenca'
 
 let presencaDeQuemEstaLogado: string
@@ -50,7 +51,11 @@ beforeEach(() => {
     }),
   )
 })
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.unstubAllGlobals()
+  localStorage.clear()
+  usePrefs.setState({ ausenciaAutomatica: 15 })
+})
 
 function montar() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
@@ -130,6 +135,27 @@ describe('MenuPresenca', () => {
       expect(chamadas).toContainEqual({ url: '/api/v1/auth/logout/', metodo: 'POST', corpo: undefined }),
     )
     expect(await screen.findByText('tela de login')).toBeInTheDocument()
+  })
+
+  it('escolher à mão apaga a marca da ausência automática (a escolha passa a ser da pessoa)', async () => {
+    // o vigia tinha marcado Ausente sozinho; a pessoa abre o menu e confirma
+    localStorage.setItem('resolv:ausente-automatico', '1')
+    presencaDeQuemEstaLogado = 'away'
+    montar()
+    fireEvent.click(await screen.findByRole('button', { name: /Samuel Suporte/ }))
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Ausente' }))
+    expect(localStorage.getItem('resolv:ausente-automatico')).toBeNull()
+  })
+
+  it('diz a regra da ausência automática ao lado das opções', async () => {
+    usePrefs.setState({ ausenciaAutomatica: 10 })
+    montar()
+    await abrirMenu()
+    expect(screen.getByText('Ausente sozinho após 10 min sem uso.')).toBeInTheDocument()
+
+    usePrefs.setState({ ausenciaAutomatica: 0 })
+    expect(await screen.findByText('Ausência automática desligada.')).toBeInTheDocument()
   })
 
   it('avisa quando o backend recusa a mudança, em vez de falhar calado', async () => {

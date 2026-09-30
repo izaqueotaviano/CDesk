@@ -7,6 +7,26 @@ export type Tema = 'claro' | 'escuro' | 'sistema'
 export type TemaResolvido = 'claro' | 'escuro'
 export type Densidade = 'confortavel' | 'compacta'
 
+/**
+ * Tamanho do texto — o fator que `aplicarTamanhoTexto` carimba em
+ * `--escala-texto` e que `postcss-escala-texto.js` multiplica em todo
+ * `font-size` do app. Dois degraus acima do padrão, e não um controle
+ * contínuo: quem precisa de texto maior quer escolher entre poucas opções
+ * que já foram vistas funcionando (sidebar, tabelas e conversa conferidas
+ * nos três), não achar sozinho o número que não quebra a tela.
+ */
+export type TamanhoTexto = 'padrao' | 'grande' | 'maior'
+export const ESCALA_DO_TEXTO: Record<TamanhoTexto, number> = {
+  padrao: 1,
+  grande: 1.125,
+  maior: 1.25,
+}
+
+/** Minutos sem atividade até a presença virar "Ausente" sozinha; 0 = nunca.
+ *  Ver resolv/shell/ausenciaAutomatica.ts. */
+export type MinutosAusencia = 0 | 5 | 10 | 15 | 30
+export const OPCOES_AUSENCIA: readonly MinutosAusencia[] = [5, 10, 15, 30, 0]
+
 /** Largura × altura de cada painel do mini chat, em px — um tamanho só para
  *  todos os painéis, escolhido pelo agente (arrasto ou preset). */
 export interface TamanhoMiniChat {
@@ -41,9 +61,19 @@ interface PrefsState {
   sidebarRecolhida: boolean
   /** Tamanho dos painéis do mini chat — preferência de conforto de quem atende. */
   miniChat: TamanhoMiniChat
+  /** As três de baixo também moram na conta (`/auth/me/`); a cópia daqui é
+   *  para a primeira pintura e para quem ainda não carregou o `me`. Quem
+   *  leva de um lado para o outro é `stores/sincronizarPrefs.ts`. */
+  tamanhoTexto: TamanhoTexto
+  /** Bipe dos avisos em segundo plano (realtime/avisos.ts). */
+  somNotificacoes: boolean
+  ausenciaAutomatica: MinutosAusencia
   setTema: (tema: Tema) => void
   setMiniChat: (tamanho: TamanhoMiniChat) => void
   setDensidade: (densidade: Densidade) => void
+  setTamanhoTexto: (tamanho: TamanhoTexto) => void
+  setSomNotificacoes: (ligado: boolean) => void
+  setAusenciaAutomatica: (minutos: MinutosAusencia) => void
   alternarSidebar: () => void
 }
 
@@ -81,6 +111,25 @@ function aplicarTema(tema: Tema) {
   raiz.setAttribute('data-theme', escuro ? 'dark' : 'light')
 }
 
+/**
+ * Mesmo papel do `aplicarTema` para o tamanho do texto: o único lugar que o
+ * carimba no documento. A variável é o que o CSS lê (via
+ * postcss-escala-texto.js); o atributo é só para quem precisa saber o nível
+ * sem fazer conta (teste, e CSS pontual que queira reagir a "texto grande").
+ * No padrão os dois SAEM, em vez de ficarem valendo 1: o <html> de quem
+ * nunca mexeu nisso fica igual ao de antes da preferência existir.
+ */
+function aplicarTamanhoTexto(tamanho: TamanhoTexto) {
+  const raiz = document.documentElement
+  if (tamanho === 'padrao') {
+    raiz.style.removeProperty('--escala-texto')
+    raiz.removeAttribute('data-tamanho-texto')
+    return
+  }
+  raiz.style.setProperty('--escala-texto', String(ESCALA_DO_TEXTO[tamanho]))
+  raiz.setAttribute('data-tamanho-texto', tamanho)
+}
+
 export const usePrefs = create<PrefsState>()(
   persist(
     (set) => ({
@@ -88,18 +137,30 @@ export const usePrefs = create<PrefsState>()(
       densidade: 'compacta',
       sidebarRecolhida: false,
       miniChat: TAMANHOS_MINICHAT.medio,
+      tamanhoTexto: 'padrao',
+      // ligado: é o comportamento de antes desta preferência existir
+      somNotificacoes: true,
+      ausenciaAutomatica: 15,
       setTema: (tema) => {
         aplicarTema(tema)
         set({ tema })
       },
       setDensidade: (densidade) => set({ densidade }),
       setMiniChat: (miniChat) => set({ miniChat }),
+      setTamanhoTexto: (tamanhoTexto) => {
+        aplicarTamanhoTexto(tamanhoTexto)
+        set({ tamanhoTexto })
+      },
+      setSomNotificacoes: (somNotificacoes) => set({ somNotificacoes }),
+      setAusenciaAutomatica: (ausenciaAutomatica) => set({ ausenciaAutomatica }),
       alternarSidebar: () => set((s) => ({ sidebarRecolhida: !s.sidebarRecolhida })),
     }),
     {
       name: 'resolv:prefs',
       onRehydrateStorage: () => (estado) => {
-        if (estado) aplicarTema(estado.tema)
+        if (!estado) return
+        aplicarTema(estado.tema)
+        aplicarTamanhoTexto(estado.tamanhoTexto ?? 'padrao')
       },
       // Baseline explícita — mesmo motivo de `stores/tabs.ts`: sem version,
       // um formato futuro de `tema`/`densidade` herdaria o localStorage
@@ -112,7 +173,40 @@ export const usePrefs = create<PrefsState>()(
 // Primeiro carimbo, síncrono no import: a reidratação do zustand cobre quem
 // TEM preferência salva, mas quem nunca escolheu nada ficaria sem o
 // `data-theme` do cvz até alguém tocar no tema.
-if (typeof document !== 'undefined') aplicarTema(usePrefs.getState().tema)
+if (typeof document !== 'undefined') {
+  aplicarTema(usePrefs.getState().tema)
+  aplicarTamanhoTexto(usePrefs.getState().tamanhoTexto)
+}
+
+// Outra aba mudou uma preferência: esta relê o localStorage e se ajusta na
+// hora. Sem isto, quem aumenta o texto em Minha conta via as outras abas
+// abertas no tamanho antigo até dar F5 — e o bipe desligado continuava
+// tocando nelas. O evento `storage` só dispara nas OUTRAS abas.
+//
+// A marca `vindoDeOutraAba` existe para a sincronização com o servidor
+// (stores/sincronizarPrefs.ts) não gravar de novo o que a outra aba já
+// gravou: com localStorage a reidratação é síncrona, então a marca cobre
+// exatamente o `set` que ela provoca.
+let vindoDeOutraAba = false
+
+export function mudancaVeioDeOutraAba(): boolean {
+  return vindoDeOutraAba
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (evento) => {
+    if (evento.key !== 'resolv:prefs') return
+    // Com localStorage o `rehydrate` do zustand roda inteiro nesta mesma
+    // pilha (o "thenable" que ele devolve é síncrono), então desligar a marca
+    // logo depois cobre todo `set` que ele provoca.
+    vindoDeOutraAba = true
+    try {
+      void usePrefs.persist.rehydrate()
+    } finally {
+      vindoDeOutraAba = false
+    }
+  })
+}
 
 // Quem está em "sistema" acompanha o SO ao vivo. O `data-tema` continua
 // ausente (o CSS resolve sozinho), mas o `data-theme` do cvz é fixado em JS e

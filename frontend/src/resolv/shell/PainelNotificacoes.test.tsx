@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { usePrefs } from '@/stores/prefs'
 import { PainelNotificacoes } from './PainelNotificacoes'
 
 const NOTIFICACOES = [
@@ -102,6 +103,40 @@ describe('PainelNotificacoes', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Notificações' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Marcar todas como lidas' }))
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/notifications/read-all/' && c.metodo === 'POST')).toBe(true))
+  })
+
+  describe('som das notificações', () => {
+    afterEach(() => usePrefs.setState({ somNotificacoes: true }))
+
+    it('o cabeçalho tem o interruptor do som, ligado por padrão', async () => {
+      await abrirPainel()
+      const botao = await screen.findByRole('button', { name: 'Som das notificações' })
+      expect(botao).toHaveAttribute('aria-pressed', 'true')
+      // o title anuncia a AÇÃO, não o estado
+      expect(botao).toHaveAttribute('title', 'Desligar o som')
+    })
+
+    it('desligar aqui é a mesma preferência de Minha conta (e dos avisos)', async () => {
+      await abrirPainel()
+      const botao = await screen.findByRole('button', { name: 'Som das notificações' })
+
+      fireEvent.click(botao)
+      expect(botao).toHaveAttribute('aria-pressed', 'false')
+      expect(usePrefs.getState().somNotificacoes).toBe(false)
+
+      fireEvent.click(botao)
+      expect(usePrefs.getState().somNotificacoes).toBe(true)
+    })
+
+    it('fica no cabeçalho mesmo sem nada para marcar como lido', async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(() => Promise.resolve(jsonDe({ count: 0, next: null, previous: null, results: [], unread_count: 0 }))),
+      )
+      await abrirPainel()
+      expect(await screen.findByRole('button', { name: 'Som das notificações' })).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Marcar todas como lidas' })).not.toBeInTheDocument()
+    })
   })
 
   describe('avisar neste computador', () => {

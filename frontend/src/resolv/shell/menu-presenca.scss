@@ -221,6 +221,16 @@
     }
   }
 
+  // Uma linha só, no tom de legenda: diz a regra da ausência automática sem
+  // disputar atenção com as três opções logo acima.
+  &__dica {
+    margin: 2px 0 0;
+    padding: 4px 10px 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-muted);
+  }
+
   &__erro {
     margin: 2px 0 0;
     padding: 6px 10px;

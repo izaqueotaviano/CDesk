@@ -1,6 +1,6 @@
 /* GERADO por scripts/gerar_subset_icones.py — não edite à mão.
  *
- * Subset da fonte Tabler Icons (113 ícones, os que o produto usa)
+ * Subset da fonte Tabler Icons (112 ícones, os que o produto usa)
  * com o CSS de cada um. Antes isto vinha de CDN, que a CSP de produção não
  * libera — ver o cabeçalho do script.
  *
@@ -67,7 +67,6 @@
 .ti-copy::before { content: "\ea7a"; }
 .ti-corner-down-right::before { content: "\ea7d"; }
 .ti-device-desktop::before { content: "\ea89"; }
-.ti-device-mobile::before { content: "\ea8a"; }
 .ti-dots::before { content: "\ea95"; }
 .ti-dots-vertical::before { content: "\ea94"; }
 .ti-download::before { content: "\ea96"; }
@@ -93,7 +92,6 @@
 .ti-layout-grid::before { content: "\edba"; }
 .ti-layout-sidebar-left-collapse::before { content: "\f004"; }
 .ti-layout-sidebar-left-expand::before { content: "\f005"; }
-.ti-lifebuoy::before { content: "\eadd"; }
 .ti-link::before { content: "\eade"; }
 .ti-list::before { content: "\eb6b"; }
 .ti-list-numbers::before { content: "\ef11"; }
@@ -101,7 +99,6 @@
 .ti-lock::before { content: "\eae2"; }
 .ti-logout-2::before { content: "\fa7e"; }
 .ti-mail::before { content: "\eae5"; }
-.ti-mail-check::before { content: "\f939"; }
 .ti-menu-2::before { content: "\ec42"; }
 .ti-message-2::before { content: "\eaec"; }
 .ti-message-circle-2::before { content: "\eaed"; }
@@ -139,4 +136,6 @@
 .ti-user-cog::before { content: "\f9d4"; }
 .ti-users::before { content: "\ebf2"; }
 .ti-users-group::before { content: "\fa21"; }
+.ti-volume::before { content: "\eb51"; }
+.ti-volume-off::before { content: "\f1c3"; }
 .ti-x::before { content: "\eb55"; }
