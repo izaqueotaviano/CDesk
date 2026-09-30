@@ -179,6 +179,9 @@ export interface AgenteAtribuivel {
 
 /** Contato do solicitante — agora exposto pelo TicketDetail (RequesterSerializer). */
 export interface Requester {
+  /** Para "Outros tickets de <nome>" (`?requester=<id>` na listagem). Opcional
+   *  só porque backend anterior a este campo não o manda — a seção some. */
+  id?: number
   name: string
   email: string
   ui_language: string

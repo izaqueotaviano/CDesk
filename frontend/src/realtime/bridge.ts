@@ -146,7 +146,10 @@ function aplicarEventoPessoal(evento: EventoServidorPessoal, queryClient: QueryC
       queryClient.invalidateQueries({ queryKey: chaves.meus })
       queryClient.invalidateQueries({ queryKey: chaves.meuVivo })
       break
+    // `ticket_presence` é efêmero, sem cache: o detalhe do ticket assina
+    // direto (`assinarEventoPessoal`, usePresencaTicket)
     case 'agent_presence':
+    case 'ticket_presence':
     case 'pong':
       break
   }

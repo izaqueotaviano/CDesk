@@ -5,6 +5,7 @@ import { PRESENCAS, ROTULO_PRESENCA, useMudarPresenca } from '@/api/presenca'
 import { useMe } from '@/api/queries/useMe'
 import type { Presence } from '@/api/types'
 import { identidadeDe } from '@/ui/identidade'
+import { abrirPainelAtalhos } from '../atalhos/estado'
 import { iniciais } from '../chat/format'
 import './menu-presenca.scss'
 
@@ -153,6 +154,23 @@ export function MenuPresenca() {
           >
             <i className="ti ti-user-cog" aria-hidden="true" />
             Minha conta
+          </button>
+
+          {/* A outra porta do painel de atalhos (a primeira é a tecla `?`):
+              quem não sabe que o atalho existe precisa achá-lo sem ele. */}
+          <button
+            type="button"
+            className="menu-presenca__conta"
+            onClick={() => {
+              fechar()
+              abrirPainelAtalhos()
+            }}
+          >
+            <i className="ti ti-keyboard" aria-hidden="true" />
+            Atalhos de teclado
+            <kbd className="menu-presenca__atalho" aria-hidden="true">
+              ?
+            </kbd>
           </button>
 
           {/* Sair — morava na Topbar como ícone próprio; a Fase 2 tirou a

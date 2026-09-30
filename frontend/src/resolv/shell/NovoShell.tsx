@@ -2,7 +2,9 @@ import { useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAvisos } from '@/realtime/useAvisos'
 import { useCanalPessoal } from '@/realtime/useCanalPessoal'
+import { ToastProvider } from '@/cvz/components'
 import { usePrefs } from '@/stores/prefs'
+import { AtalhosGlobais } from '../atalhos/AtalhosGlobais'
 import { MiniChat } from '../chat/MiniChat'
 import '../styles/tokens.scss'
 import '../styles/identidade.scss'
@@ -29,6 +31,17 @@ import { CONSULTA_TELA_PEQUENA, useConsultaDeMidia } from './useConsultaDeMidia'
  * barra superior abre a gaveta, que a própria sidebar fecha.
  */
 export function NovoShell({ children }: { children: ReactNode }) {
+  // Toast do console inteiro — é o que dá "Desfazer" às ações do detalhe do
+  // ticket. As telas cvz (SuperficieCvz) seguem com o provider delas por
+  // dentro: `useToast()` pega o mais próximo, e os dois convivem.
+  return (
+    <ToastProvider>
+      <CascaDoShell>{children}</CascaDoShell>
+    </ToastProvider>
+  )
+}
+
+function CascaDoShell({ children }: { children: ReactNode }) {
   // canal pessoal (ws/me/) — recebe os ticket_event do backend para o realtime.
   // Singleton na bridge: se o AppShell já abriu, reaproveita a mesma conexão.
   useCanalPessoal()
@@ -96,6 +109,8 @@ export function NovoShell({ children }: { children: ReactNode }) {
         onAbrir={() => setBuscaAberta(true)}
         onFechar={() => setBuscaAberta(false)}
       />
+      {/* `?` abre o painel de atalhos; `/` abre a mesma busca do Ctrl/⌘K */}
+      <AtalhosGlobais onAbrirBusca={() => setBuscaAberta(true)} />
     </div>
   )
 }

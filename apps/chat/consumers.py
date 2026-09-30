@@ -341,6 +341,20 @@ class UserConsumer(AsyncJsonWebsocketConsumer):
             "kind": event["kind"],
         })
 
+    async def ticket_presence(self, event):
+        """Quem mais está com um ticket aberto (detecção de colisão —
+        `apps/tickets/services/presenca.py`). Só chega a quem está na própria
+        lista de presença, e só interno entra nela; a checagem aqui é a
+        segunda porta, para um evento destes nunca sair num canal de cliente
+        mesmo que alguém o mande pelo grupo errado."""
+        if not self.user.is_internal:
+            return
+        await self.send_json({
+            "type": "ticket_presence",
+            "ticket_id": event["ticket_id"],
+            "presentes": event["presentes"],
+        })
+
     async def agent_presence(self, event):
         """Repassa pra TODO agente conectado — o `group_send` já mandou pro
         grupo `chat_agentes` inteiro (apps/accounts/views.py:_avisar_presenca);

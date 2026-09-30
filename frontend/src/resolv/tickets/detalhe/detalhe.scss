@@ -13,6 +13,14 @@
   // Só o que é geometria desta tela; a cor mora nos tokens.
   --largura-props: 272px;
   --largura-cliente: 296px;
+  // Um plano só (o mesmo da sidebar): cabeçalho, colunas e conversa ficam no
+  // --surface-canvas, divididos por fio; branco só em cartão (mensagem, SLA),
+  // campo e compositor. Sobre o plano, o "degrau" de chip/hover/esqueleto
+  // (--surface-alt) teria a MESMA cor do fundo e sumiria — aqui ele passa a
+  // ser o tom de item ativo da sidebar, que é o degrau feito para o plano.
+  --plano-detalhe: var(--surface-canvas);
+  --surface-alt: var(--sidebar-ativo);
+  background: var(--plano-detalhe);
 
   display: flex;
   flex-direction: column;
@@ -128,39 +136,7 @@
     }
   }
 
-  &__erro-acao {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 20px;
-    background: var(--tom-perigo);
-    // Borda e hover derivam do --danger do tema em vez do vermelho do claro.
-    border-bottom: 1px solid color-mix(in srgb, var(--danger) 25%, transparent);
-    font-size: 12px;
-    color: var(--danger);
-    i {
-      font-size: 15px;
-    }
-    span {
-      flex: 1;
-    }
-    button {
-      width: 24px;
-      height: 24px;
-      display: grid;
-      place-items: center;
-      border: none;
-      background: transparent;
-      color: var(--danger);
-      border-radius: var(--raio);
-      cursor: pointer;
-      &:hover {
-        background: color-mix(in srgb, var(--danger) 12%, transparent);
-      }
-    }
-  }
-
-  // Mesma forma do erro-acao acima, em --accent: informa, não alerta — o
+  // Faixa em --accent: informa, não alerta — o
   // chamado mudou por baixo (status/responsável/dono), nada quebrou (item 20).
   &__aviso-atualizacao {
     display: flex;
@@ -219,7 +195,7 @@
 .esq {
   display: flex;
   gap: 12px;
-  background: var(--surface-card);
+  background: var(--plano-detalhe);
   &--cabecalho {
     align-items: center;
     padding: 16px 20px;
@@ -235,7 +211,6 @@
   }
   &--conversa {
     flex: 1;
-    background: var(--surface);
   }
   &--cliente {
     width: var(--largura-cliente, 296px);
@@ -289,7 +264,7 @@
 // Cabeçalho do ticket
 // ============================================================================
 .ticket-cab {
-  background: var(--surface-card);
+  background: var(--plano-detalhe);
   border-bottom: 1px solid var(--stroke);
   padding: 10px 20px 10px 12px;
   display: flex;
@@ -299,8 +274,9 @@
 
   &__linha {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
+    gap: 8px 12px;
     min-width: 0;
     &--meta {
       flex-wrap: wrap;
@@ -330,7 +306,9 @@
   }
 
   &__identidade {
-    flex: 1;
+    // Pelo menos um assunto legível; sem espaço, as ações descem de linha
+    // (a linha quebra) em vez de o assunto virar "Teclado sem".
+    flex: 1 1 280px;
     min-width: 0;
     display: flex;
     align-items: baseline;
@@ -368,6 +346,35 @@
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  // Ação de vez em quando (exportar): só ícone, 32px, sem moldura.
+  &__icone {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 17px;
+    }
+    &:hover:not(:disabled) {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+  &__girando {
+    animation: detalhe-spin 1s linear infinite;
   }
   &__botao {
     display: inline-flex;
@@ -588,7 +595,7 @@
 .props {
   width: var(--largura-props);
   flex-shrink: 0;
-  background: var(--surface-card);
+  background: var(--plano-detalhe);
   border-right: 1px solid var(--stroke);
   overflow-y: auto;
   padding-bottom: 24px;
@@ -842,7 +849,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface);
+  background: var(--plano-detalhe);
 
   &__topo {
     display: flex;
@@ -851,7 +858,7 @@
     height: 40px;
     padding: 0 20px;
     border-bottom: 1px solid var(--stroke);
-    background: var(--surface-card);
+    background: var(--plano-detalhe);
     flex-shrink: 0;
   }
   &__titulo {
@@ -948,7 +955,7 @@
     align-items: center;
     gap: 12px;
     padding: 4px 0;
-    background: var(--surface);
+    background: var(--plano-detalhe);
     font-size: 11px;
     font-weight: 500;
     color: var(--text-secondary);
@@ -994,21 +1001,19 @@
   gap: 10px;
   padding: 12px 14px;
   background: var(--surface-card);
-  border: 1px solid var(--stroke);
-  border-radius: var(--raio);
+  border: 1px solid transparent;
+  border-radius: var(--raio-cartao);
 
-  &--agente {
-    border-left: 2px solid var(--accent);
-  }
   &--interna {
     // Creme da nota interna por token: o valor sólido do claro escureceria o
     // texto do tema escuro contra um fundo luminoso (tokens.scss cuida do par).
+    // Sem faixa lateral: o creme e a etiqueta "Nota interna" já dizem o que é.
     background: var(--tom-nota);
     border-color: var(--tom-alerta-borda);
-    border-left: 2px solid var(--away);
   }
   &--sistema {
-    background: var(--surface-alt);
+    background: transparent;
+    border-color: var(--stroke);
     border-style: dashed;
   }
 
@@ -2115,7 +2120,7 @@
 .cliente {
   width: var(--largura-cliente);
   flex-shrink: 0;
-  background: var(--surface-card);
+  background: var(--plano-detalhe);
   border-left: 1px solid var(--stroke);
   overflow-y: auto;
   padding-bottom: 24px;
@@ -2688,49 +2693,33 @@
   }
 }
 
-@media (max-width: 1100px) {
+// Abaixo de 1024px as duas colunas laterais viram gavetas — os botões de
+// painel aparecem no cabeçalho — e a conversa fica com a largura toda.
+@media (max-width: 1023px) {
   .ticket-cab__gavetas {
     display: inline-flex;
   }
-  .ticket-cab__gaveta--props {
-    display: none;
-  }
+  .props,
   .cliente {
     display: none;
   }
+  .detalhe--gaveta-propriedades .props,
+  .detalhe--gaveta-cliente .cliente {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 6;
+    box-shadow: var(--sombra-flutuante);
+  }
+  .detalhe--gaveta-propriedades .props {
+    left: 0;
+  }
+  .detalhe--gaveta-cliente .cliente {
+    right: 0;
+  }
+  .detalhe--gaveta-propriedades,
   .detalhe--gaveta-cliente {
-    .cliente {
-      display: block;
-      position: absolute;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 6;
-      box-shadow: var(--sombra-flutuante);
-    }
-    .detalhe__veu {
-      display: block;
-    }
-  }
-}
-
-@media (max-width: 900px) {
-  .ticket-cab__gaveta--props {
-    display: grid;
-  }
-  .props {
-    display: none;
-  }
-  .detalhe--gaveta-propriedades {
-    .props {
-      display: block;
-      position: absolute;
-      top: 0;
-      left: 0;
-      bottom: 0;
-      z-index: 6;
-      box-shadow: var(--sombra-flutuante);
-    }
     .detalhe__veu {
       display: block;
     }
@@ -2744,18 +2733,72 @@
   }
 }
 
-@media (max-width: 640px) {
+// Celular: uma coluna só, a conversa primeiro. Os painéis sobem como folha
+// de baixo para cima (largura inteira), e o cabeçalho encolhe para o que se
+// usa com o polegar: botões só com ícone (o nome segue no rótulo acessível).
+@media (max-width: 767px) {
   .ticket-cab {
     padding: 8px 12px;
+    gap: 6px;
+  }
+  .ticket-cab__identidade {
+    flex-basis: calc(100% - 44px);
+    flex-wrap: wrap;
+    row-gap: 2px;
   }
   .ticket-cab__assunto {
     white-space: normal;
-    font-size: 15px;
+    font-size: 16px;
   }
-  .ticket-cab__botao span,
   .ticket-cab__botao {
-    padding: 0 8px;
+    padding: 0 10px;
   }
+  .ticket-cab__rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ticket-cab__botao--primario .ticket-cab__rotulo {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  // "Aberto em … por …" também está no painel do cliente; aqui só alongava
+  // o cabeçalho em mais uma linha.
+  .ticket-cab__meta--quieto {
+    display: none;
+  }
+  .presenca-ticket__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .detalhe {
+    --largura-props: 100%;
+    --largura-cliente: 100%;
+  }
+  .detalhe--gaveta-propriedades .props,
+  .detalhe--gaveta-cliente .cliente {
+    top: auto;
+    left: 0;
+    right: 0;
+    max-height: 85%;
+    border: none;
+    border-radius: var(--raio-cartao) var(--raio-cartao) 0 0;
+  }
+  .conversa__topo {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 640px) {
   .conversa__lista {
     padding: 12px;
   }
@@ -2772,10 +2815,6 @@
   .compositor__enviar {
     width: 100%;
     justify-content: space-between;
-  }
-  .detalhe {
-    --largura-props: min(300px, 88vw);
-    --largura-cliente: min(300px, 88vw);
   }
 }
 

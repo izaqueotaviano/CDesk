@@ -71,4 +71,17 @@ export type EventoServidorPessoal =
   | { type: 'chat_queued'; chat_id: number; client_name: string; company: string; queued_at: string }
   | { type: 'chat_taken'; chat_id: number; agent_id: number }
   | { type: 'agent_presence'; [chave: string]: unknown }
+  /** Quem mais está com um ticket aberto (apps/tickets/services/presenca.py).
+   *  Só chega a interno que está na lista; quem consome é o detalhe do
+   *  ticket (resolv/tickets/detalhe/colaboracao/usePresencaTicket.ts). */
+  | {
+      type: 'ticket_presence'
+      ticket_id: number
+      presentes: {
+        user_id: number
+        nome: string
+        avatar_url: string | null
+        digitando: 'resposta' | 'nota' | null
+      }[]
+    }
   | { type: 'pong' }

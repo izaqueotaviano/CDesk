@@ -5,6 +5,7 @@ import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { ROTULO_PRIORIDADE, ROTULO_STATUS, formatarDataHora } from '../format'
 import type { StatusTicket } from '../tipos'
+import { useCompositorColaborativo } from './colaboracao/useCompositorColaborativo'
 import { useAcoesTicket, useMacros } from './dados'
 import {
   STATUS_AO_ENVIAR,
@@ -211,6 +212,18 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     const h = setTimeout(() => setAviso(null), 5000)
     return () => clearTimeout(h)
   }, [aviso])
+
+  // Colaboração (colaboracao/): avisa os colegas que estou escrevendo e
+  // recebe os atalhos `r`/`n`. Única ligação do compositor com aquilo.
+  useCompositorColaborativo(ticket.id, {
+    texto,
+    publico,
+    aoPedirModo: (paraPublico) => {
+      setPublico(paraPublico)
+      setPerguntaReabrir(false)
+      areaRef.current?.focus()
+    },
+  })
 
   if (!podePublico && !podeNota) {
     return (

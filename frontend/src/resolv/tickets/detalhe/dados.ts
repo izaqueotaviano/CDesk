@@ -8,7 +8,7 @@ import type {
   RespostaAgendada,
   TicketDetalhe,
 } from './tiposDetalhe'
-import type { Prioridade, StatusTicket } from '../tipos'
+import type { Prioridade, StatusTicket, TicketLinha } from '../tipos'
 
 const chaveDetalhe = (id: number) => ['ticket', id] as const
 
@@ -23,6 +23,36 @@ export function useTicketDetalhe(id: number) {
     // caído/reconectando) — 60s, folgado, mais o refetch ao voltar o foco.
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
+  })
+}
+
+/** Quantos "outros tickets" o painel do cliente mostra. */
+export const LIMITE_OUTROS_TICKETS = 5
+
+/**
+ * Os chamados mais recentes do MESMO solicitante, sem o que está aberto na
+ * tela (`?requester=`, apps/tickets/views.py `_aplicar_filtros`). Pede um a
+ * mais que o limite porque o ticket atual quase sempre volta no recorte — é
+ * do mesmo solicitante — e é tirado aqui, não no servidor.
+ *
+ * Chave sob `['tickets', …]` de propósito: toda ação que invalida a fila
+ * (`gravar`, realtime) atualiza esta lista junto.
+ */
+export function useOutrosTicketsDoSolicitante(requesterId: number | undefined, ticketAtual: number) {
+  return useQuery({
+    queryKey: ['tickets', 'do-solicitante', requesterId],
+    queryFn: () =>
+      api.get<Paginado<TicketLinha>>(
+        `/api/v1/tickets/?requester=${requesterId}&ordering=-criado&limit=${LIMITE_OUTROS_TICKETS + 1}`,
+      ),
+    enabled: requesterId != null,
+    staleTime: 60_000,
+    select: (d) => ({
+      itens: d.results.filter((t) => t.id !== ticketAtual).slice(0, LIMITE_OUTROS_TICKETS),
+      // `count` inclui o ticket da tela: ele é deste solicitante e, se está
+      // aberto aqui, está no escopo de quem pede
+      total: Math.max(0, d.count - 1),
+    }),
   })
 }
 
@@ -118,6 +148,20 @@ export interface DadosAgendamento {
 }
 
 /**
+ * As duas requisições que o detalhe também faz ADIADAS, atrás de um
+ * "Desfazer" (useAcaoAdiada.ts) — fora de `useMutation` porque a gravação
+ * adiada pode sair depois de a tela desmontar (trocou de ticket, fechou a
+ * aba), e aí precisa de `keepalive` e de não depender de componente vivo.
+ * As mutações abaixo usam as mesmas funções: um endereço, um corpo.
+ */
+export const requisicoesTicket = {
+  atribuir: (id: number, assignee_id: number | null, opcoes?: { keepalive?: boolean }) =>
+    api.post<TicketDetalhe>(`/api/v1/tickets/${id}/assign/`, { assignee_id }, opcoes),
+  fechar: (id: number, dados: DadosFechamento, opcoes?: { keepalive?: boolean }) =>
+    api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados, opcoes),
+}
+
+/**
  * Ações do ticket. Toda ação devolve o TicketDetail atualizado — então o
  * onSuccess grava direto no cache (`setQueryData`), sem um refetch extra, e
  * ainda invalida a listagem (a fila mostra status/responsável que acabaram de
@@ -151,8 +195,7 @@ export function useAcoesTicket(id: number) {
   })
 
   const atribuir = useMutation({
-    mutationFn: (assignee_id: number | null) =>
-      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/assign/`, { assignee_id }),
+    mutationFn: (assignee_id: number | null) => requisicoesTicket.atribuir(id, assignee_id),
     onSuccess: gravar,
   })
 
@@ -210,8 +253,7 @@ export function useAcoesTicket(id: number) {
 
   /** Fechamento sem resposta ao cliente — mesmo contrato do quadro (D4). */
   const fechar = useMutation({
-    mutationFn: (dados: DadosFechamento) =>
-      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados),
+    mutationFn: (dados: DadosFechamento) => requisicoesTicket.fechar(id, dados),
     onSuccess: gravar,
   })
 

@@ -3,6 +3,7 @@ import { identidadeDe, tintaDeIdentidade } from '@/ui/identidade'
 import { indiceDoPlano } from '@/ui/planos'
 import { formatarDataHora } from '../format'
 import { ICONE_CANAL, ROTULO_CANAL, ROTULO_SLA, TOM_SLA, iniciais, tempoSla } from './linhaDoTempo'
+import { OutrosTicketsDoSolicitante } from './OutrosTicketsDoSolicitante'
 import type { Avaliacao, RelogioSla, TicketDetalhe } from './tiposDetalhe'
 
 const ROTULO_IDIOMA: Record<string, string> = {
@@ -183,6 +184,9 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
           </Linha>
         </dl>
       </section>
+
+      {/* Sem `requester.id` (conteúdo mascarado) não há de quem perguntar. */}
+      {req?.id != null && <OutrosTicketsDoSolicitante ticket={ticket} />}
 
       <section className="cliente__grupo">
         <h2 className="cliente__titulo">Este ticket</h2>

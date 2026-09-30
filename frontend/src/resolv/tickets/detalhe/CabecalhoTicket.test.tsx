@@ -85,7 +85,6 @@ function montar(extra: Partial<TicketDetalhe> = {}, onAssumir = vi.fn()) {
       <CabecalhoTicket
         ticket={ticket(extra)}
         me={ME}
-        assumindo={false}
         onAssumir={onAssumir}
         onFechar={vi.fn()}
         onReabrir={vi.fn()}
@@ -118,30 +117,20 @@ describe('CabecalhoTicket — quem é o responsável', () => {
 })
 
 describe('CabecalhoTicket — assumir', () => {
-  it('nomeia de quem o chamado sai e só assume depois de confirmar', () => {
+  it('nomeia de quem o chamado sai e assume sem "tem certeza?" (o aviso traz Desfazer)', () => {
+    // A troca só vai ao servidor depois do prazo do "Desfazer"
+    // (useAcaoAdiada) — confirmar antes seria atrito em dobro.
     const onAssumir = montar({ assignee_id: 9, assignee_name: 'Ana Alves' })
 
-    fireEvent.click(screen.getByRole('button', { name: /Assumir de Ana/ }))
+    const botao = screen.getByRole('button', { name: /Assumir de Ana/ })
+    expect(botao).toHaveAttribute('title', 'Tirar de Ana Alves e assumir (a)')
+    fireEvent.click(botao)
 
-    expect(onAssumir).not.toHaveBeenCalled()
-    expect(screen.getByRole('dialog', { name: 'Assumir de Ana Alves?' })).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Assumir mesmo assim' }))
     expect(onAssumir).toHaveBeenCalledTimes(1)
-  })
-
-  it('cancelar a confirmação deixa o chamado com quem estava', () => {
-    const onAssumir = montar({ assignee_id: 9, assignee_name: 'Ana Alves' })
-
-    fireEvent.click(screen.getByRole('button', { name: /Assumir de Ana/ }))
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }))
-
-    expect(onAssumir).not.toHaveBeenCalled()
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it('sem responsável, assumir continua sendo um clique só', () => {
-    // Confirmar o que não tira nada de ninguém seria só atrito.
     const onAssumir = montar()
 
     fireEvent.click(screen.getByRole('button', { name: 'Assumir' }))
@@ -155,7 +144,7 @@ describe('CabecalhoTicket — exportar a transcrição', () => {
   it('pede o PDF do chamado aberto na tela', async () => {
     montar()
 
-    fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Exportar a conversa em PDF/ }))
 
     await waitFor(() => expect(baixarMock).toHaveBeenCalledWith(42, '#1042'))
   })
@@ -166,7 +155,7 @@ describe('CabecalhoTicket — exportar a transcrição', () => {
     baixarMock.mockRejectedValue(new ApiError(501, { detail: 'PDF indisponível' }))
     montar()
 
-    fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Exportar a conversa em PDF/ }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'A exportação em PDF não está disponível neste servidor.',
@@ -177,7 +166,7 @@ describe('CabecalhoTicket — exportar a transcrição', () => {
     baixarMock.mockRejectedValue(new ApiError(403, { detail: 'Chamado restrito ao solicitante.' }))
     montar()
 
-    fireEvent.click(screen.getByRole('button', { name: /Exportar PDF/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Exportar a conversa em PDF/ }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Chamado restrito ao solicitante.')
   })
@@ -185,6 +174,6 @@ describe('CabecalhoTicket — exportar a transcrição', () => {
   it('não oferece exportar o que a pessoa não pode ler', () => {
     montar({ content_hidden: true, is_restricted: true })
 
-    expect(screen.getByRole('button', { name: /Exportar PDF/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /Exportar a conversa em PDF/ })).toBeDisabled()
   })
 })

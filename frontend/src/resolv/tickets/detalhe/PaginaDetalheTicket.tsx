@@ -1,19 +1,23 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
 import type { Me } from '@/api/types'
 import { useTabs } from '@/stores/tabs'
+import { useAtalhos } from '../../atalhos/useAtalhos'
 import { ROTULO_STATUS } from '../format'
 import { CabecalhoTicket, type PainelLateral } from './CabecalhoTicket'
+import { pedirCompositor } from './colaboracao/canalCompositor'
+import { ContextoPresenca, primeiroNome } from './colaboracao/contexto'
+import { usePresencaTicket } from './colaboracao/usePresencaTicket'
 import { Conversa } from './Conversa'
 import { ModalFecharTicket } from './ModalFecharTicket'
 import { PainelCliente } from './PainelCliente'
 import { PainelNotas } from './PainelNotas'
 import { PainelPropriedades } from './PainelPropriedades'
-import { useAcoesTicket, useTicketDetalhe } from './dados'
-import { mensagemDeErro } from './linhaDoTempo'
+import { requisicoesTicket, useTicketDetalhe } from './dados'
 import type { TicketDetalhe } from './tiposDetalhe'
+import { useAcaoAdiada } from './useAcaoAdiada'
 import './detalhe.scss'
 
 /** Retrato dos campos que a faixa de "atualizado por baixo" vigia — status,
@@ -89,13 +93,24 @@ function Esqueleto() {
   )
 }
 
+/** Os tickets de "Trabalhando agora", na ordem da sidebar — é por eles que
+ *  `[` e `]` andam. */
+function vizinhosNaListaDeTrabalho(ids: number[], atual: number) {
+  const i = ids.indexOf(atual)
+  return {
+    anterior: i > 0 ? ids[i - 1] : undefined,
+    proximo: i >= 0 && i < ids.length - 1 ? ids[i + 1] : undefined,
+  }
+}
+
 /**
  * Miolo da tela com o ticket já carregado. Montado com `key={ticket.id}`
  * pela página: trocar de ticket recria o componente, e gaveta, modal e
- * avisos recomeçam limpos sem efeito de "reset".
+ * avisos recomeçam limpos sem efeito de "reset" — e a ação adiada que
+ * estivesse esperando o "Desfazer" é gravada na saída (useAcaoAdiada).
  */
 function DetalheCarregado({
-  ticket,
+  ticket: ticketDoServidor,
   me,
   agoraMs,
   buscandoEmSegundoPlano,
@@ -109,11 +124,25 @@ function DetalheCarregado({
    *  flag é o sinal de "isto veio de fora", não de "eu acabei de salvar". */
   buscandoEmSegundoPlano: boolean
 }) {
-  const { atribuir, fechar } = useAcoesTicket(ticket.id)
+  const navigate = useNavigate()
+  const acoes = useAcaoAdiada(ticketDoServidor.id)
+  // O que a tela mostra: o ticket do servidor com a ação que espera o
+  // "Desfazer" por cima. Sobreposição e não escrita no cache: um refetch no
+  // meio da espera (socket, foco, 60s) traria o estado velho de volta e o
+  // ticket "reabriria" sozinho na frente da pessoa.
+  const ticket = useMemo(
+    () => (acoes.previa ? { ...ticketDoServidor, ...acoes.previa } : ticketDoServidor),
+    [ticketDoServidor, acoes.previa],
+  )
+  const presentes = usePresencaTicket(ticket.id, me?.id, me?.is_internal === true)
+  // string e não lista: o seletor devolve um valor comparável por igualdade,
+  // e a tela não re-renderiza a cada rascunho gravado nas abas
+  const idsDeTrabalho = useTabs((s) =>
+    s.tabs.flatMap((a) => (a.tipo === 'ticket' ? [a.ticketId] : [])).join(','),
+  )
   const [modalFechar, setModalFechar] = useState(false)
   const [pedidoReabrir, setPedidoReabrir] = useState(0)
   const [painelAberto, setPainelAberto] = useState<PainelLateral | null>(null)
-  const [erroAcao, setErroAcao] = useState<string | null>(null)
   const [avisoAtualizacao, setAvisoAtualizacao] = useState<string | null>(null)
 
   // Retrato do ticket ANTES do render corrente e se a busca estava em voo no
@@ -124,115 +153,162 @@ function DetalheCarregado({
   // primeira renderização de CADA ticket comparia contra "nada" e nunca
   // dispararia por acidente, mas documentar o porquê evita "corrigir" para
   // `useRef<RetratoTicket | null>(null)` e reintroduzir o falso positivo.
-  const retratoAnterior = useRef<RetratoTicket>(retratar(ticket))
+  // Vigia o ticket do SERVIDOR: a prévia de uma ação própria não é "mudou
+  // por baixo".
+  const retratoAnterior = useRef<RetratoTicket>(retratar(ticketDoServidor))
   const buscavaAntes = useRef(buscandoEmSegundoPlano)
 
   useEffect(() => {
     if (buscavaAntes.current && !buscandoEmSegundoPlano) {
-      const mensagem = descreverAtualizacaoDeFundo(retratoAnterior.current, ticket)
+      const mensagem = descreverAtualizacaoDeFundo(retratoAnterior.current, ticketDoServidor)
       if (mensagem) setAvisoAtualizacao(mensagem)
     }
     buscavaAntes.current = buscandoEmSegundoPlano
-    retratoAnterior.current = retratar(ticket)
-  }, [ticket, buscandoEmSegundoPlano])
+    retratoAnterior.current = retratar(ticketDoServidor)
+  }, [ticketDoServidor, buscandoEmSegundoPlano])
+
+  const perms = me?.permissions ?? []
+  const fechado = ticket.status === 'closed'
+  const souOResponsavel = me != null && ticket.assignee_id === me.id
+  const podeAssumir = !fechado && !souOResponsavel && perms.includes('ticket.be_assigned')
+  const podeFechar = !fechado && perms.includes('ticket.close')
+
+  /** Assumir vai com "Desfazer", não com "tem certeza?" — inclusive tirando
+   *  de um colega: nada sai para o servidor antes do prazo, então desfazer
+   *  não notifica ninguém. */
+  function assumir() {
+    if (!me || !podeAssumir) return
+    const de = ticket.assignee_id != null ? (ticket.assignee_name ?? 'outro responsável') : null
+    acoes.agendar({
+      titulo: de ? `Você assumiu de ${primeiroNome(de)}` : 'Ticket atribuído a você',
+      descricao: de ? `${de} deixa de ser o responsável.` : undefined,
+      previa: { assignee_id: me.id, assignee_name: me.full_name },
+      executar: (opcoes) => requisicoesTicket.atribuir(ticket.id, me.id, opcoes),
+      erro: 'Não foi possível assumir o ticket.',
+    })
+  }
+
+  const { anterior, proximo } = vizinhosNaListaDeTrabalho(
+    idsDeTrabalho ? idsDeTrabalho.split(',').map(Number) : [],
+    ticket.id,
+  )
+
+  // Atalhos do grupo "Ticket aberto" (atalhos/catalogo.ts). Ação que a
+  // pessoa não pode fazer aqui não registra — a tecla fica sem efeito em vez
+  // de abrir algo que o servidor recusaria.
+  useAtalhos({
+    'ticket.responder': ticket.content_hidden
+      ? undefined
+      : () => pedirCompositor(ticket.id, 'resposta'),
+    'ticket.nota': ticket.content_hidden ? undefined : () => pedirCompositor(ticket.id, 'nota'),
+    'ticket.atribuir': podeAssumir ? assumir : undefined,
+    'ticket.encerrar': podeFechar ? () => setModalFechar(true) : undefined,
+    'ticket.anterior': anterior !== undefined ? () => navigate(`/chamados/${anterior}`) : undefined,
+    'ticket.proximo': proximo !== undefined ? () => navigate(`/chamados/${proximo}`) : undefined,
+    'geral.fechar': painelAberto ? () => setPainelAberto(null) : undefined,
+  })
 
   return (
-    <div className={'detalhe__miolo' + (painelAberto ? ` detalhe--gaveta-${painelAberto}` : '')}>
-      {avisoAtualizacao && (
-        <p className="detalhe__aviso-atualizacao" role="status" aria-live="polite">
-          <i className="ti ti-refresh-alert" aria-hidden="true" />
-          <span>{avisoAtualizacao}</span>
-          <button
-            type="button"
-            onClick={() => setAvisoAtualizacao(null)}
-            aria-label="Fechar aviso de atualização"
-          >
-            <i className="ti ti-x" />
-          </button>
-        </p>
-      )}
-
-      <CabecalhoTicket
-        ticket={ticket}
-        me={me}
-        assumindo={atribuir.isPending}
-        onAssumir={() => {
-          if (!me) return
-          setErroAcao(null)
-          atribuir.mutate(me.id, {
-            onError: (e) =>
-              setErroAcao(
-                `${mensagemDeErro(e, 'Não foi possível assumir o ticket.')} Nada foi alterado.`,
-              ),
-          })
-        }}
-        onFechar={() => setModalFechar(true)}
-        onReabrir={() => setPedidoReabrir((n) => n + 1)}
-        painelAberto={painelAberto}
-        onAlternarPainel={(p) => setPainelAberto((atual) => (atual === p ? null : p))}
-      />
-
-      {erroAcao && (
-        <p className="detalhe__erro-acao" role="alert">
-          <i className="ti ti-alert-circle" aria-hidden="true" />
-          <span>{erroAcao}</span>
-          <button type="button" onClick={() => setErroAcao(null)} aria-label="Fechar aviso">
-            <i className="ti ti-x" />
-          </button>
-        </p>
-      )}
-
-      {ticket.content_hidden ? (
-        <div className="detalhe__estado detalhe__estado--restrito">
-          <i className="ti ti-lock" aria-hidden="true" />
-          <p className="detalhe__estado-titulo">
-            O conteúdo deste ticket pertence a uma equipe restrita e está oculto para o seu perfil.
-          </p>
-          <p>
-            {ticket.restriction_reason ||
-              `Peça acesso a um supervisor${ticket.team ? ` da equipe ${ticket.team.name}` : ''} se precisar atuar nele.`}
-          </p>
-        </div>
-      ) : (
-        <div className="detalhe__colunas">
-          <PainelPropriedades ticket={ticket} me={me} />
-          <Conversa ticket={ticket} me={me} agoraMs={agoraMs} pedidoReabrir={pedidoReabrir} />
-          <PainelCliente ticket={ticket} agoraMs={agoraMs} />
-          {painelAberto === 'notas' && (
-            <PainelNotas
-              ticketId={ticket.id}
-              agoraMs={agoraMs}
-              onFechar={() => setPainelAberto(null)}
-            />
-          )}
-          {/* Sem véu para as notas: o painel existe para anotar ENQUANTO se lê o
-           *  chamado. Um véu clicável cobrindo a conversa faria o clique de
-           *  rolar/ler fechar o painel — e levar junto o rascunho não salvo.
-           *  Propriedades e cliente mantêm o véu: ali o painel só vira gaveta
-           *  quando a tela é estreita, e aí ele é mesmo modal. */}
-          {painelAberto && painelAberto !== 'notas' && (
+    <ContextoPresenca.Provider value={presentes}>
+      <div className={'detalhe__miolo' + (painelAberto ? ` detalhe--gaveta-${painelAberto}` : '')}>
+        {avisoAtualizacao && (
+          <p className="detalhe__aviso-atualizacao" role="status" aria-live="polite">
+            <i className="ti ti-refresh-alert" aria-hidden="true" />
+            <span>{avisoAtualizacao}</span>
             <button
               type="button"
-              className="detalhe__veu"
-              aria-label="Fechar painel"
-              onClick={() => setPainelAberto(null)}
-            />
-          )}
-        </div>
-      )}
+              onClick={() => setAvisoAtualizacao(null)}
+              aria-label="Fechar aviso de atualização"
+            >
+              <i className="ti ti-x" />
+            </button>
+          </p>
+        )}
 
-      {modalFechar && (
-        <ModalFecharTicket
+        <CabecalhoTicket
           ticket={ticket}
-          enviando={fechar.isPending}
-          onFechar={async (dados) => {
-            await fechar.mutateAsync(dados)
-            setModalFechar(false)
+          me={me}
+          onAssumir={assumir}
+          onFechar={() => setModalFechar(true)}
+          onReabrir={() => {
+            // Fechamento ainda esperando o prazo: "Reabrir…" é desfazê-lo —
+            // nada foi gravado, então não há o que reabrir no servidor.
+            if (acoes.previa?.status === 'closed') acoes.desfazer()
+            else setPedidoReabrir((n) => n + 1)
           }}
-          onCancelar={() => setModalFechar(false)}
+          painelAberto={painelAberto}
+          onAlternarPainel={(p) => setPainelAberto((atual) => (atual === p ? null : p))}
         />
-      )}
-    </div>
+
+        {ticket.content_hidden ? (
+          <div className="detalhe__estado detalhe__estado--restrito">
+            <i className="ti ti-lock" aria-hidden="true" />
+            <p className="detalhe__estado-titulo">
+              O conteúdo deste ticket pertence a uma equipe restrita e está oculto para o seu
+              perfil.
+            </p>
+            <p>
+              {ticket.restriction_reason ||
+                `Peça acesso a um supervisor${ticket.team ? ` da equipe ${ticket.team.name}` : ''} se precisar atuar nele.`}
+            </p>
+          </div>
+        ) : (
+          <div className="detalhe__colunas">
+            <PainelPropriedades ticket={ticket} me={me} />
+            <Conversa ticket={ticket} me={me} agoraMs={agoraMs} pedidoReabrir={pedidoReabrir} />
+            <PainelCliente ticket={ticket} agoraMs={agoraMs} />
+            {painelAberto === 'notas' && (
+              <PainelNotas
+                ticketId={ticket.id}
+                agoraMs={agoraMs}
+                onFechar={() => setPainelAberto(null)}
+              />
+            )}
+            {/* Sem véu para as notas: o painel existe para anotar ENQUANTO se lê o
+             *  chamado. Um véu clicável cobrindo a conversa faria o clique de
+             *  rolar/ler fechar o painel — e levar junto o rascunho não salvo.
+             *  Propriedades e cliente mantêm o véu: ali o painel só vira gaveta
+             *  quando a tela é estreita, e aí ele é mesmo modal. */}
+            {painelAberto && painelAberto !== 'notas' && (
+              <button
+                type="button"
+                className="detalhe__veu"
+                aria-label="Fechar painel"
+                onClick={() => setPainelAberto(null)}
+              />
+            )}
+          </div>
+        )}
+
+        {modalFechar && (
+          <ModalFecharTicket
+            ticket={ticket}
+            onFechar={(dados) => {
+              // Fechar não sai na hora: vai com "Desfazer" (useAcaoAdiada).
+              // Desfazer um fechamento JÁ gravado seria reabrir — nota
+              // obrigatória, e-mail ao cliente, ciclo novo de SLA —, então o
+              // que se adia é o envio, não o efeito.
+              setModalFechar(false)
+              acoes.agendar({
+                titulo: 'Ticket fechado',
+                descricao: dados.note ? `Justificativa: ${dados.note}` : undefined,
+                previa: {
+                  status: 'closed',
+                  stage_name: ROTULO_STATUS.closed,
+                  stage_color: 'var(--ok)',
+                  closed_at: new Date().toISOString(),
+                  resolution_started_at: dados.resolution_started_at,
+                  resolution_ended_at: dados.resolution_ended_at,
+                },
+                executar: (opcoes) => requisicoesTicket.fechar(ticket.id, dados, opcoes),
+                erro: 'Não foi possível fechar o ticket.',
+              })
+            }}
+            onCancelar={() => setModalFechar(false)}
+          />
+        )}
+      </div>
+    </ContextoPresenca.Provider>
   )
 }
 

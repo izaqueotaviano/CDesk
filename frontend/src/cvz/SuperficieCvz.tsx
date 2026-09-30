@@ -15,10 +15,10 @@ import './SuperficieCvz.scss'
  * dentro do `novo-shell__corpo` (que já tem sua própria altura/rolagem) isso
  * sobraria como espaço vazio embaixo do conteúdo curto.
  *
- * `ToastProvider` mora aqui, não no NovoShell: é consumido só por estas
- * páginas (nenhum componente do lado Resolv chama `useToast()` — o shell
- * novo não tinha mecanismo de toast até aqui), então cada rota que precisa
- * ganha o seu — mesmo padrão que o `CvzAppLayout` já usava.
+ * `ToastProvider` continua aqui mesmo com o NovoShell tendo agora o dele (o
+ * "Desfazer" do detalhe do ticket): providers aninhados convivem —
+ * `useToast()` pega o mais próximo — e estas páginas seguem desenhando os
+ * próprios toasts como sempre, sem depender de onde estão montadas.
  */
 export function SuperficieCvz({ children }: { children: ReactNode }) {
   return (

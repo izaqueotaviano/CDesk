@@ -263,6 +263,19 @@
       outline-offset: -2px;
     }
   }
+
+  // a tecla que abre o mesmo painel, à direita do rótulo
+  &__atalho {
+    margin-left: auto;
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 12px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
 }
 
 @keyframes menu-presenca-girar {

@@ -53,6 +53,8 @@ from apps.tickets.serializers import (
     BulkCloseSerializer,
     BulkPrioritySerializer,
     MentionTargetSerializer,
+    PresencaBatimentoSerializer,
+    PresencaSerializer,
     ScheduledReplySerializer,
     ServiceSerializer,
     TabsSerializer,
@@ -78,6 +80,9 @@ from apps.tickets.services import (
     ticket_service,
     transcript,
 )
+
+# alias: a ação da view também se chama `presenca` (é o nome da rota)
+from apps.tickets.services import presenca as presenca_service
 from apps.tickets.services.attachments import (
     AttachmentRejected,
     attach_to_message,
@@ -277,6 +282,7 @@ class TicketViewSet(viewsets.GenericViewSet):
             description="'me' (minha fila), 'unassigned' (sem responsável) ou o id do agente",
         ),
         OpenApiParameter("priority", str, description="low | normal | high | urgent"),
+        OpenApiParameter("requester", int, description="id do solicitante"),
         OpenApiParameter("q", str, description="busca por assunto ou referência"),
         OpenApiParameter(
             "sla", str,
@@ -720,6 +726,37 @@ class TicketViewSet(viewsets.GenericViewSet):
         TicketWatcher.objects.filter(ticket=ticket, user=request.user).delete()
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
+
+    @extend_schema(request=PresencaBatimentoSerializer, responses=PresencaSerializer)
+    @action(detail=True, methods=["post", "delete"], url_path="presenca")
+    def presenca(self, request, pk=None):
+        """Quem mais está com este ticket aberto — detecção de colisão.
+
+        POST é o batimento (ao abrir, a cada `BATIMENTO_S` e quando começa ou
+        para de digitar); DELETE é "fechei a tela". Os dois devolvem a lista
+        atual. Estado só em cache, com TTL: ver apps/tickets/services/presenca.py.
+
+        Só interno, e o 403 sai ANTES de olhar o ticket: para cliente a
+        resposta é a mesma exista o ticket ou não. Para interno, `get_object`
+        aplica o escopo de sempre (`visible_tickets`) — fora dele, 404 — então
+        só entra na lista, e só recebe a lista, quem enxerga o chamado.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Presença no ticket é recurso interno.")
+        ticket = self.get_object()
+        if request.method == "DELETE":
+            presentes = presenca_service.sair(ticket=ticket, user=request.user)
+        else:
+            ser = PresencaBatimentoSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            presentes = presenca_service.registrar(
+                ticket=ticket, user=request.user,
+                digitando=ser.validated_data.get("digitando"),
+            )
+        return Response({
+            "presentes": presentes,
+            "batimento_segundos": presenca_service.BATIMENTO_S,
+        })
 
     @action(detail=True, methods=["patch", "delete"],
             url_path=r"messages/(?P<message_id>\d+)")
@@ -1316,6 +1353,13 @@ def _aplicar_filtros(qs, params, user, *, exceto=frozenset()):
         qs = qs.filter(company_id=company_id)
     if "priority" not in exceto and (priority := params.get("priority")):
         qs = qs.filter(priority=priority)
+    # "Outros tickets desta pessoa" (painel do cliente no detalhe) e o link
+    # "Ver todos" que leva para a fila recortada. Só número: o recorte é
+    # SOBRE o escopo que `visible_tickets` já aplicou, então pedir o id de
+    # alguém de outra empresa devolve vazio, não os chamados dela.
+    if "requester" not in exceto and (solicitante := params.get("requester")):
+        if solicitante.isdigit():
+            qs = qs.filter(requester_id=int(solicitante))
     if "tag" not in exceto and (tag := params.get("tag")):
         qs = qs.filter(tags__slug=tag)
 

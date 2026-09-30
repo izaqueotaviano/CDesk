@@ -3,43 +3,37 @@ import { useState } from 'react'
 // diálogo modal de verdade (focus trap, Esc, bloqueio de scroll) — mesma
 // decisão registrada em resolv/kanban/ModalFecharTicket.tsx.
 import { Button, Modal } from '@/cvz/components'
-import { mensagemDeErro, paraDatetimeLocal, validarFechamento } from './linhaDoTempo'
+import { paraDatetimeLocal, validarFechamento } from './linhaDoTempo'
 import type { DadosFechamento, TicketDetalhe } from './tiposDetalhe'
 
 interface Props {
   ticket: TicketDetalhe
-  enviando: boolean
-  onFechar: (dados: DadosFechamento) => Promise<unknown>
+  /** Recebe os dados já validados. Quem chama decide quando grava — no
+   *  detalhe, com alguns segundos de "Desfazer" (useAcaoAdiada.ts); um erro
+   *  do servidor chega por lá, num aviso, porque este diálogo já fechou. */
+  onFechar: (dados: DadosFechamento) => void
   onCancelar: () => void
 }
 
-export function ModalFecharTicket({ ticket, enviando, onFechar, onCancelar }: Props) {
+export function ModalFecharTicket({ ticket, onFechar, onCancelar }: Props) {
   // "agora" travado na abertura — validar contra Date.now() a cada tecla é impuro.
   const [agoraMs] = useState(() => Date.now())
   const [inicio, setInicio] = useState(() => paraDatetimeLocal(ticket.created_at))
   const [fim, setFim] = useState(() => paraDatetimeLocal(new Date(agoraMs).toISOString()))
   const [nota, setNota] = useState('')
   const [tocado, setTocado] = useState(false)
-  const [erro, setErro] = useState<string | null>(null)
 
   const erros = validarFechamento({ criadoEm: ticket.created_at, inicio, fim, agoraMs })
   const invalido = Boolean(erros.inicio || erros.fim)
 
-  async function confirmar() {
+  function confirmar() {
     setTocado(true)
-    setErro(null)
     if (invalido) return
-    try {
-      await onFechar({
-        resolution_started_at: new Date(inicio).toISOString(),
-        resolution_ended_at: new Date(fim).toISOString(),
-        note: nota.trim(),
-      })
-    } catch (e) {
-      setErro(
-        `${mensagemDeErro(e, 'Não foi possível fechar o ticket.')} Nada foi alterado — tente de novo.`,
-      )
-    }
+    onFechar({
+      resolution_started_at: new Date(inicio).toISOString(),
+      resolution_ended_at: new Date(fim).toISOString(),
+      note: nota.trim(),
+    })
   }
 
   return (
@@ -50,11 +44,11 @@ export function ModalFecharTicket({ ticket, enviando, onFechar, onCancelar }: Pr
       size="sm"
       footer={
         <>
-          <Button variant="ghost" onClick={onCancelar} disabled={enviando}>
+          <Button variant="ghost" onClick={onCancelar}>
             Cancelar
           </Button>
-          <Button onClick={confirmar} disabled={enviando || (tocado && invalido)}>
-            {enviando ? 'Fechando…' : 'Fechar ticket'}
+          <Button onClick={confirmar} disabled={tocado && invalido}>
+            Fechar ticket
           </Button>
         </>
       }
@@ -117,11 +111,9 @@ export function ModalFecharTicket({ ticket, enviando, onFechar, onCancelar }: Pr
           <span className="fechar-form__contador">{nota.length}/200</span>
         </div>
 
-        {erro && (
-          <p className="fechar-form__erro" role="alert">
-            {erro}
-          </p>
-        )}
+        <p className="fechar-form__intro">
+          Depois de fechar, você tem alguns segundos para desfazer.
+        </p>
       </div>
     </Modal>
   )

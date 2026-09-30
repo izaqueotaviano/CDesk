@@ -5,6 +5,8 @@ import { useTabs, type AbaTicket } from '@/stores/tabs'
 import { identidadeDe } from '@/ui/identidade'
 import { formatarDataHora } from '../format'
 import { AgendarResposta } from './AgendarResposta'
+import { useDigitacaoLocal } from './colaboracao/canalCompositor'
+import { AvisoColisao } from './colaboracao/PresencaTicket'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
 import {
@@ -367,6 +369,7 @@ const DEBOUNCE_SCROLL_MS = 400
 
 export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
   const { editarMensagem, apagarMensagem } = useAcoesTicket(ticket.id)
+  const euRespondendo = useDigitacaoLocal((s) => s.porTicket[ticket.id] === 'resposta')
   const [mostrarEventos, setMostrarEventos] = useState(preferenciaMostrarEventos)
   const [filtro, setFiltro] = useState<FiltroMensagens>('todas')
   const [editandoId, setEditandoId] = useState<number | null>(null)
@@ -599,6 +602,8 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
       </div>
 
       <AgendarResposta ticket={ticket} me={me} />
+      {/* colega escrevendo para o cliente agora: avisa ONDE a colisão acontece */}
+      <AvisoColisao euDigitandoResposta={euRespondendo} />
       <Compositor ticket={ticket} me={me} pedidoReabrir={pedidoReabrir} />
     </section>
   )

@@ -466,8 +466,13 @@ class RequesterSerializer(serializers.Serializer):
     """Contato do solicitante para o painel do cliente no detalhe. Os campos
     já existiam (User.email, User.ui_language; o fuso vem da empresa do
     chamado) — só não havia exposição. Aparece SÓ quando o conteúdo é visível
-    a quem pede (mesma regra de `requester_display`); mascarado, vem null."""
+    a quem pede (mesma regra de `requester_display`); mascarado, vem null.
 
+    `id` existe para a tela perguntar "que outros chamados esta pessoa
+    abriu?" (`?requester=<id>` na listagem, painel do cliente no detalhe).
+    Não amplia nada: quem recebe o objeto já recebe nome e e-mail."""
+
+    id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
     ui_language = serializers.CharField()
@@ -506,6 +511,7 @@ class TicketDetailSerializer(TicketListSerializer):
             return None
         u = obj.requester
         return {
+            "id": u.pk,
             "name": u.full_name,
             "email": u.email,
             "ui_language": u.ui_language,
@@ -658,6 +664,33 @@ class AssignableAgentSerializer(serializers.Serializer):
     name = serializers.CharField()
     email = serializers.CharField(allow_blank=True)
     avatar_url = serializers.CharField(allow_blank=True)
+
+
+class PresencaBatimentoSerializer(serializers.Serializer):
+    """Corpo do `POST /tickets/{id}/presenca/` — o batimento de quem está com
+    o detalhe aberto (apps/tickets/services/presenca.py). `digitando` diz O QUE
+    a pessoa está escrevendo agora: resposta ao cliente ou nota interna. Nulo
+    (ou ausente) é "só vendo"."""
+
+    digitando = serializers.ChoiceField(
+        choices=["resposta", "nota"], required=False, allow_null=True, default=None,
+    )
+
+
+class PresenteSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    nome = serializers.CharField()
+    avatar_url = serializers.CharField(allow_null=True)
+    digitando = serializers.ChoiceField(choices=["resposta", "nota"], allow_null=True)
+
+
+class PresencaSerializer(serializers.Serializer):
+    """Resposta do batimento: todo mundo presente (inclusive quem pediu — a
+    tela filtra a si mesma) e o intervalo que o servidor espera entre
+    batimentos, para o front não ter um número próprio que divirja do TTL."""
+
+    presentes = PresenteSerializer(many=True)
+    batimento_segundos = serializers.IntegerField()
 
 
 class TicketMessageEditSerializer(serializers.Serializer):

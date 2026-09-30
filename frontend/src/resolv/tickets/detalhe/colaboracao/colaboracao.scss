@@ -1,0 +1,137 @@
+// Colaboração no detalhe do ticket: quem mais está aqui (cabeçalho) e o
+// aviso de colisão acima do compositor. Arquivo próprio, fora do
+// detalhe.scss, para a peça poder mudar sem mexer no resto da tela.
+
+.presenca-ticket {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  &__avatares {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  &__avatar {
+    position: relative;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    // anel da cor do cabeçalho: separa um avatar do outro na pilha
+    box-shadow: 0 0 0 2px var(--surface-card);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+
+    & + & {
+      margin-left: -6px;
+    }
+
+    img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    &--mais {
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+    }
+  }
+
+  // Três pontos no canto do avatar de quem está escrevendo.
+  &__digitando {
+    position: absolute;
+    right: -5px;
+    bottom: -4px;
+    display: flex;
+    gap: 2px;
+    padding: 3px 4px;
+    border-radius: 999px;
+    background: var(--surface-card);
+    box-shadow: 0 0 0 1px var(--stroke);
+
+    span {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--text-primary);
+      animation: presenca-pulso 1.2s ease-in-out infinite;
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    }
+  }
+
+  &__texto {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  // Alguém escrevendo para o cliente: é o estado que pode colidir, então a
+  // frase ganha peso e o tom de atenção (o único uso de cor aqui).
+  &--respondendo &__texto {
+    font-weight: 500;
+    color: var(--away);
+  }
+}
+
+@keyframes presenca-pulso {
+  0%,
+  60%,
+  100% {
+    opacity: 0.35;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.aviso-colisao {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 20px 8px;
+  padding: 8px 12px;
+  border-radius: var(--raio);
+  background: var(--tom-alerta);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-primary);
+
+  i {
+    flex-shrink: 0;
+    margin-top: 1px;
+    font-size: 16px;
+    color: var(--away);
+  }
+
+  strong {
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 767px) {
+  .aviso-colisao {
+    margin: 0 12px 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presenca-ticket__digitando span {
+    animation: none;
+    opacity: 1;
+  }
+}

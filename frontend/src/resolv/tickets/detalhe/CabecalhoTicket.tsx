@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import type { Me } from '@/api/types'
-import { ConfirmDialog } from '@/cvz/components'
 // A transcrição em PDF já estava escrita para o portal e vai por fetch+blob de
 // propósito: o endpoint devolve 501 quando o gerador não está instalado
 // (apps/tickets/views.py, `export`), e um <a download> transformaria isso numa
@@ -17,6 +16,7 @@ import {
   mensagemDeErro,
   tempoSla,
 } from './linhaDoTempo'
+import { PresencaTicket } from './colaboracao/PresencaTicket'
 import type { RelogioSla, TicketDetalhe } from './tiposDetalhe'
 
 /**
@@ -31,7 +31,8 @@ export type PainelLateral = 'propriedades' | 'cliente' | 'notas'
 interface Props {
   ticket: TicketDetalhe
   me: Me | undefined
-  assumindo: boolean
+  /** Assume na hora na tela, com "Desfazer" no aviso (useAcaoAdiada) — por
+   *  isso não há mais "tem certeza?" nem estado de "Assumindo…" aqui. */
   onAssumir: () => void
   onFechar: () => void
   onReabrir: () => void
@@ -63,7 +64,6 @@ function RelogioSlaChip({ rotulo, relogio }: { rotulo: string; relogio: RelogioS
 export function CabecalhoTicket({
   ticket,
   me,
-  assumindo,
   onAssumir,
   onFechar,
   onReabrir,
@@ -71,7 +71,6 @@ export function CabecalhoTicket({
   onAlternarPainel,
 }: Props) {
   const navigate = useNavigate()
-  const [confirmarAssumir, setConfirmarAssumir] = useState(false)
   const [exportando, setExportando] = useState(false)
   const [avisoExport, setAvisoExport] = useState<string | null>(null)
   const perms = me?.permissions ?? []
@@ -87,11 +86,11 @@ export function CabecalhoTicket({
     ticket.assignee_id != null ? (ticket.assignee_name ?? 'outro responsável') : null
 
   // Assumir com dono é TIRAR de um colega, não pegar um chamado solto — o
-  // botão diz de quem e pergunta antes. Sem dono continua sendo um clique só:
-  // confirmar o que não tem custo é só atrito.
+  // botão diz de quem. Não pergunta antes: a troca só sai depois do prazo do
+  // "Desfazer", então errar custa um clique, não uma notificação ao colega.
   const donoAtual = souOResponsavel ? null : nomeDoResponsavel
   // Primeiro nome no botão, que divide a barra com "Fechar ticket…"; o nome
-  // inteiro fica no diálogo, onde há espaço para não haver dúvida de quem é.
+  // inteiro vai no `title` e no aviso de "Desfazer".
   const primeiroNome = donoAtual?.trim().split(/\s+/)[0] ?? ''
 
   async function exportarPdf() {
@@ -133,34 +132,46 @@ export function CabecalhoTicket({
           </h1>
         </div>
 
+        {/* Quem mais está com este ticket aberto — some quando ninguém está */}
+        <PresencaTicket />
+
         <div className="ticket-cab__acoes">
           {podeAssumir && (
             <button
               type="button"
               className="ticket-cab__botao"
-              onClick={() => (donoAtual ? setConfirmarAssumir(true) : onAssumir())}
-              disabled={assumindo}
+              onClick={onAssumir}
+              title={donoAtual ? `Tirar de ${donoAtual} e assumir (a)` : 'Atribuir a você (a)'}
+              aria-keyshortcuts="a"
             >
               <i className="ti ti-user-check" aria-hidden="true" />
-              {assumindo ? 'Assumindo…' : donoAtual ? `Assumir de ${primeiroNome}` : 'Assumir'}
+              {/* no celular o rótulo vira só texto de leitor de tela (detalhe.scss) */}
+              <span className="ticket-cab__rotulo">
+                {donoAtual ? `Assumir de ${primeiroNome}` : 'Assumir'}
+              </span>
             </button>
           )}
 
+          {/* Ação de vez em quando: só ícone, com o nome no rótulo acessível e
+              no `title` — a barra fica com as ações do dia a dia por extenso. */}
           <button
             type="button"
-            className="ticket-cab__botao"
+            className="ticket-cab__icone"
             onClick={exportarPdf}
             disabled={exportando || ticket.content_hidden}
-            title="Baixar a transcrição da conversa em PDF"
+            aria-label={exportando ? 'Gerando o PDF…' : 'Exportar a conversa em PDF'}
+            title={exportando ? 'Gerando o PDF…' : 'Exportar a conversa em PDF'}
           >
-            <i className="ti ti-download" aria-hidden="true" />
-            {exportando ? 'Gerando…' : 'Exportar PDF'}
+            <i
+              className={exportando ? 'ti ti-loader-2 ticket-cab__girando' : 'ti ti-download'}
+              aria-hidden="true"
+            />
           </button>
           {fechado
             ? podeReabrir && (
                 <button type="button" className="ticket-cab__botao" onClick={onReabrir}>
-                  <i className="ti ti-rotate-clockwise-2" />
-                  Reabrir…
+                  <i className="ti ti-rotate-clockwise-2" aria-hidden="true" />
+                  <span className="ticket-cab__rotulo">Reabrir…</span>
                 </button>
               )
             : podeFechar && (
@@ -168,9 +179,11 @@ export function CabecalhoTicket({
                   type="button"
                   className="ticket-cab__botao ticket-cab__botao--primario"
                   onClick={onFechar}
+                  title="Fechar ticket (e)"
+                  aria-keyshortcuts="e"
                 >
-                  <i className="ti ti-circle-check" />
-                  Fechar ticket…
+                  <i className="ti ti-circle-check" aria-hidden="true" />
+                  <span className="ticket-cab__rotulo">Fechar ticket…</span>
                 </button>
               )}
 
@@ -184,7 +197,7 @@ export function CabecalhoTicket({
             title="Suas anotações sobre este chamado — só você vê"
           >
             <i className="ti ti-notes" aria-hidden="true" />
-            Notas
+            <span className="ticket-cab__rotulo">Notas</span>
           </button>
 
           <span className="ticket-cab__gavetas" role="group" aria-label="Painéis">
@@ -279,16 +292,6 @@ export function CabecalhoTicket({
         </p>
       )}
 
-      {confirmarAssumir && donoAtual && (
-        <ConfirmDialog
-          open
-          onClose={() => setConfirmarAssumir(false)}
-          onConfirm={onAssumir}
-          title={`Assumir de ${donoAtual}?`}
-          description={`${donoAtual} deixa de ser o responsável por ${ticket.reference} e o chamado sai da fila dele. A troca fica registrada no histórico.`}
-          confirmLabel="Assumir mesmo assim"
-        />
-      )}
     </header>
   )
 }
