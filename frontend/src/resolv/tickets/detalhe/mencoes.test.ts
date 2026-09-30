@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { alternarLista, aplicarNoTexto, continuarLista, envolver, inserirLink } from '@/ui/edicaoFormatada'
-import { consultaDeMencao, filtrarAlvos, inserirMencao, paraMarcacao } from './mencoes'
+import { consultaDeMencao, deMarcacao, filtrarAlvos, inserirMencao, paraMarcacao } from './mencoes'
 import type { AlvoMencao } from './tiposDetalhe'
 
 const ALVOS: AlvoMencao[] = [
@@ -71,5 +71,23 @@ describe('botões de formatação — regras puras', () => {
     const e = continuarLista('- a\n- ', 6, 6)!
     expect(aplicarNoTexto('- a\n- ', e)).toBe('- a\n')
     expect(continuarLista('texto', 5, 5)).toBeNull()
+  })
+})
+
+describe('deMarcacao (corrigir uma nota já enviada)', () => {
+  const mencoes = [
+    { key: 'user:12', name: 'Izaque Sá' },
+    { key: 'team:3', name: 'Financeiro' },
+  ]
+
+  it('mostra o nome no lugar da marcação, e o caminho de volta dá o mesmo corpo', () => {
+    const corpo = 'Oi @[user:12], veja com @[team:3].'
+    const { texto, escolhidos } = deMarcacao(corpo, mencoes)
+    expect(texto).toBe('Oi @Izaque Sá, veja com @Financeiro.')
+    expect(paraMarcacao(texto, [], escolhidos)).toBe(corpo)
+  })
+
+  it('marcação de quem não veio em `mentions` fica como está', () => {
+    expect(deMarcacao('Falar com @[user:99]', mencoes).texto).toBe('Falar com @[user:99]')
   })
 })

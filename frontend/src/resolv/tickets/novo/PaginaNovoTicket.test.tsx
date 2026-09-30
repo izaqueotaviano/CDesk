@@ -231,11 +231,11 @@ apiGetMock.mockImplementation((path: string) => {
   return Promise.reject(new Error(`GET não mockado neste teste: ${path}`))
 })
 
-function montar() {
+function montar(endereco = '/chamados/novo') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/chamados/novo']}>
+      <MemoryRouter initialEntries={[endereco]}>
         <Routes>
           <Route path="/chamados/novo" element={<PaginaNovoTicket />} />
           <Route path="/chamados/:id" element={<p>detalhe do chamado</p>} />
@@ -329,6 +329,20 @@ describe('PaginaNovoTicket', () => {
       screen.getByText('beto@acme.test · Acme Marketing', { selector: '.novo__cliente-meta' }),
     ).toBeInTheDocument()
     expect(screen.getByText(/não consome a cota/)).toBeInTheDocument()
+  })
+
+  it('aberto pela página do cliente (`?empresa=`), já nasce com a empresa escolhida', () => {
+    montar('/chamados/novo?empresa=2')
+    expect(screen.getByLabelText('Empresa')).toHaveValue('2')
+  })
+
+  it('a empresa da URL vence a do rascunho de outra visita', () => {
+    localStorage.setItem(
+      'resolv:novo-chamado',
+      JSON.stringify({ versao: 1, dados: { empresaId: 1, assunto: 'Antigo' } }),
+    )
+    montar('/chamados/novo?empresa=2')
+    expect(screen.getByLabelText('Empresa')).toHaveValue('2')
   })
 
   it('navega a lista de pessoas pelo teclado', async () => {

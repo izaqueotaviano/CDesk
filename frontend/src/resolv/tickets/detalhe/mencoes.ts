@@ -1,5 +1,5 @@
 import type { Edicao } from '@/ui/edicaoFormatada'
-import type { AlvoMencao } from './tiposDetalhe'
+import type { AlvoMencao, Mencao } from './tiposDetalhe'
 
 /**
  * @menção no compositor — as regras puras, separadas da tela para caberem num
@@ -109,4 +109,26 @@ export function paraMarcacao(
     'gu',
   )
   return texto.replace(re, (_, antes: string, nome: string) => `${antes}@[${porNome.get(nome)}]`)
+}
+
+/**
+ * O caminho de volta, para CORRIGIR uma nota já enviada: o corpo guardado
+ * tem `@[user:12]`, e o campo de edição deve mostrar `@Izaque Sá`, como no
+ * compositor. Devolve também o mapa nome → chave que `paraMarcacao` usa ao
+ * salvar, para a menção continuar sendo a MESMA pessoa mesmo que outra tenha
+ * nome parecido. Marcação sem nome conhecido (pessoa removida) fica crua.
+ */
+export function deMarcacao(
+  texto: string,
+  mencoes: readonly Pick<Mencao, 'key' | 'name'>[] = [],
+): { texto: string; escolhidos: Map<string, string> } {
+  const porChave = new Map(mencoes.map((m) => [m.key, m.name]))
+  const escolhidos = new Map<string, string>()
+  const legivel = texto.replace(/@\[((?:user|team):\d+)\]/g, (cru, chave: string) => {
+    const nome = porChave.get(chave)
+    if (!nome) return cru
+    escolhidos.set(nome, chave)
+    return `@${nome}`
+  })
+  return { texto: legivel, escolhidos }
 }

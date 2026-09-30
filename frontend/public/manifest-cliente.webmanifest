@@ -4,8 +4,8 @@
   "start_url": "/portal",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1b1917",
-  "theme_color": "#1b1917",
+  "background_color": "#1a1a19",
+  "theme_color": "#1a1a19",
   "icons": [
     { "src": "/icones/cliente-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "/icones/cliente-512.png", "sizes": "512x512", "type": "image/png" }

@@ -8,6 +8,7 @@ import { AgendarResposta } from './AgendarResposta'
 import { useDigitacaoLocal } from './colaboracao/canalCompositor'
 import { AvisoColisao } from './colaboracao/PresencaTicket'
 import { AnexosDaMensagem } from './AnexosDaMensagem'
+import { deMarcacao, paraMarcacao } from './mencoes'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
 import {
@@ -28,23 +29,28 @@ import { TextoFormatado } from '@/ui/TextoFormatado'
  *  do corpo atual na montagem, sem efeito para sincronizar. */
 function EditorMensagem({
   original,
+  mencoes,
   onSalvar,
   onCancelar,
 }: {
   original: string
+  mencoes?: Mensagem['mentions']
   onSalvar: (body: string) => Promise<unknown>
   onCancelar: () => void
 }) {
-  const [texto, setTexto] = useState(original)
+  // O campo mostra `@Nome`, não a marcação `@[user:12]` guardada no corpo;
+  // ao salvar, `paraMarcacao` devolve cada nome à sua chave.
+  const [legivel] = useState(() => deMarcacao(original, mencoes))
+  const [texto, setTexto] = useState(legivel.texto)
   const [ocupado, setOcupado] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   async function salvar() {
-    if (!texto.trim() || texto === original) return onCancelar()
+    if (!texto.trim() || texto === legivel.texto) return onCancelar()
     setOcupado(true)
     setErro(null)
     try {
-      await onSalvar(texto.trim())
+      await onSalvar(paraMarcacao(texto.trim(), [], legivel.escolhidos))
     } catch (e) {
       setErro(
         `${mensagemDeErro(e, 'Não foi possível salvar a correção.')} O texto editado continua aqui.`,
@@ -200,7 +206,12 @@ function ItemMensagem({
         </header>
 
         {editando ? (
-          <EditorMensagem original={msg.body} onSalvar={onSalvar} onCancelar={onCancelarEdicao} />
+          <EditorMensagem
+            original={msg.body}
+            mencoes={msg.mentions}
+            onSalvar={onSalvar}
+            onCancelar={onCancelarEdicao}
+          />
         ) : (
           <div className="msg__texto">
             {/* formatação leve + menções (`@[user:12]` → chip com o nome de

@@ -6,7 +6,7 @@ import { indiceDeIdentidade, type IndiceDeIdentidade } from './identidade'
  * do cliente do ticket no resolv) e precisa ser a mesma cor nos dois.
  *
  * Os três planos que existem hoje têm tom escolhido por CONOTAÇÃO, não por
- * sorteio: Black em ardósia (neutro-frio), Gold em terracota (quente, sem
+ * sorteio: Black em ardósia (neutro-frio), Gold em sépia (quente, sem
  * invadir o âmbar de "pendente"), Platinum em aço (frio-premium). Um plano
  * novo cai no hash de identidade — o mesmo mecanismo do avatar — e continua
  * determinístico: o mesmo nome, o mesmo tom, em toda tela.

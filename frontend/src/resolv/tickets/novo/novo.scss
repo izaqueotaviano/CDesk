@@ -139,12 +139,35 @@
     }
   }
 
+  // Os campos do formulário levam a linha de CAMPO (`--borda-campo`, 3:1 com
+  // o fundo), como o "Para": o fio de divisória (`--stroke`) some no plano
+  // claro e a pessoa não vê onde digitar.
+  // Especificidade (0,2,0) de propósito: vence a base do compositor e do
+  // painel (`.compositor__texto`, `.props__seletor`) sem depender da ordem
+  // dos arquivos; cada estado abaixo repete o do campo original.
+  & &__input,
+  & &__assunto,
+  & &__texto,
+  & .props__seletor {
+    border-color: var(--borda-campo);
+    &:hover {
+      border-color: var(--text-muted);
+    }
+    &:focus,
+    &:focus-within {
+      border-color: var(--accent);
+    }
+    &[aria-invalid='true'],
+    &.novo__seletor--invalido {
+      border-color: var(--danger);
+    }
+  }
   &__input,
   &__assunto {
     width: 100%;
     height: 34px;
     padding: 0 10px;
-    border: 1px solid var(--stroke);
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
     background: var(--surface-card);
     font-family: var(--f-ui);
@@ -154,10 +177,8 @@
       border-color 0.15s ease,
       box-shadow 0.15s ease;
     &::placeholder {
-      color: var(--text-secondary);
-    }
-    &:hover {
-      border-color: var(--stroke-hover);
+      color: var(--text-muted);
+      font-weight: 400;
     }
     &:focus {
       border-color: var(--accent);

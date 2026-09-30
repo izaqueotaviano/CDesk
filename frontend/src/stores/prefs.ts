@@ -109,6 +109,23 @@ function aplicarTema(tema: Tema) {
 
   const escuro = tema === 'escuro' || (tema === 'sistema' && sistemaPrefereEscuro())
   raiz.setAttribute('data-theme', escuro ? 'dark' : 'light')
+  pintarBarraDoNavegador(tema)
+}
+
+/** A cor do plano (`--canvas` em styles/tokens.css) nos dois temas. */
+const COR_DA_BARRA = { claro: '#f6f5f3', escuro: '#1a1a19' } as const
+
+/**
+ * A barra do navegador no celular (`<meta name="theme-color">` do index.html)
+ * segue a mesma escolha: com o tema forçado, os dois metas levam a cor dele,
+ * senão a barra ficaria clara num app escuro. Em "sistema", cada meta volta
+ * à cor do seu `media`.
+ */
+function pintarBarraDoNavegador(tema: Tema) {
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    const doMeta = meta.media.includes('dark') ? 'escuro' : 'claro'
+    meta.content = COR_DA_BARRA[tema === 'sistema' ? doMeta : tema]
+  }
 }
 
 /**

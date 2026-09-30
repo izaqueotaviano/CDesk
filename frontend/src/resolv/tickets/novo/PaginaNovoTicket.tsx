@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, ApiError, type Paginado } from '@/api/client'
 import { MINIMO_PARA_BUSCAR, useBuscaGlobal, type SolicitanteEncontrado } from '@/api/busca'
 import { useMe } from '@/api/queries/useMe'
@@ -264,10 +264,19 @@ export function PaginaNovoTicket() {
   // o que estava escrito, sem um efeito que sobrescreveria o que a pessoa
   // digitar enquanto as queries chegam.
   const [rascunhoSalvo] = useState(lerRascunho)
+  // Quem chega pela página do cliente ("Novo chamado" em Clientes) traz a
+  // empresa na URL (`?empresa=7`): ela vence o rascunho, que é de outra visita.
+  const [parametros] = useSearchParams()
+  const empresaDaUrl = Number(parametros.get('empresa')) || null
 
-  const [empresaId, setEmpresaId] = useState<number | null>(rascunhoSalvo?.empresaId ?? null)
+  const [empresaId, setEmpresaId] = useState<number | null>(
+    empresaDaUrl ?? rascunhoSalvo?.empresaId ?? null,
+  )
+  // O solicitante do rascunho só vale se for da mesma empresa que a URL pediu.
   const [solicitanteId, setSolicitanteId] = useState<number | null>(
-    rascunhoSalvo?.solicitanteId ?? null,
+    empresaDaUrl != null && empresaDaUrl !== rascunhoSalvo?.empresaId
+      ? null
+      : (rascunhoSalvo?.solicitanteId ?? null),
   )
   // O objeto inteiro de quem foi escolhido NESTA visita — o rascunho só grava
   // o id (rascunho.ts), e a busca no servidor (abaixo) não mantém uma lista
