@@ -3,22 +3,35 @@ import { persist } from 'zustand/middleware'
 import { getTabsServidor, putTabsServidor, type TicketResumo } from '@/api/tabs'
 
 /**
- * Abas do shell — contrato original em docs/06-abas-frontend.md, generalizado
- * na Fase 2 da unificação de shell (a barra que hoje é só de tickets passou a
- * cobrir também as seções da Sidebar — Tickets, Quadro, Chat, Clientes,
- * Avisos, Auditoria, Configurações, Relatórios).
+ * Abas do shell: contrato original em docs/06-abas-frontend.md, generalizado
+ * para a barra de abas do topo do console (`resolv/shell/BarraDeAbas.tsx`),
+ * que mostra numa faixa só os tickets abertos e as seções abertas (Tickets,
+ * Chats, Quadro, Clientes, Avisos, Notas, Relatórios, Auditoria,
+ * Configurações, Novo ticket, Minha conta).
  *
  * Duas espécies de aba, uma união marcada por `tipo`:
- *   - `ticket`  — o contrato de sempre. Múltiplas por vez, espelhadas no
- *     servidor (`/tickets/tabs/`), com rascunho e posição de scroll.
- *   - `secao`   — nova. NUNCA vai para o servidor: é navegação ambiente
- *     (qual área você tem aberta), não dado de trabalho — o mesmo raciocínio
- *     que já mantinha rascunho/scroll fora do PUT. Uma por rota (reabrir a
- *     mesma seção reaproveita a aba, nunca duplica).
+ *   - `ticket`: o contrato de sempre. Múltiplas por vez, espelhadas no
+ *     servidor (`/tickets/tabs/`), com rascunho e posição de scroll. Quem
+ *     abre é `PaginaDetalheTicket` (`abrirTicket`), quando os dados chegam.
+ *   - `secao`: NUNCA vai para o servidor. É navegação ambiente (qual área
+ *     você tem aberta), não dado de trabalho: o mesmo raciocínio que já
+ *     mantinha rascunho/scroll fora do PUT. Uma por rota (reabrir a mesma
+ *     seção reaproveita a aba, nunca duplica). Quem abre é a própria barra,
+ *     ao observar a URL (`abrirSecao`). A Início não mora aqui: é fixa na
+ *     barra, sem estado.
  *
- * `chaveAba` é o identificador estável de UMA aba, dos dois tipos — é o que
- * `active` guarda agora (string, não mais o `ticketId` cru), e o que a barra
- * usa pra saber qual aba fechar/focar.
+ * Nenhuma operação que envolva só seções chega perto do PUT: abrir, ativar,
+ * fechar ou reordenar seções é local. O servidor só é avisado quando algo de
+ * TICKET muda (quais estão abertos, em que ordem, qual está ativo).
+ *
+ * `chaveAba` é o identificador estável de UMA aba, dos dois tipos: é o que
+ * `active` guarda (string, não o `ticketId` cru), e o que a barra usa para
+ * saber qual aba fechar/focar.
+ *
+ * O `localStorage` de versões anteriores é tolerado (`migrate`): o formato
+ * sem `tipo`, e abas de seção herdadas (inclusive as da época em que as rotas
+ * se chamavam /chamados). Seção com rota que a barra não conhece mais é
+ * descartada por ela ao montar.
  */
 
 export interface AbaTicket {
@@ -36,10 +49,11 @@ export interface AbaSecao {
   /** Rota canônica da seção (a mesma da Sidebar) — chave de dedup: abrir de
    *  novo a mesma rota reaproveita esta aba, não duplica. */
   rota: string
-  /** Rótulo fixo da aba — não muda com navegação interna à seção (o ?aba= de
-   *  Configurações, por exemplo): é sempre "Configurações". */
+  /** Rótulo da aba, o mesmo da Sidebar. Não muda com navegação interna à
+   *  seção (o ?aba= de Configurações, ou /clientes/3 dentro de Clientes). A
+   *  barra prefere o rótulo da tabela de rotas dela e usa este só de reserva. */
   titulo: string
-  /** Classe `ti ti-*` — a mesma da Sidebar, pra ícone da aba bater com o da
+  /** Classe `ti ti-*`, a mesma da Sidebar, pra ícone da aba bater com o da
    *  navegação. */
   icone: string
 }
@@ -52,6 +66,12 @@ export function chaveAba(aba: Aba): string {
 
 function ehTicket(aba: Aba): aba is AbaTicket {
   return aba.tipo === 'ticket'
+}
+
+const PREFIXO_TICKET = 'ticket:'
+
+function idsDeTicket(tabs: Aba[]): number[] {
+  return tabs.filter(ehTicket).map((a) => a.ticketId)
 }
 
 interface TabsState {
@@ -68,7 +88,8 @@ interface TabsState {
   /** Fecha várias de uma vez ("fechar as outras", "as da direita", "todas"):
    *  UM set e UM sync, em vez de N `fechar` em sequência disparando N
    *  reconciliações. Se a ativa estiver entre elas, a ativa passa a ser a
-   *  última que sobrou (ou nenhuma — a barra cai no Início). */
+   *  última que sobrou (ou nenhuma). Quem chama decide para onde navegar:
+   *  a barra sobrescreve a ativa com a vizinha da aba fechada. */
   fecharVarias: (chaves: string[]) => void
   /** Nova ordem completa da barra (chaves de TODAS as abas, arrastar e
    *  soltar). Chave desconhecida é ignorada e aba que faltou na lista fica no
@@ -87,10 +108,10 @@ const DEBOUNCE_MS = 2000 // docs/06; o backend (UserTicketTabs) já tolera bem
 // clique de troca de aba em sequência rápida.
 let debounceHandle: ReturnType<typeof setTimeout> | undefined
 
-/** Só os tickets sincronizam — abas de seção nunca chegam perto do PUT
- *  (comentário no topo do arquivo). `active` só viaja quando a aba ativa É um
- *  ticket: ficar numa seção não deveria apagar "qual ticket eu tinha aberto
- *  por último" no espelho do servidor. */
+/** Só os tickets sincronizam: abas de seção nunca chegam perto do PUT
+ *  (comentário no topo do arquivo). `active_ticket_id` é o ticket ativo, ou
+ *  null quando a aba ativa é uma seção. As operações que só mexem em seção
+ *  nem chamam esta função. */
 function sincronizarComServidor() {
   clearTimeout(debounceHandle)
   debounceHandle = setTimeout(() => {
@@ -100,7 +121,7 @@ function sincronizarComServidor() {
       | AbaTicket
       | undefined
     putTabsServidor({ ticket_ids: idsTicket, active_ticket_id: ativoTicket?.ticketId ?? null })
-      .then(aplicarVerdadeDoServidor)
+      .then((resposta) => aplicarVerdadeDoServidor(resposta, idsTicket))
       .catch(() => {
         // Melhor esforço — rede caiu, a próxima mudança de aba tenta de novo.
         // Não há como isto travar a UI: abrir/fechar já aconteceu localmente.
@@ -109,31 +130,110 @@ function sincronizarComServidor() {
 }
 
 /** A resposta do servidor (já filtrada por visibilidade) vira a verdade para
- *  as abas de TICKET — preserva scroll/draft locais das que sobreviveram e
- *  NUNCA mexe nas abas de seção, que o servidor nem conhece. */
-function aplicarVerdadeDoServidor(resposta: { tabs: TicketResumo[]; active_ticket_id: number | null }) {
-  const locaisPorId = new Map(useTabs.getState().tabs.filter(ehTicket).map((a) => [a.ticketId, a]))
-  const abasSecao = useTabs.getState().tabs.filter((a): a is AbaSecao => a.tipo === 'secao')
-  const abasTicket: AbaTicket[] = resposta.tabs.map((resumo) => ({
-    tipo: 'ticket',
-    ticketId: resumo.id,
-    resumo,
-    scroll: locaisPorId.get(resumo.id)?.scroll ?? 0,
-    draft: locaisPorId.get(resumo.id)?.draft ?? '',
-  }))
-  // Seção primeiro, depois ticket: só afeta a ORDEM da barra numa reconciliação
-  // (rara — login e reconexão), nunca o que está ativo.
+ *  as abas de TICKET: preserva scroll/draft locais das que sobreviveram, e
+ *  NUNCA mexe nas abas de seção, que o servidor nem conhece.
+ *
+ *  A barra mistura as duas espécies numa ordem que a pessoa montou, então a
+ *  reconciliação não pode reembaralhar: cada seção fica no lugar em que
+ *  estava, e os tickets preenchem os demais lugares na ordem do servidor. Os
+ *  que sobrarem (abertos em outro aparelho) entram no fim.
+ *
+ *  `enviados` são os ids que seguiram no PUT que gerou esta resposta. A
+ *  resposta demora, e a pessoa não espera: o ticket que ela abriu enquanto o
+ *  PUT estava em voo não está na resposta e NÃO pode sumir por isso (é o que
+ *  acontecia ao recarregar dentro de um ticket com abas só locais: a aba do
+ *  ticket na tela era apagada). Pela mesma razão, o que ela fechou nesse meio
+ *  tempo não ressuscita. */
+function aplicarVerdadeDoServidor(
+  resposta: { tabs: TicketResumo[]; active_ticket_id: number | null },
+  enviados?: number[],
+) {
+  const locais = useTabs.getState().tabs
+  const locaisPorId = new Map(locais.filter(ehTicket).map((a) => [a.ticketId, a]))
+  const idsEnviados = enviados ? new Set(enviados) : null
+  const idsDaResposta = new Set(resposta.tabs.map((r) => r.id))
+  const fechadaNoVoo = (id: number) => idsEnviados !== null && idsEnviados.has(id) && !locaisPorId.has(id)
+  const abertaNoVoo = (a: AbaTicket) => idsEnviados !== null && !idsEnviados.has(a.ticketId) && !idsDaResposta.has(a.ticketId)
+
+  const doServidor: AbaTicket[] = resposta.tabs
+    .filter((resumo) => !fechadaNoVoo(resumo.id))
+    .map((resumo) => ({
+      tipo: 'ticket',
+      ticketId: resumo.id,
+      resumo,
+      scroll: locaisPorId.get(resumo.id)?.scroll ?? 0,
+      draft: locaisPorId.get(resumo.id)?.draft ?? '',
+    }))
+  const tabs: Aba[] = []
+  let proximo = 0
+  for (const aba of locais) {
+    if (aba.tipo === 'secao' || abertaNoVoo(aba)) tabs.push(aba)
+    else if (proximo < doServidor.length) tabs.push(doServidor[proximo++]!)
+  }
+  tabs.push(...doServidor.slice(proximo))
+
+  // Quem manda no que está ativo é a tela em que a pessoa está (a URL), e o
+  // store já reflete isso: só cai no ativo do servidor quando a aba ativa
+  // local não existe mais (ou nunca existiu, num aparelho novo).
   const ativoAnterior = useTabs.getState().active
-  const eraSecaoAtiva = ativoAnterior?.startsWith('secao:') ?? false
+  const ativoLocalSobrou = ativoAnterior !== null && tabs.some((a) => chaveAba(a) === ativoAnterior)
   useTabs.setState({
-    tabs: [...abasSecao, ...abasTicket],
-    active: eraSecaoAtiva
+    tabs,
+    active: ativoLocalSobrou
       ? ativoAnterior
       : resposta.active_ticket_id != null
-        ? `ticket:${resposta.active_ticket_id}`
+        ? `${PREFIXO_TICKET}${resposta.active_ticket_id}`
         : null,
     reconciliando: false,
   })
+}
+
+/** Tudo o que já esteve no `localStorage` (`resolv:tabs`) vira o formato
+ *  atual: v1 (abas de ticket sem `tipo`, `active` numérico), v2 (união
+ *  ticket/seção) e v3. Entrada que não se reconhece é descartada, nunca
+ *  lançada: uma aba ruim não pode impedir o console de abrir. */
+export function migrarAbasPersistidas(persistido: unknown): { tabs: Aba[]; active: string | null } {
+  const antigo = persistido as { tabs?: unknown[]; active?: unknown } | undefined
+  if (!antigo || !Array.isArray(antigo.tabs)) return { tabs: [], active: null }
+
+  const tabs: Aba[] = []
+  const rotasVistas = new Set<string>()
+  const ticketsVistos = new Set<number>()
+  for (const bruta of antigo.tabs) {
+    if (typeof bruta !== 'object' || bruta === null) continue
+    const a = bruta as Record<string, unknown>
+    if (a.tipo === 'secao') {
+      if (typeof a.rota !== 'string' || a.rota === '') continue
+      // As rotas do console se chamavam /chamados antes de virarem /tickets.
+      const rota = a.rota.replace(/^\/chamados(?=\/|$)/, '/tickets')
+      if (rotasVistas.has(rota)) continue
+      rotasVistas.add(rota)
+      tabs.push({
+        tipo: 'secao',
+        rota,
+        titulo: typeof a.titulo === 'string' ? a.titulo : rota,
+        icone: typeof a.icone === 'string' ? a.icone : 'ti ti-layout-grid',
+      })
+    } else if (typeof a.ticketId === 'number' && !ticketsVistos.has(a.ticketId)) {
+      ticketsVistos.add(a.ticketId)
+      tabs.push({
+        tipo: 'ticket',
+        ticketId: a.ticketId,
+        resumo: a.resumo as TicketResumo | undefined,
+        scroll: typeof a.scroll === 'number' ? a.scroll : 0,
+        draft: typeof a.draft === 'string' ? a.draft : '',
+      })
+    }
+  }
+
+  const bruto =
+    typeof antigo.active === 'number'
+      ? `${PREFIXO_TICKET}${antigo.active}`
+      : typeof antigo.active === 'string'
+        ? antigo.active.replace(/^secao:\/chamados(?=\/|$)/, 'secao:/tickets')
+        : null
+  const active = bruto !== null && tabs.some((t) => chaveAba(t) === bruto) ? bruto : null
+  return { tabs, active }
 }
 
 export const useTabs = create<TabsState>()(
@@ -167,17 +267,21 @@ export const useTabs = create<TabsState>()(
       },
 
       fechar: (chave) => {
+        const fechada = get().tabs.find((a) => chaveAba(a) === chave)
+        if (!fechada) return
         set((s) => {
           const tabs = s.tabs.filter((a) => chaveAba(a) !== chave)
           const active = s.active === chave ? (tabs.length > 0 ? chaveAba(tabs[tabs.length - 1]!) : null) : s.active
           return { tabs, active }
         })
-        sincronizarComServidor()
+        // Fechar uma seção é local: o servidor não a conhece.
+        if (ehTicket(fechada)) sincronizarComServidor()
       },
 
       fecharVarias: (chaves) => {
         if (chaves.length === 0) return
         const alvo = new Set(chaves)
+        const fechouTicket = get().tabs.some((a) => ehTicket(a) && alvo.has(chaveAba(a)))
         set((s) => {
           const tabs = s.tabs.filter((a) => !alvo.has(chaveAba(a)))
           const active =
@@ -188,10 +292,11 @@ export const useTabs = create<TabsState>()(
               : s.active
           return { tabs, active }
         })
-        sincronizarComServidor()
+        if (fechouTicket) sincronizarComServidor()
       },
 
       reordenar: (chaves) => {
+        const antes = idsDeTicket(get().tabs).join(',')
         set((s) => {
           const porChave = new Map(s.tabs.map((a) => [chaveAba(a), a]))
           const ordenadas: Aba[] = []
@@ -206,13 +311,16 @@ export const useTabs = create<TabsState>()(
           return { tabs: [...ordenadas, ...porChave.values()] }
         })
         // A ordem dos tickets é parte do espelho (`ticket_ids` na ordem da
-        // barra, docs/06) — outra máquina abre na mesma ordem.
-        sincronizarComServidor()
+        // barra, docs/06): outra máquina abre na mesma ordem. Arrastar uma
+        // seção de lugar não muda essa ordem, e então não vai ao servidor.
+        if (idsDeTicket(get().tabs).join(',') !== antes) sincronizarComServidor()
       },
 
       definirAtiva: (chave) => {
         set({ active: chave })
-        sincronizarComServidor()
+        // O espelho guarda "qual ticket está ativo". Ativar uma seção não
+        // mexe nisso (e não deve apagar o último ticket ativo no servidor).
+        if (chave.startsWith(PREFIXO_TICKET)) sincronizarComServidor()
       },
 
       // Local apenas — nunca aciona sync com o servidor (docs/06).
@@ -263,7 +371,7 @@ export const useTabs = create<TabsState>()(
             ticket_ids: uniao,
             active_ticket_id: ativoTicket?.ticketId ?? servidor.active_ticket_id,
           })
-          aplicarVerdadeDoServidor(respostaDoPut)
+          aplicarVerdadeDoServidor(respostaDoPut, uniao)
         })().finally(() => {
           reconciliacaoEmVoo = null
         })
@@ -276,30 +384,14 @@ export const useTabs = create<TabsState>()(
       // reconciliando de novo, mesmo com abas já hidratadas do localStorage.
       partialize: (s) => ({ tabs: s.tabs, active: s.active }),
       // v1→v2: `Aba` ganhou `tipo` (união ticket/seção) e `active` deixou de
-      // ser o ticketId cru para virar `chaveAba` (string). localStorage de
-      // antes da Fase 2 só tinha abas de ticket sem `tipo` e `active` numérico
-      // — sem esta migração, o zustand assumiria os dois formatos compatíveis
-      // e a troca de contrato virava dado corrompido em silêncio (abas sem
-      // `tipo` quebrando `ehTicket`/`chaveAba`, `active` numérico nunca batendo
-      // com nenhuma `chaveAba` string), não uma migração.
-      version: 2,
-      migrate: (persisted) => {
-        const antigo = persisted as { tabs?: unknown[]; active?: unknown } | undefined
-        if (!antigo || !Array.isArray(antigo.tabs)) return { tabs: [], active: null }
-        const tabs: Aba[] = antigo.tabs
-          .filter((a): a is { ticketId: number; resumo?: TicketResumo; scroll?: number; draft?: string } =>
-            typeof a === 'object' && a !== null && typeof (a as { ticketId?: unknown }).ticketId === 'number',
-          )
-          .map((a) => ({
-            tipo: 'ticket' as const,
-            ticketId: a.ticketId,
-            resumo: a.resumo,
-            scroll: a.scroll ?? 0,
-            draft: a.draft ?? '',
-          }))
-        const active = typeof antigo.active === 'number' ? `ticket:${antigo.active}` : null
-        return { tabs, active }
-      },
+      // ser o ticketId cru para virar `chaveAba` (string). v2→v3: as abas de
+      // seção voltaram a ser criadas e mostradas, e o que o v2 guardou tem de
+      // ser aproveitado: a migração passou a preservá-las (antes só passavam
+      // as de ticket) e a corrigir a rota que mudou de nome (/chamados virou
+      // /tickets). Sem migração o zustand assumiria os formatos compatíveis e
+      // a troca de contrato virava dado corrompido em silêncio.
+      version: 3,
+      migrate: (persisted) => migrarAbasPersistidas(persisted),
     },
   ),
 )

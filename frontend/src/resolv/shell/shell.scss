@@ -1,12 +1,13 @@
-// Shell do console: sidebar fixa à esquerda, e à direita uma barra superior
-// mínima sobre o conteúdo.
+// Shell do console: sidebar fixa à esquerda, e à direita a barra superior
+// (com as abas) sobre o conteúdo.
 //
 // Tudo no MESMO plano (`--surface-canvas`), dividido por um fio vertical de
-// 1px na borda da sidebar — é a divisão da referência (Copilot). Antes o
-// conteúdo vivia num painel creme arredondado apoiado sobre um cromo mais
-// escuro, com uma barra de abas de navegador fundida nele; lia como duas
-// janelas empilhadas. As abas de ticket viraram a lista "Trabalhando agora"
-// da sidebar (ListaTrabalho.tsx), e com elas saíram a moldura e o painel.
+// 1px na borda da sidebar, como na referência (Copilot). Antes o conteúdo
+// vivia num painel creme arredondado apoiado sobre um cromo mais escuro, com
+// uma barra de abas fundida nele; lia como duas janelas empilhadas. As abas
+// voltaram (BarraDeAbas.tsx), mas desenhadas para este plano: sem faixa e sem
+// linha própria, a ativa é um cartão sobre o plano, e a moldura e o painel
+// continuam fora.
 //
 // `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
 // `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa
@@ -36,15 +37,15 @@
     transition: margin-left 0.15s ease;
   }
 
-  // Barra superior. Sem fundo próprio, sem borda: são dois ícones num canto,
-  // como na referência — um andar a mais de cromo em cima de cada tela era
-  // exatamente o peso que se quis tirar.
+  // Barra superior: uma linha de 48px com as abas à esquerda (a faixa toma o
+  // espaço que sobra e rola sozinha) e os dois ícones fixos à direita. Sem
+  // fundo próprio e sem borda: um andar a mais de cromo em cima de cada tela
+  // era exatamente o peso que se quis tirar, e a aba ativa já se destaca.
   &__topo {
     flex-shrink: 0;
     height: 48px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     padding: 0 12px 0 16px;
   }
@@ -52,7 +53,11 @@
   &__topo-lado {
     display: flex;
     align-items: center;
+    flex: none;
     gap: 2px;
+    // Um respiro a mais entre as abas (com o "+") e os ícones fixos: com a
+    // faixa cheia o "+" ficaria com cara de terceiro ícone da direita.
+    margin-left: 4px;
   }
 
   // Botão só-ícone da barra superior: notificações, tema e, em tela pequena,
@@ -60,6 +65,7 @@
   // Tabler monolinear do resto.
   &__icone {
     position: relative;
+    flex: none;
     width: 32px;
     height: 32px;
     display: inline-flex;
@@ -97,13 +103,15 @@
 }
 
 // Abaixo de 768px a sidebar vira gaveta por cima do conteúdo (sidebar.scss):
-// o corpo não recua nada, e a barra superior ganha o botão que abre a gaveta.
+// o corpo não recua nada, e a barra superior ganha o botão que abre a gaveta,
+// antes da faixa de abas.
 @media (max-width: 767px) {
   .novo-shell {
     --largura-sidebar: 0px;
 
     &__topo {
       padding: 0 8px;
+      gap: 4px;
     }
   }
 }

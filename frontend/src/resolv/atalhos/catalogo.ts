@@ -105,13 +105,13 @@ export const GRUPOS_ATALHOS: GrupoAtalhos[] = [
       {
         id: 'ticket.anterior',
         combinacoes: [['[']],
-        descricao: 'Ticket anterior em Trabalhando agora',
+        descricao: 'Ticket anterior entre as abas',
         quemImplementa: 'ticket',
       },
       {
         id: 'ticket.proximo',
         combinacoes: [[']']],
-        descricao: 'Próximo ticket em Trabalhando agora',
+        descricao: 'Próximo ticket entre as abas',
         quemImplementa: 'ticket',
       },
     ],

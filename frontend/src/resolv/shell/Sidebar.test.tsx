@@ -3,15 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePrefs } from '@/stores/prefs'
-import { useTabs } from '@/stores/tabs'
 import { Sidebar } from './Sidebar'
-
-// "Trabalhando agora" lê o store de abas, que importa o espelho no servidor — aqui ele
-// não entra (docs/06-abas-frontend.md).
-vi.mock('@/api/tabs', () => ({
-  getTabsServidor: vi.fn(() => new Promise(() => {})),
-  putTabsServidor: vi.fn(() => new Promise(() => {})),
-}))
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -48,7 +40,6 @@ afterEach(() => {
   // A preferência é um singleton de módulo persistido: sem devolver ao padrão,
   // a barra recolhida num teste vaza para o seguinte.
   usePrefs.setState({ sidebarRecolhida: false })
-  useTabs.setState({ tabs: [], active: null, reconciliando: false })
 })
 
 function montar(rota = '/inicio', onAbrirBusca = vi.fn()) {
@@ -130,25 +121,20 @@ describe('Sidebar — menu "Mais"', () => {
 })
 
 describe('Sidebar — um estado ativo por vez', () => {
-  const abrirTicket = () =>
-    useTabs.setState({
-      tabs: [{ tipo: 'ticket', ticketId: 5, resumo: { id: 5, reference: '#1005', subject: 'Impressora', status: 'open', requester_display: 'Beto' }, scroll: 0, draft: '' }],
-      active: 'ticket:5',
-      reconciliando: false,
-    })
-
-  it('com o ticket em "Trabalhando agora", é ele que acende — "Tickets" não', () => {
-    abrirTicket()
-    montar('/tickets/5')
-    expect(screen.getByRole('button', { name: '#1005 · Impressora' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
+  it('num ticket aberto (/tickets/27), quem acende é "Tickets"', () => {
+    montar('/tickets/27')
+    expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('button', { name: 'Novo ticket' })).not.toHaveAttribute('aria-current')
   })
 
-  it('recolhida, "Trabalhando agora" some e quem acende no ticket é "Tickets"', () => {
-    abrirTicket()
+  it('o ticket acende "Tickets" também com a barra recolhida', () => {
     usePrefs.setState({ sidebarRecolhida: true })
-    montar('/tickets/5')
-    expect(screen.queryByRole('region', { name: 'Trabalhando agora' })).not.toBeInTheDocument()
+    montar('/tickets/27')
+    expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('na lista de tickets acende "Tickets"', () => {
+    montar('/tickets')
     expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
   })
 
@@ -156,6 +142,12 @@ describe('Sidebar — um estado ativo por vez', () => {
     montar('/tickets/novo')
     expect(screen.getByRole('button', { name: 'Novo ticket' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('a sidebar é só navegação: não lista os tickets abertos (eles são abas do topo)', () => {
+    montar('/tickets/27')
+    expect(screen.queryByRole('region')).not.toBeInTheDocument()
+    expect(screen.queryByRole('list')).not.toBeInTheDocument()
   })
 })
 

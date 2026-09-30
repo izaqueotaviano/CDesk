@@ -414,7 +414,7 @@ describe('PaginaDetalheTicket — atalhos do ticket aberto', () => {
     expect(screen.getByRole('button', { name: 'confirmar fechamento' })).toBeInTheDocument()
   })
 
-  it('`[` e `]` andam pela lista "Trabalhando agora"', () => {
+  it('`[` e `]` andam pelas abas de ticket abertas, na ordem da barra', () => {
     tabsMock = [
       { tipo: 'ticket', ticketId: 10 },
       { tipo: 'ticket', ticketId: 42 },

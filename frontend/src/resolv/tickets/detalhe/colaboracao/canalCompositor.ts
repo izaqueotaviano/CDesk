@@ -12,7 +12,7 @@ import { create } from 'zustand'
  * O compositor é de outra área (o texto rico, anexos e menções moram lá), e
  * a única coisa que ele precisa saber disto é UMA chamada de hook
  * (`useCompositorColaborativo`). Por ticket, porque a pessoa pode ter mais de
- * um chamado aberto em "Trabalhando agora" e cada um tem o seu compositor.
+ * um ticket aberto (uma aba cada) e cada um tem o seu compositor.
  */
 
 export type ModoCompositor = 'resposta' | 'nota'

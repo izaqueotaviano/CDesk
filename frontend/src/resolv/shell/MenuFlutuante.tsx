@@ -2,10 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type 
 import './menu-flutuante.scss'
 
 /**
- * Menu flutuante do shell — o mesmo componente atende três usos da barra de
- * abas: o menu de contexto de uma aba (botão direito, ancorado no PONTEIRO),
- * a abertura rápida do "+" (ancorada no botão, abre no hover) e o "…" do fim
- * da barra (ancorado no botão, abre no clique).
+ * Menu flutuante do shell — o mesmo componente atende os menus do console: o
+ * menu de contexto de uma aba (botão direito, ancorado no PONTEIRO) e os
+ * menus ancorados num botão que abrem no clique (o "Mais" da sidebar, os
+ * filtros e as ações do quadro).
  *
  * Não é o `Popover` da cvzdesk de propósito: aquele se posiciona em relação
  * ao gatilho por CSS (`position: absolute` dentro do `.popover`), o que não

@@ -4,9 +4,9 @@
 // contexto) ou logo abaixo do gatilho, calculado em JS.
 .menu-flutuante {
   position: fixed;
-  // Acima da sidebar (100) e da barra de abas (90): o menu de contexto de uma
-  // aba na ponta esquerda pode se abrir por cima da sidebar. Abaixo do véu da
-  // busca (300) — a busca é modal, o menu não.
+  // Acima da sidebar (100): o menu de contexto de uma aba na ponta esquerda
+  // pode se abrir por cima da sidebar. Abaixo do véu da busca (300): a busca é
+  // modal, o menu não.
   z-index: 120;
   min-width: 200px;
   padding: 4px;

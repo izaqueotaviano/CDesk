@@ -13,12 +13,12 @@
  *     "Novo chat" daqui;
  *   - "Buscar", como item comum, e os cinco destinos do dia a dia;
  *   - "Mais", um menu com o que se abre de vez em quando (avisos, notas,
- *     relatórios, auditoria, configurações). Seis destinos a menos na
- *     coluna é o que deixa espaço para…
- *   - "Trabalhando agora", os tickets abertos, só em texto — a lista de conversas da
- *     referência. Recolhida, some, como lá;
+ *     relatórios, auditoria, configurações);
  *   - no rodapé, só a conta. Notificações e tema subiram para o canto
  *     superior direito (NovoShell), que é onde a referência os põe.
+ *
+ * O que está aberto (tickets e páginas) não mora aqui: são as abas da barra
+ * superior (BarraDeAbas.tsx). A coluna é só navegação.
  *
  * Só os itens com rota real navegam; Calendário segue no "Mais", inerte
  * ("em breve"), em vez de levar a um 404.
@@ -32,8 +32,6 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useFilaChat, useMeusChats } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { usePrefs } from '@/stores/prefs'
-import { useTabs } from '@/stores/tabs'
-import { ListaTrabalho } from './ListaTrabalho'
 import { MenuFlutuante } from './MenuFlutuante'
 import { MenuPresenca } from './MenuPresenca'
 import './sidebar.scss'
@@ -90,25 +88,14 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
   const recolhida = preferenciaRecolhida && !emGaveta
   const gavetaAberta = emGaveta && gaveta.aberta
 
-  // UM estado ativo por vez na sidebar inteira. O ticket aberto acende na
-  // lista "Trabalhando agora", "novo" acende em Novo ticket — e "Tickets" só
-  // acende na lista em si. Exceção: se o ticket da tela não está visível lá
-  // (barra recolhida, ou o resumo ainda não chegou), quem acende é Tickets,
-  // para a pessoa nunca ficar sem saber onde está.
+  // UM estado ativo por vez na sidebar inteira. "Novo ticket" acende na tela
+  // de novo ticket, e "Tickets" acende na lista e em qualquer ticket aberto
+  // (/tickets/27): o ticket é uma tela da área Tickets, e não há mais uma
+  // lista de tickets abertos na sidebar para acender no lugar (eles são abas).
   const caminho = location.pathname
   const naNovoTicket = caminho === '/tickets/novo'
-  const idNaRota = caminho.match(/^\/tickets\/(\d+)$/)?.[1]
-  const ticketVisivelNaLista = useTabs((st) =>
-    idNaRota !== undefined && st.tabs.some((a) => a.tipo === 'ticket' && String(a.ticketId) === idNaRota),
-  )
   const ativo = (r: string) => {
-    if (r === '/inicio') return caminho === '/inicio'
-    if (r === '/tickets') {
-      if (caminho === '/tickets') return true
-      if (naNovoTicket) return false
-      if (idNaRota) return recolhida || !ticketVisivelNaLista
-      return caminho.startsWith('/tickets/')
-    }
+    if (r === '/tickets') return !naNovoTicket && (caminho === r || caminho.startsWith(`${r}/`))
     return caminho === r || caminho.startsWith(`${r}/`)
   }
 
@@ -335,12 +322,6 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
             }))}
           />
         </nav>
-
-        {!recolhida && (
-          <div className="sidebar-rail__trabalho">
-            <ListaTrabalho />
-          </div>
-        )}
 
         <div className="sidebar-rail__conta">
           <MenuPresenca />

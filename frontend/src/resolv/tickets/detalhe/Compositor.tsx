@@ -647,7 +647,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   // comum quanto achar pelo nome dela. Índice ativo é CLAMPADO aqui, não
   // corrigido num efeito: apagar/filtrar pode encolher a lista para menos
   // que o índice que estava selecionado (mesma técnica de roving tabindex
-  // usada em resolv/shell/ListaTrabalho.tsx — derivar durante o render, não
+  // usada em resolv/shell/BarraDeAbas.tsx — derivar durante o render, não
   // sincronizar depois).
   const macrosFiltradas = (macros ?? []).filter((m) =>
     normalizar(`${m.name} ${m.body ?? ''}`).includes(normalizar(filtroMacro)),

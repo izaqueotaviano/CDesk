@@ -9,8 +9,8 @@
 //
 // As medidas saem da referência (Copilot): mesmo fundo do conteúdo, um fio
 // vertical de 1px na borda, linhas de 32px em 14px regular, e nenhuma linha
-// horizontal separando zonas — o vão antes de "Trabalhando agora" e o rodapé
-// embaixo já dizem onde uma zona acaba.
+// horizontal separando zonas: o vão antes do rodapé já diz onde a navegação
+// acaba.
 .sidebar-rail {
   position: fixed;
   top: 0;
@@ -111,8 +111,8 @@
   }
 
   // ── Navegação ─────────────────────────────────────────────────────────────
-  // Não cresce: quem ocupa o resto da altura é "Trabalhando agora", e é ela que
-  // rola quando há muitos tickets abertos — a navegação fica sempre inteira.
+  // Não cresce: a navegação tem altura fixa, e o rodapé da conta é empurrado
+  // para baixo pelo `margin-top: auto` dele.
   &__nav {
     display: flex;
     flex-direction: column;
@@ -144,9 +144,8 @@
     &:hover {
       background: var(--sidebar-hover);
     }
-    // Ativo: o pill claro e um degrau de peso. É o mesmo estado — e a mesma
-    // aparência — na navegação e em "Trabalhando agora": um ativo por vez na
-    // sidebar inteira.
+    // Ativo: o pill claro e um degrau de peso. Um ativo por vez na sidebar
+    // inteira.
     &--ativo,
     &--ativo:hover {
       background: var(--sidebar-ativo);
@@ -223,16 +222,6 @@
     line-height: 1;
   }
 
-  // ── Trabalhando agora ─────────────────────────────────────────────────────
-  // Ocupa o que sobra da altura e rola sozinha (lista-trabalho.scss).
-  &__trabalho {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 0 8px 8px;
-  }
-
   // ── Conta (rodapé) ────────────────────────────────────────────────────────
   &__conta {
     flex-shrink: 0;
@@ -256,8 +245,8 @@
 
   // ── Recolhida ─────────────────────────────────────────────────────────────
   // Como na referência: o topo vira só o botão de expandir, a coluna vira só
-  // ícones, "Trabalhando agora" some, e o rodapé fica só com o avatar. O nome de cada
-  // ícone vem do `title` nativo (fora do documento, não cobre conteúdo).
+  // ícones, e o rodapé fica só com o avatar. O nome de cada ícone vem do
+  // `title` nativo (fora do documento, não cobre conteúdo).
   &--recolhida {
     .sidebar-rail__topo {
       justify-content: center;

@@ -93,8 +93,8 @@ function Esqueleto() {
   )
 }
 
-/** Os tickets de "Trabalhando agora", na ordem da sidebar — é por eles que
- *  `[` e `]` andam. */
+/** Os tickets abertos, na ordem da barra de abas (as abas de página ficam de
+ *  fora): é por eles que `[` e `]` andam. */
 function vizinhosNaListaDeTrabalho(ids: number[], atual: number) {
   const i = ids.indexOf(atual)
   return {
@@ -329,7 +329,7 @@ export function PaginaDetalheTicket() {
   const abrirTicket = useTabs((s) => s.abrirTicket)
 
   // Registra/atualiza a aba deste ticket assim que os dados chegam — é o que
-  // alimenta a lista "Trabalhando agora" da sidebar e o espelho no servidor (docs/06).
+  // alimenta a aba do ticket na barra do topo e o espelho no servidor (docs/06).
   useEffect(() => {
     if (!ticket) return
     abrirTicket(ticket.id, {
@@ -347,9 +347,10 @@ export function PaginaDetalheTicket() {
 
   return (
     <div className="detalhe">
-      {/* Sem role="tabpanel": os tickets abertos deixaram de ser abas (são a
-          lista "Trabalhando agora" da sidebar, com aria-current), e um tabpanel sem a
-          aba que o nomeia seria um marco órfão para o leitor de tela. */}
+      {/* Sem role="tabpanel": as abas do topo trocam de ROTA, e o painel delas é
+          a página inteira (o <main> do shell). Um tabpanel aqui esconderia o
+          marco principal do leitor de tela dentro de um marco que ele não
+          nomeia. */}
       <div className="detalhe__painel">
 
       {isError ? (
