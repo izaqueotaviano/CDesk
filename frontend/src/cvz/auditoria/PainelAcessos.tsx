@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Checkbox, ErrorState, TextInput } from '@/cvz/components'
 import { ApiError } from '@/api/client'
 import { useLogsAcesso } from './dados'
+import { LinhasCarregando, LinhaVazia } from './EstadoTabela'
 
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -28,7 +29,7 @@ export function PainelAcessos() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
+      <div className="auditoria-filtros">
         <TextInput label="ID do ticket" placeholder="Ex.: 128" value={ticket} onChange={(e) => setTicket(e.target.value.replace(/\D/g, ''))} />
         <TextInput label="ID do usuário" placeholder="Ex.: 42" value={user} onChange={(e) => setUser(e.target.value.replace(/\D/g, ''))} />
         <Checkbox checked={apenasNegados} onChange={(e) => setApenasNegados(e.target.checked)} label="Só tentativas negadas" />
@@ -52,9 +53,7 @@ export function PainelAcessos() {
             </thead>
             <tbody>
               {acessos.isLoading ? (
-                <tr>
-                  <td colSpan={7}>Carregando…</td>
-                </tr>
+                <LinhasCarregando colunas={7} />
               ) : acessos.data && acessos.data.results.length > 0 ? (
                 acessos.data.results.map((a) => (
                   <tr key={a.id}>
@@ -63,16 +62,18 @@ export function PainelAcessos() {
                     <td>{a.team ?? '—'}</td>
                     <td>{a.user_name}</td>
                     <td>{ROTULO_CONTEXTO[a.context] ?? a.context}</td>
-                    <td style={{ color: a.was_granted ? undefined : 'var(--danger, #d33)' }}>
+                    <td className={a.was_granted ? undefined : 'auditoria-tabela__negado'}>
                       {a.was_granted ? 'Permitido' : 'Negado'}
                     </td>
                     <td>{a.ip_address || '—'}</td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={7}>Nenhum acesso registrado para esse filtro.</td>
-                </tr>
+                <LinhaVazia colunas={7}>
+                  {ticket || user || apenasNegados
+                    ? 'Nenhum acesso registrado para esse filtro.'
+                    : 'Nenhuma leitura de chamado de equipe restrita registrada ainda.'}
+                </LinhaVazia>
               )}
             </tbody>
           </table>

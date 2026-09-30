@@ -19,6 +19,11 @@ interface Props {
   describedBy?: string
   /** Texto quando a busca não acha ninguém. */
   vazio?: string
+  /** A busca ainda não pode rodar (termo curto demais): diz o que falta.
+   *  Com isto e nada para escolher, a lista NÃO abre — o recado aparece numa
+   *  linha logo abaixo do campo. Uma caixa flutuante só com um aviso cobria
+   *  o rótulo "Assunto" e a ajuda do campo sem oferecer escolha nenhuma. */
+  dica?: string
   /** O texto digitado, a cada tecla — quem chama decide o que fazer com ele
    *  (aqui, PaginaNovoTicket.tsx debounca e manda pro servidor: a busca de
    *  verdade não é mais em memória sobre `opcoes`, que agora chega PRONTA de
@@ -65,6 +70,7 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
     invalido,
     describedBy,
     vazio,
+    dica,
     erro,
     aoTentarDeNovo,
     aoMudarTermo,
@@ -86,7 +92,11 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
     return base.slice(0, MAX_RESULTADOS)
   }, [opcoes, texto])
 
-  const listaVisivel = aberto && !disabled
+  // Só a dica, sem ninguém para escolher (nem carregando, nem erro): a lista
+  // fica fechada e a dica vai para a linha embaixo do campo.
+  const soDica = Boolean(dica) && !carregando && !erro && resultados.length === 0
+  const listaVisivel = aberto && !disabled && !soDica
+  const dicaVisivel = aberto && !disabled && soDica
   const idOpcao = (o: Pessoa) => `${idLista}-${o.id}`
 
   function escolher(o: Pessoa) {
@@ -188,6 +198,15 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
         )}
       </span>
 
+      {/* Quem usa leitor de tela ouve a dica pela região viva lá embaixo
+       *  (que já existe antes de a dica aparecer, então é anunciada); esta
+       *  linha é a versão para os olhos. */}
+      {dicaVisivel && (
+        <p className="busca-pessoa__dica" aria-hidden="true">
+          <i className="ti ti-info-circle" aria-hidden="true" /> {dica}
+        </p>
+      )}
+
       <ul
         id={idLista}
         role="listbox"
@@ -197,7 +216,7 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
         // fecha a lista antes de o click escolher)
         onMouseDown={(e) => e.preventDefault()}
       >
-        {carregando ? (
+        {soDica ? null : carregando ? (
           <li className="busca-pessoa__vazio" role="presentation">
             Carregando pessoas…
           </li>
@@ -240,15 +259,17 @@ export const BuscaPessoa = forwardRef<HTMLInputElement, Props>(function BuscaPes
       </ul>
 
       <span className="busca-pessoa__sr" aria-live="polite">
-        {listaVisivel && !carregando
-          ? erro
-            ? 'Não foi possível carregar as pessoas.'
-            : texto.trim()
-              ? resultados.length === 0
-                ? 'Nenhum resultado'
-                : `${resultados.length} resultado${resultados.length === 1 ? '' : 's'}`
-              : ''
-          : ''}
+        {dicaVisivel
+          ? dica
+          : listaVisivel && !carregando
+            ? erro
+              ? 'Não foi possível carregar as pessoas.'
+              : texto.trim()
+                ? resultados.length === 0
+                  ? 'Nenhum resultado'
+                  : `${resultados.length} resultado${resultados.length === 1 ? '' : 's'}`
+                : ''
+            : ''}
       </span>
     </div>
   )

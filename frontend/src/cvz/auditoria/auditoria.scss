@@ -1,10 +1,51 @@
 @use '../styles/tokens' as *;
 @use '../styles/mixins' as *;
 
+// Auditoria e LGPD — mesma superfície das tabelas do resto do admin
+// (DataTable.scss): tabela branca sobre o plano, cabeçalho numa faixa do tom
+// do cromo, linhas separadas por um fio de 1px. Estas tabelas são HTML à
+// mão (não DataTable) porque as colunas de ação e os modais por linha não
+// cabem no contrato dela; o desenho é que precisa ser o mesmo.
+
+// Barra de filtros de cada painel: campos lado a lado, alinhados pela base
+// (os rótulos têm alturas iguais, o checkbox não tem rótulo em cima).
+.auditoria-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: $sp-3;
+  margin-bottom: $sp-4;
+
+  > * {
+    min-width: 180px;
+  }
+
+  @include mobile {
+    > * {
+      flex: 1 1 100%;
+    }
+  }
+}
+
+// Texto de apoio no topo de um painel (Retenção): explica a regra antes da
+// ação, na largura de leitura, não de ponta a ponta da tela.
+.auditoria-intro {
+  max-width: 72ch;
+  margin: 0 0 $sp-3;
+  @include type($fs-body, $w-regular);
+  color: $text-secondary;
+}
+
+.auditoria-acoes {
+  display: flex;
+  gap: $sp-2;
+  margin-bottom: $sp-4;
+}
+
 .auditoria-tabela__wrap {
   overflow-x: auto;
-  border: $border;
-  border-radius: $radius;
+  border-radius: $radius-card;
+  background-color: $raised;
 }
 
 .auditoria-tabela {
@@ -14,21 +55,55 @@
 
   th,
   td {
-    padding: $sp-3 $sp-4;
+    padding: 0 $cell-px;
     text-align: left;
     white-space: nowrap;
-    border-bottom: $border;
   }
   th {
-    @include type($fs-label, $w-medium);
-    color: $text-muted;
-    background: $chrome;
+    height: $row-h-compact;
+    @include type($fs-label, $w-semibold);
+    color: $text-secondary;
+    background-color: $chrome;
+    border-bottom: $stroke-w solid $stroke;
   }
   td {
+    height: $row-h;
     color: $text;
+    border-bottom: $stroke-w solid $stroke;
   }
-  tr:last-child td {
+  tbody tr:last-child td {
     border-bottom: none;
+  }
+  tbody tr:not(.auditoria-tabela__linha-estado):hover {
+    background-color: $chrome;
+  }
+
+  // Resumo do log: é a única coluna de texto livre, e sem teto ela empurra a
+  // tabela para uma rolagem lateral enorme por causa de uma frase longa.
+  &__resumo {
+    max-width: 360px;
+    @include truncate;
+  }
+
+  &__negado {
+    color: $danger;
+    font-weight: $w-medium;
+  }
+
+  &__acoes {
+    display: flex;
+    align-items: center;
+    gap: $sp-1;
+  }
+
+  // Vazio: a linha inteira vira o recado, centrado e com respiro — não uma
+  // célula comum com texto cinza grudado na borda esquerda.
+  td.auditoria-tabela__vazio {
+    height: auto;
+    padding: $sp-6 $sp-4;
+    text-align: center;
+    white-space: normal;
+    color: $text-secondary;
   }
 }
 
@@ -49,7 +124,7 @@
   justify-content: space-between;
   gap: $sp-3;
   padding: $sp-2 $sp-3;
-  border: $border;
   border-radius: $radius;
+  background-color: $chrome;
   @include type($fs-ui, $w-regular);
 }

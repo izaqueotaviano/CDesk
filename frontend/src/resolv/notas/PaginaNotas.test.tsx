@@ -133,13 +133,68 @@ describe('PaginaNotas', () => {
     )
   })
 
-  it('a lixeira não oferece o cartão de criar', async () => {
+  it('"Nova nota" mora no cabeçalho, não num cartão solto na grade', () => {
     render(<PaginaNotas />)
-    expect(screen.getByRole('button', { name: /nova nota/i })).toBeInTheDocument()
+    const cabecalho = screen.getByRole('banner')
+    expect(within(cabecalho).getByRole('heading', { level: 1, name: 'Notas' })).toBeInTheDocument()
+    expect(within(cabecalho).getByRole('button', { name: /nova nota/i })).toBeInTheDocument()
+    // a grade só tem a nota de verdade
+    expect(screen.getAllByRole('listitem')).toHaveLength(1)
+  })
 
+  it('o vazio de cada recorte oferece a ação que cabe nele', async () => {
+    lista.data = { results: [], count: 0 }
+    render(<PaginaNotas />)
+    expect(screen.getByRole('button', { name: 'Escrever a primeira nota' })).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('tab', { name: 'Fixadas' }))
+    expect(screen.getByText('Nenhuma nota fixada')).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: 'Ver notas ativas' }))
+    expect(filtroVisto.state).toBe('active')
+
+    // lixeira vazia é o estado bom: nada de convite a escrever
     await userEvent.click(screen.getByRole('tab', { name: 'Lixeira' }))
+    expect(screen.getByText(/lixeira está vazia/i)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Escrever a primeira nota' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Ver notas ativas' })).not.toBeInTheDocument()
+  })
 
-    expect(screen.queryByRole('button', { name: /nova nota/i })).not.toBeInTheDocument()
+  it('o vazio de um filtro oferece limpar o filtro', async () => {
+    lista.data = { results: [], count: 0 }
+    etiquetas = [{ id: 1, name: 'Urgente', slug: 'urgente' }]
+    render(<PaginaNotas />)
+
+    await userEvent.selectOptions(screen.getByLabelText(/filtrar por etiqueta/i), 'urgente')
+    expect(screen.getByText(/nada encontrado com esse filtro/i)).toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+    await waitFor(() => expect(filtroVisto.tag).toBeUndefined())
+    expect(screen.getByText(/nenhuma nota por aqui/i)).toBeInTheDocument()
+  })
+
+  it('enquanto carrega, mostra cartões esqueleto em vez de texto', () => {
+    lista = { isLoading: true, isError: false }
+    render(<PaginaNotas />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Carregando notas')
+    expect(screen.queryByText(/nenhuma nota por aqui/i)).not.toBeInTheDocument()
+  })
+
+  it('as setas andam entre os recortes, como num grupo de abas', async () => {
+    render(<PaginaNotas />)
+    const ativas = screen.getByRole('tab', { name: 'Ativas' })
+    expect(ativas).toHaveAttribute('tabindex', '0')
+    expect(screen.getByRole('tab', { name: 'Fixadas' })).toHaveAttribute('tabindex', '-1')
+
+    ativas.focus()
+    await userEvent.keyboard('{ArrowRight}')
+    expect(filtroVisto.state).toBe('pinned')
+    expect(screen.getByRole('tab', { name: 'Fixadas' })).toHaveFocus()
+
+    await userEvent.keyboard('{End}')
+    expect(filtroVisto.state).toBe('trash')
+    await userEvent.keyboard('{ArrowRight}')
+    expect(filtroVisto.state).toBe('active')
   })
 
   it('troca de recorte', async () => {

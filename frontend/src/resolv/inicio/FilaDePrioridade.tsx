@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { corEstadoSla, COR_PRIORIDADE, textoEstadoSla } from '../tickets/format'
 import { useTicketsList } from '../tickets/useTicketsList'
+import { EsqueletoLista } from './EsqueletoLista'
 
 const LIMITE = 5
 
@@ -23,7 +24,7 @@ export function FilaDePrioridade() {
         {data && <span className="inicio-lista__contador">{data.count}</span>}
       </header>
       {isLoading ? (
-        <p className="inicio-lista__vazio">Carregando…</p>
+        <EsqueletoLista rotulo="Carregando seus próximos chamados" />
       ) : linhas.length === 0 ? (
         <p className="inicio-lista__vazio">Nada pendente com você agora.</p>
       ) : (

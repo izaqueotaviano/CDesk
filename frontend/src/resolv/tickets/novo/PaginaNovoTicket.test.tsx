@@ -833,8 +833,12 @@ describe('PaginaNovoTicket', () => {
   it('com menos de 2 letras, avisa que precisa digitar mais, sem chamar de "ninguém encontrado"', () => {
     montar()
     fireEvent.change(campoPara(), { target: { value: 'a' } })
-    expect(screen.getByText('Digite ao menos 2 letras para buscar.')).toBeInTheDocument()
+    expect(screen.getByText('Digite ao menos 2 letras para buscar.', { selector: 'p' })).toBeVisible()
     expect(screen.queryByText(/Ninguém com esse nome/)).not.toBeInTheDocument()
+    // Só a dica, sem ninguém para escolher: a lista flutuante nem abre (ela
+    // cobria o rótulo do Assunto sem oferecer escolha nenhuma).
+    expect(campoPara()).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument()
   })
 
   it('solicitante inativo não aparece na busca — create_ticket sempre recusaria a abertura por ele', async () => {

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ErrorState, Select, TextInput } from '@/cvz/components'
 import { ApiError } from '@/api/client'
 import { useLogsAuditoria } from './dados'
+import { LinhasCarregando, LinhaVazia } from './EstadoTabela'
 
 const ACOES = [
   { value: '', label: 'Todas as ações' },
@@ -32,7 +33,7 @@ export function PainelLogs() {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+      <div className="auditoria-filtros">
         <Select label="Ação" value={action} onChange={(e) => setAction(e.target.value)} options={ACOES} />
         <TextInput label="ID do autor" placeholder="Ex.: 42" value={actor} onChange={(e) => setActor(e.target.value.replace(/\D/g, ''))} />
         <TextInput label="A partir de" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
@@ -55,9 +56,7 @@ export function PainelLogs() {
             </thead>
             <tbody>
               {logs.isLoading ? (
-                <tr>
-                  <td colSpan={6}>Carregando…</td>
-                </tr>
+                <LinhasCarregando colunas={6} />
               ) : logs.data && logs.data.results.length > 0 ? (
                 logs.data.results.map((l) => (
                   <tr key={l.id}>
@@ -67,14 +66,18 @@ export function PainelLogs() {
                     <td>
                       {l.target_type} #{l.object_id}
                     </td>
-                    <td>{l.summary}</td>
+                    <td className="auditoria-tabela__resumo" title={l.summary}>
+                      {l.summary}
+                    </td>
                     <td>{l.ip_address || '—'}</td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={6}>Nenhum registro para esse filtro.</td>
-                </tr>
+                <LinhaVazia colunas={6}>
+                  {action || actor || from
+                    ? 'Nenhum registro para esse filtro. Tente outra ação ou outra data.'
+                    : 'Nenhum registro na trilha de auditoria ainda.'}
+                </LinhaVazia>
               )}
             </tbody>
           </table>

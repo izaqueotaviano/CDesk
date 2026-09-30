@@ -6,27 +6,71 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 20px 24px 32px;
+  padding: 24px 24px 32px;
   background: var(--surface-canvas);
 
   // ---- topo da página ----
+  // Título grande com a linha de apoio EMBAIXO (não ao lado, na mesma
+  // linha de base), e a ação principal à direita: o mesmo cabeçalho das
+  // outras telas do console.
   &__topo {
     display: flex;
-    align-items: baseline;
-    gap: 12px;
+    align-items: flex-start;
+    justify-content: space-between;
     flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+  &__titulos {
+    flex: 1 1 240px;
+    min-width: 0;
   }
   &__titulo {
     margin: 0;
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 600;
+    line-height: 1.2;
     letter-spacing: -0.01em;
     color: var(--text-primary);
   }
   &__aviso {
-    margin: 0;
-    font-size: 12px;
+    margin: 4px 0 0;
+    font-size: 14px;
     color: var(--text-secondary);
+  }
+
+  // A ação principal: carvão cheio, a única cor forte da tela.
+  &__nova {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+    i {
+      font-size: 16px;
+    }
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
   }
 
   // ---- barra de filtros ----
@@ -38,76 +82,122 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 8px 12px;
-    margin-top: 16px;
+    margin-top: 20px;
   }
+  // Busca no desenho de campo do produto: branca, com a linha de campo
+  // (`--borda-campo`, a que anuncia "dá para digitar aqui") e em cápsula.
+  // Sem a linha, ela sumia no plano da página.
   &__busca {
-    width: 280px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 300px;
     max-width: 100%;
-    padding: 7px 10px;
-    border-radius: var(--raio);
-    background: var(--surface-card);
-    color: var(--text-primary);
-    font: inherit;
-    font-size: 12px;
-    &:focus-visible {
-      outline: none;
-      box-shadow: var(--anel-foco);
+    i {
+      position: absolute;
+      left: 12px;
+      font-size: 16px;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+    input {
+      width: 100%;
+      height: 36px;
+      padding: 0 14px 0 36px;
+      border: 1px solid var(--borda-campo);
+      border-radius: 999px;
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 14px;
+      &::placeholder {
+        color: var(--text-muted);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
     }
   }
+  // Recortes em pílula, no mesmo idioma do item da sidebar: sem moldura, o
+  // ativo é o fundo um degrau abaixo do plano e o peso — nenhuma cor de
+  // marca para dizer "selecionado".
   &__recortes {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
   }
   &__recorte {
-    padding: 5px 12px;
+    height: 32px;
+    padding: 0 14px;
+    border: none;
     border-radius: 999px;
-    background: var(--surface-card);
+    background: transparent;
     color: var(--text-secondary);
-    font-size: 12px;
+    font: inherit;
+    font-size: 14px;
+    white-space: nowrap;
     cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
     &:hover {
-      background: var(--surface-alt);
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
     }
-    &--ativo {
-      background: var(--tom-acento);
-      border-color: var(--accent);
-      color: var(--accent);
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &--ativo,
+    &--ativo:hover {
+      background: var(--sidebar-ativo);
+      color: var(--text-primary);
       font-weight: 500;
     }
   }
   &__filtro-etiqueta {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     margin-left: auto;
+  }
+  // O select nativo sem a cara do navegador: mesma cápsula e mesma linha da
+  // busca ao lado, com a seta do conjunto de ícones.
+  &__select {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
     select {
-      padding: 6px 9px;
-      border-radius: var(--raio);
+      height: 36px;
+      padding: 0 34px 0 14px;
+      border: 1px solid var(--borda-campo);
+      border-radius: 999px;
       background: var(--surface-card);
       color: var(--text-primary);
       font: inherit;
-      font-size: 12px;
+      font-size: 14px;
+      appearance: none;
+      cursor: pointer;
       &:focus-visible {
-        outline: none;
-        box-shadow: var(--anel-foco);
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
       }
+    }
+    i {
+      position: absolute;
+      right: 12px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      pointer-events: none;
     }
   }
   &__rotulo {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-secondary);
   }
 
   // ---- seção + grade ----
   &__secao {
-    margin-top: 24px;
-  }
-  &__secao-titulo {
-    margin: 0 0 12px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text-primary);
+    margin-top: 20px;
   }
   // `auto-fill` e não `auto-fit`: com poucas notas, `auto-fit` estica os
   // cartões restantes até a largura inteira da tela — um cartão de nota
@@ -124,52 +214,75 @@
     margin-top: 16px;
   }
 
+  // ---- vazio / erro ----
+  // Ícone, uma frase e a ação que cabe naquele recorte — centrado no espaço
+  // da grade, não uma linha solta de texto cinza no canto.
+  &__vazio {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    max-width: 420px;
+    margin: 48px auto 0;
+    text-align: center;
+  }
+  &__vazio-icone {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    margin-bottom: 4px;
+    border-radius: 50%;
+    background: var(--surface-card);
+    color: var(--text-secondary);
+    font-size: 24px;
+  }
+  &__vazio-titulo {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__vazio-texto {
+    margin: 0 0 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
   // ---- comuns ----
   &__botao {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 6px 12px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--stroke);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
-    font-size: 12px;
+    font: inherit;
+    font-size: 14px;
     cursor: pointer;
     &:hover:not(:disabled) {
-      background: var(--surface-alt);
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
     }
     &:disabled {
       opacity: 0.55;
       cursor: not-allowed;
     }
     &[aria-pressed='true'] {
-      background: var(--tom-acento);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-  }
-  &__link {
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--accent);
-    font-size: 11px;
-    cursor: pointer;
-    &:hover {
-      text-decoration: underline;
-    }
-  }
-  &__estado {
-    margin: 0 0 12px;
-    font-size: 12px;
-    color: var(--text-secondary);
-    p {
-      margin: 0 0 4px;
+      background: var(--sidebar-ativo);
+      font-weight: 500;
     }
   }
   &__erro {
     margin: 12px 0 0;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--danger);
   }
 }
@@ -186,39 +299,41 @@
   width: 100%;
   height: 216px;
   padding: 14px;
-  border-radius: var(--raio);
+  border: none;
+  // Cartão é superfície: o raio de superfície (12px), não o de controle.
+  border-radius: var(--raio-cartao);
   background: var(--surface-card);
+  font: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: box-shadow 0.15s ease;
 
+  // Hover é um fio de 1px em volta, não sombra: o cartão não sobe do plano,
+  // só se marca como alvo.
   &:hover {
-    border-color: var(--stroke-hover);
-    box-shadow: 0 1px 3px var(--sombra-suave);
+    box-shadow: 0 0 0 1px var(--stroke-hover);
   }
   &:focus-visible {
-    outline: none;
-    box-shadow: var(--anel-foco);
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
   }
 
   &__origem {
     display: flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     i {
       font-size: 12px;
-      color: var(--accent);
+      color: var(--text-primary);
     }
   }
   &__titulo {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     line-height: 1.35;
     color: var(--text-primary);
@@ -252,51 +367,27 @@
     overflow: hidden;
   }
   &__marca {
-    padding: 1px 7px;
+    padding: 1px 8px;
     border-radius: 999px;
     background: var(--surface-alt);
     color: var(--text-secondary);
-    font-size: 10px;
+    font-size: 12px;
     white-space: nowrap;
   }
   &__quando {
     flex-shrink: 0;
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-muted);
   }
 
-  // ---- o cartão de criar ----
-  &--nova {
-    align-items: center;
-    justify-content: center;
+  // ---- o cartão enquanto carrega ----
+  // Mesma caixa do cartão (altura, respiro, raio), sem hover nem cursor: é
+  // a forma do que vem, não um alvo.
+  &--esqueleto {
     gap: 10px;
-    border-style: dashed;
-    background: transparent;
-    color: var(--text-secondary);
-    font-size: 12px;
-    font-weight: 500;
-    &:hover:not(:disabled) {
-      border-color: var(--accent);
-      color: var(--accent);
+    cursor: default;
+    &:hover {
       box-shadow: none;
-    }
-    &:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-    }
-  }
-  &__marca-nova {
-    display: grid;
-    place-items: center;
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    // Sinal de "nova", não ação: o `cz-badge--brand` do kit é véu de acento
-    // com a tinta do acento, não preenchimento cheio.
-    background: var(--tom-acento-forte);
-    color: var(--accent);
-    i {
-      font-size: 20px;
     }
   }
 }
@@ -348,20 +439,22 @@
     input {
       width: 220px;
       max-width: 100%;
-      padding: 5px 8px;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--borda-campo);
       border-radius: var(--raio);
       background: var(--surface-card);
       color: var(--text-primary);
       font: inherit;
-      font-size: 12px;
+      font-size: 14px;
       &:focus-visible {
-        outline: none;
-        box-shadow: var(--anel-foco);
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
       }
     }
   }
   &__rotulo {
-    font-size: 10px;
+    font-size: 12px;
     color: var(--text-secondary);
   }
   &__chamado {
@@ -383,16 +476,17 @@
     min-height: 320px;
     width: 100%;
     padding: 10px 12px;
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
     background: var(--surface-card);
     color: var(--text-primary);
     font: inherit;
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1.6;
     resize: vertical;
     &:focus-visible {
-      outline: none;
-      box-shadow: var(--anel-foco);
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
     }
   }
   &__corpo-lido {
@@ -442,7 +536,7 @@
     gap: 8px;
     margin: 0;
     min-height: 16px;
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     &--erro {
       color: var(--danger);
@@ -469,7 +563,7 @@
   height: min(760px, 88vh);
   display: flex;
   flex-direction: column;
-  border-radius: var(--raio);
+  border-radius: var(--raio-cartao);
   background: var(--surface-card);
   box-shadow: var(--sombra-flutuante);
   overflow: hidden;
@@ -525,24 +619,24 @@
   &__fechar {
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     margin-left: 2px;
-    border: 1px solid transparent;
+    border: none;
     border-radius: var(--raio);
     background: transparent;
     color: var(--text-secondary);
     cursor: pointer;
     i {
-      font-size: 17px;
+      font-size: 18px;
     }
     &:hover {
-      background: var(--surface-alt);
+      background: var(--sidebar-hover);
       color: var(--text-primary);
     }
     &:focus-visible {
-      outline: none;
-      box-shadow: var(--anel-foco);
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
     }
   }
   &__corpo {
@@ -591,6 +685,20 @@
 @media (max-width: 700px) {
   .notas-pg {
     padding: 16px;
+    &__titulo {
+      font-size: 24px;
+    }
+    &__busca {
+      width: 100%;
+    }
+    // Quatro pílulas numa fita que rola de lado em vez de quebrar em duas
+    // linhas desalinhadas.
+    &__recortes {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      max-width: 100%;
+      scrollbar-width: none;
+    }
     &__grade {
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }

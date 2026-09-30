@@ -12,6 +12,7 @@ import {
   type PedidoLgpd,
   type StatusPedidoLgpd,
 } from './dados'
+import { LinhasCarregando, LinhaVazia } from './EstadoTabela'
 
 const ROTULO_STATUS: Record<StatusPedidoLgpd, { rotulo: string; tom: TagTone }> = {
   pending: { rotulo: 'Pendente', tom: 'away' },
@@ -171,9 +172,9 @@ function ModalRevisaoPii({
           </>
         }
       >
-        <p style={{ marginTop: 0 }}>
+        <p className="auditoria-intro">
           Campos estruturados (nome, e-mail, telefone) e anexos do titular são apagados automaticamente ao
-          executar. O texto livre abaixo foi só sinalizado — confira cada item e redija o que for PII antes de
+          executar. O texto livre abaixo foi só sinalizado: confira cada item e redija o que for PII antes de
           seguir.
         </p>
         {candidatos.isError ? (
@@ -182,9 +183,11 @@ function ModalRevisaoPii({
             onRetry={() => candidatos.refetch()}
           />
         ) : candidatos.isLoading ? (
-          <p>Procurando PII em texto livre…</p>
+          <p className="auditoria-intro" role="status">
+            Procurando PII em texto livre…
+          </p>
         ) : lista.length === 0 ? (
-          <p>Nenhum candidato encontrado em texto livre.</p>
+          <p className="auditoria-intro">Nenhum candidato encontrado em texto livre.</p>
         ) : (
           <ul className="lgpd-revisao__lista">
             {lista.map((c) => (
@@ -254,39 +257,41 @@ function LinhaPedido({ pedido }: { pedido: PedidoLgpd }) {
       </td>
       <td>
         {pedido.is_overdue ? (
-          <span style={{ color: 'var(--danger, #d33)' }}>Vencido</span>
+          <span className="auditoria-tabela__negado">Vencido</span>
         ) : pedido.days_left != null ? (
           `${pedido.days_left} dia(s)`
         ) : (
           '—'
         )}
       </td>
-      <td style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {podeVerificar && (
-          <Button variant="ghost" size="sm" onClick={() => setModalAberto('verificar')}>
-            Verificar identidade
-          </Button>
-        )}
-        {podeExecutar && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => (exigeRevisaoPii ? setEmRevisaoPii(true) : executarAgora())}
-            disabled={executar.isPending}
-          >
-            Executar
-          </Button>
-        )}
-        {podeRejeitar && (
-          <Button variant="ghost" size="sm" onClick={() => setModalAberto('rejeitar')}>
-            Rejeitar
-          </Button>
-        )}
-        {pedido.has_export && pedido.status === 'done' && (
-          <a className="btn btn--ghost btn--sm" href={`${API_BASE_URL}/api/v1/audit/lgpd/${pedido.id}/download/`}>
-            <span className="btn__label">Baixar pacote</span>
-          </a>
-        )}
+      <td>
+        <span className="auditoria-tabela__acoes">
+          {podeVerificar && (
+            <Button variant="ghost" size="sm" onClick={() => setModalAberto('verificar')}>
+              Verificar identidade
+            </Button>
+          )}
+          {podeExecutar && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => (exigeRevisaoPii ? setEmRevisaoPii(true) : executarAgora())}
+              disabled={executar.isPending}
+            >
+              Executar
+            </Button>
+          )}
+          {podeRejeitar && (
+            <Button variant="ghost" size="sm" onClick={() => setModalAberto('rejeitar')}>
+              Rejeitar
+            </Button>
+          )}
+          {pedido.has_export && pedido.status === 'done' && (
+            <a className="btn btn--ghost btn--sm" href={`${API_BASE_URL}/api/v1/audit/lgpd/${pedido.id}/download/`}>
+              <span className="btn__label">Baixar pacote</span>
+            </a>
+          )}
+        </span>
       </td>
 
       <ModalComJustificativa
@@ -340,15 +345,13 @@ export function PainelLgpd() {
         </thead>
         <tbody>
           {pedidos.isLoading ? (
-            <tr>
-              <td colSpan={5}>Carregando…</td>
-            </tr>
+            <LinhasCarregando colunas={5} />
           ) : pedidos.data && pedidos.data.length > 0 ? (
             pedidos.data.map((p) => <LinhaPedido key={p.id} pedido={p} />)
           ) : (
-            <tr>
-              <td colSpan={5}>Nenhum pedido LGPD registrado.</td>
-            </tr>
+            <LinhaVazia colunas={5}>
+              Nenhum pedido LGPD registrado. Pedidos de exportação e anonimização aparecem aqui assim que o titular pedir.
+            </LinhaVazia>
           )}
         </tbody>
       </table>

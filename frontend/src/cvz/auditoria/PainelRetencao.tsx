@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, ErrorState, Modal, Tag, TextArea, useToast, type TagTone } from '@/cvz/components'
 import { ApiError } from '@/api/client'
 import { useCiclosRetencao, useRevisarCiclo, useSimularRetencao, type CicloRetencao, type StatusCicloRetencao } from './dados'
+import { LinhasCarregando, LinhaVazia } from './EstadoTabela'
 
 const ROTULO_STATUS: Record<StatusCicloRetencao, { rotulo: string; tom: TagTone }> = {
   running: { rotulo: 'Em execução', tom: 'blue' },
@@ -51,9 +52,9 @@ function ModalRevisao({ ciclo, onClose }: { ciclo: CicloRetencao | null; onClose
         </>
       }
     >
-      <p style={{ marginTop: 0 }}>
+      <p className="auditoria-intro">
         {ciclo?.total_matched ?? 0} registro(s) seriam apagados por esta política. Marcar como revisado é o que
-        destrava o expurgo efetivo agendado — confira a amostra antes de confirmar.
+        destrava o expurgo efetivo agendado. Confira a amostra antes de confirmar.
       </p>
       <TextArea label="Observação (opcional)" value={nota} onChange={(e) => setNota(e.target.value)} rows={3} autoFocus />
     </Modal>
@@ -117,11 +118,11 @@ export function PainelRetencao() {
 
   return (
     <div>
-      <p>
-        Uma simulação não apaga nada — só mostra o que a política de retenção apagaria. O expurgo efetivo roda
+      <p className="auditoria-intro">
+        Uma simulação não apaga nada: só mostra o que a política de retenção apagaria. O expurgo efetivo roda
         sozinho pelo agendamento, e só depois que uma simulação for revisada abaixo.
       </p>
-      <div style={{ marginBottom: 16 }}>
+      <div className="auditoria-acoes">
         <Button onClick={rodarSimulacao} disabled={simular.isPending}>
           {simular.isPending ? 'Simulando…' : 'Rodar simulação agora'}
         </Button>
@@ -145,15 +146,13 @@ export function PainelRetencao() {
             </thead>
             <tbody>
               {ciclos.isLoading ? (
-                <tr>
-                  <td colSpan={7}>Carregando…</td>
-                </tr>
+                <LinhasCarregando colunas={7} />
               ) : ciclos.data && ciclos.data.length > 0 ? (
                 ciclos.data.map((c) => <LinhaCiclo key={c.id} ciclo={c} onRevisar={() => setEmRevisao(c)} />)
               ) : (
-                <tr>
-                  <td colSpan={7}>Nenhum ciclo de retenção rodou ainda.</td>
-                </tr>
+                <LinhaVazia colunas={7}>
+                  Nenhum ciclo de retenção rodou ainda. Rode uma simulação para ver o que a política apagaria.
+                </LinhaVazia>
               )}
             </tbody>
           </table>

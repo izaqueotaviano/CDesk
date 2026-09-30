@@ -100,27 +100,42 @@
   &__filtro {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    font-size: 11px;
+    gap: 8px;
+    font-size: 12px;
     color: var(--text-secondary);
+  }
+  // O select sem a cara do navegador (`appearance: none`) e com a seta do
+  // conjunto de ícones — o mesmo par dos seletores do painel ao lado
+  // (`.props__seletor`), só que compacto, porque mora na linha do rótulo.
+  &__filtro-campo {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
     select {
-      height: 26px;
-      max-width: 200px;
-      padding: 0 24px 0 8px;
-      border: 1px solid var(--stroke);
+      height: 28px;
+      max-width: 220px;
+      padding: 0 28px 0 10px;
+      appearance: none;
+      border: 1px solid var(--borda-campo);
       border-radius: var(--raio);
       background: var(--surface-card);
       font-family: var(--f-ui);
       font-size: 12px;
       color: var(--text-primary);
+      text-overflow: ellipsis;
       cursor: pointer;
-      &:hover {
-        border-color: var(--stroke-hover);
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
       }
-      &:focus {
-        border-color: var(--accent);
-        box-shadow: var(--anel-foco);
-      }
+    }
+    i {
+      position: absolute;
+      right: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      pointer-events: none;
     }
   }
 
@@ -487,14 +502,15 @@
     align-items: center;
     height: 36px;
     padding-left: 10px;
-    border: 1px solid var(--stroke);
+    // Linha de CAMPO (`--borda-campo`): é ela que anuncia "digite aqui".
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
     background: var(--surface-card);
     transition:
       border-color 0.15s ease,
       box-shadow 0.15s ease;
     > i:first-child {
-      font-size: 15px;
+      font-size: 16px;
       color: var(--text-secondary);
       pointer-events: none;
     }
@@ -506,21 +522,18 @@
       border: none;
       background: transparent;
       font-family: var(--f-ui);
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-primary);
       &::placeholder {
-        color: var(--text-secondary);
+        color: var(--text-muted);
       }
       &:disabled {
         color: var(--text-secondary);
       }
     }
-    &:hover {
-      border-color: var(--stroke-hover);
-    }
     &:focus-within {
-      border-color: var(--accent);
-      box-shadow: var(--anel-foco);
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
     }
   }
   &--escolhido &__campo > i:first-child {
@@ -557,20 +570,29 @@
     }
   }
 
+  // A lista é um POPOVER: flutua sobre o que vem embaixo (Assunto,
+  // Mensagem) com superfície, fio e sombra próprios — é o único lugar da
+  // tela onde sombra entra, porque ali ela diz "isto está por cima".
+  // `isolation` e o z-index alto garantem que nada do formulário que vem
+  // depois no DOM (o editor da mensagem cria camadas próprias) passe na
+  // frente dela.
   &__lista {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 6px);
     left: 0;
     right: 0;
     z-index: 500;
+    isolation: isolate;
     max-height: 288px;
     overflow-y: auto;
+    overscroll-behavior: contain;
     list-style: none;
     margin: 0;
     padding: 4px;
     background: var(--surface-card);
-    border-radius: var(--raio);
-    box-shadow: var(--sombra-flutuante);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio-cartao);
+    box-shadow: 0 8px 24px var(--sombra-forte);
     &[hidden] {
       display: none;
     }
@@ -578,25 +600,46 @@
   &__opcao {
     display: flex;
     flex-direction: column;
-    gap: 1px;
-    padding: 7px 10px;
+    gap: 2px;
+    padding: 8px 10px;
     border-radius: var(--raio);
     cursor: pointer;
     &--ativa {
-      background: var(--surface-alt);
+      background: var(--sidebar-ativo);
     }
   }
   &__nome {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
   }
   &__desc {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+  // Com a lista aberta, a linha de ajuda logo abaixo do campo fica coberta
+  // por ela — mas o canto arredondado deixava a primeira letra da ajuda
+  // espiando pela quina. Some enquanto a lista está aberta (continua no
+  // `aria-describedby` do campo, que lê o texto mesmo invisível).
+  &:has(.busca-pessoa__lista:not([hidden])) + .props__ajuda {
+    visibility: hidden;
+  }
+
+  // A dica de termo curto: no fluxo, logo abaixo do campo (empurra a ajuda
+  // uma linha para baixo em vez de cobrir o campo seguinte).
+  &__dica {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    i {
+      font-size: 14px;
+    }
   }
   &__vazio {
     padding: 10px;

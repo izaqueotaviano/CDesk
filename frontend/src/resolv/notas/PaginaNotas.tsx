@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import {
   useAcoesNota,
   useEtiquetas,
@@ -6,6 +6,7 @@ import {
   type EstadoNota,
   type NotaResumo,
 } from '@/api/notas'
+import { Esqueleto } from '@/ui/Esqueleto'
 import { tempoRelativo } from '../tickets/detalhe/linhaDoTempo'
 import { ModalNota } from './ModalNota'
 import './notas.scss'
@@ -30,12 +31,51 @@ import './notas.scss'
  * requisições simultâneas criarem duas notas.
  */
 
-const RECORTES: { id: EstadoNota; rotulo: string }[] = [
-  { id: 'active', rotulo: 'Ativas' },
-  { id: 'pinned', rotulo: 'Fixadas' },
-  { id: 'archived', rotulo: 'Arquivadas' },
-  { id: 'trash', rotulo: 'Lixeira' },
+/** Cada recorte tem o SEU vazio: "nenhuma fixada" pede outra coisa da pessoa
+ *  do que "nenhuma nota", e a lixeira vazia é boa notícia, não convite a
+ *  escrever. */
+const RECORTES: { id: EstadoNota; rotulo: string; vazio: { icone: string; titulo: string; texto: string } }[] = [
+  {
+    id: 'active',
+    rotulo: 'Ativas',
+    vazio: {
+      icone: 'ti ti-notes',
+      titulo: 'Nenhuma nota por aqui ainda',
+      texto: 'Guarde o passo a passo de um atendimento, um contato ou um lembrete. Só você vê.',
+    },
+  },
+  {
+    id: 'pinned',
+    rotulo: 'Fixadas',
+    vazio: {
+      icone: 'ti ti-pin',
+      titulo: 'Nenhuma nota fixada',
+      texto: 'Abra uma nota e use Fixar para deixá-la sempre à mão.',
+    },
+  },
+  {
+    id: 'archived',
+    rotulo: 'Arquivadas',
+    vazio: {
+      icone: 'ti ti-archive',
+      titulo: 'Nenhuma nota arquivada',
+      texto: 'Arquive o que não usa mais: sai da lista sem ir para a lixeira.',
+    },
+  },
+  {
+    id: 'trash',
+    rotulo: 'Lixeira',
+    vazio: {
+      icone: 'ti ti-trash',
+      titulo: 'A lixeira está vazia',
+      texto: 'Notas excluídas ficam aqui até você restaurar.',
+    },
+  },
 ]
+
+/** Quantos cartões fantasmas no carregamento: uma fileira e meia numa tela
+ *  comum, o bastante para a grade não "pular" quando as notas chegam. */
+const CARTOES_ESQUELETO = 6
 
 const TITULO_PADRAO = 'Sem título'
 
@@ -93,6 +133,24 @@ function CartaoNota({
   )
 }
 
+/** O cartão enquanto a lista não chega: a mesma altura e as mesmas linhas
+ *  (origem, título, texto, rodapé) do cartão de verdade. */
+function CartaoEsqueleto() {
+  return (
+    <li aria-hidden="true">
+      <div className="cartao-nota cartao-nota--esqueleto">
+        <Esqueleto className="w-1/3" />
+        <Esqueleto className="w-4/5" />
+        <Esqueleto className="w-full" />
+        <Esqueleto className="w-3/5" />
+        <span className="cartao-nota__rodape">
+          <Esqueleto className="w-1/4" />
+        </span>
+      </div>
+    </li>
+  )
+}
+
 export function PaginaNotas() {
   const [recorte, setRecorte] = useState<EstadoNota>('active')
   const [busca, setBusca] = useState('')
@@ -101,6 +159,7 @@ export function PaginaNotas() {
   const [limite, setLimite] = useState(PASSO)
   const [aberta, setAberta] = useState<number | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const abasRef = useRef<HTMLDivElement>(null)
 
   // Mesmo debounce da busca global (BuscaComando): digitar não vira uma
   // requisição por tecla. `setLimite` aqui dentro (não num efeito à parte
@@ -124,6 +183,32 @@ export function PaginaNotas() {
   function mudarEtiqueta(novo: string) {
     setEtiqueta(novo)
     setLimite(PASSO)
+  }
+  function limparFiltros() {
+    setBusca('')
+    setBuscado('')
+    mudarEtiqueta('')
+  }
+
+  /** Setas entre os recortes, como em qualquer grupo de abas: só o recorte
+   *  ativo fica na ordem do Tab (`tabIndex`), e esquerda/direita, Home e End
+   *  andam entre eles já trocando a lista. */
+  function aoTeclarNosRecortes(e: KeyboardEvent<HTMLDivElement>) {
+    const atual = RECORTES.findIndex((r) => r.id === recorte)
+    const destino =
+      e.key === 'ArrowRight'
+        ? (atual + 1) % RECORTES.length
+        : e.key === 'ArrowLeft'
+          ? (atual - 1 + RECORTES.length) % RECORTES.length
+          : e.key === 'Home'
+            ? 0
+            : e.key === 'End'
+              ? RECORTES.length - 1
+              : null
+    if (destino === null) return
+    e.preventDefault()
+    mudarRecorte(RECORTES[destino].id)
+    abasRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[destino]?.focus()
   }
 
   const filtro = {
@@ -161,33 +246,56 @@ export function PaginaNotas() {
     }
   }
 
-  const rotuloDoRecorte = RECORTES.find((r) => r.id === recorte)?.rotulo ?? 'Notas'
+  const recorteAtual = RECORTES.find((r) => r.id === recorte) ?? RECORTES[0]
   const vazia = !isLoading && !isError && notas.length === 0
+  const filtrando = Boolean(buscado || etiqueta)
 
   return (
     <div className="notas-pg">
       <header className="notas-pg__topo">
-        <h1 className="notas-pg__titulo">Notas</h1>
-        <p className="notas-pg__aviso">Só você vê estas notas.</p>
+        <div className="notas-pg__titulos">
+          <h1 className="notas-pg__titulo">Notas</h1>
+          <p className="notas-pg__aviso">Só você vê estas notas.</p>
+        </div>
+        <button
+          type="button"
+          className="notas-pg__nova"
+          onClick={novaNota}
+          disabled={criar.isPending}
+        >
+          <i className="ti ti-plus" aria-hidden="true" />
+          Nova nota
+        </button>
       </header>
 
       <div className="notas-pg__filtros">
-        <input
-          type="search"
-          className="notas-pg__busca"
-          aria-label="Buscar nas minhas notas"
-          placeholder="Buscar por título ou texto…"
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-        />
+        <label className="notas-pg__busca">
+          <i className="ti ti-search" aria-hidden="true" />
+          <input
+            type="search"
+            aria-label="Buscar nas minhas notas"
+            placeholder="Buscar por título ou texto"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </label>
 
-        <div className="notas-pg__recortes" role="tablist" aria-label="Recorte">
+        <div
+          className="notas-pg__recortes"
+          role="tablist"
+          aria-label="Recorte"
+          ref={abasRef}
+          onKeyDown={aoTeclarNosRecortes}
+        >
           {RECORTES.map((r) => (
             <button
               key={r.id}
               type="button"
               role="tab"
+              id={`notas-recorte-${r.id}`}
               aria-selected={recorte === r.id}
+              aria-controls="notas-lista"
+              tabIndex={recorte === r.id ? 0 : -1}
               className={'notas-pg__recorte' + (recorte === r.id ? ' notas-pg__recorte--ativo' : '')}
               onClick={() => mudarRecorte(r.id)}
             >
@@ -199,18 +307,21 @@ export function PaginaNotas() {
         {(etiquetas ?? []).length > 0 && (
           <label className="notas-pg__filtro-etiqueta">
             <span className="notas-pg__rotulo">Etiqueta</span>
-            <select
-              value={etiqueta}
-              onChange={(e) => mudarEtiqueta(e.target.value)}
-              aria-label="Filtrar por etiqueta"
-            >
-              <option value="">Todas</option>
-              {(etiquetas ?? []).map((e) => (
-                <option key={e.id} value={e.slug}>
-                  {e.name}
-                </option>
-              ))}
-            </select>
+            <span className="notas-pg__select">
+              <select
+                value={etiqueta}
+                onChange={(e) => mudarEtiqueta(e.target.value)}
+                aria-label="Filtrar por etiqueta"
+              >
+                <option value="">Todas</option>
+                {(etiquetas ?? []).map((e) => (
+                  <option key={e.id} value={e.slug}>
+                    {e.name}
+                  </option>
+                ))}
+              </select>
+              <i className="ti ti-chevron-down" aria-hidden="true" />
+            </span>
           </label>
         )}
       </div>
@@ -221,35 +332,75 @@ export function PaginaNotas() {
         </p>
       )}
 
-      <section className="notas-pg__secao" aria-label={`Notas — ${rotuloDoRecorte}`}>
-        <h2 className="notas-pg__secao-titulo">{rotuloDoRecorte}</h2>
-
+      <section
+        className="notas-pg__secao"
+        id="notas-lista"
+        role="tabpanel"
+        aria-labelledby={`notas-recorte-${recorte}`}
+        aria-busy={isLoading || undefined}
+      >
         {isLoading && (
-          <p className="notas-pg__estado" role="status">
-            Carregando…
-          </p>
+          <>
+            <p className="sr-only" role="status">
+              Carregando notas
+            </p>
+            <ul className="notas-pg__grade">
+              {Array.from({ length: CARTOES_ESQUELETO }, (_, i) => (
+                <CartaoEsqueleto key={i} />
+              ))}
+            </ul>
+          </>
         )}
 
         {isError && (
-          <div className="notas-pg__estado" role="alert">
-            <p>Não foi possível carregar suas notas.</p>
-            <button type="button" className="notas-pg__link" onClick={() => refetch()}>
-              Tentar de novo
+          <div className="notas-pg__vazio" role="alert">
+            <i className="ti ti-alert-circle notas-pg__vazio-icone" aria-hidden="true" />
+            <p className="notas-pg__vazio-titulo">Não foi possível carregar suas notas.</p>
+            <p className="notas-pg__vazio-texto">Pode ter sido a conexão. Suas notas continuam salvas.</p>
+            <button type="button" className="notas-pg__botao" onClick={() => refetch()}>
+              <i className="ti ti-refresh" aria-hidden="true" /> Tentar de novo
             </button>
           </div>
         )}
 
-        {vazia && (
-          <p className="notas-pg__estado">
-            {buscado || etiqueta
-              ? 'Nada encontrado com esse filtro.'
-              : recorte === 'trash'
-                ? 'A lixeira está vazia.'
-                : 'Nenhuma nota por aqui ainda.'}
-          </p>
-        )}
+        {vazia &&
+          (filtrando ? (
+            <div className="notas-pg__vazio">
+              <i className="ti ti-search notas-pg__vazio-icone" aria-hidden="true" />
+              <p className="notas-pg__vazio-titulo">Nada encontrado com esse filtro.</p>
+              <p className="notas-pg__vazio-texto">Tente outra palavra ou limpe os filtros para ver todas.</p>
+              <button type="button" className="notas-pg__botao" onClick={limparFiltros}>
+                Limpar filtros
+              </button>
+            </div>
+          ) : (
+            <div className="notas-pg__vazio">
+              <i className={`${recorteAtual.vazio.icone} notas-pg__vazio-icone`} aria-hidden="true" />
+              <p className="notas-pg__vazio-titulo">{recorteAtual.vazio.titulo}</p>
+              <p className="notas-pg__vazio-texto">{recorteAtual.vazio.texto}</p>
+              {/* A ação do vazio muda com o recorte: nas ativas é escrever a
+               *  primeira; em Fixadas e Arquivadas é voltar para onde as notas
+               *  estão; na lixeira não há o que oferecer (lixeira vazia é o
+               *  estado bom, não um convite a escrever). */}
+              {recorte === 'active' && (
+                <button
+                  type="button"
+                  className="notas-pg__nova"
+                  onClick={novaNota}
+                  disabled={criar.isPending}
+                >
+                  Escrever a primeira nota
+                </button>
+              )}
+              {(recorte === 'pinned' || recorte === 'archived') && (
+                <button type="button" className="notas-pg__botao" onClick={() => mudarRecorte('active')}>
+                  Ver notas ativas
+                </button>
+              )}
+            </div>
+          ))}
 
-        {!isError && (
+        {!isError && notas.length > 0 && (
           <ul className="notas-pg__grade">
             {notas.map((n) => (
               <CartaoNota
@@ -259,25 +410,6 @@ export function PaginaNotas() {
                 onAbrir={() => setAberta(n.id)}
               />
             ))}
-
-            {/* O cartão de criar fica NA grade, junto das notas — é a mesma
-             *  ação de sempre no mesmo lugar onde a pessoa já está olhando.
-             *  Fora da lixeira: ali o contexto é recuperar, não escrever. */}
-            {recorte !== 'trash' && (
-              <li>
-                <button
-                  type="button"
-                  className="cartao-nota cartao-nota--nova"
-                  onClick={novaNota}
-                  disabled={criar.isPending}
-                >
-                  <span className="cartao-nota__marca-nova" aria-hidden="true">
-                    <i className="ti ti-file-plus" />
-                  </span>
-                  Nova nota
-                </button>
-              </li>
-            )}
           </ul>
         )}
 

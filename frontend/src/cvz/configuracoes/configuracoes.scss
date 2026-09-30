@@ -1,6 +1,135 @@
 @use '../styles/tokens' as *;
 @use '../styles/mixins' as *;
 
+// =============================================================================
+// A página: navegação por seção à esquerda, seção aberta à direita.
+//
+// `container-type` e não media query: quem decide se a lista lateral cabe é
+// a largura que SOBRA para a página, não a da janela — com a sidebar do
+// shell aberta num notebook de 1280px sobram ~1000px; recolhida, ~1200px.
+// Abaixo de 760px úteis a lista vira o seletor do topo (`.cfg-seletor`).
+// =============================================================================
+.cfg-pagina {
+  container-type: inline-size;
+  container-name: cfg-pagina;
+
+  &__corpo {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    align-items: start;
+    gap: $sp-6;
+  }
+
+  &__conteudo {
+    min-width: 0;
+  }
+}
+
+.cfg-nav {
+  // Presa no topo enquanto a seção rola: com quinze destinos, voltar lá em
+  // cima pra trocar de seção era o gesto mais repetido da tela.
+  position: sticky;
+  top: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+
+  &__titulo {
+    margin: 0 0 $sp-1;
+    padding: 0 $sp-2;
+    @include type($fs-meta, $w-medium);
+    color: $text-muted;
+  }
+
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // Mesmo desenho do item da sidebar do shell (resolv/shell/sidebar.scss):
+  // pílula de 32px, sem cor de marca — o ativo é o fundo um degrau abaixo
+  // e o peso. As custom properties são as do `.resolv-scope`, que sempre
+  // envolve esta página (SuperficieCvz vive dentro do NovoShell); o
+  // fallback é o hover do próprio cvz, pra quem montar fora dele.
+  &__item {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 $sp-2;
+    border-radius: 8px;
+    @include type($fs-body, $w-regular, $lh-none);
+    color: $text-secondary;
+    text-decoration: none;
+    transition: background-color $dur $ease, color $dur $ease;
+
+    &:hover {
+      background-color: var(--sidebar-hover, #{$hover-soft});
+      color: $text;
+    }
+
+    &[aria-current='page'] {
+      background-color: var(--sidebar-ativo, #{$hover-soft});
+      color: $text;
+      font-weight: $w-medium;
+    }
+
+    &:focus-visible {
+      outline: $focus-w solid var(--foco, #{$text});
+      outline-offset: -2px;
+    }
+  }
+}
+
+// O seletor só existe em largura estreita (ver `.cfg-pagina`).
+.cfg-seletor {
+  display: none;
+}
+
+.cfg-secao {
+  &__topo {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-1;
+  }
+
+  &__titulo {
+    margin: 0;
+    @include type($fs-subhead, $w-semibold);
+    color: $text;
+  }
+
+  &__descricao {
+    margin: 0;
+    @include type($fs-body, $w-regular);
+    color: $text-secondary;
+  }
+}
+
+@container cfg-pagina (max-width: 760px) {
+  .cfg-pagina__corpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: $sp-4;
+  }
+
+  .cfg-nav {
+    display: none;
+  }
+
+  .cfg-seletor {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-nav__item {
+    transition: none;
+  }
+}
+
 // Conteúdo de cada aba de Configurações — linha de "adicionar" no topo,
 // tabela editável inline embaixo. Compartilhado pelas abas de cadastro
 // simples (Status, Serviços, Categorias, Tags); as mais complexas (SLA,

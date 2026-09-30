@@ -1,5 +1,5 @@
 import { useMe } from '@/api/queries/useMe'
-import { PageHeader, Tabs } from '@/cvz/components'
+import { ForbiddenState, PageHeader, Tabs } from '@/cvz/components'
 import { PainelAcessos } from './PainelAcessos'
 import { PainelLgpd } from './PainelLgpd'
 import { PainelLogs } from './PainelLogs'
@@ -26,7 +26,10 @@ export function PaginaAuditoria() {
     return (
       <>
         <PageHeader title="Auditoria e LGPD" />
-        <p>Esta área é restrita a administradores.</p>
+        <ForbiddenState
+          title="Esta área é restrita a administradores."
+          description="Peça a um administrador se precisar consultar a trilha de auditoria ou um pedido LGPD."
+        />
       </>
     )
   }

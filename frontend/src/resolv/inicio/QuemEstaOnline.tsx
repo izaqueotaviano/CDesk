@@ -1,4 +1,5 @@
 import { useAgentes } from '@/cvz/tickets/dados'
+import { Esqueleto } from '@/ui/Esqueleto'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
 
@@ -15,16 +16,30 @@ const ROTULO_PRESENCA: Record<string, string> = {
  * Configurações → Papéis) — aqui o ponto é só quem responde agora.
  */
 export function QuemEstaOnline() {
-  const { data: agentes } = useAgentes()
+  const { data: agentes, isLoading } = useAgentes()
   const online = (agentes ?? []).filter((a) => a.kind === 'internal' && a.presence !== 'offline')
 
   return (
     <div className="inicio-lista">
       <header className="inicio-lista__cabecalho">
         <h2>Equipe agora</h2>
-        <span className="inicio-lista__contador">{online.length}</span>
+        {!isLoading && <span className="inicio-lista__contador">{online.length}</span>}
       </header>
-      {online.length === 0 ? (
+      {isLoading ? (
+        // Antes da lista chegar, "ninguém online" seria uma frase falsa por
+        // um instante: o esqueleto tem a forma da grade de rostos que vem.
+        <div role="status">
+          <span className="sr-only">Carregando quem está online</span>
+          <ul className="inicio-online__grade" aria-hidden="true">
+            {Array.from({ length: 4 }, (_, i) => (
+              <li key={i} className="inicio-online__pessoa">
+                <Esqueleto variante="avatar" className="inicio-online__esq-avatar" />
+                <Esqueleto className="inicio-online__esq-nome" />
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : online.length === 0 ? (
         <p className="inicio-lista__vazio">Ninguém mais online agora.</p>
       ) : (
         <ul className="inicio-online__grade">

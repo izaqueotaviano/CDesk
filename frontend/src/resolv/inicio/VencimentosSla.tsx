@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { corEstadoSla, textoEstadoSla } from '../tickets/format'
 import { useTicketsList } from '../tickets/useTicketsList'
+import { EsqueletoLista } from './EsqueletoLista'
 
 const LIMITE = 6
 
@@ -29,9 +30,9 @@ export function VencimentosSla() {
         {!carregando && <span className="inicio-lista__contador">{total}</span>}
       </header>
       {carregando ? (
-        <p className="inicio-lista__vazio">Carregando…</p>
+        <EsqueletoLista rotulo="Carregando os vencimentos da equipe" />
       ) : linhas.length === 0 ? (
-        <p className="inicio-lista__vazio">Nada vencendo agora — bom trabalho.</p>
+        <p className="inicio-lista__vazio">Nada vencendo agora. Bom trabalho.</p>
       ) : (
         <ul className="inicio-lista__itens">
           {linhas.map((t) => (

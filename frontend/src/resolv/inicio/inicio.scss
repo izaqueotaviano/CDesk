@@ -1,5 +1,5 @@
-// Home — KPI row no estilo do design system (cards brancos lado a lado,
-// separados por borda, sem gap; valor grande peso 300; accent na borda inferior).
+// Home — cabeçalho com a ação "Pegar o próximo", as listas acionáveis em
+// cartões brancos sobre o plano, e a faixa de KPI num cartão só.
 .inicio {
   padding: 24px;
   display: flex;
@@ -13,21 +13,20 @@
     gap: 16px;
     flex-wrap: wrap;
   }
-  // Único lugar do produto com a fonte de destaque (--f-display, hoje Tenor
-  // Sans) — mesmo tratamento do título grande do app da Manus (manus.im):
-  // display só aqui, peso regular (bold numa serifa de texto pesa demais num
-  // título já grande), resto da interface segue no Inter.
+  // Mesmo título de página das outras telas do console: 28px, Inter,
+  // semibold, com a linha de apoio embaixo.
   &__titulo {
-    font-family: var(--f-display);
-    font-size: 26px;
-    font-weight: 400;
+    font-family: var(--f-ui);
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.2;
     color: var(--text-primary);
     letter-spacing: -0.01em;
   }
   &__sub {
-    margin-top: 2px;
-    font-size: 13px;
-    color: var(--text-muted);
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--text-secondary);
   }
   &__fila-estado {
     color: var(--away);
@@ -37,41 +36,63 @@
     }
   }
 
-  &__acoes {
+  // "Pegar o próximo" e a frase que diz quantos há (ou por que não há):
+  // coluna alinhada à direita, a frase logo abaixo do botão.
+  &__pegar {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
     flex-shrink: 0;
+    max-width: 100%;
   }
   &__botao {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 8px 14px;
+    height: 36px;
+    padding: 0 16px;
     border: none;
     border-radius: var(--raio);
     background: var(--primario);
     // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
     // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
     color: var(--primario-sobre);
-    font-size: 13px;
+    font-family: var(--f-ui);
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     white-space: nowrap;
+    transition: background-color 0.15s ease;
 
     i {
-      font-size: 15px;
+      font-size: 16px;
     }
     &:hover {
-      filter: brightness(1.08);
+      background: var(--primario-hover);
     }
-    &--secundario {
-      background: var(--surface-card);
-      color: var(--text-primary);
-      &:hover {
-        filter: none;
-        border-color: var(--stroke-hover);
-        background: var(--surface);
-      }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    // `aria-disabled` e não `disabled`: continua focável, e a frase ao lado
+    // (aria-describedby) é lida junto. O visual é o de desabilitado.
+    &[aria-disabled='true'] {
+      background: var(--sidebar-ativo);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    &[aria-busy='true'] {
+      cursor: progress;
+    }
+  }
+  &__dica {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    &--erro {
+      color: var(--danger);
     }
   }
 
@@ -88,17 +109,19 @@
     }
   }
 
+  // Grade e não flex com quebra: com sete ladrilhos, o flex deixava o
+  // "Resolvidos hoje" sozinho numa segunda linha inteira. Assim as colunas
+  // se dividem por igual e só quebram quando não cabem mesmo.
   &__kpis {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     background: var(--surface-card);
-    border-radius: var(--raio);
+    border-radius: var(--raio-cartao);
     overflow: hidden;
   }
 
   &__kpi {
-    flex: 1 1 160px;
-    min-width: 160px;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -114,7 +137,7 @@
       border-right: none;
     }
     &:hover {
-      background: var(--surface);
+      background: var(--sidebar-hover);
       border-bottom-color: var(--accent);
     }
     // Item (impeccable/polish): `.inicio__kpis` é `overflow: hidden` (só
@@ -135,16 +158,17 @@
   }
 
   &__kpi-rotulo {
-    font-size: 12.5px;
-    font-weight: 300;
+    font-size: 12px;
+    font-weight: 400;
     color: var(--text-secondary);
   }
   &__kpi-valor {
-    font-size: 36px;
-    font-weight: 300;
-    letter-spacing: -0.02em;
+    font-size: 28px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     color: var(--text-primary);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
     &--accent {
       color: var(--accent);
     }
@@ -165,8 +189,12 @@
       border-bottom-color: transparent;
     }
   }
+  // O número ainda não chegou: um bloco na altura do número (1em do valor).
+  &__kpi .inicio__kpi-esqueleto {
+    width: 48px;
+  }
   &__kpi-delta {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     &--up {
       color: var(--ok);
@@ -191,7 +219,7 @@
   gap: 8px;
   padding: 16px;
   background: var(--surface-card);
-  border-radius: var(--raio);
+  border-radius: var(--raio-cartao);
   min-width: 0;
 
   &__cabecalho {
@@ -201,30 +229,37 @@
     gap: 8px;
 
     h2 {
-      font-size: 13px;
+      font-size: 16px;
       font-weight: 600;
       color: var(--text-primary);
     }
   }
   &__contador {
-    font-family: var(--f-mono);
+    font-family: var(--f-ui);
     font-size: 12px;
-    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
   }
   &__ver-tudo {
     border: none;
     background: none;
     color: var(--accent);
     font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
     padding: 0;
     &:hover {
-      text-decoration: underline;
+      text-decoration-thickness: 2px;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
     }
   }
   &__vazio {
-    font-size: 13px;
-    color: var(--text-muted);
+    font-size: 14px;
+    color: var(--text-secondary);
     padding: 8px 2px;
   }
 
@@ -248,12 +283,49 @@
     color: inherit;
 
     &:hover {
-      background: var(--surface);
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
     }
     &--chat {
       cursor: default;
       &:hover {
         background: none;
+      }
+    }
+    // A linha enquanto carrega: mesma altura e mesmas colunas da de verdade.
+    &--esqueleto {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+      .inicio-lista__esq-barra {
+        width: 3px;
+        height: auto;
+        align-self: stretch;
+      }
+      .inicio-lista__esq-avatar {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+      }
+      .inicio-lista__texto {
+        gap: 6px;
+      }
+      .inicio-lista__esq-assunto {
+        width: 70%;
+        height: 14px;
+      }
+      .inicio-lista__esq-meta {
+        width: 40%;
+        height: 12px;
+      }
+      .inicio-lista__esq-lado {
+        width: 44px;
+        height: 12px;
+        flex-shrink: 0;
       }
     }
   }
@@ -270,22 +342,22 @@
     flex-direction: column;
   }
   &__assunto {
-    font-size: 13px;
+    font-size: 14px;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   &__meta {
-    font-size: 11.5px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   &__sla {
     flex-shrink: 0;
-    font-size: 11.5px;
+    font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
   }
@@ -306,7 +378,8 @@
   }
   &__pegar {
     flex-shrink: 0;
-    padding: 4px 10px;
+    height: 28px;
+    padding: 0 12px;
     border: none;
     border-radius: var(--raio);
     background: var(--primario);
@@ -314,6 +387,13 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
     &:disabled {
       opacity: 0.5;
       cursor: default;
@@ -364,8 +444,17 @@
       background: var(--presenca-ausente);
     }
   }
+  // Esqueleto da grade de rostos (QuemEstaOnline enquanto carrega).
+  &__pessoa .inicio-online__esq-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  &__pessoa .inicio-online__esq-nome {
+    width: 40px;
+    height: 12px;
+  }
   &__nome {
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
@@ -389,33 +478,22 @@
     align-items: flex-start;
     gap: 10px;
     padding: 12px 14px;
-    border-left: 3px solid var(--accent);
-    border-radius: var(--raio);
+    border-radius: var(--raio-cartao);
     background: var(--surface-card);
-    font-size: 13px;
+    font-size: 14px;
 
+    // Cor só para o que é ESTADO: o aviso urgente. Feriado e férias são tipo
+    // de aviso, não alerta; o ícone já diz qual é, sem faixa colorida.
     > i:first-child {
       margin-top: 2px;
       font-size: 16px;
-      color: var(--accent);
+      color: var(--text-secondary);
     }
     &--urgent {
-      border-left-color: var(--danger);
       background: color-mix(in srgb, var(--danger) 6%, var(--surface-card));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 30%, transparent);
       > i:first-child {
         color: var(--danger);
-      }
-    }
-    &--holiday {
-      border-left-color: var(--ok);
-      > i:first-child {
-        color: var(--ok);
-      }
-    }
-    &--vacation {
-      border-left-color: var(--away);
-      > i:first-child {
-        color: var(--away);
       }
     }
   }
@@ -437,13 +515,50 @@
   &__item button {
     display: grid;
     place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
     border: none;
+    border-radius: var(--raio);
     background: none;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     cursor: pointer;
-    padding: 2px;
     &:hover {
+      background: var(--sidebar-hover);
       color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// Celular: a ação desce para baixo da saudação e ocupa a largura toda, com
+// a frase embaixo alinhada à esquerda, como o resto do texto.
+@media (max-width: 599px) {
+  .inicio {
+    padding: 16px;
+    gap: 16px;
+
+    &__titulo {
+      font-size: 24px;
+    }
+    &__pegar {
+      width: 100%;
+      align-items: stretch;
+    }
+    &__botao {
+      justify-content: center;
+    }
+    &__dica {
+      text-align: left;
+    }
+    &__kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    &__kpi {
+      padding: 16px;
     }
   }
 }

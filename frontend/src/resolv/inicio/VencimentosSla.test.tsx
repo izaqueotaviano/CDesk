@@ -82,6 +82,6 @@ describe('VencimentosSla', () => {
     breached = []
     emRisco = []
     montar()
-    expect(await screen.findByText('Nada vencendo agora — bom trabalho.')).toBeInTheDocument()
+    expect(await screen.findByText('Nada vencendo agora. Bom trabalho.')).toBeInTheDocument()
   })
 })

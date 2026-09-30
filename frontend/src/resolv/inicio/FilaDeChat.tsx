@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useFilaChat, usePegarChat } from '@/api/chat'
 import { identidadeDe } from '@/ui/identidade'
 import { iniciais } from '../chat/format'
+import { EsqueletoLista } from './EsqueletoLista'
 
 const LIMITE = 4
 
@@ -28,7 +29,7 @@ export function FilaDeChat() {
         </button>
       </header>
       {isLoading ? (
-        <p className="inicio-lista__vazio">Carregando…</p>
+        <EsqueletoLista rotulo="Carregando a fila de chat" linhas={2} avatar />
       ) : naFila.length === 0 ? (
         <p className="inicio-lista__vazio">Ninguém esperando agora.</p>
       ) : (

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaginaInicio } from './PaginaInicio'
@@ -18,6 +18,9 @@ function linhaTicket(id: number, extra: Record<string, unknown> = {}) {
 
 let filaAberta: boolean
 let queueOpensAt: string | null
+/** Chamados sem responsável (novo/aberto) que a listagem devolve. */
+let semDono: ReturnType<typeof linhaTicket>[]
+let atribuicoes: { id: string; corpo: unknown }[]
 
 function jsonDe(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
@@ -27,10 +30,20 @@ const pagina = (results: unknown[]) => ({ count: results.length, next: null, pre
 beforeEach(() => {
   filaAberta = true
   queueOpensAt = null
+  semDono = []
+  atribuicoes = []
   vi.stubGlobal(
     'fetch',
-    vi.fn((url: string) => {
+    vi.fn((url: string, init?: RequestInit) => {
       const u = new URL(String(url), 'http://x')
+      const atribuir = u.pathname.match(/^\/api\/v1\/tickets\/(\d+)\/assign\/$/)
+      if (atribuir && init?.method === 'POST') {
+        atribuicoes.push({ id: atribuir[1], corpo: JSON.parse(String(init.body)) })
+        return Promise.resolve(jsonDe(linhaTicket(Number(atribuir[1]))))
+      }
+      if (u.pathname === '/api/v1/tickets/' && u.searchParams.get('assignee') === 'unassigned') {
+        return Promise.resolve(jsonDe(pagina(semDono)))
+      }
       if (u.pathname === '/api/v1/auth/me/') return Promise.resolve(jsonDe(ME))
       if (u.pathname === '/api/v1/announcements/') return Promise.resolve(jsonDe(pagina([])))
       if (u.pathname === '/api/v1/chat/config/') {
@@ -58,8 +71,7 @@ function montar() {
       <MemoryRouter initialEntries={['/inicio']}>
         <Routes>
           <Route path="/inicio" element={<PaginaInicio />} />
-          <Route path="/chat" element={<p>console de chat</p>} />
-          <Route path="/chamados/novo" element={<p>novo ticket</p>} />
+          <Route path="/chamados/:id" element={<p>detalhe do chamado</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -80,16 +92,36 @@ describe('PaginaInicio', () => {
     expect(await screen.findByText(/Fila de chat fechada.*volta/)).toBeInTheDocument()
   })
 
-  it('os botões de ação levam pro console de chat e pro novo ticket', async () => {
+  it('não repete as ações da sidebar (Novo ticket, Chat) no cabeçalho', async () => {
     montar()
-    fireEvent.click(await screen.findByRole('button', { name: /Chat/ }))
-    expect(await screen.findByText('console de chat')).toBeInTheDocument()
+    await screen.findByText('Olá, Samuel')
+    expect(screen.queryByRole('button', { name: /novo ticket/i })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^chat$/i })).not.toBeInTheDocument()
   })
 
-  it('novo ticket leva pra tela de abertura', async () => {
+  it('"Pegar o próximo" atribui a quem clicou e abre o chamado', async () => {
+    semDono = [linhaTicket(7, { status: 'new' })]
     montar()
-    fireEvent.click(await screen.findByRole('button', { name: /Novo ticket/ }))
-    expect(await screen.findByText('novo ticket')).toBeInTheDocument()
+    expect(await screen.findByText('1 sem responsável, o mais urgente primeiro')).toBeInTheDocument()
+
+    const botao = screen.getByRole('button', { name: 'Pegar o próximo' })
+    await waitFor(() => expect(botao).not.toHaveAttribute('aria-disabled'))
+    fireEvent.click(botao)
+
+    expect(await screen.findByText('detalhe do chamado')).toBeInTheDocument()
+    expect(atribuicoes).toEqual([{ id: '7', corpo: { assignee_id: 2 } }])
+  })
+
+  it('sem nada para pegar, o botão diz por quê e não faz nada', async () => {
+    montar()
+    const dica = await screen.findByText('Nenhum chamado sem responsável agora')
+    const botao = screen.getByRole('button', { name: 'Pegar o próximo' })
+    expect(botao).toHaveAttribute('aria-disabled', 'true')
+    expect(botao).toHaveAttribute('aria-describedby', dica.id)
+
+    fireEvent.click(botao)
+    expect(atribuicoes).toEqual([])
+    expect(screen.queryByText('detalhe do chamado')).not.toBeInTheDocument()
   })
 
   it('mostra a fila de prioridade própria', async () => {

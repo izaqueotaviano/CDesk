@@ -1306,18 +1306,24 @@ export function PaginaNovoTicket() {
               {(empresas?.length ?? 0) > 1 && (
                 <span className="novo__filtro">
                   <label htmlFor={ids.empresa}>Empresa</label>
-                  <select
-                    id={ids.empresa}
-                    value={empresaId == null ? '' : String(empresaId)}
-                    onChange={(e) => trocarEmpresa(e.target.value)}
-                  >
-                    <option value="">Todas</option>
-                    {(empresas ?? []).map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.name}
-                      </option>
-                    ))}
-                  </select>
+                  {/* Mesmo desenho dos seletores do formulário (moldura de
+                   *  campo, seta do conjunto de ícones), não o select cru do
+                   *  navegador, que destoava de tudo em volta. */}
+                  <span className="novo__filtro-campo">
+                    <select
+                      id={ids.empresa}
+                      value={empresaId == null ? '' : String(empresaId)}
+                      onChange={(e) => trocarEmpresa(e.target.value)}
+                    >
+                      <option value="">Todas</option>
+                      {(empresas ?? []).map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.name}
+                        </option>
+                      ))}
+                    </select>
+                    <i className="ti ti-chevron-down" aria-hidden="true" />
+                  </span>
                 </span>
               )}
             </div>
@@ -1332,12 +1338,14 @@ export function PaginaNovoTicket() {
               placeholder="Nome ou e-mail do cliente"
               invalido={Boolean(erros.requester_id)}
               describedBy={descreve('requester_id', `${ids.para}-ajuda`)}
+              // Termo curto: não há busca ainda, então não há lista para
+              // abrir — a dica aparece embaixo do campo, sem cobrir o resto
+              // do formulário.
+              dica={
+                !podeBuscarSolicitante ? `Digite ao menos ${MINIMO_PARA_BUSCAR} letras para buscar.` : undefined
+              }
               vazio={
-                !podeBuscarSolicitante
-                  ? `Digite ao menos ${MINIMO_PARA_BUSCAR} letras para buscar.`
-                  : empresaId != null
-                    ? 'Ninguém com esse nome nesta empresa.'
-                    : 'Ninguém com esse nome ou e-mail.'
+                empresaId != null ? 'Ninguém com esse nome nesta empresa.' : 'Ninguém com esse nome ou e-mail.'
               }
               // BuscaPessoa troca sozinho o "Ninguém encontrado" (falso,
               // aqui seria falha de rede) por um erro de verdade com retry.
