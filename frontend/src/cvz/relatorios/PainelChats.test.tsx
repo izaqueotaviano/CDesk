@@ -60,8 +60,13 @@ describe('PainelChats', () => {
     const linhaBruno = celulaBruno.closest('tr')!
     expect(within(linhaBruno).getByText('6')).toBeInTheDocument()
     expect(within(linhaBruno).getByText('+50%')).toBeInTheDocument()
-    expect(screen.getByText('3')).toBeInTheDocument() // Ana, sem variação (— nenhum badge)
-    expect(screen.getByText('9')).toBeInTheDocument() // linha Total
+    // escopado na linha: o gráfico logo abaixo também escreve números (eixo
+    // e tabela de apoio)
+    const linhaAna = screen.getByRole('cell', { name: 'Ana' }).closest('tr')!
+    expect(within(linhaAna).getByText('3')).toBeInTheDocument() // sem variação: nenhum selo
+    expect(within(linhaAna).queryByText(/%$/)).toBeNull()
+    const linhaTotal = screen.getByRole('cell', { name: 'Total' }).closest('tr')!
+    expect(within(linhaTotal).getByText('9')).toBeInTheDocument()
   })
 
   it('a primeira chamada já sai com period= e granularity= padrão', async () => {

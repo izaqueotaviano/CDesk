@@ -123,6 +123,67 @@ describe('PaginaRelatorios', () => {
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/reports/indicators/' && c.search.includes('period=today'))).toBe(true))
   })
 
+  it('"Personalizado" abre De/Até e manda from=/to= em vez de period=', async () => {
+    montar()
+    await screen.findByTitle('Total de tickets abertos no período.')
+    const painelAtivo = screen.getByRole('tabpanel')
+    // o "De" do Relatório detalhado existe (aba escondida): escopo no painel ativo
+    expect(within(painelAtivo).queryByLabelText('De')).not.toBeInTheDocument()
+
+    fireEvent.click(within(painelAtivo).getByRole('button', { name: 'Personalizado' }))
+    fireEvent.change(within(painelAtivo).getByLabelText('De'), { target: { value: '2026-09-01' } })
+    fireEvent.change(within(painelAtivo).getByLabelText('Até'), { target: { value: '2026-09-15' } })
+
+    await waitFor(() =>
+      expect(
+        chamadas.some(
+          (c) =>
+            c.url === '/api/v1/reports/indicators/' &&
+            c.search.includes('from=2026-09-01') &&
+            c.search.includes('to=2026-09-15') &&
+            !c.search.includes('period='),
+        ),
+      ).toBe(true),
+    )
+  })
+
+  it('intervalo invertido (De depois de Até) não vai ao servidor', async () => {
+    montar()
+    await screen.findByTitle('Total de tickets abertos no período.')
+    const painelAtivo = screen.getByRole('tabpanel')
+    fireEvent.click(within(painelAtivo).getByRole('button', { name: 'Personalizado' }))
+    fireEvent.change(within(painelAtivo).getByLabelText('Até'), { target: { value: '2026-09-01' } })
+    fireEvent.change(within(painelAtivo).getByLabelText('De'), { target: { value: '2026-09-20' } })
+
+    await new Promise((r) => setTimeout(r, 50))
+    expect(chamadas.some((c) => c.search.includes('from=2026-09-20'))).toBe(false)
+  })
+
+  it('tempo de resposta que SOBE aparece como piora (vermelho), não como melhora', async () => {
+    montar()
+    const card = await screen.findByTitle('Da abertura ao fechamento.')
+    // resolução: direction "down", variação +30%
+    expect(within(card).getByText('+30%').closest('.stat-card__delta')).toHaveClass('stat-card__delta--negative')
+    const primeira = screen.getByTitle('Da abertura à primeira resposta.')
+    // primeira resposta caiu 20%: melhora
+    expect(within(primeira).getByText('-20%').closest('.stat-card__delta')).toHaveClass('stat-card__delta--positive')
+    const abertos = screen.getByTitle('Total de tickets abertos no período.')
+    // volume é neutro: sem cor
+    const deltaAbertos = within(abertos).getByText('+10%').closest('.stat-card__delta')
+    expect(deltaAbertos).not.toHaveClass('stat-card__delta--positive')
+    expect(deltaAbertos).not.toHaveClass('stat-card__delta--negative')
+  })
+
+  it('zero nas tabelas de resumo recua para o cinza', async () => {
+    montar()
+    await screen.findByTitle('Total de tickets abertos no período.')
+    const tabela = screen.getByRole('table', { name: 'Abertos' })
+    const linhaTotal = within(tabela).getByRole('row', { name: /Total/ })
+    const celulas = within(linhaTotal).getAllByRole('cell')
+    expect(within(celulas[0]).getByText('0')).toHaveClass('relatorios-zero')
+    expect(within(celulas[2]).getByText('555')).not.toHaveClass('relatorios-zero')
+  })
+
   it('trocar a equipe manda team= na chamada de indicadores', async () => {
     montar()
     await screen.findByTitle('Total de tickets abertos no período.')

@@ -70,10 +70,12 @@
      Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
      cvz/styles/_theme.scss) — a pessoa tem a mesma cor dos dois lados da
      conversa. Todos fora dos quatro tons semânticos (azul/verde/âmbar/
-     vermelho) e todos AA com texto branco (4,9:1 a 7,3:1). Mudar aqui é
-     mudar lá também; o hash que escolhe entre eles é ui/identidade.ts. */
-  --avatar-c1: #5B5FC7; --avatar-c2: #0B6F78; --avatar-c3: #3D6E8C;
-  --avatar-c4: #9E5439; --avatar-c5: #4B5768; --avatar-c6: #A23E7B;
+     vermelho) e todos AA com texto branco (6,1:1 a 7,3:1). Terracota e
+     magenta saíram: numa lista, avatar avermelhado lia como alerta. Mudar
+     aqui é mudar lá também; o hash que escolhe entre eles é
+     ui/identidade.ts, e ui/identidade.test.ts confere os três arquivos. */
+  --avatar-c1: #5054C3; --avatar-c2: #0B6C75; --avatar-c3: #396783;
+  --avatar-c4: #6D604F; --avatar-c5: #4B5768; --avatar-c6: #7A4F8F;
 
   /* ---------- tipografia ----------
      INTER na interface inteira, inclusive nos números (tabular) — é a regra
@@ -220,7 +222,10 @@
 
   --tinta:            #242424;   /* nunca preto puro */
   --tinta-secundaria: #616161;   /* metadado, apoio */
-  --tinta-terciaria:  #767676;   /* o degrau mais silencioso que ainda passa AA */
+  /* O degrau mais silencioso que ainda passa AA onde o texto de fato fica:
+     5,1:1 no plano e 4,6:1 na pílula ativa (#eae9e6). O #767676 de antes só
+     passava sobre branco (4,2:1 no plano, 3,7:1 na pílula). */
+  --tinta-terciaria:  #686868;
   --texto-cromo:      #242424;
 
   /* UM acento, e ele é o sólido escuro. Marca duas coisas e só duas: o CTA
@@ -287,12 +292,15 @@
      puro — contra #000 a linha de 1px some, e o quente é o que mantém o
      parentesco com o claro. */
   --canvas:             #1a1a19;
-  --superficie:         #242423;
+  /* Cartão, campo e composer em #2a2a29, o --surface-card do console: o
+     #242423 de antes era um terceiro cinza que só o portal tinha. */
+  --superficie:         #2a2a29;
   --superficie-sutil:   #1f1f1e;
   --superficie-elevada: #2a2a29;
   --navegacao:          #1a1a19;
-  --fundo-hover:        #2a2a29;
-  --fundo-selecionado:  #333332;
+  /* Um degrau ACIMA do cartão, para o hover aparecer sobre ele. */
+  --fundo-hover:        #313130;
+  --fundo-selecionado:  #383837;
   --navegacao-hover:    #252524;
   --navegacao-ativo:    #2b2b2a;
   --login-painel:       #0f0f0e;
@@ -304,8 +312,11 @@
   --borda-campo:    #7c7a75;
 
   --tinta:            #f2f1ee;
-  --tinta-secundaria: #b5b3ae;
-  --tinta-terciaria:  #97948f;
+  /* Os do console (resolv/styles/tokens.scss). O terciário daqui era
+     #97948f e reprovava sobre o selecionado (4,2:1 no #333332 de antes);
+     este dá 4,6:1 no selecionado atual (#383837) e 5,6:1 na pílula ativa. */
+  --tinta-secundaria: #d6d3d1;
+  --tinta-terciaria:  #a8a29e;
   --texto-cromo:      #f2f1ee;
 
   /* A ação inverte: o sólido escuro viraria invisível, então o primário é o
@@ -351,12 +362,15 @@
        puro — contra #000 a linha de 1px some, e o quente é o que mantém o
        parentesco com o claro. */
     --canvas:             #1a1a19;
-    --superficie:         #242423;
+    /* Cartão, campo e composer em #2a2a29, o --surface-card do console: o
+       #242423 de antes era um terceiro cinza que só o portal tinha. */
+    --superficie:         #2a2a29;
     --superficie-sutil:   #1f1f1e;
     --superficie-elevada: #2a2a29;
     --navegacao:          #1a1a19;
-    --fundo-hover:        #2a2a29;
-    --fundo-selecionado:  #333332;
+    /* Um degrau ACIMA do cartão, para o hover aparecer sobre ele. */
+    --fundo-hover:        #313130;
+    --fundo-selecionado:  #383837;
     --navegacao-hover:    #252524;
     --navegacao-ativo:    #2b2b2a;
     --login-painel:       #0f0f0e;
@@ -368,8 +382,8 @@
     --borda-campo:    #7c7a75;
 
     --tinta:            #f2f1ee;
-    --tinta-secundaria: #b5b3ae;
-    --tinta-terciaria:  #97948f;
+    --tinta-secundaria: #d6d3d1;
+    --tinta-terciaria:  #a8a29e;
     --texto-cromo:      #f2f1ee;
 
     /* A ação inverte: o sólido escuro viraria invisível, então o primário é o

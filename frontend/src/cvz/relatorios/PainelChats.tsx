@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
-import { DataTable, ErrorState, Select, type Column } from '@/cvz/components'
+import { DataTable, ErrorState, Segmented, Select, Skeleton, type Column } from '@/cvz/components'
 import { GraficoBarrasPeriodo } from './GraficoBarrasPeriodo'
 import { PERIODOS } from './PainelIndicadores'
 import {
@@ -10,7 +10,7 @@ import {
   type LinhaAgenteChat,
   type LinhaEstatisticaAgente,
 } from './dados'
-import { direcaoVariacao, formatarVariacao } from './formato'
+import { classeDoDelta, formatarVariacao } from './formato'
 
 // Mesmas quatro granularidades que `chat_stats._TRUNC` aceita — inválida no
 // backend já cai para "day" sozinha, então os botões nunca mandam lixo.
@@ -21,13 +21,14 @@ const GRANULARIDADES: { key: Granularidade; label: string }[] = [
   { key: 'year', label: 'Ano' },
 ]
 
+// Volume de chats é contexto, não desempenho: a variação aparece neutra,
+// como a de "tickets abertos" nos indicadores.
 function celulaChats(linha: LinhaEstatisticaAgente) {
   return (
     <>
-      <b>{linha.value}</b>
+      <span className={linha.value === 0 ? 'relatorios-zero' : undefined}>{linha.value}</span>
       {linha.variation != null && (
-        <span className={`relatorios-delta relatorios-delta--${direcaoVariacao(linha.variation)}`}>
-          {' '}
+        <span className={classeDoDelta(linha.variation, 'neutral')} title="Em relação ao período anterior">
           {formatarVariacao(linha.variation)}
         </span>
       )}
@@ -77,32 +78,8 @@ export function PainelChats() {
   return (
     <div className="relatorios-painel">
       <div className="relatorios-filtros">
-        <div className="relatorios-periodo" role="group" aria-label="Período">
-          {PERIODOS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              className={'relatorios-periodo__botao' + (p.key === period ? ' relatorios-periodo__botao--ativo' : '')}
-              aria-pressed={p.key === period}
-              onClick={() => setPeriod(p.key)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-        <div className="relatorios-periodo" role="group" aria-label="Granularidade">
-          {GRANULARIDADES.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              className={'relatorios-periodo__botao' + (g.key === granularity ? ' relatorios-periodo__botao--ativo' : '')}
-              aria-pressed={g.key === granularity}
-              onClick={() => setGranularity(g.key)}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
+        <Segmented label="Período" options={PERIODOS} value={period} onChange={setPeriod} />
+        <Segmented label="Agrupar por" options={GRANULARIDADES} value={granularity} onChange={setGranularity} />
         <Select
           label="Agente"
           value={agentId != null ? String(agentId) : ''}
@@ -113,20 +90,31 @@ export function PainelChats() {
 
       {estatisticas.isError ? (
         <ErrorState description={estatisticas.error instanceof ApiError ? estatisticas.error.detail : undefined} onRetry={() => estatisticas.refetch()} />
-      ) : estatisticas.isLoading || !estatisticas.data ? (
-        <p>Carregando…</p>
+      ) : !estatisticas.data ? (
+        <div className="relatorios-esqueleto" aria-busy="true" aria-label="Carregando chats">
+          <div className="relatorios-esqueleto__bloco">
+            <Skeleton lines={4} />
+          </div>
+          <div className="relatorios-esqueleto__bloco">
+            <Skeleton height="160px" />
+          </div>
+        </div>
       ) : (
         <>
-          <h2 className="relatorios-secao__titulo">Por agente</h2>
-          <DataTable
-            rows={estatisticas.data.by_agent}
-            columns={COLUNAS_AGENTE_CHAT}
-            rowKey={(r) => (r.is_total ? 'total' : String(r.agent_id))}
-            empty="Nenhum chat atendido no período."
-          />
+          <section className="relatorios-secao">
+            <h2 className="relatorios-secao__titulo">Por agente</h2>
+            <DataTable
+              rows={estatisticas.data.by_agent}
+              columns={COLUNAS_AGENTE_CHAT}
+              rowKey={(r) => (r.is_total ? 'total' : String(r.agent_id))}
+              empty="Nenhum chat atendido no período. Escolha um período maior acima."
+            />
+          </section>
 
-          <h2 className="relatorios-secao__titulo">Linha do tempo</h2>
-          <GraficoBarrasPeriodo pontos={estatisticas.data.timeline} />
+          <section className="relatorios-secao">
+            <h2 className="relatorios-secao__titulo">Chats atendidos ao longo do tempo</h2>
+            <GraficoBarrasPeriodo pontos={estatisticas.data.timeline} granularidade={estatisticas.data.granularity} />
+          </section>
         </>
       )}
     </div>

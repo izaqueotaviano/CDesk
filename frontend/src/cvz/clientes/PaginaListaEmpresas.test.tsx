@@ -119,11 +119,21 @@ describe('PaginaListaEmpresas — busca e status vão para o servidor', () => {
 })
 
 describe('PaginaListaEmpresas — ações por linha', () => {
-  it('"Abrir" leva ao detalhe da empresa', async () => {
+  it('a linha inteira leva ao detalhe da empresa — sem botão "Abrir" repetido', async () => {
     montar()
     await screen.findByText('Acme Ltda')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Abrir' }))
+    expect(screen.queryByRole('button', { name: 'Abrir' })).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('cell', { name: '3' }))
+    expect(screen.getByTestId('rota')).toHaveTextContent('/clientes/1')
+  })
+
+  it('o nome da empresa é um link de verdade para o detalhe (teclado e nova aba)', async () => {
+    montar()
+    const link = (await screen.findByText('Acme Ltda')).closest('a')
+
+    expect(link).toHaveAttribute('href', '/clientes/1')
+    fireEvent.click(link!)
     expect(screen.getByTestId('rota')).toHaveTextContent('/clientes/1')
   })
 
@@ -157,6 +167,32 @@ describe('PaginaListaEmpresas — ações por linha', () => {
     expect(screen.queryByRole('button', { name: 'Nova empresa' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
     // ler continua valendo: o caminho para o detalhe fica
-    expect(screen.getByRole('button', { name: 'Abrir' })).toBeInTheDocument()
+    expect(screen.getByText('Acme Ltda').closest('a')).toHaveAttribute('href', '/clientes/1')
+  })
+})
+
+describe('PaginaListaEmpresas — lista vazia', () => {
+  it('com filtro, oferece limpar os filtros', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string) => {
+        const u = new URL(String(url), 'http://x')
+        if (u.pathname === '/api/v1/auth/me/') return Promise.resolve(jsonDe(ADMIN))
+        if (u.pathname === '/api/v1/settings/companies/') {
+          const vazio = u.searchParams.get('is_active') === 'false'
+          return Promise.resolve(jsonDe({ count: vazio ? 0 : 1, next: null, previous: null, results: vazio ? [] : [EMPRESA] }))
+        }
+        return Promise.resolve(jsonDe([]))
+      }),
+    )
+    montar()
+    await screen.findByText('Acme Ltda')
+
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'false' } })
+    await screen.findByText('Nenhuma empresa com esse filtro')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }))
+    expect(await screen.findByText('Acme Ltda')).toBeInTheDocument()
+    expect(screen.getByLabelText('Status')).toHaveValue('')
   })
 })

@@ -3555,12 +3555,22 @@ paths:
     get:
       operationId: v1_reports_indicators_retrieve
       description: |-
-        GET /api/v1/reports/indicators/?period=&team=
+        GET /api/v1/reports/indicators/?period=&team=&from=&to=
 
         O painel gerencial. Uma requisição devolve o painel inteiro: são 15 widgets
         sobre a MESMA leitura de tickets, e quinze chamadas repetiriam a consulta
         (e poderiam mostrar números de instantes diferentes lado a lado).
+
+        `from`/`to` são o intervalo livre (os mesmos nomes do relatório detalhado
+        e de `ChatStatsView`); com eles, `period` é ignorado e a resposta volta
+        com `period.key == "custom"`.
       parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Início de um intervalo livre (AAAA-MM-DD); ganha de `period`
       - in: query
         name: period
         schema:
@@ -3575,6 +3585,12 @@ paths:
         schema:
           type: integer
         description: Id da equipe
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fim do intervalo livre, dia inteiro (AAAA-MM-DD)
       tags:
       - v1
       security:

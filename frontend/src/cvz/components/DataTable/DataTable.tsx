@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type MouseEvent, type ReactNode } from 'react';
 import { usePrefs, type Densidade } from '@/stores/prefs';
 import { IconButton } from '../Button/Button';
 import { Checkbox } from '../Checkbox/Checkbox';
@@ -27,7 +27,8 @@ export interface SortState {
 export interface Column<T> {
   key: string;
   header: string;
-  /** Alinha à direita e aplica a fonte mono — use em valores e datas. */
+  /** Alinha à direita (cabeçalho E valor) e usa algarismos tabulares — use
+   *  em contagens, valores e datas. */
   numeric?: boolean;
   width?: string;
   render: (row: T) => ReactNode;
@@ -41,6 +42,12 @@ export interface Column<T> {
    * Colunas sem papel definido viram linha de dado com o header como rótulo.
    */
   mobile?: 'title' | 'subtitle' | 'meta' | 'hidden';
+  /**
+   * Com a linha clicável (`onRowClick`), é nesta célula que mora o link da
+   * linha — o que o teclado e o leitor de tela encontram. Sem nenhuma coluna
+   * marcada, vale a primeira.
+   */
+  primary?: boolean;
 }
 
 export interface DataTableProps<T> {
@@ -49,15 +56,30 @@ export interface DataTableProps<T> {
   rowKey: (row: T) => string;
   selectable?: boolean;
   batchActions?: (selectedKeys: string[]) => ReactNode;
+  /** Faixa acima do cabeçalho. Só aparece quando há o que pôr nela. */
   toolbar?: ReactNode;
+  /**
+   * Linha inteira clicável. O clique em qualquer ponto da linha abre; o
+   * teclado chega pelo link da célula principal (`primary`), e Enter abre.
+   * Botões e campos dentro da linha continuam só deles — não precisam de
+   * `stopPropagation`.
+   */
   onRowClick?: (row: T) => void;
+  /**
+   * Endereço da linha, quando abrir é navegar. Vira `href` de verdade no link
+   * da célula principal: Ctrl/Cmd+clique e o botão do meio abrem em outra aba,
+   * e o leitor de tela anuncia "link". Sem ele o link vira `<button>`.
+   */
+  rowHref?: (row: T) => string;
+  /** Nome acessível do link da linha. Omita quando o texto da célula já diz. */
+  rowLabel?: (row: T) => string;
   empty?: ReactNode;
   /**
-   * Força uma densidade fixa e ESCONDE o alternador — a tabela para de
-   * seguir a preferência de quem usa. Reservado para um cenário onde a
-   * página, não a pessoa, decide (um resumo embutido sem espaço de sobra,
-   * por exemplo). Omita para o caso comum: a tabela lê `usePrefs().densidade`
-   * sozinha e mostra o alternador que grava nela.
+   * Força uma densidade fixa — a tabela para de seguir a preferência de quem
+   * usa. Omita para o caso comum: a tabela lê `usePrefs().densidade` sozinha.
+   * O alternador que grava essa preferência NÃO mora mais na tabela (era uma
+   * faixa branca vazia só para dois ícones): a página que quiser oferecê-lo
+   * põe `<DensityToggle />` na própria barra de filtros.
    */
   density?: TableDensity;
   /** Mostra esqueleto no lugar das linhas. */
@@ -71,6 +93,56 @@ export interface DataTableProps<T> {
   onSortChange?: (sort: SortState | null) => void;
 }
 
+/** O clique nasceu num controle da própria linha (Editar, checkbox, link)? */
+function veioDeControle(e: MouseEvent<HTMLElement>): boolean {
+  const alvo = e.target as HTMLElement | null;
+  const controle = alvo?.closest('a, button, input, select, textarea, label, [role="button"], [role="checkbox"]');
+  return !!controle && e.currentTarget.contains(controle);
+}
+
+/** Quem arrasta para selecionar o nome da empresa não quer abrir a empresa. */
+function temTextoSelecionado(): boolean {
+  return (window.getSelection?.()?.toString() ?? '').length > 0;
+}
+
+/**
+ * Alternador "padrão × confortável" da densidade das tabelas. Grava a
+ * preferência global (a mesma da fila de chamados), então basta estar em UMA
+ * barra da página — toda DataTable sem `density` explícito segue.
+ */
+export function DensityToggle() {
+  const densidade = usePrefs((s) => s.densidade);
+  const setDensidade = usePrefs((s) => s.setDensidade);
+  return (
+    <div className="data-table-densidade" role="group" aria-label="Densidade da tabela">
+      <IconButton
+        Icon={IconRowsCompact}
+        label="Tabela padrão"
+        size="sm"
+        bare
+        aria-pressed={densidade === 'compacta'}
+        className={
+          'data-table-densidade__btn' +
+          (densidade === 'compacta' ? ' data-table-densidade__btn--ativo' : '')
+        }
+        onClick={() => setDensidade('compacta')}
+      />
+      <IconButton
+        Icon={IconRowsRelaxed}
+        label="Tabela confortável (linhas mais espaçadas)"
+        size="sm"
+        bare
+        aria-pressed={densidade === 'confortavel'}
+        className={
+          'data-table-densidade__btn' +
+          (densidade === 'confortavel' ? ' data-table-densidade__btn--ativo' : '')
+        }
+        onClick={() => setDensidade('confortavel')}
+      />
+    </div>
+  );
+}
+
 export function DataTable<T>({
   rows,
   columns,
@@ -79,6 +151,8 @@ export function DataTable<T>({
   batchActions,
   toolbar,
   onRowClick,
+  rowHref,
+  rowLabel,
   empty = 'Nada por aqui.',
   density: densityProp,
   loading = false,
@@ -93,13 +167,9 @@ export function DataTable<T>({
   );
 
   // Densidade controlada (prop explícita) ou pela preferência global — as
-  // mesmas duas formas que `sort`/`sortProp` já usam duas linhas acima. Sem
-  // prop, a tabela mostra o alternador; com prop, ela obedece a página e o
-  // alternador some (ver comentário de `density` em DataTableProps).
+  // mesmas duas formas que `sort`/`sortProp` já usam logo abaixo.
   const densidade = usePrefs((s) => s.densidade);
-  const setDensidade = usePrefs((s) => s.setDensidade);
   const density = densityProp ?? densidadeParaTableDensity(densidade);
-  const densidadeEhGlobal = densityProp === undefined;
 
   // Controlado quando `sort` é passado; não controlado caso contrário.
   const sort = sortProp !== undefined ? sortProp : internalSort;
@@ -142,10 +212,51 @@ export function DataTable<T>({
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
     );
 
+  const primaryKey = (columns.find((c) => c.primary) ?? columns[0])?.key;
+  const clicavel = !!onRowClick;
+
+  /** O link da linha: `<a href>` quando há endereço, `<button>` quando não. */
+  const linkDaLinha = (row: T, conteudo: ReactNode) => {
+    const label = rowLabel?.(row);
+    if (rowHref) {
+      return (
+        <a
+          className="data-table__row-link"
+          href={rowHref(row)}
+          aria-label={label}
+          onClick={(e) => {
+            e.stopPropagation();
+            // Ctrl/Cmd/Shift e botão do meio: o navegador abre outra aba, como
+            // em qualquer link. Só o clique simples fica na SPA.
+            if (!onRowClick || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+            e.preventDefault();
+            onRowClick(row);
+          }}
+        >
+          {conteudo}
+        </a>
+      );
+    }
+    return (
+      <button
+        type="button"
+        className="data-table__row-link"
+        aria-label={label}
+        onClick={(e) => {
+          e.stopPropagation();
+          onRowClick?.(row);
+        }}
+      >
+        {conteudo}
+      </button>
+    );
+  };
+
   const cls = [
     'data-table',
     density !== 'default' ? `data-table--${density}` : '',
     loading ? 'data-table--loading' : '',
+    clicavel ? 'data-table--clicavel' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -172,37 +283,7 @@ export function DataTable<T>({
           </div>
         </div>
       ) : (
-        <div className="data-table__toolbar">
-          <div className="data-table__toolbar-conteudo">{toolbar}</div>
-          {densidadeEhGlobal && (
-            <div className="data-table__densidade" role="group" aria-label="Densidade da tabela">
-              <IconButton
-                Icon={IconRowsCompact}
-                label="Tabela padrão"
-                size="sm"
-                bare
-                aria-pressed={densidade === 'compacta'}
-                className={
-                  'data-table__densidade-btn' +
-                  (densidade === 'compacta' ? ' data-table__densidade-btn--ativo' : '')
-                }
-                onClick={() => setDensidade('compacta')}
-              />
-              <IconButton
-                Icon={IconRowsRelaxed}
-                label="Tabela confortável (linhas mais espaçadas)"
-                size="sm"
-                bare
-                aria-pressed={densidade === 'confortavel'}
-                className={
-                  'data-table__densidade-btn' +
-                  (densidade === 'confortavel' ? ' data-table__densidade-btn--ativo' : '')
-                }
-                onClick={() => setDensidade('confortavel')}
-              />
-            </div>
-          )}
-        </div>
+        toolbar && <div className="data-table__toolbar">{toolbar}</div>
       )}
 
       <table className="data-table__table">
@@ -229,6 +310,7 @@ export function DataTable<T>({
               return (
                 <th
                   key={c.key}
+                  scope="col"
                   style={c.width ? { width: c.width } : undefined}
                   className={c.numeric ? 'data-table__num' : undefined}
                   aria-sort={c.sortBy ? ariaSort : undefined}
@@ -272,17 +354,27 @@ export function DataTable<T>({
             sortedRows.map((row) => {
               const key = rowKey(row);
               const isSelected = selected.includes(key);
+              const rowCls = [
+                isSelected ? 'data-table__row--selected' : '',
+                clicavel ? 'data-table__row--clicavel' : '',
+              ]
+                .filter(Boolean)
+                .join(' ');
               return (
                 <tr
                   key={key}
-                  className={isSelected ? 'data-table__row--selected' : undefined}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={rowCls || undefined}
+                  onClick={
+                    onRowClick
+                      ? (e) => {
+                          if (veioDeControle(e) || temTextoSelecionado()) return;
+                          onRowClick(row);
+                        }
+                      : undefined
+                  }
                 >
                   {selectable && (
-                    <td
-                      className="data-table__check"
-                      onClick={(e) => e.stopPropagation()}
-                    >
+                    <td className="data-table__check">
                       <Checkbox
                         checked={isSelected}
                         onChange={() => toggleRow(key)}
@@ -297,7 +389,9 @@ export function DataTable<T>({
                       data-mobile={c.mobile ?? 'meta'}
                       className={c.numeric ? 'data-table__num' : undefined}
                     >
-                      {c.render(row)}
+                      {clicavel && c.key === primaryKey
+                        ? linkDaLinha(row, c.render(row))
+                        : c.render(row)}
                     </td>
                   ))}
                 </tr>

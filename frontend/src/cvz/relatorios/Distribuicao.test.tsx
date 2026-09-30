@@ -11,7 +11,7 @@ function classesDasBarras() {
 }
 
 describe('Distribuicao — cor por esquema', () => {
-  it('série categórica: um tom de identidade por posição, ciclando; balde fica neutro', () => {
+  it('série categórica: uma cor só (o acento), e o balde fica neutro', () => {
     const itens = [
       ...['A', 'B', 'C', 'D', 'E', 'F', 'G'].map((label, i) => ({ label, value: 10 - i })),
       { label: 'Outros', value: 1 },
@@ -19,11 +19,8 @@ describe('Distribuicao — cor por esquema', () => {
     render(<Distribuicao titulo="Por empresa" esquema="categorias" itens={itens} />)
 
     const classes = classesDasBarras()
-    expect(classes.slice(0, 6)).toEqual(
-      [1, 2, 3, 4, 5, 6].map((n) => `${BARRA} ${BARRA}--identidade-${n}`),
-    )
-    // sétima barra volta ao primeiro tom — nunca repete a vizinha
-    expect(classes[6]).toBe(`${BARRA} ${BARRA}--identidade-1`)
+    // o rótulo já diz qual barra é qual: cor por posição era decoração
+    expect(classes.slice(0, 7)).toEqual(Array(7).fill(BARRA))
     expect(classes[7]).toBe(`${BARRA} ${BARRA}--neutra`)
   })
 
@@ -39,14 +36,10 @@ describe('Distribuicao — cor por esquema', () => {
         ]}
       />,
     )
-    expect(classesDasBarras()).toEqual([
-      `${BARRA} ${BARRA}--neutra`,
-      `${BARRA} ${BARRA}--identidade-2`,
-      `${BARRA} ${BARRA}--neutra`,
-    ])
+    expect(classesDasBarras()).toEqual([`${BARRA} ${BARRA}--neutra`, BARRA, `${BARRA} ${BARRA}--neutra`])
   })
 
-  it('status segue as colunas de fábrica: novo violeta, aberto azul, aguardando âmbar, fechado cinza', () => {
+  it('status: novo e aberto no acento, aguardando âmbar (pede atenção), fechado cinza', () => {
     render(
       <Distribuicao
         titulo="Por status"
@@ -59,15 +52,10 @@ describe('Distribuicao — cor por esquema', () => {
         ]}
       />,
     )
-    expect(classesDasBarras()).toEqual([
-      `${BARRA} ${BARRA}--identidade-1`,
-      BARRA,
-      `${BARRA} ${BARRA}--atencao`,
-      `${BARRA} ${BARRA}--neutra`,
-    ])
+    expect(classesDasBarras()).toEqual([BARRA, BARRA, `${BARRA} ${BARRA}--atencao`, `${BARRA} ${BARRA}--neutra`])
   })
 
-  it('prioridade: baixa cinza, normal azul, alta âmbar, urgente vermelho', () => {
+  it('prioridade: baixa cinza, normal no acento, alta âmbar, urgente vermelho', () => {
     render(
       <Distribuicao
         titulo="Por prioridade"
@@ -89,14 +77,14 @@ describe('Distribuicao — cor por esquema', () => {
   })
 
   it('SLA: no prazo verde, fora vermelho, aguardando âmbar, sem SLA/indefinido cinza', () => {
-    expect(tomDaFatia('sla', { key: 'on_time', label: '', value: 1 }, 0)).toBe('sucesso')
-    expect(tomDaFatia('sla', { key: 'late', label: '', value: 1 }, 0)).toBe('perigo')
-    expect(tomDaFatia('sla', { key: 'waiting', label: '', value: 1 }, 0)).toBe('atencao')
-    expect(tomDaFatia('sla', { key: 'no_sla', label: '', value: 1 }, 0)).toBe('neutra')
-    expect(tomDaFatia('sla', { key: 'undefined', label: '', value: 1 }, 0)).toBe('neutra')
+    expect(tomDaFatia('sla', { key: 'on_time', label: '', value: 1 })).toBe('sucesso')
+    expect(tomDaFatia('sla', { key: 'late', label: '', value: 1 })).toBe('perigo')
+    expect(tomDaFatia('sla', { key: 'waiting', label: '', value: 1 })).toBe('atencao')
+    expect(tomDaFatia('sla', { key: 'no_sla', label: '', value: 1 })).toBe('neutra')
+    expect(tomDaFatia('sla', { key: 'undefined', label: '', value: 1 })).toBe('neutra')
   })
 
-  it('fatia sem chave (ou chave desconhecida) num esquema semântico cai no azul padrão', () => {
+  it('fatia sem chave (ou chave desconhecida) num esquema semântico cai no acento', () => {
     render(
       <Distribuicao
         titulo="Por status"

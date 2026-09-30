@@ -11,10 +11,20 @@
   overflow: hidden;
 }
 
-.avisos-vazio {
-  @include type($fs-ui, $w-regular);
+// Respiro entre a barra de filtros e a tabela.
+.avisos-lista {
+  margin-top: $sp-4;
+}
+
+.avisos-fixado {
+  margin-right: $sp-1;
   color: $text-muted;
-  padding: $sp-2 0;
+}
+
+.avisos-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: $sp-2;
 }
 
 .avisos-erro-meta {
@@ -22,12 +32,3 @@
   color: $danger;
 }
 
-.avisos-toggle-historico {
-  @include type($fs-ui, $w-regular);
-  display: inline-flex;
-  align-items: center;
-  gap: $sp-2;
-  margin-top: $sp-4;
-  color: $text-muted;
-  cursor: pointer;
-}

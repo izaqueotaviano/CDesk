@@ -19,6 +19,11 @@
   margin-top: $sp-1;
 }
 
+// Respiro entre a barra de filtros e a tabela da lista de empresas.
+.clientes-lista {
+  margin-top: $sp-4;
+}
+
 // Número de destaque do cartão "Usuários" antes de virar StatCard, e
 // mensagem de estado vazio da lista de tickets.
 .clientes-vazio {

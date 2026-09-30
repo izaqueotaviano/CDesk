@@ -51,7 +51,9 @@
   }
 
   // Tons: fundo tint + texto na cor cheia, para o contraste não depender do dot.
-  &--neutral { background-color: $chrome; border-color: $stroke; color: $text-secondary; }
+  // O neutro é a mesma pílula quente do item ativo, sem contorno: sobre o
+  // branco da tabela o #f6f5f3 de antes só aparecia por causa da linha.
+  &--neutral { background-color: $blue-tint; color: $text-secondary; }
   &--blue    { background-color: $blue-tint;    color: $blue-active; }
   &--success { background-color: $success-tint; color: $success; }
   &--away    { background-color: $away-tint;    color: $away; }

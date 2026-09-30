@@ -98,14 +98,19 @@ design systems do produto (portal `--avatar-c*`, resolv `--identidade-*`,
 cvz `--cvz-identity-*`): a pessoa tem a mesma cor no portal e no console do
 agente, porque o hash é um só (`frontend/src/ui/identidade.ts`).
 
-| | Tom | Valor | Branco em cima | Como texto sobre cromo `#f0f0f0` |
+| | Tom | Valor | Branco em cima | Como texto sobre a tinta de 14% no plano `#f6f5f3` |
 |---|---|---|---|---|
-| c1 | violeta | `#5B5FC7` | 5,4:1 | 4,7:1 |
-| c2 | petróleo | `#0B6F78` | 5,9:1 | 5,2:1 |
-| c3 | aço | `#3D6E8C` | 5,5:1 | 4,8:1 |
-| c4 | terracota | `#9E5439` | 5,6:1 | 4,9:1 |
-| c5 | ardósia | `#4B5768` | 7,3:1 | 6,4:1 |
-| c6 | magenta | `#A23E7B` | 6,0:1 | 5,3:1 |
+| c1 | violeta | `#5054C3` | 6,2:1 | 4,7:1 |
+| c2 | petróleo | `#0B6C75` | 6,1:1 | 4,6:1 |
+| c3 | aço | `#396783` | 6,1:1 | 4,6:1 |
+| c4 | sépia | `#6D604F` | 6,1:1 | 4,7:1 |
+| c5 | ardósia | `#4B5768` | 7,3:1 | 5,5:1 |
+| c6 | ameixa | `#7A4F8F` | 6,3:1 | 4,8:1 |
+
+Terracota (c4) e magenta (c6) saíram: numa lista de conversas, avatar
+avermelhado lia como alerta. O mesmo motivo tirou vermelho, laranja, rosa-choque
+e salmão da paleta de 15 tons do chat (`--chat-tom-*`). A trava é
+`frontend/src/ui/identidade.test.ts`, que lê os três arquivos de token.
 
 Duas regras que a paleta anterior não seguia:
 
@@ -120,7 +125,7 @@ Duas regras que a paleta anterior não seguia:
 
 **O selo de plano** (Tag `identity-*` na lista de empresas; chip
 `data-identidade-tinta` no painel do cliente do ticket) escolhe o tom em
-`frontend/src/ui/planos.ts`: Black ardósia, Gold terracota, Platinum aço —
+`frontend/src/ui/planos.ts`: Black ardósia, Gold sépia, Platinum aço —
 por conotação, não por sorteio — e plano novo cai no hash. Tinta de 14% com o
 texto na cor, nos dois design systems.
 

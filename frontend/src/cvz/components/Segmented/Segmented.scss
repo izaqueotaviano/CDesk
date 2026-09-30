@@ -1,0 +1,36 @@
+@use '../../styles/tokens' as *;
+@use '../../styles/mixins' as *;
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+
+  &__opcao {
+    @include button-reset;
+    @include focus-ring;
+    @include type($fs-ui, $w-medium, $lh-none);
+    height: $control-h;
+    padding: 0 $sp-3;
+    border-radius: $radius;
+    color: $text-secondary;
+    white-space: nowrap;
+    transition: background-color $dur $ease, color $dur $ease;
+
+    &:hover {
+      background-color: $hover;
+      color: $text;
+    }
+
+    // Ativo: pílula + tinta cheia + peso. O estado não depende só do fundo
+    // (que é sutil de propósito) — o texto escurece e engrossa junto, e o
+    // leitor de tela lê `aria-pressed`.
+    &--ativa,
+    &--ativa:hover {
+      background-color: $blue-tint;
+      color: $text;
+      font-weight: $w-semibold;
+    }
+  }
+}

@@ -12,9 +12,10 @@
 $primary:         var(--cvz-primary);
 $primary-hover:   var(--cvz-primary-hover);
 $on-primary:      var(--cvz-on-primary);
-// A MARCA: foco, seleção e grafismo — nunca texto.
+// Legado: era o laranja cheio. Hoje vale o acento — não use em código novo.
 $brand:           var(--cvz-brand);
-// `$blue` (o nome ficou) é o laranja LEGÍVEL: link, item ativo, ícone.
+// `$blue` (o nome ficou) é o ACENTO único do produto — carvão no claro,
+// quase-branco no escuro: link, item ativo, aba, série de gráfico, foco.
 $blue:            var(--cvz-blue);
 $blue-hover:      var(--cvz-blue-hover);
 $blue-active:     var(--cvz-blue-active);
@@ -36,6 +37,8 @@ $text-secondary:  var(--cvz-text-secondary);
 $text-muted:      var(--cvz-text-muted);
 $text-on-dark:    var(--cvz-text-on-color);
 $text-on-accent:  var(--cvz-text-on-accent);  // sobre $blue — muda no escuro
+// Halo do campo em foco — a borda é que leva o contraste (ver mixin field).
+$focus-ring:      var(--cvz-focus-ring);
 
 // --- cor: semântica ----------------------------------------------------------
 $danger:          var(--cvz-danger);
@@ -84,15 +87,13 @@ $focus-w:         2px;   // espessura do anel de foco
 $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
 
 // --- raio --------------------------------------------------------------------
-// Um raio só em botão/campo/cartão: 2px. A cápsula (Toggle, Tag, Progress)
-// VOLTOU a ser pílula de verdade — não 2px como o resto. É a mesma exceção
-// que `resolv/styles/tokens.scss` já faz com `--r-total` (avatar, interruptor,
-// ponto): forma circular/pílula não lê como "quadrado com raio pequeno", e um
-// interruptor com trilho quase reto e bolinha redonda (o que os 2px davam)
-// lia como quebrado, não como consistente. Só forma circular de verdade
-// (avatar, ponto de status) segue em 50%.
-$radius:          6px;   // `--radius-sm` do v2 — botão, campo, chip
-$radius-card:     12px;  // `--radius-lg` do v2 — cartão, popover, modal
+// Três raios, os mesmos do console: 8 no que é controle (botão, campo, chip),
+// 12 no que é superfície (cartão, tabela, modal, popover) e cápsula no que é
+// pílula (Toggle, Tag, Progress, busca). Pílula é forma, não estilo: um
+// interruptor com trilho quase reto e bolinha redonda lia como quebrado. Só
+// forma circular de verdade (avatar, ponto de status) segue em 50%.
+$radius:          8px;   // controle — botão, campo, chip
+$radius-card:     12px;  // superfície — cartão, tabela, popover, modal
 $radius-pill:     999px;
 $radius-circle:   50%;
 
@@ -177,17 +178,23 @@ $bp-xl: 1280px;  // desktop
 // TIPOGRAFIA — escala fechada
 // Nenhum componente declara font-size ou line-height literal. Se um tamanho não
 // está aqui, ele não existe no produto.
+//
+// QUATRO tamanhos, os mesmos do console e do portal (styles/tokens.css):
+// 12 rótulo, 14 interface, 16 título de seção, 28 título de página. Os dez
+// nomes continuam para não reescrever tela nenhuma, mas caem nesses quatro —
+// a hierarquia vem do peso e do espaço, não de mais um degrau de tamanho (os
+// 9/10/11/13/15/17/20/26px de antes faziam o admin parecer outro produto).
 // =============================================================================
-$fs-micro:    9px;   // contador dentro de badge (sempre mono)
-$fs-caption: 10px;   // overline, timestamp, legenda de coluna
-$fs-label:   11px;   // rótulo de campo, header de tabela, tag, atalho
+$fs-micro:   12px;   // contador dentro de badge
+$fs-caption: 12px;   // overline, timestamp, legenda de coluna
+$fs-label:   12px;   // rótulo de campo, header de tabela, tag, atalho
 $fs-meta:    12px;   // texto de apoio, metadado, célula secundária
-$fs-ui:      13px;   // padrão da interface: botão, célula, item de lista
+$fs-ui:      14px;   // padrão da interface: botão, célula, item de lista
 $fs-body:    14px;   // texto corrido, item de resultado de busca
-$fs-title:   15px;   // título de painel, assunto de ticket em lista
-$fs-subhead: 17px;   // título de seção, assunto no detalhe do ticket
-$fs-heading: 20px;   // título de página
-$fs-display: 26px;   // número de KPI, título de tela vazia
+$fs-title:   16px;   // título de painel, título de seção
+$fs-subhead: 16px;   // título de seção, assunto no detalhe do ticket
+$fs-heading: 28px;   // título de página
+$fs-display: 28px;   // número de KPI, título de tela vazia
 
 $lh-none:   1;       // só para texto de uma linha com altura controlada
 $lh-tight:  1.2;     // títulos

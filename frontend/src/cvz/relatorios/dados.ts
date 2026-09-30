@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { API_BASE_URL, api, type Paginado } from '@/api/client'
 
 /**
@@ -9,8 +9,15 @@ import { API_BASE_URL, api, type Paginado } from '@/api/client'
  */
 export type ChavePeriodo = 'today' | 'week' | 'month'
 
+/** Recorte do painel: um dos atalhos, ou um intervalo livre (`from`/`to`,
+ *  AAAA-MM-DD — os mesmos parâmetros do relatório detalhado). */
+export type RecorteIndicadores =
+  | { period: ChavePeriodo }
+  | { period: 'custom'; from: string; to: string }
+
 export interface Periodo {
-  key: ChavePeriodo
+  /** `custom` quando a chamada levou `from`/`to`. */
+  key: ChavePeriodo | 'custom'
   label: string
   start: string
   end: string
@@ -111,12 +118,29 @@ export interface Indicadores {
   satisfaction: Satisfacao
 }
 
-export function useIndicadores(period: ChavePeriodo, teamId: number | null) {
-  const q = new URLSearchParams({ period })
+/** Aceita o atalho solto (`'today'`) — a Início chama assim — ou o recorte
+ *  completo, com intervalo livre. */
+export function useIndicadores(recorteOuPeriodo: RecorteIndicadores | ChavePeriodo, teamId: number | null) {
+  const recorte: RecorteIndicadores =
+    typeof recorteOuPeriodo === 'string' ? { period: recorteOuPeriodo } : recorteOuPeriodo
+  const q = new URLSearchParams()
+  if (recorte.period === 'custom') {
+    q.set('from', recorte.from)
+    q.set('to', recorte.to)
+  } else {
+    q.set('period', recorte.period)
+  }
   if (teamId) q.set('team', String(teamId))
+  // Intervalo pela metade (uma data apagada no campo) não vai ao servidor —
+  // a tela segura o último painel em vez de piscar um erro de validação.
+  const completo = recorte.period !== 'custom' || (recorte.from !== '' && recorte.to !== '' && recorte.from <= recorte.to)
   return useQuery({
-    queryKey: ['relatorios', 'indicadores', period, teamId],
+    queryKey: ['relatorios', 'indicadores', q.toString()],
     queryFn: () => api.get<Indicadores>(`/api/v1/reports/indicators/?${q.toString()}`),
+    enabled: completo,
+    // trocar o recorte mantém o painel anterior na tela (esmaecido) até o
+    // novo chegar: sem salto de layout nem esqueleto a cada clique
+    placeholderData: keepPreviousData,
     staleTime: 30_000,
   })
 }

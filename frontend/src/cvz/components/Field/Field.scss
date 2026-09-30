@@ -78,9 +78,14 @@
     pointer-events: none;
   }
 
+  // Busca é pílula, como a do console: é o único campo que não pede um dado,
+  // pede um lugar — a forma diferente diz isso antes do placeholder.
   &__control {
-    padding-left: 32px;
+    padding-left: 34px;
+    border-radius: $radius-pill;
 
     &[readonly] { cursor: pointer; }
   }
+
+  &__icon { left: 12px; }
 }

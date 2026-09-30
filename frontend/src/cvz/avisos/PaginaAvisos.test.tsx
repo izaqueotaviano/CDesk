@@ -81,7 +81,9 @@ describe('PaginaAvisos', () => {
 
   it('editar abre o modal pré-preenchido e salva com PATCH', async () => {
     montar()
-    fireEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    // não há mais botão "Editar" repetido: a linha abre a edição
+    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar aviso "Manutenção"' }))
     const modal = await screen.findByRole('dialog')
     expect(within(modal).getByLabelText('Título')).toHaveValue('Manutenção')
 
@@ -100,6 +102,12 @@ describe('PaginaAvisos', () => {
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/announcements/7/' && c.metodo === 'DELETE')).toBe(true))
   })
 
+  it('clicar em qualquer ponto da linha também abre a edição', async () => {
+    montar()
+    fireEvent.click(await screen.findByText('Manutenção'))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+  })
+
   it('mostrar histórico manda ?history=1', async () => {
     montar()
     await screen.findByText('Manutenção')
@@ -116,7 +124,7 @@ describe('PaginaAvisos', () => {
     montar()
     await screen.findByText('Manutenção')
     expect(screen.queryByRole('button', { name: 'Novo aviso' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Editar' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Editar/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Desativar' })).not.toBeInTheDocument()
   })
 })

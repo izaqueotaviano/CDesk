@@ -57,7 +57,7 @@ export function PainelDesfechos() {
 
   return (
     <div className="relatorios-secao">
-      <div className="relatorios-periodo" role="group" aria-label="Período">
+      <div className="relatorios-filtros" role="group" aria-label="Período">
         <TextInput
           label="De"
           type="date"
@@ -66,7 +66,7 @@ export function PainelDesfechos() {
           onChange={(e) => setDesde(e.target.value)}
         />
         <TextInput
-          label="até"
+          label="Até"
           type="date"
           value={ate}
           min={desde}
@@ -75,13 +75,13 @@ export function PainelDesfechos() {
       </div>
       <p className="relatorios-nota">
         O recorte é por <strong>encerramento</strong>: um atendimento aberto ontem e fechado
-        hoje conta hoje — é quando as medidas de duração e desfecho passam a existir.
+        hoje conta hoje, que é quando as medidas de duração e desfecho passam a existir.
       </p>
 
       {data.total === 0 ? (
         <EmptyState
           title="Nenhum atendimento encerrado no período"
-          description="Escolha outro intervalo de datas."
+          description="Aumente o intervalo nas datas acima para ver mais atendimentos."
         />
       ) : (
         <>
@@ -113,8 +113,9 @@ export function PainelDesfechos() {
             <Kpi rotulo="Reabertos" valor={String(data.reabertos)} />
           </dl>
 
-          <section>
+          <section className="relatorios-secao">
             <h2 className="relatorios-secao__titulo">Por que terminaram</h2>
+            <div className="relatorios-tabela__wrap">
             <table className="relatorios-tabela">
               <thead>
                 <tr>
@@ -137,11 +138,13 @@ export function PainelDesfechos() {
                 ))}
               </tbody>
             </table>
+            </div>
           </section>
 
           {data.por_agente.length > 0 && (
-            <section>
+            <section className="relatorios-secao">
               <h2 className="relatorios-secao__titulo">Por agente</h2>
+              <div className="relatorios-tabela__wrap">
               <table className="relatorios-tabela">
                 <thead>
                   <tr>
@@ -168,6 +171,7 @@ export function PainelDesfechos() {
                   ))}
                 </tbody>
               </table>
+              </div>
             </section>
           )}
         </>

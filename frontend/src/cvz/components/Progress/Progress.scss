@@ -23,8 +23,9 @@
     height: 4px;
     overflow: hidden;
     border-radius: $radius-pill;
-    background-color: $chrome;
+    background-color: $blue-tint;
 
+    // `blue` é o acento (carvão/quase-branco) desde que o laranja saiu.
     &--blue .progress__bar { background-color: $blue; }
     &--success .progress__bar { background-color: $success; }
     &--away .progress__bar { background-color: $away; }
@@ -55,11 +56,13 @@
   gap: 8px;
 }
 
+// Na pílula quente, não no plano: o #f6f5f3 do plano sumia quando o
+// esqueleto ficava direto sobre o fundo da página.
 .skeleton {
   display: block;
-  height: 11px;
+  height: 12px;
   border-radius: $radius;
-  background-color: $chrome;
+  background-color: $blue-tint;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 
   &--circle { border-radius: 50%; }

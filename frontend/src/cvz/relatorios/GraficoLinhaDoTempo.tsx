@@ -1,69 +1,45 @@
 import type { PontoLinhaDoTempo } from './dados'
 import { formatarDataCurta } from './formato'
-
-const LARGURA = 640
-const ALTURA = 200
-const PAD = 24
+import { GraficoColunas } from './GraficoColunas'
 
 /**
- * Série diária desenhada à mão (sem lib de gráfico — nenhuma existe no
- * projeto hoje, ver decisão em docs/07-arquitetura-frontend.md). "Resolvidos
- * no prazo" anda ao lado de "Resolvidos" de propósito: a distância entre as
- * duas linhas É o cumprimento do SLA ao longo do tempo (mesma lógica do
- * backend, `_timeline` em indicators.py).
+ * Abertos × resolvidos por dia no período. "Resolvidos no prazo" não vira
+ * uma terceira marca: ele é um pedaço de "resolvidos", e três colunas por dia
+ * num mês inteiro viravam risco. Fica no tooltip, na tabela e no resumo em
+ * texto logo abaixo, que é onde a pergunta "quanto do resolvido foi no
+ * prazo?" se responde de uma vez.
  */
 export function GraficoLinhaDoTempo({ pontos }: { pontos: PontoLinhaDoTempo[] }) {
-  const totalReabertos = pontos.reduce((soma, p) => soma + p.reopened, 0)
-
-  if (pontos.length < 2) {
-    const p = pontos[0]
-    return (
-      <div className="relatorios-linha-do-tempo relatorios-linha-do-tempo--curta">
-        <p>
-          {p ? (
-            <>
-              {p.opened} aberto(s), {p.resolved} resolvido(s) — só um dia neste período, sem série para desenhar.
-            </>
-          ) : (
-            'Sem dados no período.'
-          )}
-        </p>
-      </div>
-    )
-  }
-
-  const max = Math.max(1, ...pontos.flatMap((p) => [p.opened, p.resolved]))
-  const passoX = (LARGURA - PAD * 2) / (pontos.length - 1)
-  const x = (i: number) => PAD + i * passoX
-  const y = (v: number) => ALTURA - PAD - (v / max) * (ALTURA - PAD * 2)
-  const linha = (chave: 'opened' | 'resolved' | 'resolved_on_time') =>
-    pontos.map((p, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(p[chave]).toFixed(1)}`).join(' ')
+  const resolvidos = pontos.reduce((soma, p) => soma + p.resolved, 0)
+  const noPrazo = pontos.reduce((soma, p) => soma + p.resolved_on_time, 0)
+  const reabertos = pontos.reduce((soma, p) => soma + p.reopened, 0)
 
   return (
     <div className="relatorios-linha-do-tempo">
-      <svg
-        viewBox={`0 0 ${LARGURA} ${ALTURA}`}
-        className="relatorios-linha-do-tempo__svg"
-        role="img"
-        aria-label="Tickets abertos e resolvidos por dia no período"
-      >
-        <line x1={PAD} y1={ALTURA - PAD} x2={LARGURA - PAD} y2={ALTURA - PAD} className="relatorios-linha-do-tempo__eixo" />
-        <path d={linha('opened')} className="relatorios-linha-do-tempo__serie relatorios-linha-do-tempo__serie--aberto" />
-        <path d={linha('resolved_on_time')} className="relatorios-linha-do-tempo__serie relatorios-linha-do-tempo__serie--no-prazo" />
-        <path d={linha('resolved')} className="relatorios-linha-do-tempo__serie relatorios-linha-do-tempo__serie--resolvido" />
-      </svg>
-      <div className="relatorios-linha-do-tempo__rodape">
-        <div className="relatorios-linha-do-tempo__legenda">
-          <span className="relatorios-linha-do-tempo__item relatorios-linha-do-tempo__item--aberto">Abertos</span>
-          <span className="relatorios-linha-do-tempo__item relatorios-linha-do-tempo__item--resolvido">Resolvidos</span>
-          <span className="relatorios-linha-do-tempo__item relatorios-linha-do-tempo__item--no-prazo">No prazo</span>
-          {totalReabertos > 0 && <span className="relatorios-linha-do-tempo__item">{totalReabertos} reabertura(s) no período</span>}
-        </div>
-        <div className="relatorios-linha-do-tempo__datas">
-          <span>{formatarDataCurta(pontos[0].date)}</span>
-          <span>{formatarDataCurta(pontos[pontos.length - 1].date)}</span>
-        </div>
-      </div>
+      <GraficoColunas
+        titulo="Tickets abertos e resolvidos por dia no período"
+        unidade="ticket"
+        series={[
+          { key: 'opened', label: 'Abertos', tom: 'acento' },
+          { key: 'resolved', label: 'Resolvidos', tom: 'apoio' },
+        ]}
+        grupos={pontos.map((p) => ({
+          key: p.date,
+          rotulo: formatarDataCurta(p.date),
+          rotuloLongo: formatarDataCurta(p.date) + '/' + p.date.slice(0, 4),
+          valores: { opened: p.opened, resolved: p.resolved },
+          extras: [
+            { label: 'No prazo', valor: p.resolved_on_time },
+            { label: 'Reabertos', valor: p.reopened },
+          ],
+        }))}
+      />
+      {resolvidos > 0 && (
+        <p className="relatorios-linha-do-tempo__resumo">
+          {noPrazo} de {resolvidos} resolvido{resolvidos === 1 ? '' : 's'} no prazo
+          {reabertos > 0 && `, ${reabertos} reabertura${reabertos === 1 ? '' : 's'} no período`}.
+        </p>
+      )}
     </div>
   )
 }

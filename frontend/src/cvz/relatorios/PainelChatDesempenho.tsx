@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ApiError } from '@/api/client'
-import { DataTable, ErrorState, type Column } from '@/cvz/components'
+import { DataTable, ErrorState, Segmented, type Column } from '@/cvz/components'
 import { useRelatorioChat, type EixoRelatorioChat, type LinhaRelatorioChat } from './dados'
 import { formatarMinutos, formatarNota } from './formato'
 
@@ -109,19 +109,7 @@ export function PainelChatDesempenho() {
   return (
     <div className="relatorios-painel">
       <div className="relatorios-filtros">
-        <div className="relatorios-periodo" role="group" aria-label="Ver por">
-          {EIXOS.map((e) => (
-            <button
-              key={e.key}
-              type="button"
-              className={'relatorios-periodo__botao' + (e.key === eixo ? ' relatorios-periodo__botao--ativo' : '')}
-              aria-pressed={e.key === eixo}
-              onClick={() => setEixo(e.key)}
-            >
-              {e.label}
-            </button>
-          ))}
-        </div>
+        <Segmented label="Ver por" options={EIXOS} value={eixo} onChange={setEixo} />
       </div>
 
       {relatorio.isError ? (
@@ -131,14 +119,16 @@ export function PainelChatDesempenho() {
         />
       ) : (
         <>
-          <h2 className="relatorios-secao__titulo">{TITULO_POR_EIXO[eixo]}</h2>
-          <DataTable
-            rows={relatorio.data ?? []}
-            columns={colunasPara(eixo)}
-            rowKey={(r) => rotuloTexto(r.rotulo)}
-            loading={relatorio.isLoading}
-            empty="Nenhuma conversa no recorte."
-          />
+          <section className="relatorios-secao">
+            <h2 className="relatorios-secao__titulo">{TITULO_POR_EIXO[eixo]}</h2>
+            <DataTable
+              rows={relatorio.data ?? []}
+              columns={colunasPara(eixo)}
+              rowKey={(r) => rotuloTexto(r.rotulo)}
+              loading={relatorio.isLoading}
+              empty="Nenhuma conversa encerrada ainda. Quando houver, as médias aparecem aqui."
+            />
+          </section>
         </>
       )}
     </div>

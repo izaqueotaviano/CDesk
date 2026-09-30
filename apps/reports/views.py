@@ -168,25 +168,45 @@ class TicketReportExportView(_BaseReportView):
         OpenApiParameter("period", OpenApiTypes.STR, enum=list(indicators.PERIODS),
                          description="Janela do painel (padrão: month)"),
         OpenApiParameter("team", OpenApiTypes.INT, description="Id da equipe"),
+        OpenApiParameter("from", OpenApiTypes.DATE,
+                         description="Início de um intervalo livre (AAAA-MM-DD); ganha de `period`"),
+        OpenApiParameter("to", OpenApiTypes.DATE,
+                         description="Fim do intervalo livre, dia inteiro (AAAA-MM-DD)"),
     ],
     responses=OpenApiTypes.OBJECT,
 )
 class IndicatorsView(APIView):
-    """GET /api/v1/reports/indicators/?period=&team=
+    """GET /api/v1/reports/indicators/?period=&team=&from=&to=
 
     O painel gerencial. Uma requisição devolve o painel inteiro: são 15 widgets
     sobre a MESMA leitura de tickets, e quinze chamadas repetiriam a consulta
     (e poderiam mostrar números de instantes diferentes lado a lado).
+
+    `from`/`to` são o intervalo livre (os mesmos nomes do relatório detalhado
+    e de `ChatStatsView`); com eles, `period` é ignorado e a resposta volta
+    com `period.key == "custom"`.
     """
 
     permission_classes = [IsInternal]
 
     def get(self, request):
+        params = request.query_params
+        date_from = _parse_date(params.get("from"), "from")
+        date_to = _parse_date(params.get("to"), "to")
+        if date_from and date_to:
+            if date_from > date_to:
+                raise ValidationError({"from": "O início vem depois do fim do intervalo."})
+            if (date_to - date_from).days + 1 > indicators.MAX_CUSTOM_DAYS:
+                raise ValidationError({
+                    "to": f"Escolha um intervalo de até {indicators.MAX_CUSTOM_DAYS} dias.",
+                })
         return Response(indicators.build_indicators(
             selectors.visible_tickets(request.user),
             request.user,
-            period=request.query_params.get("period") or "month",
-            team_id=_parse_int(request.query_params.get("team"), "team"),
+            period=params.get("period") or "month",
+            team_id=_parse_int(params.get("team"), "team"),
+            date_from=date_from,
+            date_to=date_to,
         ))
 
 

@@ -24,7 +24,9 @@
     flex: 0 0 auto;
     margin-top: 2px;
     border: $stroke-w solid $text;
-    border-radius: $radius;
+    // 4px fixos, não `$radius`: com o raio de controle (8px) uma caixa de
+    // 16px vira círculo e passa por botão de opção (radio).
+    border-radius: 4px;
     background-color: $raised;
     transition: background-color $dur $ease, border-color $dur $ease;
   }
@@ -172,9 +174,10 @@
     &::after { transform: translateX(16px); }
   }
 
-  // O anel de foco é o único lugar onde o laranja CHEIO entra num controle.
+  // Anel de foco no acento, como todo controle do produto (era o laranja
+  // cheio, a última sobra da marca dentro de um controle).
   input:focus-visible + &__track {
-    outline: $focus-w solid $brand;
+    outline: $focus-w solid $blue;
     outline-offset: 2px;
   }
 }

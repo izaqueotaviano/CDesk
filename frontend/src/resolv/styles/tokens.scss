@@ -73,7 +73,10 @@
   // saem daqui (ver conferência de WCAG no commit).
   --text-primary: #242424;
   --text-secondary: #616161;
-  --text-muted: #767676;
+  // 5,1:1 no plano e 4,6:1 na pílula ativa (#eae9e6) — o #767676 de antes só
+  // passava sobre branco (4,2:1 no plano, 3,7:1 na pílula). Mesmo valor de
+  // --tinta-terciaria (styles/tokens.css) e --cvz-text-muted (cvz).
+  --text-muted: #686868;
   // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
   // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
   // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
@@ -103,12 +106,16 @@
   // de ui/identidade.ts. Todos AA com texto branco em cima (4,9:1 a 7,3:1) e
   // AA como TEXTO sobre branco/canvas/cromo (o pior par é 4,7:1) — é por isso
   // que o preenchimento do avatar e o texto do selo podem ser o mesmo valor.
-  --identidade-1: #5B5FC7; // violeta
-  --identidade-2: #0B6F78; // petróleo
-  --identidade-3: #3D6E8C; // aço
-  --identidade-4: #9E5439; // terracota
+  // "Branco/canvas" aqui inclui a tinta de 14% do selo: 4,6:1 no pior caso
+  // (petróleo sobre a tinta no plano) — foi o que fez escurecer um pouco os
+  // três primeiros. Terracota e magenta saíram (sépia e ameixa no lugar):
+  // numa lista de conversas, avatar avermelhado lia como alerta.
+  --identidade-1: #5054C3; // violeta
+  --identidade-2: #0B6C75; // petróleo
+  --identidade-3: #396783; // aço
+  --identidade-4: #6D604F; // sépia (era terracota: Gold segue quente)
   --identidade-5: #4B5768; // ardósia
-  --identidade-6: #A23E7B; // magenta
+  --identidade-6: #7A4F8F; // ameixa (era magenta)
   // Texto na cor de identidade (selo de plano sobre tint). No claro é a
   // própria cor; no escuro ela precisa clarear (ver paleta-escura).
   --identidade-1-texto: var(--identidade-1);
@@ -139,10 +146,11 @@
   // 1,65:1). Então o par anda junto: quem pinta com `--chat-tom-N` escreve
   // com `--chat-tom-N-tinta`, e o menor contraste da tabela é 4,60:1.
   //
-  // O vermelho é o único VALOR que mudou: o #dc4c40 antigo não passava com
-  // tinta nenhuma (4,08:1 com branco, 4,29:1 com a escura) — não havia
-  // cor de texto que o salvasse, só fechá-lo. #d62036 dá 5,10:1 com branco
-  // e continua longe do laranja, da rosa-seca e do acento do produto.
+  // Sem vermelho, laranja, rosa-choque ou salmão: avatar nessas cores, numa
+  // fila de conversas, lia como alerta ("AA" e "VV" em carmim pareciam
+  // chamados estourados), e laranja é a marca, que fica só no logo. Os
+  // quatro deram lugar a ameixa (4), oliva (8), pedra (9) e petróleo (14),
+  // que preenchem os buracos de matiz da roda sem imitar estado.
   //
   // Os dois valores são fixos nos dois temas: o fundo aqui é a cor da
   // pessoa, não uma superfície — ele não vira com o tema, e a tinta que
@@ -150,17 +158,17 @@
   --chat-tom-1: #3d7ef7;   --chat-tom-1-tinta: #1c1917;   // 4,60:1
   --chat-tom-2: #5fb8b4;   --chat-tom-2-tinta: #1c1917;   // 7,50:1
   --chat-tom-3: #f6c244;   --chat-tom-3-tinta: #1c1917;   // 10,59:1
-  --chat-tom-4: #d62036;   --chat-tom-4-tinta: #ffffff;   // 5,10:1
+  --chat-tom-4: #7d4f96;   --chat-tom-4-tinta: #ffffff;   // 6,12:1
   --chat-tom-5: #c28faa;   --chat-tom-5-tinta: #1c1917;   // 6,50:1
   --chat-tom-6: #7189b0;   --chat-tom-6-tinta: #1c1917;   // 4,92:1
   --chat-tom-7: #5cbb4b;   --chat-tom-7-tinta: #1c1917;   // 7,22:1
-  --chat-tom-8: #f0832e;   --chat-tom-8-tinta: #1c1917;   // 6,65:1
-  --chat-tom-9: #d08c86;   --chat-tom-9-tinta: #1c1917;   // 6,48:1
+  --chat-tom-8: #9c9a4e;   --chat-tom-8-tinta: #1c1917;   // 5,95:1
+  --chat-tom-9: #a39480;   --chat-tom-9-tinta: #1c1917;   // 5,92:1
   --chat-tom-10: #6d3ef5;  --chat-tom-10-tinta: #ffffff;  // 5,74:1
   --chat-tom-11: #5ec5ea;  --chat-tom-11-tinta: #1c1917;  // 8,87:1
   --chat-tom-12: #75a868;  --chat-tom-12-tinta: #1c1917;  // 6,29:1
   --chat-tom-13: #c9a883;  --chat-tom-13-tinta: #1c1917;  // 7,84:1
-  --chat-tom-14: #e85a9c;  --chat-tom-14-tinta: #1c1917;  // 5,31:1
+  --chat-tom-14: #236d77;  --chat-tom-14-tinta: #ffffff;  // 5,96:1
   --chat-tom-15: #a29bc7;  --chat-tom-15-tinta: #1c1917;  // 6,70:1
 
   // ── Presença (status de usuário e agente) ──
@@ -289,7 +297,10 @@
   // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
   // surface-container (tom 12) — a MESMA ordem relativa de antes
   // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
-  --surface: #242423;
+  // `surface` e `surface-card` são o MESMO valor, como no claro (os dois
+  // brancos): campo e cartão em #2a2a29, que é o que o briefing chama de
+  // superfície. O #242423 de antes era um terceiro cinza a meio caminho.
+  --surface: #2a2a29;
   --surface-alt: #1a1a19;
   --surface-card: #2a2a29;
   --surface-canvas: #1a1a19;
@@ -345,12 +356,14 @@
   // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, retonado
   // pelo mesmo método M3 (tom 58) até passar 4,5:1 nas duas superfícies
   // escuras do resolv e nas duas do cvz.
-  --identidade-1-texto: #7c81eb;
-  --identidade-2-texto: #4597a0;
-  --identidade-3-texto: #6191b1;
-  --identidade-4-texto: #c87658;
-  --identidade-5-texto: #808c9f;
-  --identidade-6-texto: #d266a5;
+  // Conferido também sobre a tinta de 14% do selo em cima do cartão escuro
+  // (#2a2a29) e sobre o selecionado (#333332): 4,6:1 no pior caso.
+  --identidade-1-texto: #9597db;
+  --identidade-2-texto: #11adbb;
+  --identidade-3-texto: #71a3c1;
+  --identidade-4-texto: #a99b89;
+  --identidade-5-texto: #919eb0;
+  --identidade-6-texto: #b393c3;
 
   // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
   // aparece, e a peça flutuante perde a separação do fundo — que é a única

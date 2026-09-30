@@ -1,4 +1,4 @@
-import type { UnidadeKpi } from './dados'
+import type { Kpi, UnidadeKpi } from './dados'
 
 /** Segundos → texto curto ("45min", "2h 14min", "3d 2h"). Sem granularidade
  *  variável, "185min" ou "0.13h" seriam ilegíveis nos KPIs e na tabela de agentes. */
@@ -64,4 +64,23 @@ export function formatarMinutos(minutos: number | null | undefined): string {
 export function formatarDataCurta(iso: string): string {
   const [, mes, dia] = iso.split('-')
   return `${dia}/${mes}`
+}
+
+/** Para que lado a variação é boa. */
+export type Sentido = 'up-is-good' | 'up-is-bad' | 'neutral'
+
+/** `direction` do backend (`up`/`down`/`null`) no vocabulário do StatCard:
+ *  "down" é boa descida (tempo de resposta), `null` é neutro (volume). */
+export function sentidoDoKpi(direction: Kpi['direction']): Sentido {
+  if (direction === 'down') return 'up-is-bad'
+  if (direction === 'up') return 'up-is-good'
+  return 'neutral'
+}
+
+/** Classe do delta numa tabela: só pinta quando a métrica tem lado bom. */
+export function classeDoDelta(variacao: number | null, sentido: Sentido): string {
+  const d = direcaoVariacao(variacao)
+  if (d === 'flat' || sentido === 'neutral') return 'relatorios-delta'
+  const bom = (d === 'up') === (sentido === 'up-is-good')
+  return `relatorios-delta relatorios-delta--${bom ? 'bom' : 'ruim'}`
 }

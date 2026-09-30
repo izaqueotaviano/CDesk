@@ -3,8 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import {
   Button,
   DataTable,
+  DensityToggle,
+  EmptyState,
   ErrorState,
   FilterBar,
+  IconClients,
   IconPlus,
   PageHeader,
   Pagination,
@@ -92,10 +95,16 @@ export function PaginaListaEmpresas() {
       numeric: true,
       mobile: 'meta',
       sortBy: (e) => e.quota_usage.used,
+      // "sem limite" em cinza, depois do número: é contexto, não valor — e
+      // entre parênteses na mesma cor ele disputava com o número.
       render: (e) => (
         <span>
           {e.quota_usage.used}
-          {e.quota_usage.limit != null ? ` / ${e.quota_usage.limit}` : ' (sem limite)'}
+          {e.quota_usage.limit != null ? (
+            ` / ${e.quota_usage.limit}`
+          ) : (
+            <span className="clientes-meta"> sem limite</span>
+          )}
         </span>
       ),
     },
@@ -110,49 +119,41 @@ export function PaginaListaEmpresas() {
         </Tag>
       ),
     },
-    {
-      key: 'acoes',
-      header: '',
-      mobile: 'meta',
-      // A linha inteira já navegava para o detalhe, mas isso é invisível: não
-      // há nada na tela dizendo que ela é clicável. Os botões explícitos são
-      // o caminho que a pessoa acha — o clique na linha continua valendo como
-      // atalho de quem já sabe.
-      render: (e) => (
-        <div className="clientes-acoes">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={(ev) => {
-              // sem isto o clique sobe para a linha e o "Editar" também navega
-              ev.stopPropagation()
-              navigate(`/clientes/${e.id}`)
-            }}
-          >
-            Abrir
-          </Button>
-          {podeEditar && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(ev) => {
-                ev.stopPropagation()
-                setEmpresaEmEdicao(e)
-              }}
-            >
-              Editar
-            </Button>
-          )}
-        </div>
-      ),
-    },
+    // Abrir é a LINHA: ela inteira é clicável e o nome da empresa é um link
+    // de verdade (Tab chega nele, Enter abre, Ctrl+clique abre em outra aba)
+    // — o botão "Abrir" repetia isso em toda linha. Fica só o que a linha não
+    // faz sozinha: editar sem sair da lista.
+    ...(podeEditar
+      ? [
+          {
+            key: 'acoes',
+            header: '',
+            mobile: 'meta' as const,
+            width: '1%',
+            render: (e: Empresa) => (
+              <div className="clientes-acoes">
+                <Button variant="ghost" size="sm" onClick={() => setEmpresaEmEdicao(e)}>
+                  Editar
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ]
+
+  const filtrando = busca !== '' || statusFiltro !== ''
+  const limparFiltros = () => {
+    setBusca('')
+    setStatusFiltro('')
+    setPagina(1)
+  }
 
   return (
     <>
       <PageHeader
         title="Clientes"
-        description="Empresas atendidas — plano, cota do mês e usuários."
+        description="Empresas atendidas, com plano, cota do mês e usuários."
         actions={
           podeEditar && (
             <Button Icon={IconPlus} onClick={() => setModalAberto(true)}>
@@ -162,7 +163,7 @@ export function PaginaListaEmpresas() {
         }
       />
 
-      <FilterBar>
+      <FilterBar end={<DensityToggle />}>
         <SearchInput
           placeholder="Buscar por nome, razão social ou domínio…"
           value={busca}
@@ -186,7 +187,7 @@ export function PaginaListaEmpresas() {
         />
       </FilterBar>
 
-      <div style={{ marginTop: 16 }}>
+      <div className="clientes-lista">
         {isError ? (
           <ErrorState
             description={error instanceof ApiError ? error.detail : undefined}
@@ -198,13 +199,38 @@ export function PaginaListaEmpresas() {
             columns={colunas}
             rowKey={(e) => String(e.id)}
             onRowClick={(e) => navigate(`/clientes/${e.id}`)}
+            rowHref={(e) => `/clientes/${e.id}`}
             loading={isLoading}
+            loadingRows={8}
             empty={
-              <div className="clientes-vazio">
-                {busca || statusFiltro
-                  ? 'Nenhuma empresa bate com esse filtro.'
-                  : 'Nenhuma empresa cadastrada ainda.'}
-              </div>
+              filtrando ? (
+                <EmptyState
+                  title="Nenhuma empresa com esse filtro"
+                  description="Tente outro nome ou domínio, ou veja todas as empresas."
+                  action={
+                    <Button variant="secondary" size="sm" onClick={limparFiltros}>
+                      Limpar filtros
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  Icon={IconClients}
+                  title="Nenhuma empresa cadastrada"
+                  description={
+                    podeEditar
+                      ? 'Cadastre a primeira empresa para abrir chamados em nome dela.'
+                      : 'Quando um administrador cadastrar empresas, elas aparecem aqui.'
+                  }
+                  action={
+                    podeEditar && (
+                      <Button Icon={IconPlus} size="sm" onClick={() => setModalAberto(true)}>
+                        Nova empresa
+                      </Button>
+                    )
+                  }
+                />
+              )
             }
           />
         )}
