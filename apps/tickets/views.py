@@ -700,39 +700,17 @@ class TicketViewSet(viewsets.GenericViewSet):
             raise PermissionDenied("Apenas usuários internos pegam chamados.")
         if not user.can(Perm.TICKET_BE_ASSIGNED):
             raise PermissionDenied("Seu papel não pode ser responsável por chamados.")
-
-        from django.db import transaction
-        from django.db.models import F
-
-        # O recorte de visibilidade vira uma subconsulta de ids: `FOR UPDATE`
-        # não convive com o DISTINCT e os joins opcionais que o escopo pode
-        # trazer, e a trava só precisa da linha do chamado.
-        visiveis = selectors.visible_tickets(user).filter(
-            assignee__isnull=True,
-            status__in=[TicketStatus.NEW, TicketStatus.OPEN],
-        ).values("pk")
-        with transaction.atomic():
-            candidato = (
-                Ticket.objects.filter(pk__in=visiveis, assignee__isnull=True)
-                .annotate(priority_rank=_PRIORITY_RANK)
-                .order_by(
-                    F("sla_resolution_due_at").asc(nulls_last=True),
-                    "-priority_rank",
-                    "created_at",
-                    "pk",
-                )
-                .select_for_update(skip_locked=True)
-                .first()
+        try:
+            ticket = ticket_service.take_next(
+                actor=user, candidatos=selectors.visible_tickets(user),
             )
-            if candidato is None:
-                return Response(
-                    {"code": "nada_para_pegar", "detail": "Nenhum chamado sem responsável agora."},
-                    status=http.HTTP_409_CONFLICT,
-                )
-            try:
-                ticket = ticket_service.assign(ticket=candidato, assignee=user, actor=user)
-            except TicketRuleViolation as exc:
-                raise PermissionDenied(str(exc)) from exc
+        except ticket_service.NadaParaPegar:
+            return Response(
+                {"code": "nada_para_pegar", "detail": "Nenhum chamado sem responsável agora."},
+                status=http.HTTP_409_CONFLICT,
+            )
+        except TicketRuleViolation as exc:
+            raise PermissionDenied(str(exc)) from exc
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
 

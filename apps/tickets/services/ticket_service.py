@@ -633,6 +633,57 @@ def add_reply(
         return message
 
 
+class NadaParaPegar(Exception):
+    """`take_next` não achou chamado sem responsável esperando a equipe."""
+
+
+def take_next(*, actor, candidatos) -> Ticket:
+    """Escolhe o próximo chamado e o atribui a `actor`, numa transação só.
+
+    `candidatos` é o escopo que quem pede enxerga (`selectors.visible_tickets`
+    — a view passa; aqui ele vira uma subconsulta de ids, porque `FOR UPDATE`
+    não convive com o DISTINCT e os joins opcionais que o escopo pode trazer).
+
+    A linha escolhida fica travada (`select_for_update`) até a atribuição
+    gravar, e `skip_locked` faz um segundo pedido simultâneo pular para o
+    próximo da fila em vez de esperar pelo mesmo — dois agentes clicando
+    juntos em "Pegar o próximo" pegam chamados DIFERENTES.
+
+    Ordem: o prazo de SLA de resolução que vence primeiro (sem prazo por
+    último), depois a prioridade mais alta, depois o mais antigo. Só sem
+    responsável e esperando a EQUIPE (novo ou aberto).
+    """
+    from django.db.models import Case, F, Value, When
+
+    from apps.tickets.models import TicketPriority, TicketStatus
+
+    rank = Case(
+        When(priority=TicketPriority.URGENT, then=Value(4)),
+        When(priority=TicketPriority.HIGH, then=Value(3)),
+        When(priority=TicketPriority.NORMAL, then=Value(2)),
+        default=Value(1),
+    )
+    ids = candidatos.filter(
+        assignee__isnull=True, status__in=[TicketStatus.NEW, TicketStatus.OPEN],
+    ).values("pk")
+    with transaction.atomic():
+        candidato = (
+            Ticket.objects.filter(pk__in=ids, assignee__isnull=True)
+            .annotate(rank_prioridade=rank)
+            .order_by(
+                F("sla_resolution_due_at").asc(nulls_last=True),
+                "-rank_prioridade",
+                "created_at",
+                "pk",
+            )
+            .select_for_update(skip_locked=True)
+            .first()
+        )
+        if candidato is None:
+            raise NadaParaPegar
+        return assign(ticket=candidato, assignee=actor, actor=actor)
+
+
 def assign(*, ticket: Ticket, assignee, actor) -> Ticket:
     """Atribui o ticket a um agente, com notificação in-app e e-mail
     (requisito 8) — o agente pode estar de fora do sistema quando o
