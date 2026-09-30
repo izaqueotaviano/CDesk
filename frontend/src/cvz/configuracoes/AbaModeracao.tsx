@@ -75,7 +75,7 @@ export function AbaModeracao() {
         columns={colunas}
         rowKey={(p) => String(p.id)}
         loading={isLoading}
-        empty="Nenhuma palavra na lista — nada é censurado."
+        empty="Nenhuma palavra na lista. Nada é censurado."
       />
 
       <ConfirmDialog
@@ -91,7 +91,7 @@ export function AbaModeracao() {
           }
         }}
         title={`Remover "${paraExcluir?.word}" da lista?`}
-        description="As mensagens que continham a palavra voltam a mostrar o texto original — inclusive as antigas."
+        description="As mensagens que continham a palavra voltam a mostrar o texto original, inclusive as antigas."
         confirmLabel="Remover"
         danger
       />

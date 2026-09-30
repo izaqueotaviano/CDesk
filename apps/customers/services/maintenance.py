@@ -201,7 +201,7 @@ def _abrir_chamado_comercial(company, equipe, *, actor, usado, limite, fim):
         + (f"Excedente até agora: {_formatar(excedente)}\n" if excedente else "")
         + f"Plano: {company.plan.name}\n"
         f"A franquia renova em {fim.strftime('%d/%m/%Y')}.\n\n"
-        "O atendimento continua normalmente — este chamado é para negociar "
+        "O atendimento continua normalmente. Este chamado é para negociar "
         "horas adicionais com o cliente."
     )
     ticket = Ticket.objects.create(
@@ -209,7 +209,7 @@ def _abrir_chamado_comercial(company, equipe, *, actor, usado, limite, fim):
         company=company,
         requester=actor,
         team=equipe,
-        subject=f"Horas de manutenção esgotadas — {company.name}",
+        subject=f"Horas de manutenção esgotadas: {company.name}",
         priority=TicketPriority.HIGH,
         source=TicketSource.INTERNAL,
         status=TicketStatus.NEW,

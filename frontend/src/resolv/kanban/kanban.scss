@@ -393,7 +393,11 @@
 // A coluna não é caixa: é um trecho do plano com um cabeçalho e um fio
 // embaixo dele. O fundo só aparece quando ela é o alvo do arraste.
 .kb-coluna {
-  flex: 0 0 288px;
+  // Cresce até dividir a largura quando há poucas colunas (quatro cabem
+  // inteiras numa tela de 1440px, com o "Nova coluna" ao lado, sem nada
+  // cortado na borda) e rola para o lado quando há muitas.
+  flex: 1 0 236px;
+  max-width: 340px;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -541,8 +545,13 @@
   }
 
   // ---- "Nova coluna": a última, sem cabeçalho nem fio ----
+  // Fechada, a "coluna nova" é só o botão (não rouba 240px das colunas
+  // de verdade); aberta, ganha a largura do formulário.
   &--nova {
-    flex-basis: 240px;
+    flex: 0 0 auto;
+    &:has(form) {
+      flex: 0 0 240px;
+    }
   }
   &__nova-botao {
     display: flex;

@@ -35,7 +35,7 @@ export function MuralAvisos() {
             icone={icone}
             papel={papel}
             titulo={a.title}
-            acao={
+            fechar={
               <Button
                 variant="ghost"
                 size="icon-sm"

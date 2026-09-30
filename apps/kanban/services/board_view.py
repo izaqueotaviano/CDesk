@@ -51,7 +51,7 @@ def _entry(ticket, column_key, card, user) -> dict:
         "stage": ticket.stage_id,
         "priority": ticket.priority,
         "subject": (
-            f"Ticket de {ticket.team.name} — acesso restrito"
+            f"Ticket de {ticket.team.name} (acesso restrito)"
             if masked else ticket.subject
         ),
         "requester_display": (

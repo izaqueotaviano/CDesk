@@ -56,7 +56,7 @@ function descreverAtualizacaoDeFundo(
   if (statusMudou) {
     const maisRecente = [...atual.events].sort((a, b) => (a.created_at > b.created_at ? -1 : 1))[0]
     if (maisRecente?.actor_name && maisRecente.to_status === atual.status) {
-      return `${maisRecente.actor_name} atualizou este chamado — status agora é "${ROTULO_STATUS[atual.status]}".`
+      return `${maisRecente.actor_name} atualizou este chamado. O status agora é "${ROTULO_STATUS[atual.status]}".`
     }
   }
   return 'Este chamado foi atualizado enquanto você olhava.'
@@ -360,7 +360,7 @@ export function PaginaDetalheTicket() {
               ? 'Este ticket não existe ou você não tem acesso a ele.'
               : `Não foi possível carregar o ticket${error instanceof ApiError ? ` (erro ${error.status})` : ''}.`}
           </p>
-          <p>Nenhum dado foi perdido — tente de novo ou volte para a lista.</p>
+          <p>Nenhum dado foi perdido. Tente de novo ou volte para a lista.</p>
           <div className="detalhe__estado-acoes">
             <button
               type="button"

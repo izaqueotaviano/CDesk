@@ -77,18 +77,6 @@ class Command(BaseCommand):
         # tem vínculo com o Suporte e ponto. Uma lotação paralela era metade da
         # confusão que a fusão desfez.
 
-        # Os avatares prontos, na ordem em que os internos são criados. A demo
-        # existe para mostrar o sistema com cara de uso real, e fila inteira de
-        # iniciais não é isso.
-        avatares = iter([
-            "/avatars/avatar-06-roxo-gato.svg",
-            "/avatars/avatar-02-verde.svg",
-            "/avatars/avatar-04-azul-claro.svg",
-            "/avatars/avatar-05-amarelo.svg",
-            "/avatars/avatar-01-rosa.svg",
-            "/avatars/avatar-03-laranja.svg",
-        ])
-
         def internal(email, name, role, **extra):
             user, created = User.objects.update_or_create(
                 email=email,
@@ -97,7 +85,11 @@ class Command(BaseCommand):
                     "kind": UserKind.INTERNAL,
                     "internal_role": role,
                     "is_staff": role == InternalRole.ADMIN,
-                    "avatar_url": next(avatares, ""),
+                    # Sem foto: as iniciais na cor de identidade da pessoa. Os
+                    # avatares "prontos" (`/avatars/avatar-0N-*.svg`) nunca foram
+                    # publicados pelo front, e apontar para eles dava imagem
+                    # quebrada na conversa.
+                    "avatar_url": "",
                     **extra,
                 },
             )
@@ -243,7 +235,7 @@ class Command(BaseCommand):
                         TicketStatus.PENDING_CUSTOMER, created_ago_h=50,
                         assignee=agente_sup)
             reply(t3, carla, "O relatório de julho não chegou no meu e-mail.", hours_ago=50)
-            reply(t3, agente_sup, "Verificamos o envio — pode confirmar se o e-mail "
+            reply(t3, agente_sup, "Verificamos o envio. Pode confirmar se o e-mail "
                   "cadastrado é este mesmo?", hours_ago=47)
             move(t3, TicketStatus.NEW, TicketStatus.OPEN, agente_sup, hours_ago=47)
             move(t3, TicketStatus.OPEN, TicketStatus.PENDING_CUSTOMER, agente_sup,
@@ -310,7 +302,7 @@ class Command(BaseCommand):
 
         board, _ = Board.objects.update_or_create(
             slug="suporte-semana",
-            defaults={"name": "Suporte — semana", "team": suporte,
+            defaults={"name": "Suporte · semana", "team": suporte,
                       "created_by": admin},
         )
         # não há colunas para criar: elas são os status do ticket
@@ -413,7 +405,7 @@ class Command(BaseCommand):
                 ("Como abrir um chamado pelo portal",
                  "Primeiros passos",
                  "O caminho do cliente: entrar, escolher o assunto e anexar o que ajudar.",
-                 "<h2>Antes de abrir</h2><p>Confira se o chamado já não existe — "
+                 "<h2>Antes de abrir</h2><p>Confira se o chamado já não existe: "
                  "responder no chamado aberto é mais rápido que abrir outro.</p>"
                  "<h2>Abrindo</h2><ol><li>Entre no portal.</li>"
                  "<li>Descreva o problema em uma frase no assunto.</li>"
@@ -428,7 +420,7 @@ class Command(BaseCommand):
                  "<p>Os dois contam em horas úteis, pelo calendário comercial.</p>"),
                 ("Reabertura: como funciona",
                  "SLA e prazos",
-                 "Responder num chamado fechado o reabre — e começa um ciclo novo.",
+                 "Responder num chamado fechado o reabre e começa um ciclo novo.",
                  "<p>Não existe botão de reabrir sozinho: reabrir é "
                  "<strong>responder publicamente</strong> num chamado fechado.</p>"
                  "<p>A reabertura começa um <em>novo ciclo de SLA</em>. O histórico "
@@ -439,7 +431,7 @@ class Command(BaseCommand):
                  "<p>Todo anexo passa por varredura antes de ficar disponível.</p>"
                  "<p>Enquanto não termina, o arquivo aparece como "
                  "<em>em verificação</em>. Se a varredura barra, ele fica em "
-                 "quarentena e não pode ser baixado — nem por quem enviou.</p>"),
+                 "quarentena e não pode ser baixado, nem por quem enviou.</p>"),
                 ("Macros: respostas prontas que também mudam campos",
                  "Atendimento",
                  "Macro não é só texto: ela grava prioridade, responsável e etiquetas.",
@@ -452,7 +444,7 @@ class Command(BaseCommand):
                  "Por que um chamado aparece mascarado com cadeado.",
                  "<p>Um agente enxerga os chamados das equipes de que participa.</p>"
                  "<p>Chamado de equipe em que você não está aparece "
-                 "<strong>mascarado</strong>, com cadeado — não é erro, é o "
+                 "<strong>mascarado</strong>, com cadeado. Não é erro, é o "
                  "comportamento esperado. Peça acesso a um supervisor da equipe.</p>"),
             ]
             for i, (titulo, categoria, resumo, corpo) in enumerate(artigos, start=1):
@@ -514,7 +506,7 @@ class Command(BaseCommand):
             TicketMacro.objects.create(
                 name="Chat · abertura",
                 body="Oi, {{solicitante}}! Já estou vendo aqui. Um minuto.",
-                chat_name="Atendimento — {{empresa}}",
+                chat_name="Atendimento · {{empresa}}",
                 order=4,
             )
             self.stdout.write(f"Macros criadas: {TicketMacro.objects.count()}")

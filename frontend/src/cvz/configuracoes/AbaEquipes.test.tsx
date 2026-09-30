@@ -283,7 +283,7 @@ describe('AbaEquipes — ações do agente', () => {
     const menu = await abrirMenu('Ana Souza')
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Ver histórico de acesso' }))
 
-    expect(await screen.findByRole('heading', { name: 'Histórico de acesso — Ana Souza' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Histórico de acesso de Ana Souza' })).toBeInTheDocument()
     expect(await screen.findByText('Login')).toBeInTheDocument()
     expect(screen.getAllByText('Chrome · Windows').length).toBeGreaterThan(0)
     expect(screen.getByText('Encerrar')).toBeInTheDocument()

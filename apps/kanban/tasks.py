@@ -44,7 +44,7 @@ def warn_overdue_cards() -> int:
         ):
             continue
         titulo = f"Prazo do quadro vencido: {ticket.reference}"
-        corpo = f"{ticket.subject} — quadro {card.board.name}"
+        corpo = f"{ticket.subject} (quadro {card.board.name})"
         url = ticket_url(ticket, destinatario)
         notify(
             recipient=destinatario,

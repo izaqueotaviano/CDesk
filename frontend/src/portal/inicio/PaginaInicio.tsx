@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom'
+import { quandoReabre } from '@/ui/reabertura'
 import { IconClock, IconHeadset, IconMessageCircle, IconMessagePlus, IconPlus, IconStar, IconTicket, type Icon } from '@tabler/icons-react'
 import { useConfigChat, usePendingRatings, type Chat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useChatsRecentes, useContagemChatsAtivos } from '../api/chats'
 import { useAvaliacoesPendentesTicket, useContagemAbas, useTicketsRecentes } from '../api/tickets'
 import { cn } from '../lib/cn'
-import { dataHora, primeiroNome, relativo, useAgora } from '../lib/formato'
+import { primeiroNome, relativo, useAgora } from '../lib/formato'
 import { CartaoTicket, EsqueletoCartaoTicket, HOVER_CARTAO } from '../tickets/componentes'
 import { Alert } from '../ui/alert'
 import { Badge } from '../ui/badge'
@@ -123,14 +124,14 @@ export function PaginaInicio() {
 
   const filaAberta = config.data?.queue_open
   const filaFechada = filaAberta === false
-  const voltaAs = config.data?.queue_opens_at ? dataHora(config.data.queue_opens_at) : null
+  const voltaAs = config.data?.queue_opens_at ? quandoReabre(config.data.queue_opens_at) : null
   // Dois motivos travam o chat, e a pessoa precisa saber qual: a avaliação
   // pendente (dela) ou o horário (do suporte).
   const motivoChatTravado =
     pendentesChat > 0
       ? 'Avalie o último chat para iniciar outro'
       : filaFechada
-        ? `Fora do horário de atendimento por chat${voltaAs ? `. Volta em ${voltaAs}` : ''}`
+        ? `Fora do horário de atendimento por chat${voltaAs ? `. Volta ${voltaAs}` : ''}`
         : null
 
   return (
@@ -147,7 +148,7 @@ export function PaginaInicio() {
               <>
                 {' · '}
                 <span className={cn('font-medio', filaAberta ? 'text-ok' : 'text-tinta-terciaria')}>
-                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? `, volta em ${voltaAs}` : ''}`}
+                  {filaAberta ? 'Chat aberto agora' : `Chat fechado${voltaAs ? `, volta ${voltaAs}` : ''}`}
                 </span>
               </>
             )}
@@ -229,7 +230,7 @@ export function PaginaInicio() {
           em volta que havia aqui: cartão branco dentro de cartão branco não
           tem borda que o separe, e a lista virava texto solto. */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <section aria-labelledby="inicio-tickets" className="flex flex-col gap-2">
+        <section aria-labelledby="inicio-tickets" className="flex min-w-0 flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <h2 id="inicio-tickets" className="text-titulo font-forte">
               Tickets recentes
@@ -258,7 +259,7 @@ export function PaginaInicio() {
           )}
         </section>
 
-        <section aria-labelledby="inicio-conversas" className="flex flex-col gap-2">
+        <section aria-labelledby="inicio-conversas" className="flex min-w-0 flex-col gap-2">
           <div className="flex items-center justify-between gap-2">
             <h2 id="inicio-conversas" className="text-titulo font-forte">
               Conversas recentes
@@ -286,7 +287,7 @@ export function PaginaInicio() {
                 titulo="Nenhuma conversa ainda"
                 descricao={
                   filaFechada
-                    ? `O chat está fechado agora${voltaAs ? ` e volta em ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
+                    ? `O chat está fechado agora${voltaAs ? ` e volta ${voltaAs}` : ''}. Para uma dúvida curta, ele é o caminho mais rápido dentro do horário de atendimento.`
                     : 'O chat é o caminho mais rápido para uma dúvida curta, dentro do horário de atendimento.'
                 }
                 acao={

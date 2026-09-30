@@ -221,7 +221,7 @@ class _MaskingMixin:
     def get_subject(self, obj) -> str:
         if self._visible(obj) or not obj.team.mask_subject_for_others:
             return obj.subject
-        return f"Ticket de {obj.team.name} — acesso restrito"  # D6
+        return f"Ticket de {obj.team.name} (acesso restrito)"  # D6
 
     def get_requester_display(self, obj) -> str:
         return obj.requester.full_name if self._visible(obj) else MASKED_REQUESTER

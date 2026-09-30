@@ -199,7 +199,7 @@ export function AbaPapeis() {
           }
         }}
         title={`Excluir "${paraExcluir?.name}"?`}
-        description="Só é possível excluir um papel sem usuários — mova-os antes, ou desative o papel em vez de excluir."
+        description="Só é possível excluir um papel sem usuários. Mova-os antes, ou desative o papel em vez de excluir."
         confirmLabel="Excluir"
         danger
       />
@@ -362,7 +362,7 @@ function ModalPapel({
           <TextInput label="Nome" value={form.name} onChange={(e) => trocarNome(e.target.value)} autoFocus />
           <TextInput
             label="Identificador (slug)"
-            helper="Usado em URLs internas — só letras minúsculas, números e hífen."
+            helper="Usado em URLs internas. Só letras minúsculas, números e hífen."
             value={form.slug}
             onChange={(e) => {
               campo('slug', e.target.value)
@@ -381,7 +381,7 @@ function ModalPapel({
         <FormRow columns={2}>
           <Select
             label="Papel base"
-            helper="De qual papel embutido este deriva — só documenta a intenção, não soma permissões dele."
+            helper="De qual papel embutido este deriva. Só documenta a intenção, não soma permissões dele."
             value={form.base_role}
             onChange={(e) => campo('base_role', e.target.value)}
             options={choices?.internal_roles ?? []}

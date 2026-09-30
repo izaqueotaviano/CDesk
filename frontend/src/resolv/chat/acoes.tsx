@@ -125,7 +125,7 @@ export function FormTransferir({
         placeholder="O que quem receber precisa saber"
       />
       <p className="cc-acao__ajuda">
-        Vai direto para o agente escolhido — não volta para a fila. A observação fica na
+        Vai direto para o agente escolhido, sem voltar para a fila. A observação fica na
         trilha de auditoria; o cliente não a vê.
       </p>
 
@@ -214,7 +214,7 @@ export function FormEncerrar({
       />
 
       <p className="cc-acao__ajuda">
-        Motivo e observação são internos — nada disso sai para o cliente.
+        Motivo e observação são internos: nada disso sai para o cliente.
       </p>
 
       {erro && (
@@ -276,7 +276,7 @@ export function FormReabrir({
         placeholder="Por que a conversa volta a ficar aberta"
       />
       <p className="cc-acao__ajuda">
-        A conversa volta para a fila com todo o histórico. O protocolo é o mesmo — a
+        A conversa volta para a fila com todo o histórico. O protocolo é o mesmo, e a
         reabertura fica contada no atendimento.
       </p>
 

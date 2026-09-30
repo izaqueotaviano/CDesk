@@ -365,7 +365,7 @@ def edit_message(*, message: ChatMessage, actor, body: str) -> ChatMessage:
         )
     body = (body or "").strip()
     if not body:
-        raise ChatRuleViolation("A mensagem não pode ficar vazia — apague-a.")
+        raise ChatRuleViolation("A mensagem não pode ficar vazia. Se quiser removê-la, apague-a.")
     if body == message.body:
         return message
 
@@ -686,7 +686,7 @@ def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
         if chat.status != ChatStatus.ACTIVE:
             raise ChatRuleViolation("Só dá para transferir um chat em atendimento.")
         if not (actor.is_admin or chat.agent_id == actor.pk):
-            raise ChatRuleViolation("Só quem está atendendo — ou um admin — transfere.")
+            raise ChatRuleViolation("Só quem está atendendo (ou um admin) transfere.")
         if chat.agent_id == to_agent.pk:
             raise ChatRuleViolation(f"O chat já é de {to_agent.full_name}.")
         de = chat.agent
@@ -706,7 +706,7 @@ def transfer(*, chat: Chat, actor, to_agent, note: str = "") -> Chat:
     auditar(
         chat=chat, actor=actor, action="assign",
         summary=(f"Transferido para {to_agent.full_name}"
-                 + (f" — {note.strip()}" if note.strip() else "")),
+                 + (f": {note.strip()}" if note.strip() else "")),
         changes={"agent": [de.full_name if de else None, to_agent.full_name],
                  "note": ["", note.strip()] if note.strip() else {}},
     )
@@ -830,7 +830,7 @@ def assume_chat(*, chat: Chat, actor) -> Chat:
     if not sob_o_limite(actor):
         raise ChatRuleViolation(
             f"Você já está no limite de {ChatConfig.load().max_chats_per_agent} "
-            "chats simultâneos — encerre um para assumir este."
+            "chats simultâneos. Encerre um para assumir este."
         )
     with transaction.atomic():
         chat = Chat.objects.select_for_update().get(pk=chat.pk)
@@ -930,7 +930,7 @@ def close_chat(*, chat: Chat, actor, agent_score: int | None = None,
     auditar(
         chat=chat, actor=None if automatic else actor, action="status_change",
         summary=(f"Encerrado {quem}"
-                 + (f" — {reason.name}" if reason is not None else "")),
+                 + (f" (motivo: {reason.name})" if reason is not None else "")),
         changes={
             "status": [ChatStatus.ACTIVE, ChatStatus.CLOSED],
             "close_reason": [None, reason.slug if reason is not None else None],
@@ -968,7 +968,7 @@ def _notify_client_closed(chat_pk: int) -> None:
         pendente = chat.rating_pending
         titulo = "Sua conversa por chat foi encerrada"
         proximo_passo = (
-            "Avalie o atendimento pelo portal — é rápido, e é o que libera o próximo chat."
+            "Avalie o atendimento pelo portal. É rápido, e é o que libera o próximo chat."
             if pendente
             else "A conversa continua disponível para leitura no portal."
         )
@@ -1018,7 +1018,7 @@ def reopen(*, chat: Chat, actor, note: str = "") -> Chat:
             raise ChatRuleViolation("Só um chat encerrado pode ser reaberto.")
         if getattr(chat, "generated_ticket", None) is not None:
             raise ChatRuleViolation(
-                "Este chat virou um ticket — a conversa continua por lá."
+                "Este chat virou um ticket. A conversa continua por lá."
             )
         if not actor.is_internal:
             # reabrir É abrir chat novo pro expediente: fila vazia de agente
@@ -1054,8 +1054,8 @@ def reopen(*, chat: Chat, actor, note: str = "") -> Chat:
             ).exclude(pk=chat.pk).exists()
             if outro_vivo:
                 raise ChatRuleViolation(
-                    f"{chat.client.full_name} já tem um atendimento aberto — "
-                    "só existe uma conversa viva por cliente."
+                    f"{chat.client.full_name} já tem um atendimento aberto. "
+                    "Só existe uma conversa viva por cliente."
                 )
         chat.status = ChatStatus.QUEUED
         chat.agent = None
@@ -1078,12 +1078,12 @@ def reopen(*, chat: Chat, actor, note: str = "") -> Chat:
         # quando outro agente pegar a reabertura — entra de novo se precisar
         chat.participants.clear()
         ChatMessage.objects.create(
-            chat=chat, is_system=True, body="Conversa reaberta — aguardando atendimento.",
+            chat=chat, is_system=True, body="Conversa reaberta, aguardando atendimento.",
         )
     auditar(
         chat=chat, actor=actor, action="status_change",
         summary=(f"Reaberto por {actor.full_name}"
-                 + (f" — {note.strip()}" if note.strip() else "")),
+                 + (f": {note.strip()}" if note.strip() else "")),
         changes={"status": [ChatStatus.CLOSED, ChatStatus.QUEUED],
                  "reopen_count": [chat.reopen_count - 1, chat.reopen_count]},
     )

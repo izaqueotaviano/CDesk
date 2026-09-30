@@ -201,7 +201,7 @@ class ImportReport:
         ):
             lines.append(
                 f"“{name}” respondia por {total} chamado(s) e não existe como usuário "
-                f"interno — ficaram sem responsável. Cadastre em Configurações → "
+                f"interno, e esses chamados ficaram sem responsável. Cadastre em Configurações → "
                 f"Usuários com esse nome exato e rode a importação de novo."
             )
         return lines
@@ -462,7 +462,7 @@ def import_tickets(
         movidesk_id = raw.get("id")
         if movidesk_id in (None, ""):
             report.skipped += 1
-            report.warnings.append("ticket sem id no arquivo — ignorado")
+            report.warnings.append("ticket sem id no arquivo, ignorado")
         else:
             with transaction.atomic():
                 _import_one(raw, movidesk_id, directory, report)

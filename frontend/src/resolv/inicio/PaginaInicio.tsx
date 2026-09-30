@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom'
+import { quandoReabre } from '@/ui/reabertura'
 import { useConfigChat } from '@/api/chat'
 import { useMe } from '@/api/queries/useMe'
 import { useIndicadores } from '@/cvz/relatorios/dados'
 import { direcaoVariacao, formatarVariacao } from '@/cvz/relatorios/formato'
 import { Esqueleto } from '@/ui/Esqueleto'
-import { dataHoraDe } from '../chat/format'
 import { FilaDeChat } from './FilaDeChat'
 import { FilaDePrioridade } from './FilaDePrioridade'
 import { MuralAvisos } from './MuralAvisos'
@@ -62,7 +62,7 @@ export function PaginaInicio() {
                 <span className={'inicio__fila-estado' + (filaAberta ? ' inicio__fila-estado--aberta' : '')}>
                   {filaAberta
                     ? 'Fila de chat aberta'
-                    : `Fila de chat fechada${config.data?.queue_opens_at ? `, volta ${dataHoraDe(config.data.queue_opens_at)}` : ''}`}
+                    : `Fila de chat fechada${config.data?.queue_opens_at ? `, volta ${quandoReabre(config.data.queue_opens_at)}` : ''}`}
                 </span>
               </>
             )}

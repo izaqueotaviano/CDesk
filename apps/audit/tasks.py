@@ -100,7 +100,7 @@ def scan_lgpd_deadlines() -> dict:
             if is_overdue
             else f"Pedido LGPD #{dsr.pk} vence em {remaining} dia(s)"
         )
-        corpo = f"{dsr.get_kind_display()} — prazo legal de 15 dias (LGPD art. 19)."
+        corpo = f"{dsr.get_kind_display()}. Prazo legal de 15 dias (LGPD art. 19)."
         url = "/admin/auditoria"
         for admin in admins:
             notify(

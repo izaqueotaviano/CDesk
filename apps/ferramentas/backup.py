@@ -83,7 +83,7 @@ def url_do_banco(*, para_restaurar: bool = False) -> str:
     else:
         url = os.environ.get("DATABASE_URL")
     if not url:
-        raise ErroBackup("DATABASE_URL não está no ambiente — o backup precisa dela.")
+        raise ErroBackup("DATABASE_URL não está no ambiente, e o backup precisa dela.")
     return url
 
 
@@ -189,7 +189,7 @@ def criar(log: Log) -> tuple[str, int]:
         inicio = time.monotonic()
         _pg_dump(dump_tmp, url_do_banco(), ambiente_pg())
         if not dump_tmp.exists() or dump_tmp.stat().st_size == 0:
-            raise ErroBackup("pg_dump terminou mas o arquivo ficou vazio — banco ou papel errado.")
+            raise ErroBackup("pg_dump terminou, mas o arquivo ficou vazio: banco ou papel errado.")
         log(
             f"dump pronto em {time.monotonic() - inicio:.0f}s "
             f"({dump_tmp.stat().st_size // 1024} KB); comprimindo…"
@@ -227,7 +227,7 @@ def restaurar(nome: str, log: Log) -> None:
     if not arquivo.is_file():
         raise ErroBackup(f"Backup {nome} não existe mais em disco.")
     log(
-        f"restaurando {nome} ({arquivo.stat().st_size // 1024} KB) — "
+        f"restaurando {nome} ({arquivo.stat().st_size // 1024} KB): "
         "DROP SCHEMA public + dump, numa transação…"
     )
     inicio = time.monotonic()

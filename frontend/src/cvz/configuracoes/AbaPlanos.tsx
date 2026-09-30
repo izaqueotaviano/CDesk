@@ -260,7 +260,7 @@ function ModalPlano({
 
         <TextInput
           label="Identificador (slug)"
-          helper="Usado em URLs internas — só letras minúsculas, números e hífen."
+          helper="Usado em URLs internas. Só letras minúsculas, números e hífen."
           value={form.slug}
           onChange={(e) => {
             campo('slug', e.target.value)
@@ -278,7 +278,7 @@ function ModalPlano({
         <TextInput
           label="Ordem (rank)"
           type="number"
-          helper="Maior primeiro na listagem — não afeta cobrança nem limite."
+          helper="Maior primeiro na listagem. Não afeta cobrança nem limite."
           value={form.rank ?? 0}
           onChange={(e) => campo('rank', Number(e.target.value))}
         />
@@ -319,7 +319,7 @@ function ModalPlano({
         {form.chat_enabled && (
           <Checkbox
             label="Conversa de chat consome a cota de tickets"
-            description="Desmarcado, o chat é isento — só tickets abertos contam pro limite do plano."
+            description="Desmarcado, o chat é isento: só tickets abertos contam pro limite do plano."
             checked={form.chat_consumes_quota ?? false}
             onChange={(e) => campo('chat_consumes_quota', e.target.checked)}
           />

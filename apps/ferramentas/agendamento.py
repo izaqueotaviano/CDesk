@@ -73,7 +73,7 @@ def gravar(*, ativo: bool, frequencia: str, hora: str, dia_da_semana: int | None
         h, m = (int(x) for x in hora.split(":"))
         assert 0 <= h < 24 and 0 <= m < 60
     except (ValueError, AssertionError) as exc:
-        raise ValueError("Hora inválida — use HH:MM.") from exc
+        raise ValueError("Hora inválida. Use HH:MM.") from exc
     if frequencia == "semanal":
         if dia_da_semana not in DIAS:
             raise ValueError("Escolha o dia da semana.")

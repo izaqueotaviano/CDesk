@@ -559,7 +559,7 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     def validate_signature_image_url(self, value):
         if not assinatura.imagem_aceitavel(value or ""):
             raise serializers.ValidationError(
-                "Envie a imagem pelo botão — endereço de fora não é aceito aqui."
+                "Envie a imagem pelo botão. Endereço de fora não é aceito aqui."
             )
         return value
 

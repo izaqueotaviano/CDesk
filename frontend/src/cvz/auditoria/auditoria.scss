@@ -80,8 +80,10 @@
 
   // Resumo do log: é a única coluna de texto livre, e sem teto ela empurra a
   // tabela para uma rolagem lateral enorme por causa de uma frase longa.
+  // 280px: com o nome legível do objeto ("Importação do Movidesk #6") a
+  // coluna IP ainda cabe numa tela de 1440px sem rolar para o lado.
   &__resumo {
-    max-width: 360px;
+    max-width: 280px;
     @include truncate;
   }
 

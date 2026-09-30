@@ -224,7 +224,7 @@ def notify_queued_chats() -> int:
     for chat in esquecidos:
         url = urls[chat.pk]
         titulo = f"Chat aguardando: {chat.client.full_name}"
-        corpo = f"Na fila desde {chat.queued_at:%d/%m %H:%M} — {chat.company.name}."
+        corpo = f"Na fila desde {chat.queued_at:%d/%m %H:%M} ({chat.company.name})."
         for agente in elegiveis:
             if (agente.pk, url) in ja_avisados:
                 continue

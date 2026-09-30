@@ -7,6 +7,8 @@ export interface RegistroAuditoria {
   actor_name: string
   action: string
   target_type: string
+  /** O nome legível do modelo ("trabalho de backup"). */
+  target_label?: string
   object_id: string
   changes: Record<string, [unknown, unknown]>
   summary: string

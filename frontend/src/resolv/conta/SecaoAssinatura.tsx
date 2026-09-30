@@ -19,7 +19,7 @@ type Forma = Me['signature_kind']
 
 const FORMAS: { valor: Forma; rotulo: string; ajuda: string }[] = [
   { valor: '', rotulo: 'Nenhuma', ajuda: 'Suas respostas saem sem rodapé.' },
-  { valor: 'texto', rotulo: 'Texto', ajuda: 'Nome, cargo e telefone em texto simples — funciona em qualquer lugar.' },
+  { valor: 'texto', rotulo: 'Texto', ajuda: 'Nome, cargo e telefone em texto simples. Funciona em qualquer lugar.' },
   { valor: 'html', rotulo: 'HTML', ajuda: 'Cole a assinatura que você já usa no e-mail. Tags que executam código são removidas ao salvar.' },
   { valor: 'imagem', rotulo: 'Imagem', ajuda: 'Uma faixa pronta (PNG, JPEG ou WebP, até 1 MB). Ela é reduzida para 600×240.' },
 ]
@@ -148,7 +148,7 @@ export function SecaoAssinatura() {
       id="assinatura"
       icone={IconSignature}
       titulo="Assinatura"
-      descricao="O rodapé que vai nas suas respostas ao cliente — como a assinatura do e-mail. Ela não entra no texto da mensagem: fica logo abaixo dele, nas respostas em que você marcar “incluir minha assinatura”."
+      descricao="O rodapé que vai nas suas respostas ao cliente, como a assinatura do e-mail. Ela não entra no texto da mensagem: fica logo abaixo dele, nas respostas em que você marcar “incluir minha assinatura”."
       rodape={
         <>
           <span className="text-legenda text-tinta-secundaria">
@@ -213,7 +213,7 @@ export function SecaoAssinatura() {
           />
           <p className="mt-1.5 text-legenda text-tinta-secundaria">
             Aceita texto, links, tabelas e imagens hospedadas em https. Script, formulário e estilo
-            de página são removidos ao salvar — a prévia abaixo mostra o que sobrou.
+            de página são removidos ao salvar. A prévia abaixo mostra o que sobrou.
           </p>
           {limpou && (
             <Alert variant="warning" className="mt-3" titulo="Tirei parte do HTML">
@@ -261,7 +261,7 @@ export function SecaoAssinatura() {
           </div>
           <p className="mt-1.5 text-legenda text-tinta-secundaria">
             PNG, JPEG ou WebP, até 1 MB. A imagem é redesenhada aqui no servidor (no máximo
-            600×240) — o arquivo que sai não é o que entrou.
+            600×240), então o arquivo que sai não é o que entrou.
           </p>
           {me.signature_image_url && (
             <p className="mt-1.5 text-legenda text-tinta-terciaria">

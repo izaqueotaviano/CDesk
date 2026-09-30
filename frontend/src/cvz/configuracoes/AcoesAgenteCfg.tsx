@@ -40,7 +40,7 @@ const TEXTOS: Record<Confirmacao, {
   senha: {
     titulo: (nome) => `Redefinir a senha de ${nome}?`,
     descricao:
-      'Uma senha temporária é sorteada agora e aparece só uma vez, nesta tela — repasse por telefone ou chat, nunca por e-mail.',
+      'Uma senha temporária é sorteada agora e aparece só uma vez, nesta tela. Repasse por telefone ou chat, nunca por e-mail.',
     confirmar: 'Redefinir senha',
     sucesso: 'Senha redefinida',
   },
@@ -52,7 +52,7 @@ const TEXTOS: Record<Confirmacao, {
   },
   sessoes: {
     titulo: (nome) => `Revogar todas as sessões de ${nome}?`,
-    descricao: 'Encerra o acesso em todos os dispositivos agora — a pessoa precisa entrar de novo em cada um.',
+    descricao: 'Encerra o acesso em todos os dispositivos agora. A pessoa precisa entrar de novo em cada um.',
     confirmar: 'Revogar sessões',
     sucesso: 'Sessões revogadas',
   },
@@ -372,7 +372,7 @@ export function AcoesAgenteCfg({
           <Button onClick={() => setSenhaGerada(null)}>Fechar</Button>
         }
       >
-        <p>Repasse esta senha para {agente.full_name} agora — ela não vai aparecer de novo.</p>
+        <p>Repasse esta senha para {agente.full_name} agora. Ela não vai aparecer de novo.</p>
         <div className="cfg-roster__segredo">
           <code>{senhaGerada}</code>
           <Button size="sm" variant="secondary" onClick={copiarSenha}>

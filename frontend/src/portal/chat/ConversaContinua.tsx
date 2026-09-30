@@ -20,7 +20,7 @@ function MarcadorSessao({ sessao }: { sessao: SessaoLinhaDoTempo }) {
     <div className="flex items-center gap-3 py-1 text-legenda text-tinta-secundaria before:h-px before:flex-1 before:bg-divisoria after:h-px after:flex-1 after:bg-divisoria">
       <span className="shrink-0 text-center">
         {sessao.agent_name ? `Atendimento com ${sessao.agent_name}` : 'Aguardando atendimento'} · {dataHora(sessao.queued_at)}
-        {sessao.closed_at ? ` — ${dataHora(sessao.closed_at)}` : ' · em andamento'}
+        {sessao.closed_at ? ` até ${dataHora(sessao.closed_at)}` : ' · em andamento'}
         {sessao.rating && (
           <> · nota {sessao.rating.service_score} (atendimento), {sessao.rating.resolution_score} (resolução)</>
         )}

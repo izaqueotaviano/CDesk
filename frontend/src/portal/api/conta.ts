@@ -61,7 +61,7 @@ export const AVISOS_EMAIL_CLIENTE: { kind: string; rotulo: string; descricao: st
   {
     kind: 'ticket_created',
     rotulo: 'Abertura de chamado',
-    descricao: 'Confirmação assim que um chamado é aberto — por você ou pelo suporte em seu nome.',
+    descricao: 'Confirmação assim que um chamado é aberto, por você ou pelo suporte em seu nome.',
   },
   {
     kind: 'ticket_replied',

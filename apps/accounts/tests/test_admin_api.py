@@ -97,6 +97,21 @@ class TestPermissions:
         assert api(agente).get("/api/v1/audit/logs/").status_code == 403
         assert api(admin).get("/api/v1/audit/logs/").status_code == 200
 
+    def test_audit_traz_o_nome_legivel_do_objeto(self, api, admin, suporte):
+        """A coluna "Objeto" mostra o `verbose_name` do modelo, não o
+        identificador colado ("trabalhobackup")."""
+        from django.contrib.contenttypes.models import ContentType
+
+        from apps.audit.models import AuditLog
+
+        AuditLog.objects.create(
+            actor=admin, action="update", summary="teste",
+            content_type=ContentType.objects.get_for_model(Team), object_id=str(suporte.pk),
+        )
+        linha = api(admin).get("/api/v1/audit/logs/").json()["results"][0]
+        assert linha["target_type"] == "team"
+        assert linha["target_label"] == str(Team._meta.verbose_name)
+
     def test_audit_is_append_only(self, api, admin):
         """Nem admin altera trilha — não existe verbo para isso."""
         client = api(admin)

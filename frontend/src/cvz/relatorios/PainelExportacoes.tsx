@@ -50,7 +50,7 @@ export function PainelExportacoes({ filtros }: { filtros: FiltrosRelatorio }) {
   return (
     <div className="relatorios-exportacoes">
       <h3 className="relatorios-exportacoes__titulo">Exportar em XLSX ou PDF</h3>
-      <p className="relatorios-exportacoes__legenda">Usa os mesmos filtros acima. Fica pronto em alguns instantes — a lista atualiza sozinha.</p>
+      <p className="relatorios-exportacoes__legenda">Usa os mesmos filtros acima. Fica pronto em alguns instantes, e a lista atualiza sozinha.</p>
       <div className="relatorios-exportacoes__acoes">
         {(['xlsx', 'pdf'] as const).map((formato) => (
           <Button key={formato} variant="secondary" size="sm" onClick={() => gerar(formato)} disabled={criar.isPending}>

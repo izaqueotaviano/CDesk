@@ -312,7 +312,7 @@ export function Bolha({
               "a equipe lê isto" e "o cliente lê isto" */}
           {msg.is_internal_note && (
             <span className="cc-msg__selo-nota">
-              <i className="ti ti-lock" aria-hidden="true" /> Nota interna — o cliente não vê
+              <i className="ti ti-lock" aria-hidden="true" /> Nota interna: o cliente não vê
             </span>
           )}
           {onResponder && !msg.is_deleted && (
@@ -331,7 +331,7 @@ export function Bolha({
               type="button"
               className="cc-msg__responder"
               aria-label="Editar esta mensagem"
-              title="Editar — só a última mensagem enviada, antes de chegar resposta"
+              title="Editar (só a última mensagem enviada, antes de chegar resposta)"
               onClick={() => onEditar(msg)}
             >
               <i className="ti ti-pencil" aria-hidden="true" />
@@ -782,7 +782,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico, navegaca
     }
     setAviso(
       pendentes.length
-        ? `Macro “${m.name}” aplicada — revise ${pendentes.join(', ')} no texto.`
+        ? `Macro “${m.name}” aplicada. Revise ${pendentes.join(', ')} no texto.`
         : `Macro “${m.name}” aplicada${temAtendimento ? ' (texto e campos do atendimento)' : ''}.`,
     )
     areaRef.current?.focus()
@@ -1364,7 +1364,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico, navegaca
                 type="button"
                 className="cc-composer__anexar"
                 aria-label="Anexar arquivo"
-                title="Anexo vai por REST — funciona mesmo sem conexão de socket. Ctrl+V cola print."
+                title="Anexo vai por REST, então funciona mesmo sem conexão de socket. Ctrl+V cola print."
                 onClick={() => inputAnexo.current?.click()}
               >
                 <i className="ti ti-paperclip" aria-hidden="true" />
@@ -1380,7 +1380,7 @@ export function ConversaChat({ chatId, me, compacto = false, historico, navegaca
                 title={
                   modoNota
                     ? 'Voltar a escrever para o cliente'
-                    : 'Escrever uma nota interna — o cliente não vê'
+                    : 'Escrever uma nota interna (o cliente não vê)'
                 }
                 onClick={() => setModoNota((v) => !v)}
               >

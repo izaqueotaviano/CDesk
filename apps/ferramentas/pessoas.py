@@ -69,7 +69,7 @@ class RelatorioPessoas:
         linhas = list(self.avisos)
         if self.agentes_criados:
             linhas.append(
-                f"{self.agentes_criados} agente(s) entraram DESATIVADOS — libere o acesso um a um "
+                f"{self.agentes_criados} agente(s) entraram DESATIVADOS. Libere o acesso um a um "
                 f"em Configurações → Usuários."
             )
         if self.agentes_pulados:
@@ -79,8 +79,8 @@ class RelatorioPessoas:
             )
         if self.departamentos:
             linhas.append(
-                f"{self.departamentos} departamento(s) do Movidesk ignorados — aqui não existe "
-                f"departamento de cliente; o contato entra direto na empresa."
+                f"{self.departamentos} departamento(s) do Movidesk ignorados: aqui não existe "
+                f"departamento de cliente, e o contato entra direto na empresa."
             )
         return linhas
 
@@ -153,7 +153,7 @@ class _Importador:
         nome = _nome(p)
         if not nome:
             self.report.ignorados += 1
-            self.report.avisos.append(f"empresa {p.get('id')} sem nome — ignorada.")
+            self.report.avisos.append(f"empresa {p.get('id')} sem nome, ignorada.")
             return
         cnpj = _cnpj(p)
         razao = _texto(p.get("corporateName"))[:200]
@@ -243,7 +243,7 @@ class _Importador:
         nome = _nome(p)
         if not nome:
             self.report.ignorados += 1
-            self.report.avisos.append(f"contato {p.get('id')} sem nome — ignorado.")
+            self.report.avisos.append(f"contato {p.get('id')} sem nome, ignorado.")
             return
         email = _email_padrao(p)
         fone1, fone2 = _telefones(p)
@@ -254,7 +254,7 @@ class _Importador:
         if user is not None and user.kind != UserKind.CLIENT:
             self.report.ignorados += 1
             self.report.avisos.append(
-                f"“{nome}”: o e-mail {email} já é de um usuário interno — não mexi."
+                f"“{nome}”: o e-mail {email} já é de um usuário interno. Não mexi."
             )
             return
         if user is None:
@@ -266,7 +266,7 @@ class _Importador:
             email_final = email or _import_email(nome)
             if User.objects.filter(email__iexact=email_final).exists():
                 self.report.ignorados += 1
-                self.report.avisos.append(f"“{nome}”: e-mail {email_final} já em uso — ignorado.")
+                self.report.avisos.append(f"“{nome}”: e-mail {email_final} já em uso, ignorado.")
                 return
             User.objects.create_user(
                 email=email_final,
@@ -328,7 +328,7 @@ class _Importador:
         if user is not None and user.kind != UserKind.INTERNAL:
             self.report.ignorados += 1
             self.report.avisos.append(
-                f"“{nome}” é agente no Movidesk, mas {email} já é um cliente aqui — não virou "
+                f"“{nome}” é agente no Movidesk, mas {email} já é um cliente aqui, então não virou "
                 f"agente. Se for a mesma pessoa, ajuste à mão."
             )
             return
@@ -339,8 +339,8 @@ class _Importador:
             if not email:
                 self.report.ignorados += 1
                 self.report.avisos.append(
-                    f"“{nome}” é agente no Movidesk mas não tem e-mail — sem e-mail não há "
-                    f"login; não foi criado."
+                    f"“{nome}” é agente no Movidesk, mas não tem e-mail. Sem e-mail não há "
+                    f"login, então não foi criado."
                 )
                 return
             user = User.objects.create_user(

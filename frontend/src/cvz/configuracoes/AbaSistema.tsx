@@ -108,7 +108,7 @@ function validar(f: FormularioSistema): Erros {
   } else if (anexoMb > 0 && arquivos > 0 && totalMb > anexoMb * arquivos) {
     erros.anexoMbPorMensagem =
       `Não pode passar de ${Number((anexoMb * arquivos).toFixed(2))} MB ` +
-      '(máx. por arquivo × máx. de arquivos) — seria um limite inalcançável.'
+      '(máx. por arquivo × máx. de arquivos). Seria um limite inalcançável.'
   }
 
   const prazo = Number(f.fechamentoHoras)
@@ -321,7 +321,7 @@ export function AbaSistema() {
     <div className="cfg-aba">
       <FormSection
         title="Anexos"
-        description="Vale para chamados e chat. O backend recusa o upload que passar destes limites — a tela do cliente anuncia os mesmos números. Aumentar aqui exige que o proxy acompanhe (nginx: client_max_body_size), senão o upload morre com 413 antes de chegar na validação."
+        description="Vale para chamados e chat. O backend recusa o upload que passar destes limites, e a tela do cliente anuncia os mesmos números. Aumentar aqui exige que o proxy acompanhe (nginx: client_max_body_size), senão o upload morre com 413 antes de chegar na validação."
       >
         <FormRow columns={3}>
           <TextInput
@@ -437,7 +437,7 @@ export function AbaSistema() {
 
       <FormSection
         title="Segurança"
-        description="A verificação em duas etapas é opcional: cada pessoa liga a sua (por e-mail ou aplicativo autenticador) em Minha conta ou nas Configurações do portal. Ligar isto exige de todos — quem não configurou nada passa a receber o código por e-mail no login."
+        description="A verificação em duas etapas é opcional: cada pessoa liga a sua (por e-mail ou aplicativo autenticador) em Minha conta ou nas Configurações do portal. Ligar isto exige de todos: quem não configurou nada passa a receber o código por e-mail no login."
       >
         <FormRow columns={2}>
           <Field label="Verificação em duas etapas">
@@ -452,7 +452,7 @@ export function AbaSistema() {
 
       <FormSection
         title="E-mail"
-        description="Por onde saem os avisos (resposta no chamado, código de login, pesquisa…). Desligado, nada sai — nem o código de login; a fila registra o que deixou de ir. Sem servidor SMTP, usa o que o ambiente definiu (em desenvolvimento, o console)."
+        description="Por onde saem os avisos (resposta no chamado, código de login, pesquisa…). Desligado, nada sai, nem o código de login. A fila registra o que deixou de ir. Sem servidor SMTP, usa o que o ambiente definiu (em desenvolvimento, o console)."
       >
         <FormRow columns={2}>
           <Field label="Entrega de e-mail">

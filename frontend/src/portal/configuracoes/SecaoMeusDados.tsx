@@ -36,8 +36,8 @@ function LinhaPedido({ pedido }: { pedido: PedidoDeDados }) {
         </p>
         <p className="text-legenda text-tinta-secundaria">
           Pedida em {new Date(pedido.created_at).toLocaleDateString('pt-BR')}
-          {pedido.status === 'rejected' && pedido.rejection_reason && ` — ${pedido.rejection_reason}`}
-          {pedido.status === 'failed' && ' — não foi possível gerar o pacote, peça de novo'}
+          {pedido.status === 'rejected' && pedido.rejection_reason && `. Motivo: ${pedido.rejection_reason}`}
+          {pedido.status === 'failed' && '. Não foi possível gerar o pacote, peça de novo.'}
         </p>
       </div>
       {pedido.has_export && pedido.status === 'done' && (
@@ -69,7 +69,7 @@ export function SecaoMeusDados() {
   function pedir() {
     solicitar.mutate(undefined, {
       onSuccess: (pedido) => {
-        if (pedido.status === 'done') toast.success('Exportação pronta — já pode baixar abaixo.')
+        if (pedido.status === 'done') toast.success('Exportação pronta. Já pode baixar abaixo.')
         else toast.success('Pedido registrado. Avisamos quando estiver pronto.')
       },
       onError: (e) => toast.error(mensagem(e, 'Não foi possível pedir a exportação.')),
@@ -81,7 +81,7 @@ export function SecaoMeusDados() {
       id="meus-dados"
       icone={IconFileText}
       titulo="Meus dados"
-      descricao="Peça uma cópia de tudo que temos sobre você — tickets, mensagens e anexos que só você (não a equipe) enviou."
+      descricao="Peça uma cópia de tudo que temos sobre você: tickets, mensagens e anexos que só você (não a equipe) enviou."
     >
       <Button onClick={pedir} disabled={solicitar.isPending || pedidoEmAndamento} className="w-fit">
         {solicitar.isPending ? 'Pedindo…' : pedidoEmAndamento ? 'Exportação em andamento…' : 'Pedir exportação dos meus dados'}

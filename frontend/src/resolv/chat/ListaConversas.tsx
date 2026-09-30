@@ -1,7 +1,8 @@
 import type { Chat } from '@/api/chat'
+import { quandoReabre } from '@/ui/reabertura'
 import { AvatarComPresenca } from './AvatarComPresenca'
 import { EsqueletoLista } from './Esqueletos'
-import { dataHoraDe, haQuanto } from './format'
+import { haQuanto } from './format'
 
 interface Props {
   fila: Chat[]
@@ -69,7 +70,7 @@ export function ListaConversas({
           <i className="ti ti-clock" aria-hidden="true" />
           <span>
             Fila fechada fora do horário de atendimento.
-            {abreEm ? ` Abre ${dataHoraDe(abreEm)}.` : ''}
+            {abreEm ? ` Abre ${quandoReabre(abreEm)}.` : ''}
           </span>
         </p>
       )}

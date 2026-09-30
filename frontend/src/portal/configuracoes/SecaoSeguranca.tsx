@@ -244,7 +244,7 @@ export function SecaoSeguranca() {
           </label>
           <p id={`${idBase}-ligar-desc`} className="text-legenda text-tinta-secundaria">
             {required && metodoAtual === ''
-              ? 'Exigida pela empresa — não pode ser desligada por aqui.'
+              ? 'Exigida pela empresa. Não pode ser desligada por aqui.'
               : ligada
                 ? 'Desligar exige um código do método atual.'
                 : 'Recomendada: protege sua conta mesmo que a senha vaze.'}

@@ -205,7 +205,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
     : carregandoEquipes
       ? 'Carregando as equipes…'
       : falhouCatalogoEquipes
-        ? 'Não foi possível carregar as equipes — dá para ver a atual, não para transferir.'
+        ? 'Não foi possível carregar as equipes. Dá para ver a atual, mas não para transferir.'
         : equipesElegiveis.length <= 1
           ? 'Não há outra equipe para onde transferir.'
           : null
@@ -215,9 +215,9 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
     : carregandoEtiquetas
       ? 'Carregando o cadastro de etiquetas…'
       : falhouCatalogoEtiquetas
-        ? 'Não foi possível carregar o cadastro de etiquetas — dá para ver as aplicadas, não para mudar.'
+        ? 'Não foi possível carregar o cadastro de etiquetas. Dá para ver as aplicadas, mas não para mudar.'
         : catalogoEtiquetas.length === 0
-          ? 'Nenhuma etiqueta cadastrada — o cadastro fica em Configurações.'
+          ? 'Nenhuma etiqueta cadastrada. O cadastro fica em Configurações.'
           : 'A fila e o quadro filtram por etiqueta.'
 
   /** O PATCH substitui o conjunto inteiro (ver `mudarEtiquetas` em dados.ts),
@@ -431,7 +431,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
               ))}
             </ul>
           ) : (
-            <p className="props__vazio">Nenhuma etiqueta — as macros podem aplicar.</p>
+            <p className="props__vazio">Nenhuma etiqueta. As macros podem aplicar.</p>
           )}
           {avisoEtiquetas && <span className="props__ajuda">{avisoEtiquetas}</span>}
           <EstadoCampo m={mudarEtiquetas} padrao="Não foi possível salvar as etiquetas." />
@@ -476,7 +476,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
             </ul>
           ) : (
             <p className="props__vazio">
-              Ninguém acompanha ainda — quem segue recebe os avisos deste ticket.
+              Ninguém acompanha ainda. Quem segue recebe os avisos deste ticket.
             </p>
           )}
           <EstadoCampo

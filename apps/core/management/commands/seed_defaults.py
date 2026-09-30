@@ -172,7 +172,7 @@ class Command(BaseCommand):
                 plan=plans[slug],
                 team=None,  # vale para todas as equipes (menos específico)
                 defaults={
-                    "name": f"SLA {plans[slug].name} — geral",
+                    "name": f"SLA {plans[slug].name} (geral)",
                     "first_response_minutes": fr,
                     "resolution_minutes": res,
                     "use_business_hours": True,  # D15
@@ -183,7 +183,7 @@ class Command(BaseCommand):
                 plan=plans[slug],
                 team=financeiro,  # mais específico: vence sobre o geral
                 defaults={
-                    "name": f"SLA {plans[slug].name} — Financeiro",
+                    "name": f"SLA {plans[slug].name} (Financeiro)",
                     "first_response_minutes": fr,
                     "resolution_minutes": res,
                     "use_business_hours": True,

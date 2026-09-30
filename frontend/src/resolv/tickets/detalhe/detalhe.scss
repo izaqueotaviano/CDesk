@@ -860,11 +860,27 @@
     border-bottom: 1px solid var(--stroke);
     background: var(--plano-detalhe);
     flex-shrink: 0;
+    // No celular a linha não quebra ("7 / mensagens" em duas linhas): rola
+    // para o lado, e o título "Conversa" (óbvio ali) sai de cena.
+    overflow-x: auto;
+    scrollbar-width: none;
+    @media (max-width: 560px) {
+      padding: 0 12px;
+    }
   }
   &__titulo {
     font-size: 13px;
     font-weight: 600;
     color: var(--text-primary);
+    @media (max-width: 560px) {
+      display: none;
+    }
+  }
+  &__filtro,
+  &__contagem,
+  &__interruptor {
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   &__contagem {
     font-size: 12px;

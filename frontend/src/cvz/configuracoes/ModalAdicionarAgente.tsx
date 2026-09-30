@@ -87,7 +87,7 @@ export function ModalAdicionarAgente({
     <Modal
       open={open}
       onClose={fechar}
-      title={equipe ? `Adicionar agente — ${equipe.name}` : 'Adicionar agente'}
+      title={equipe ? `Adicionar agente à equipe ${equipe.name}` : 'Adicionar agente'}
       size="sm"
       footer={
         <>

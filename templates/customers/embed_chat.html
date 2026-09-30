@@ -236,7 +236,7 @@ Dois jeitos de a página chegar aqui, decididos no `embed_views`:
         // expirou ou o chat sumiu — reconectar não resolve, e ficar tentando
         // a cada 2–30s era o "erro de conexão toda hora"
         if (ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 4404)) {
-          marcarConectado(false, 'sessão expirada — recarregue a página');
+          marcarConectado(false, 'sessão expirada, recarregue a página');
           return;
         }
         marcarConectado(false, 'reconectando…');

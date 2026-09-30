@@ -84,7 +84,7 @@ def _documento(titulo: str, ref: str, meta: str, blocos: str, *, com_notas=False
     confiando no rodapé."""
     agora = timezone.localtime().strftime("%d/%m/%Y às %H:%M")
     aviso = (
-        "CONTÉM NOTAS INTERNAS — documento de uso interno, não envie ao cliente."
+        "CONTÉM NOTAS INTERNAS: documento de uso interno, não envie ao cliente."
         if com_notas
         else "Contém apenas mensagens públicas."
     )

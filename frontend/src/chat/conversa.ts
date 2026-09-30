@@ -358,11 +358,11 @@ export function motivoIndisponivel(arquivo: {
   if (arquivo.is_downloadable) return null
   switch (arquivo.scan_status) {
     case 'pending':
-      return 'em verificação — disponível assim que a checagem terminar'
+      return 'em verificação, disponível assim que a checagem terminar'
     case 'infected':
       return 'bloqueado: o antivírus encontrou uma ameaça'
     case 'error':
-      return 'a verificação falhou — peça para reenviar'
+      return 'a verificação falhou, peça para reenviar'
     default:
       return 'indisponível'
   }

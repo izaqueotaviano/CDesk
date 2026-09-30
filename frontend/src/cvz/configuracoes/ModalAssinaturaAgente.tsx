@@ -134,7 +134,7 @@ export function ModalAssinaturaAgente({
             rows={4}
             value={texto}
             onChange={(e) => mudar({ texto: e.target.value })}
-            helper="Nome, cargo e telefone — funciona em qualquer lugar."
+            helper="Nome, cargo e telefone. Funciona em qualquer lugar."
           />
         )}
 
@@ -144,7 +144,7 @@ export function ModalAssinaturaAgente({
             rows={7}
             value={html}
             onChange={(e) => mudar({ html: e.target.value })}
-            helper="Cole a assinatura do e-mail. Script, formulário e estilo de página são removidos ao salvar — a prévia mostra o que sobrou."
+            helper="Cole a assinatura do e-mail. Script, formulário e estilo de página são removidos ao salvar. A prévia mostra o que sobrou."
           />
         )}
 

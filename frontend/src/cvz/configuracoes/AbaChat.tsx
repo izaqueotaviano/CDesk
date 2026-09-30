@@ -241,7 +241,7 @@ export function AbaChat() {
 
       <FormSection
         title="Conversa parada"
-        description="Depois que um agente já pegou o atendimento e a conversa silencia. Diferente do tempo na fila acima, que é ninguém ter pegado. Zero desliga cada um — encerrar sozinho o atendimento de quem foi buscar um documento é pior do que a conversa ficar aberta."
+        description="Depois que um agente já pegou o atendimento e a conversa silencia. Diferente do tempo na fila acima, que é ninguém ter pegado. Zero desliga cada um. Encerrar sozinho o atendimento de quem foi buscar um documento é pior do que a conversa ficar aberta."
       >
         <FormRow columns={2}>
           <TextInput

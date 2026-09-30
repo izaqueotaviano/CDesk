@@ -65,7 +65,7 @@ class Holiday(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.date} — {self.name}"
+        return f"{self.date} · {self.name}"
 
 
 class SystemConfig(TimeStampedModel):
@@ -172,7 +172,7 @@ class SystemConfig(TimeStampedModel):
     auto_close_message = models.TextField(
         default=(
             "Como não tivemos retorno, estamos encerrando este chamado. Se ainda "
-            "precisar de ajuda, abra um novo chamado — este aqui não pode mais "
+            "precisar de ajuda, abra um novo chamado. Este aqui não pode mais "
             "ser reaberto por resposta."
         ),
         verbose_name="Mensagem enviada ao fechar por falta de resposta",
@@ -231,7 +231,7 @@ class SystemConfig(TimeStampedModel):
             raise ValidationError({
                 "attachment_max_bytes_per_message": (
                     "Não pode passar de (máx. por arquivo × máx. de arquivos) = "
-                    f"{soma // 1024 // 1024} MB — seria um limite inalcançável."
+                    f"{soma // 1024 // 1024} MB. Um valor acima disso seria um limite inalcançável."
                 )
             })
 
@@ -268,7 +268,7 @@ class LoginBranding(TimeStampedModel):
         verbose_name_plural = "marcas da tela de login"
 
     def __str__(self):
-        return f"Tela de login — {self.get_audience_display()}"
+        return f"Tela de login ({self.get_audience_display()})"
 
     @classmethod
     def for_audience(cls, audience: str) -> "LoginBranding":

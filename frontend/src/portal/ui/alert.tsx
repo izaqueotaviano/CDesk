@@ -47,6 +47,9 @@ export interface AlertProps extends HTMLAttributes<HTMLDivElement>, VariantProps
    * em `status`. Padrão: `alert` só em `destructive`/`warning`.
    */
   papel?: 'alert' | 'status'
+  /** Botão de fechar (o "×"): fica sempre no canto de cima, também no
+   *  celular, em vez de descer para baixo do texto como a `acao`. */
+  fechar?: ReactNode
 }
 
 /**
@@ -54,7 +57,7 @@ export interface AlertProps extends HTMLAttributes<HTMLDivElement>, VariantProps
  * `[&_svg]` que estava na faixa alcançava também os ícones dos botões da
  * `acao` — e pintava o "+" do "Abrir ticket" com a cor do fundo do botão.
  */
-export function Alert({ className, variant, titulo, acao, icone, papel, children, ...props }: AlertProps) {
+export function Alert({ className, variant, titulo, acao, fechar, icone, papel, children, ...props }: AlertProps) {
   const Icone = icone ?? ICONE[variant ?? 'info']
   const role = papel ?? (variant === 'destructive' || variant === 'warning' ? 'alert' : 'status')
   return (
@@ -67,6 +70,7 @@ export function Alert({ className, variant, titulo, acao, icone, papel, children
         </div>
         {acao && <div className="shrink-0">{acao}</div>}
       </div>
+      {fechar && <div className="-my-1 -mr-1 shrink-0 self-start">{fechar}</div>}
     </div>
   )
 }

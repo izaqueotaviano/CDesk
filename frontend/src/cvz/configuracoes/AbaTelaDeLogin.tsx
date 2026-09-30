@@ -183,7 +183,7 @@ function BlocoPublico({ publico, dados, padrao }: { publico: PublicoLogin; dados
                   {enviar.isPending ? 'Enviando…' : imagem ? 'Trocar imagem' : 'Enviar imagem'}
                 </Button>
                 {imagem && (
-                  <Button variant="ghost" onClick={() => remover.mutate(undefined, { onSuccess: () => push({ tone: 'success', title: 'Imagem removida — painel azul de volta' }) })} disabled={remover.isPending}>
+                  <Button variant="ghost" onClick={() => remover.mutate(undefined, { onSuccess: () => push({ tone: 'success', title: 'Imagem removida, painel azul de volta' }) })} disabled={remover.isPending}>
                     Remover
                   </Button>
                 )}

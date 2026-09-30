@@ -194,7 +194,7 @@ export function CabecalhoTicket({
             }
             onClick={() => onAlternarPainel('notas')}
             aria-pressed={painelAberto === 'notas'}
-            title="Suas anotações sobre este chamado — só você vê"
+            title="Suas anotações sobre este chamado (só você vê)"
           >
             <i className="ti ti-notes" aria-hidden="true" />
             <span className="ticket-cab__rotulo">Notas</span>

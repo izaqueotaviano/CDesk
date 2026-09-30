@@ -667,7 +667,7 @@ class ChatConfigSerializer(serializers.ModelSerializer):
         if aviso and fechar and aviso >= fechar:
             raise serializers.ValidationError(
                 {"inactivity_warning_minutes":
-                 "O aviso precisa vir antes do encerramento — use um tempo menor."}
+                 "O aviso precisa vir antes do encerramento. Use um tempo menor."}
             )
         return data
 

@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
+import { quandoReabre } from '@/ui/reabertura'
 import { useQueryClient } from '@tanstack/react-query'
 import { chaves } from '@/api/chat'
 import { entrarNaSala } from '@/realtime/salaChat'
 import type { ChatDoCliente, PosicaoNaFila } from '../api/chats'
-import { dataHora } from '../lib/formato'
 
 /** "cerca de 4 min", "cerca de 1 h", "cerca de 1 h 20 min". */
 export function tempoEstimado(minutos: number): string {
@@ -26,7 +26,7 @@ export function textoDaFila(p: PosicaoNaFila): { titulo: string; detalhe: string
     return {
       titulo: 'Fora do horário de atendimento',
       detalhe: `Sua conversa continua na fila e ${lugar}.${
-        p.queue_opens_at ? ` O atendimento volta em ${dataHora(p.queue_opens_at)}.` : ''
+        p.queue_opens_at ? ` O atendimento volta ${quandoReabre(p.queue_opens_at)}.` : ''
       }`,
       fechada: true,
     }

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { quandoReabre } from '@/ui/reabertura'
 import { Link, useSearchParams } from 'react-router-dom'
 import { IconAlertCircle, IconClock, IconHistory, IconMessageCircle, IconMessagePlus, IconPlus } from '@tabler/icons-react'
 import {
@@ -12,7 +13,7 @@ import {
 import { ApiError } from '@/api/client'
 import { useHistoricoChats } from '../api/chats'
 import { cn } from '../lib/cn'
-import { dataHora, useAgora } from '../lib/formato'
+import { useAgora } from '../lib/formato'
 import { Alert } from '../ui/alert'
 import { Button, buttonVariants } from '../ui/button'
 import { ErroEstado, EstadoVazio } from '../ui/estado-vazio'
@@ -192,7 +193,7 @@ export function PaginaChat() {
   const motivoTravado = bloqueadoPorAvaliacao
     ? 'Avalie o último atendimento antes de iniciar outro'
     : filaFechada
-      ? `Fora do horário de atendimento${config.data?.queue_opens_at ? `. Volta em ${dataHora(config.data.queue_opens_at)}` : ''}`
+      ? `Fora do horário de atendimento${config.data?.queue_opens_at ? `. Volta ${quandoReabre(config.data.queue_opens_at)}` : ''}`
       : undefined
 
   const conversaSelecionada = selecionadoId ?? vivo.data?.id ?? null
@@ -242,7 +243,7 @@ export function PaginaChat() {
               titulo="Fora do horário de atendimento por chat"
               descricao={
                 config.data?.queue_opens_at
-                  ? `Volta em ${dataHora(config.data.queue_opens_at)}. Abra um ticket e a equipe responde assim que o expediente começar.`
+                  ? `Volta ${quandoReabre(config.data.queue_opens_at)}. Abra um ticket e a equipe responde assim que o expediente começar.`
                   : 'Abra um ticket e a equipe responde assim que o expediente começar.'
               }
               acao={

@@ -42,7 +42,7 @@ export function ModalHistoricoAcessoAgente({
     <Modal
       open={aberto}
       onClose={onClose}
-      title={agente ? `Histórico de acesso — ${agente.full_name}` : 'Histórico de acesso'}
+      title={agente ? `Histórico de acesso de ${agente.full_name}` : 'Histórico de acesso'}
       size="md"
     >
       {historico.isError ? (

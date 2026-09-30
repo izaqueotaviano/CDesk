@@ -108,7 +108,7 @@ export function AbaSla() {
         columns={colunas}
         rowKey={(p) => String(p.id)}
         loading={isLoading}
-        empty="Nenhuma política de SLA cadastrada — os tickets não têm prazo até que exista uma."
+        empty="Nenhuma política de SLA cadastrada. Os tickets não têm prazo até que exista uma."
       />
 
       <ModalNovaPolitica
@@ -220,7 +220,7 @@ function ModalNovaPolitica({
 
         <Select
           label="Plano"
-          helper="Vazio = vale pra qualquer plano — mas uma política mais específica (com plano) sempre vence sobre uma geral."
+          helper="Vazio = vale pra qualquer plano, mas uma política mais específica (com plano) sempre vence sobre uma geral."
           value={planoId}
           onChange={(e) => setPlanoId(e.target.value)}
           options={[

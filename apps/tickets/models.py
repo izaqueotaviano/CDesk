@@ -410,7 +410,7 @@ class Ticket(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.reference} — {self.subject}"
+        return f"{self.reference} · {self.subject}"
 
     # ---- regras de visibilidade: fonte única da verdade ----
 
@@ -515,7 +515,7 @@ class SatisfactionSurvey(TimeStampedModel):
 
     def __str__(self):
         nota = "sem resposta" if self.score is None else f"nota {self.score}"
-        return f"{self.ticket_id} — {nota}"
+        return f"{self.ticket_id} · {nota}"
 
     @property
     def is_expired(self) -> bool:

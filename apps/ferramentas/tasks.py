@@ -98,7 +98,7 @@ def importar_movidesk(self, job_id: int) -> None:
     def progresso(evento: dict) -> None:
         if evento["tipo"] == "pagina":
             job.registrar(
-                evento["msg"], etapa=f"Baixando /{evento['rota']} — página {evento['pagina']}"
+                evento["msg"], etapa=f"Baixando /{evento['rota']} (página {evento['pagina']})"
             )
         else:
             job.registrar(evento["msg"], nivel="aviso")
@@ -212,7 +212,7 @@ def importar_pessoas(self, job_id: int) -> None:
 
     def progresso(evento: dict) -> None:
         if evento["tipo"] == "pagina":
-            job.registrar(evento["msg"], etapa=f"Baixando /persons — página {evento['pagina']}")
+            job.registrar(evento["msg"], etapa=f"Baixando /persons (página {evento['pagina']})")
         else:
             job.registrar(evento["msg"], nivel="aviso")
 
@@ -415,7 +415,7 @@ def restaurar_backup(self, job_id: int) -> None:
             status=StatusTrabalho.RODANDO,
         )
         atual.registrar(
-            "(o registro desta restauração é posterior ao backup restaurado — recriado)",
+            "(o registro desta restauração é posterior ao backup restaurado e foi recriado)",
             nivel="aviso",
         )
     for linha in linhas:

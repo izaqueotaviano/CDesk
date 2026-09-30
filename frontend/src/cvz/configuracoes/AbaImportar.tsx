@@ -27,7 +27,7 @@ function lista<T>(d: unknown): T[] {
 
 /** Quanto tempo a API vai cobrar, no mínimo, pelo rate limit. */
 function estimativa(limite: number | null, oQue: string): string {
-  if (!limite) return `${oQue} inteira: a API só libera 10 requisições por minuto, então pode levar vários minutos — a tela mostra o andamento.`
+  if (!limite) return `${oQue} inteira: a API só libera 10 requisições por minuto, então pode levar vários minutos. A tela mostra o andamento.`
   const paginas = Math.ceil(limite / POR_PAGINA)
   const segundos = Math.max(0, paginas - 1) * SEGUNDOS_POR_PAGINA
   return segundos < 60 ? `~${paginas} página(s), menos de um minuto.` : `~${paginas} páginas, uns ${Math.ceil(segundos / 60)} min só de espera da API.`
@@ -41,26 +41,26 @@ function AvisoDoQueNaoVem() {
     <Notification tone="warning" title="O que não vem do Movidesk">
       <ul className="cfg-importar__limites">
         <li>
-          <b>Arquivos anexados</b> — a API devolve só o nome e um código do anexo, nunca o
+          <b>Arquivos anexados</b>: a API devolve só o nome e um código do anexo, nunca o
           arquivo. Os anexos antigos continuam no Movidesk.
         </li>
         <li>
-          <b>Pesquisas de satisfação</b> — ficaram numa API separada, que esta importação não usa.
+          <b>Pesquisas de satisfação</b>: ficaram numa API separada, que esta importação não usa.
         </li>
         <li>
-          <b>Formatação das mensagens</b> (negrito, cor, links) — a listagem em massa traz o texto
+          <b>Formatação das mensagens</b> (negrito, cor, links): a listagem em massa traz o texto
           puro. Pegar o HTML custaria uma requisição por mensagem, e a API libera 10 por minuto.
         </li>
         <li>
-          <b>Apontamentos de hora e despesas</b> — vêm no JSON baixado, mas não viram campo de
+          <b>Apontamentos de hora e despesas</b>: vêm no JSON baixado, mas não viram campo de
           chamado aqui.
         </li>
         <li>
-          <b>Tempo de solução</b> — o export não traz o tempo trabalhado, e calcular pela data de
+          <b>Tempo de solução</b>: o export não traz o tempo trabalhado, e calcular pela data de
           abertura inflaria a franquia de manutenção. Fica em branco, que é honesto.
         </li>
         <li>
-          <b>Departamentos de cliente</b> — aqui o contato entra direto na empresa.
+          <b>Departamentos de cliente</b>: aqui o contato entra direto na empresa.
         </li>
       </ul>
     </Notification>
@@ -222,7 +222,7 @@ export function AbaImportar() {
         limite: limitePessoas.numero,
         apenas_baixar: apenasBaixarPessoas,
       })
-      push({ tone: 'success', title: 'Importação de pessoas iniciada', description: 'Acompanhe abaixo. Pode sair da tela — continua no servidor.' })
+      push({ tone: 'success', title: 'Importação de pessoas iniciada', description: 'Acompanhe abaixo. Pode sair da tela, a importação continua no servidor.' })
     } catch (e) {
       falha(e)
     }
@@ -237,7 +237,7 @@ export function AbaImportar() {
         limite: limiteTickets.numero,
         apenas_baixar: apenasBaixarTickets,
       })
-      push({ tone: 'success', title: 'Importação de tickets iniciada', description: 'Acompanhe abaixo. Pode sair da tela — continua no servidor.' })
+      push({ tone: 'success', title: 'Importação de tickets iniciada', description: 'Acompanhe abaixo. Pode sair da tela, a importação continua no servidor.' })
     } catch (e) {
       falha(e)
     }
@@ -247,7 +247,7 @@ export function AbaImportar() {
     <div className="cfg-aba">
       <FormSection
         title="Movidesk"
-        description="Duas etapas, nesta ordem: primeiro as pessoas (empresas, contatos e agentes), depois os tickets. Rodar de novo atualiza em vez de duplicar. Uma etapa por vez — a API do Movidesk libera só 10 requisições por minuto."
+        description="Duas etapas, nesta ordem: primeiro as pessoas (empresas, contatos e agentes), depois os tickets. Rodar de novo atualiza em vez de duplicar. Uma etapa por vez, porque a API do Movidesk libera só 10 requisições por minuto."
       >
         <FormRow columns={2}>
           <TextInput
@@ -271,8 +271,8 @@ export function AbaImportar() {
       </FormSection>
 
       <FormSection
-        title="1. Pessoas — empresas, contatos e agentes"
-        description="Rota /persons: empresa casa por CNPJ ou nome; contato entra na empresa que tem lá (sem empresa, fica em “Sem empresa” até alguém mover); agente vira usuário interno DESATIVADO nas equipes que tem lá — o acesso você libera um a um."
+        title="1. Pessoas (empresas, contatos e agentes)"
+        description="Rota /persons: empresa casa por CNPJ ou nome; contato entra na empresa que tem lá (sem empresa, fica em “Sem empresa” até alguém mover); agente vira usuário interno DESATIVADO nas equipes que tem lá, e o acesso você libera um a um."
       >
         <FormRow columns={2}>
           <TextInput

@@ -68,7 +68,7 @@ function FormAgendamento({ inicial }: { inicial: Agendamento }) {
   return (
     <FormSection
       title="Agendamento"
-      description="Um backup automático no horário escolhido, pelo worker do sistema. Se o servidor já tem o timer do systemd (resolv-backup.timer, 23h), ligue só um dos dois — senão são dois backups por dia."
+      description="Um backup automático no horário escolhido, pelo worker do sistema. Se o servidor já tem o timer do systemd (resolv-backup.timer, 23h), ligue só um dos dois, senão são dois backups por dia."
     >
       <Toggle
         checked={form.ativo}
@@ -100,7 +100,7 @@ function FormAgendamento({ inicial }: { inicial: Agendamento }) {
         />
       </FormRow>
       <p className="cfg-backup__nota">
-        Retenção: backups com mais de <strong>{inicial.retencao_dias} dias</strong> são apagados na rotação (BACKUP_ROTATION_DAYS — é o prazo informado no pacote LGPD, por isso não muda por aqui).
+        Retenção: backups com mais de <strong>{inicial.retencao_dias} dias</strong> são apagados na rotação (BACKUP_ROTATION_DAYS). É o prazo informado no pacote LGPD, por isso não muda por aqui.
         {inicial.proximo_em && inicial.ativo ? ` Próximo backup: ${dataHora(inicial.proximo_em)}.` : ''}
       </p>
       <FormActions>
@@ -226,7 +226,7 @@ export function AbaBackup() {
         )}
       </FormSection>
 
-      <FormSection title="Backups guardados" description="Mais novo primeiro. Baixe uma cópia pra fora do servidor de vez em quando — backup no mesmo disco não protege do disco.">
+      <FormSection title="Backups guardados" description="Mais novo primeiro. Baixe uma cópia pra fora do servidor de vez em quando: backup no mesmo disco não protege do disco.">
         <DataTable
           rows={arquivos}
           columns={colunas}
@@ -253,7 +253,7 @@ export function AbaBackup() {
       >
         <p>
           O banco inteiro será substituído pelo conteúdo de <code>{paraRestaurar?.nome}</code> ({paraRestaurar ? dataHora(paraRestaurar.criado_em) : ''}).
-          <strong> Tudo que aconteceu depois desse backup — chamados, mensagens, usuários, configurações, agendamentos — some.</strong>
+          <strong> Tudo que aconteceu depois desse backup (chamados, mensagens, usuários, configurações, agendamentos) some.</strong>
         </p>
         <p>Antes de restaurar, o sistema tira um backup de segurança do estado atual. Durante a restauração (alguns segundos) ninguém consegue usar o sistema.</p>
         <TextInput

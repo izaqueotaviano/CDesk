@@ -89,7 +89,7 @@ describe('PainelChatEmbed', () => {
     await screen.findByText('https://loja.myvtex.com')
     fireEvent.change(screen.getByPlaceholderText('https://loja.myvtex.com'), { target: { value: 'acme.myvtex.com' } })
     fireEvent.click(screen.getByRole('button', { name: 'Adicionar origem' }))
-    expect(await screen.findByText('Use o formato https://dominio.com — sem caminho.')).toBeInTheDocument()
+    expect(await screen.findByText('Use o formato https://dominio.com, sem caminho.')).toBeInTheDocument()
     expect(chamadas.some((c) => c.metodo === 'PATCH')).toBe(false)
   })
 
@@ -97,7 +97,7 @@ describe('PainelChatEmbed', () => {
     montar()
     fireEvent.click(await screen.findByRole('button', { name: 'Regenerar chave' }))
     expect(await screen.findByText('a'.repeat(64))).toBeInTheDocument()
-    expect(screen.getByText('Essa é a única vez que ela aparece — copie agora.')).toBeInTheDocument()
+    expect(screen.getByText('Essa é a única vez que ela aparece. Copie agora.')).toBeInTheDocument()
   })
 
   it('agente sem settings.manage só vê leitura, sem controles de escrita', async () => {

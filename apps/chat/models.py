@@ -157,7 +157,7 @@ class Chat(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Chat #{self.pk} — {self.client} ({self.get_status_display()})"
+        return f"Chat #{self.pk} · {self.client} ({self.get_status_display()})"
 
     @property
     def rating_pending(self) -> bool:

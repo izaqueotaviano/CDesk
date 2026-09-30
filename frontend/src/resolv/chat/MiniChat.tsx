@@ -1,4 +1,5 @@
 import { type KeyboardEvent, type PointerEvent, useEffect, useRef, useState } from 'react'
+import { quandoReabre } from '@/ui/reabertura'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useConfigChat, useFilaChat, useMeusChats, usePegarChat, type Chat } from '@/api/chat'
 import { ApiError } from '@/api/client'
@@ -265,7 +266,7 @@ function PainelConversa({
         className="minichat__redimensionar"
         role="slider"
         tabIndex={0}
-        aria-label="Redimensionar painel — arraste, ou use as setas"
+        aria-label="Redimensionar painel: arraste, ou use as setas"
         aria-valuetext={`${tamanho.largura} por ${tamanho.altura} pixels`}
         aria-valuenow={tamanho.largura}
         aria-valuemin={LIMITES_MINICHAT.largura[0]}
@@ -289,7 +290,7 @@ function PainelConversa({
         <button
           type="button"
           className="minichat__icone"
-          aria-label={`Tamanho do painel: ${ROTULO_TAMANHO[preset]} — mudar para ${ROTULO_TAMANHO[proximo]}`}
+          aria-label={`Tamanho do painel: ${ROTULO_TAMANHO[preset]}, mudar para ${ROTULO_TAMANHO[proximo]}`}
           title={`Tamanho: ${ROTULO_TAMANHO[preset]} (clique: ${ROTULO_TAMANHO[proximo]})`}
           onClick={() => setTamanho(TAMANHOS_MINICHAT[proximo])}
         >
@@ -357,7 +358,7 @@ function FilaPopover({
       {filaAberta === false && (
         <p className="minichat__fila-aviso">
           Fila fechada fora do horário de atendimento.
-          {abreEm ? ` Abre ${new Date(abreEm).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}.` : ''}
+          {abreEm ? ` Abre ${quandoReabre(abreEm)}.` : ''}
         </p>
       )}
       {noLimite && (
@@ -550,7 +551,7 @@ export function MiniChat() {
           aria-expanded={filaAberta}
           aria-haspopup="dialog"
           aria-label={`Chat: ${rotuloBalao}`}
-          title={`Fila de chat — ${rotuloBalao}`}
+          title={`Fila de chat: ${rotuloBalao}`}
           onClick={alternarFila}
         >
           <i className="ti ti-message-circle-2" aria-hidden="true" />

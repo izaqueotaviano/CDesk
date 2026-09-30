@@ -154,7 +154,7 @@ export function SecaoPerfil() {
               disabled={removerAvatar.isPending}
               onClick={() =>
                 removerAvatar.mutate(undefined, {
-                  onSuccess: () => toast.success('Foto removida — voltamos às suas iniciais.'),
+                  onSuccess: () => toast.success('Foto removida. Voltamos às suas iniciais.'),
                   onError: (e) => toast.error(mensagem(e, 'Não foi possível remover a foto.')),
                 })
               }

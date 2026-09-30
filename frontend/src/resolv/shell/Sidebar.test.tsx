@@ -125,7 +125,7 @@ describe('Sidebar — menu "Mais"', () => {
 
   it('numa tela secundária, "Mais" acende e diz onde a pessoa está', () => {
     montar('/notas')
-    expect(screen.getByRole('button', { name: 'Mais — você está em Notas' })).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.getByRole('button', { name: 'Mais (você está em Notas)' })).toHaveAttribute('aria-expanded', 'false')
   })
 })
 
@@ -219,7 +219,7 @@ describe('Sidebar — recolher, e o selo de conversas', () => {
     montar()
 
     // 2 na fila + 1 em atendimento = 3
-    expect(await screen.findByRole('button', { name: /Chats — 3 conversas/ })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Chats \(3 conversas\)/ })).toBeInTheDocument()
   })
 })
 

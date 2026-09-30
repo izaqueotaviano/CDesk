@@ -10,16 +10,15 @@ import { AvisoColisao } from './colaboracao/PresencaTicket'
 import { AnexosDaMensagem } from './AnexosDaMensagem'
 import { deMarcacao, paraMarcacao } from './mencoes'
 import { Compositor } from './Compositor'
+import { FotoOuIniciais } from './FotoOuIniciais'
 import { useAcoesTicket } from './dados'
 import {
   ICONE_CANAL,
   agruparPorDia,
   descreverEvento,
-  iniciais,
   mensagemDeErro,
   mesclarLinhaDoTempo,
   tempoRelativo,
-  urlApi,
 } from './linhaDoTempo'
 import type { Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
 import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
@@ -157,10 +156,8 @@ function ItemMensagem({
       >
         {sistema ? (
           <i className="ti ti-robot" />
-        ) : msg.author_avatar ? (
-          <img src={urlApi(msg.author_avatar)} alt="" />
         ) : (
-          iniciais(msg.author_name)
+          <FotoOuIniciais url={msg.author_avatar} nome={msg.author_name} />
         )}
       </span>
 
@@ -550,8 +547,8 @@ export function Conversa({ ticket, me, agoraMs, pedidoReabrir }: Props) {
             <i className="ti ti-message-2" aria-hidden="true" />
             <p className="conversa__vazio-titulo">Nenhuma mensagem ainda</p>
             <p>
-              Responda ao cliente abaixo — a primeira resposta pública fecha o relógio de 1ª
-              resposta — ou registre uma nota interna para a equipe.
+              Responda ao cliente abaixo (a primeira resposta pública fecha o relógio de 1ª
+              resposta) ou registre uma nota interna para a equipe.
             </p>
           </div>
         )}

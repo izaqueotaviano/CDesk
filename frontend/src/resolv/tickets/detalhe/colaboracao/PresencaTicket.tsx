@@ -1,5 +1,5 @@
 import { identidadeDe } from '@/ui/identidade'
-import { iniciais, urlApi } from '../linhaDoTempo'
+import { FotoOuIniciais } from '../FotoOuIniciais'
 import { descreverPresenca, primeiroNome, usePresentesNoTicket } from './contexto'
 import type { PresenteTicket } from './usePresencaTicket'
 import './colaboracao.scss'
@@ -43,7 +43,7 @@ export function PresencaTicket() {
             title={rotuloDoAvatar(p)}
             {...identidadeDe(p.nome)}
           >
-            {p.avatar_url ? <img src={urlApi(p.avatar_url)} alt="" /> : iniciais(p.nome)}
+            <FotoOuIniciais url={p.avatar_url} nome={p.nome} />
             {p.digitando && (
               <span className="presenca-ticket__digitando">
                 <span />

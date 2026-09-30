@@ -216,8 +216,8 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
             <button
               type="button"
               className="sidebar-rail__marca"
-              aria-label="Resolv — ir para o Início"
-              title="Resolv — ir para o Início"
+              aria-label="Resolv: ir para o Início"
+              title="Resolv: ir para o Início"
               onClick={() => navigate('/inicio')}
             >
               <span className="sidebar-rail__logo">
@@ -276,7 +276,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
             const badge = item.id === 'chat' && conversas > 0 ? (conversas > 9 ? '9+' : conversas) : null
             const rotulo =
               item.id === 'chat' && badge
-                ? `${item.label} — ${conversas} ${conversas === 1 ? 'conversa' : 'conversas'}`
+                ? `${item.label} (${conversas} ${conversas === 1 ? 'conversa' : 'conversas'})`
                 : item.label
             return (
               <button
@@ -309,7 +309,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
             ref={maisRef}
             type="button"
             className={'sidebar-rail__item' + (secundarioAtual ? ' sidebar-rail__item--ativo' : '')}
-            aria-label={secundarioAtual ? `Mais — você está em ${secundarioAtual.label}` : 'Mais'}
+            aria-label={secundarioAtual ? `Mais (você está em ${secundarioAtual.label})` : 'Mais'}
             title="Mais"
             aria-haspopup="menu"
             aria-expanded={maisAberto}

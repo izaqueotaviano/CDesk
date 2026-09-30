@@ -73,7 +73,7 @@ describe('TicketsTable — coluna de SLA', () => {
       ],
     })
 
-    expect(screen.getByText('1h — em risco')).toBeInTheDocument()
+    expect(screen.getByText('1h, em risco')).toBeInTheDocument()
     expect(screen.getByText('Estourado')).toBeInTheDocument()
     expect(screen.getByText('Sem SLA')).toBeInTheDocument()
   })
@@ -91,7 +91,7 @@ describe('TicketsTable — coluna de SLA', () => {
   it('a data cheia do vencimento fica no title da célula', () => {
     montar({ linhas: [linha(1, { state: 'at_risk', minutes_left: 90 })] })
 
-    expect(screen.getByText('1h — em risco')).toHaveAttribute('title', expect.stringContaining('Prazo: '))
+    expect(screen.getByText('1h, em risco')).toHaveAttribute('title', expect.stringContaining('Prazo: '))
   })
 
   it('clicar no cabeçalho SLA pede a ordenação por prazo', () => {
@@ -179,7 +179,7 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
     })
 
     expect(
-      screen.getByRole('link', { name: 'Abrir chamado T-0001: Teclado sem resposta — Acme Marketing' }),
+      screen.getByRole('link', { name: 'Abrir chamado T-0001: Teclado sem resposta (Acme Marketing)' }),
     ).toBeInTheDocument()
   })
 

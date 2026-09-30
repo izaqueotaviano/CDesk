@@ -752,7 +752,7 @@ export function PaginaNovoTicket() {
     const pendentes = marcadoresPendentes(corpo)
     setAviso(
       pendentes.length
-        ? `Macro “${m.name}” aplicada — ${pendentes.join(', ')} será preenchido quando você escolher o solicitante.`
+        ? `Macro “${m.name}” aplicada. ${pendentes.join(', ')} será preenchido quando você escolher o solicitante.`
         : `Macro “${m.name}” aplicada.`,
     )
     document.getElementById(ids.texto)?.focus()
@@ -764,13 +764,13 @@ export function PaginaNovoTicket() {
     if (solicitanteIdValido == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
     if (!assunto.trim()) e.subject = 'Resuma o chamado em uma linha.'
     if (!texto.trim()) {
-      e.body = 'Escreva a mensagem — ela abre o chamado para o cliente.'
+      e.body = 'Escreva a mensagem. É ela que abre o chamado para o cliente.'
     } else {
       // última barreira antes de o texto virar mensagem para o cliente: um
       // marcador que sobrou da macro chegaria ao pé da letra
       const pendentes = marcadoresPendentes(texto)
       if (pendentes.length) {
-        e.body = `Troque ${pendentes.join(' e ')} pelo valor real — o cliente lê este texto.`
+        e.body = `Troque ${pendentes.join(' e ')} pelo valor real. O cliente lê este texto.`
       }
     }
     return e
@@ -879,7 +879,7 @@ export function PaginaNovoTicket() {
           // (apps/tickets/views.py:create): 400 em `files` significa agora que
           // nada foi criado. Dizer isso é o que impede o agente de achar que o
           // chamado nasceu e abrir um segundo por precaução.
-          porCampo.files = `${porCampo.files} Nenhum chamado foi aberto — troque o arquivo e envie de novo.`
+          porCampo.files = `${porCampo.files} Nenhum chamado foi aberto. Troque o arquivo e envie de novo.`
         }
         setErros((atuais) => ({ ...atuais, ...porCampo }))
         focarPrimeiroInvalido(porCampo)
@@ -887,7 +887,7 @@ export function PaginaNovoTicket() {
         setErroGeral(geral || null)
       } else {
         setErroGeral(
-          `${mensagemDeErro(e, 'Não foi possível abrir o chamado.')} Nada foi perdido — o texto continua aqui.`,
+          `${mensagemDeErro(e, 'Não foi possível abrir o chamado.')} Nada foi perdido: o texto continua aqui.`,
         )
       }
     }
@@ -950,7 +950,7 @@ export function PaginaNovoTicket() {
             <p className="novo__feito-pendencia">
               <i className="ti ti-alert-triangle" aria-hidden="true" />
               <span>
-                O chamado está lá, mas {criado.pendencias.join(' e ')} — dá para ajustar no próprio
+                O chamado está lá, mas {criado.pendencias.join(' e ')}. Dá para ajustar no próprio
                 chamado.
               </span>
             </p>
@@ -1274,7 +1274,7 @@ export function PaginaNovoTicket() {
                 }}
               />
               <span className="props__ajuda" id={`${ids.pedido}-ajuda`}>
-                Sem formato fixo — cada loja numera do seu jeito.
+                Sem formato fixo: cada loja numera do seu jeito.
               </span>
               {erroDe('order_number')}
             </Campo>

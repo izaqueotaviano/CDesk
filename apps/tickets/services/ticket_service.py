@@ -360,7 +360,7 @@ def create_from_chat(*, chat, team, actor=None, subject=None, auto=False):
             requester=chat.client,
             team=team,
             subject=subject or chat.name
-            or f"Chat de {chat.queued_at:%d/%m/%Y} — {chat.client.full_name}",
+            or f"Chat de {chat.queued_at:%d/%m/%Y} com {chat.client.full_name}",
             source=TicketSource.CHAT,
             status=TicketStatus.NEW,
             stage=stage_padrao(TicketStatus.NEW),
@@ -473,12 +473,12 @@ def _render_transcript(chat) -> str:
     from apps.chat.services.chat_service import censor
 
     fim = chat.closed_at or timezone.now()
-    lines = [f"Transcrição do chat #{chat.pk} — "
+    lines = [f"Transcrição do chat #{chat.pk}, de "
              f"{chat.queued_at:%d/%m/%Y %H:%M} a {fim:%H:%M}"]
     for msg in chat.messages.order_by("id"):
         stamp = f"{msg.sent_at:%H:%M}"
         if msg.is_system:
-            lines.append(f"[{stamp}] — {msg.body}")
+            lines.append(f"[{stamp}] ({msg.body})")
         else:
             author = msg.author.full_name if msg.author else "Sistema"
             lines.append(f"[{stamp}] {author}: {censor(msg.body)}")
@@ -624,7 +624,7 @@ def add_reply(
                         and not survey.is_expired)
             if author.pk == ticket.requester_id and pendente:
                 raise TicketRuleViolation(
-                    "Avalie o atendimento antes de reabrir o chamado — leva "
+                    "Avalie o atendimento antes de reabrir o chamado. Leva "
                     "menos de um minuto."
                 )
             _reopen(ticket, author, now)
@@ -1701,7 +1701,7 @@ def edit_message(*, message: TicketMessage, actor, body: str) -> TicketMessage:
     _pode_mexer_na_mensagem(message, actor)
     body = (body or "").strip()
     if not body:
-        raise TicketRuleViolation("A mensagem não pode ficar vazia — apague-a.")
+        raise TicketRuleViolation("A mensagem não pode ficar vazia. Se quiser removê-la, apague-a.")
     if body == message.body:
         return message
 

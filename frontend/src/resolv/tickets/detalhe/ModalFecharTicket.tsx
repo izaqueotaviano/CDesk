@@ -55,7 +55,7 @@ export function ModalFecharTicket({ ticket, onFechar, onCancelar }: Props) {
     >
       <div className="fechar-form">
         <p className="fechar-form__intro">
-          O cliente não recebe mensagem por aqui — para responder e fechar de uma vez, use o
+          O cliente não recebe mensagem por aqui. Para responder e fechar de uma vez, use o
           compositor com "Enviar e fechar". Registre o período real da solução:
         </p>
 

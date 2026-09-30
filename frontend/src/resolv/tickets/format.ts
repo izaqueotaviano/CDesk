@@ -39,7 +39,7 @@ export function esperaEmFila(createdAt: string, firstResponseAt: string | null, 
 export function rotuloAbrirChamado(
   t: Pick<TicketLinha, 'reference' | 'subject' | 'company_name'>,
 ): string {
-  const empresa = t.company_name ? ` — ${t.company_name}` : ''
+  const empresa = t.company_name ? ` (${t.company_name})` : ''
   return `Abrir chamado ${t.reference}: ${t.subject}${empresa}`
 }
 
@@ -106,7 +106,7 @@ export function textoEstadoSla(sla: RelogioSla): string {
   if (sla.minutes_left == null) return 'No prazo'
   const h = Math.floor(sla.minutes_left / 60)
   const restante = h > 0 ? `${h}h` : `${sla.minutes_left}min`
-  return sla.state === 'at_risk' ? `${restante} — em risco` : `${restante} restantes`
+  return sla.state === 'at_risk' ? `${restante}, em risco` : `${restante} restantes`
 }
 
 /** "agora mesmo" / "há 3 min" / "há 2 h" — quando a lista na tela foi

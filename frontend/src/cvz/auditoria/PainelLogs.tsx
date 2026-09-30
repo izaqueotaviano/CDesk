@@ -18,6 +18,11 @@ const ACOES = [
   { value: 'scan_blocked', label: 'Anexo bloqueado' },
 ]
 
+/** "trabalho de backup" → "Trabalho de backup". */
+function rotuloDoObjeto(nome: string): string {
+  return nome.charAt(0).toUpperCase() + nome.slice(1)
+}
+
 function formatarData(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -64,7 +69,7 @@ export function PainelLogs() {
                     <td>{l.actor_name}</td>
                     <td>{ACOES.find((a) => a.value === l.action)?.label ?? l.action}</td>
                     <td>
-                      {l.target_type} #{l.object_id}
+                      {rotuloDoObjeto(l.target_label || l.target_type)} #{l.object_id}
                     </td>
                     <td className="auditoria-tabela__resumo" title={l.summary}>
                       {l.summary}

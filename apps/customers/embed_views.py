@@ -92,8 +92,8 @@ def _validar_assinatura(company: Company, email: str, ts_bruto: str, sig: str) -
         return "Parâmetro de tempo inválido."
     if abs(time.time() - ts) > 300:
         return (
-            "Este link expirou. Ele precisa ser gerado a cada carregamento — "
-            "não reutilize um salvo."
+            "Este link expirou. Ele precisa ser gerado a cada carregamento, "
+            "então não reutilize um salvo."
         )
     if not verify_signature(
         secret=company.chat_embed.secret,

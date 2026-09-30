@@ -222,7 +222,7 @@ export function AbaEquipes() {
                 <div className="cfg-roster__cabecalho-titulo">
                   <strong>Sem equipe</strong>
                 </div>
-                <span className="cfg-meta-form">Agentes sem nenhuma equipe vinculada — não enxergam ticket algum.</span>
+                <span className="cfg-meta-form">Agentes sem nenhuma equipe vinculada não enxergam ticket algum.</span>
               </div>
             </div>
             <DataTable
@@ -420,7 +420,7 @@ function ModalEquipe({
 
         <Checkbox
           label="Equipe interna"
-          description="O cliente não abre nem enxerga estes tickets — mais forte que a visibilidade acima. Desmarcar revela ao cliente o histórico já existente da equipe."
+          description="O cliente não abre nem enxerga estes tickets. É mais forte que a visibilidade acima. Desmarcar revela ao cliente o histórico já existente da equipe."
           checked={form.internal_only ?? false}
           onChange={(e) => campo('internal_only', e.target.checked)}
         />
@@ -439,7 +439,7 @@ function ModalEquipe({
         <TextInput
           label="E-mail de notificação"
           type="email"
-          helper="Opcional — recebe cópia de eventos da equipe além da notificação individual do agente."
+          helper="Opcional. Recebe cópia de eventos da equipe além da notificação individual do agente."
           value={form.notification_email ?? ''}
           onChange={(e) => campo('notification_email', e.target.value)}
         />

@@ -64,7 +64,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
     const valor = novaOrigem.trim().toLowerCase().replace(/\/$/, '')
     if (!valor) return
     if (!ORIGEM_RE.test(valor)) {
-      setErroOrigem('Use o formato https://dominio.com — sem caminho.')
+      setErroOrigem('Use o formato https://dominio.com, sem caminho.')
       return
     }
     if (dados.origins.includes(valor)) {
@@ -122,7 +122,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
 
       <FormSection
         title="Como o visitante é identificado"
-        description="Público: um código só, para site ou loja — o visitante diz o nome e o e-mail na própria janelinha. Identificado: o site assina a URL com a chave abaixo e diz quem é a pessoa; serve dentro de um console onde ela já está logada."
+        description="Público: um código só, para site ou loja, e o visitante diz o nome e o e-mail na própria janelinha. Identificado: o site assina a URL com a chave abaixo e diz quem é a pessoa; serve dentro de um console onde ela já está logada."
       >
         <Toggle
           label={dados.public_enabled ? 'Público (um código para o site inteiro)' : 'Só por link assinado'}
@@ -133,14 +133,14 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
         {dados.public_enabled && (
           <p className="clientes-meta--espacada">
             Quem se identificar aqui vira um usuário desta empresa marcado como “visitante do chat”, sem
-            acesso ao portal — ele aparece na aba Usuários.
+            acesso ao portal. Ele aparece na aba Usuários.
           </p>
         )}
       </FormSection>
 
       <FormSection
         title="Código de instalação"
-        description="Um por empresa: cole uma vez no site e o balão de atendimento aparece em todas as páginas. Não tem e-mail nem chave dentro — pode ser enviado por e-mail ao cliente sem cerimônia."
+        description="Um por empresa: cole uma vez no site e o balão de atendimento aparece em todas as páginas. Não tem e-mail nem chave dentro, então pode ser enviado por e-mail ao cliente sem cerimônia."
       >
         <div className="clientes-snippet">
           <pre>{dados.snippet}</pre>
@@ -167,7 +167,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
           )}
           {dados.enabled && dados.public_enabled && dados.origins.length === 0 && (
             <p className="clientes-meta--espacada">
-              Falta cadastrar a origem do site abaixo — sem ela o navegador bloqueia a janela.
+              Falta cadastrar a origem do site abaixo. Sem ela, o navegador bloqueia a janela.
             </p>
           )}
         </div>
@@ -212,7 +212,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
       {podeEditar && (
         <FormSection
           title="Chave de assinatura"
-          description="O backend do cliente usa essa chave pra assinar a URL do iframe a cada sessão. Regenerar invalida a anterior na hora — o outro lado precisa ser atualizado junto."
+          description="O backend do cliente usa essa chave pra assinar a URL do iframe a cada sessão. Regenerar invalida a anterior na hora, e o outro lado precisa ser atualizado junto."
         >
           {chaveGerada ? (
             <div className="clientes-chave-gerada">
@@ -220,7 +220,7 @@ export function PainelChatEmbed({ empresaId, habilitado }: { empresaId: number; 
               <Button size="sm" variant="secondary" onClick={() => copiar(chaveGerada)}>
                 Copiar
               </Button>
-              <p className="clientes-meta--espacada">Essa é a única vez que ela aparece — copie agora.</p>
+              <p className="clientes-meta--espacada">Essa é a única vez que ela aparece. Copie agora.</p>
             </div>
           ) : (
             <>

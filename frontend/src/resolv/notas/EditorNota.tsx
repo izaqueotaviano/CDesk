@@ -39,7 +39,7 @@ function Campos({ nota }: { nota: Nota }) {
         <a className="editor-nota__chamado" href={`/chamados/${nota.ticket}`}>
           <i className="ti ti-ticket" aria-hidden="true" />
           {nota.ticket_reference}
-          {nota.ticket_subject ? ` — ${nota.ticket_subject}` : ''}
+          {nota.ticket_subject ? `: ${nota.ticket_subject}` : ''}
         </a>
       )}
 

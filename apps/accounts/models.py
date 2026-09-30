@@ -579,4 +579,4 @@ class AccessEvent(models.Model):
         indexes = [models.Index(fields=["user", "-created_at"])]
 
     def __str__(self):
-        return f"{self.kind} — {self.user_id}"
+        return f"{self.kind} · {self.user_id}"

@@ -215,7 +215,7 @@ def _html(payload: dict) -> str:
     titular = payload["titular"]
     parts = [
         "<!doctype html><meta charset='utf-8'>",
-        "<title>Seus dados — Resolv</title>",
+        "<title>Seus dados · Resolv</title>",
         "<style>body{font:15px/1.6 system-ui,sans-serif;max-width:52rem;"
         "margin:2rem auto;padding:0 1rem;color:#141413}"
         "h1,h2{line-height:1.25}h2{margin-top:2.5rem;border-bottom:1px solid #ddd;"
@@ -232,7 +232,7 @@ def _html(payload: dict) -> str:
     parts.append(f"<h2>Tickets ({len(payload['tickets'])})</h2>")
     for ticket in payload["tickets"]:
         parts.append(
-            f"<h3>{escape(ticket['referencia'])} — {escape(ticket['assunto'])}</h3>"
+            f"<h3>{escape(ticket['referencia'])}: {escape(ticket['assunto'])}</h3>"
             f"<p class='meta'>{escape(ticket['equipe'])} · "
             f"{escape(ticket['status'])} · aberto em {escape(ticket['aberto_em'] or '')}</p>"
         )

@@ -254,7 +254,7 @@ class _ImportacaoListaView(_ImportacaoBase, APIView):
     def post(self, request):
         if _alguma_importacao_rodando():
             return Response(
-                {"detail": "Já existe uma importação em andamento — espere terminar ou cancele."},
+                {"detail": "Já existe uma importação em andamento. Espere terminar ou cancele."},
                 status=status.HTTP_409_CONFLICT,
             )
         s = self.novo_serializer(data=request.data)

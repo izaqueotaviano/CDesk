@@ -207,7 +207,7 @@ class CompanyChatEmbed(models.Model):
         verbose_name_plural = "embeds do chat"
 
     def __str__(self):
-        return f"embed do chat — {self.company.name}"
+        return f"embed do chat ({self.company.name})"
 
 
 class CompanyChatEmbedOrigin(models.Model):

@@ -56,7 +56,7 @@ class TicketStageSerializer(serializers.ModelSerializer):
         """
         if self.instance and self.instance.is_system and value != self.instance.category:
             raise ValidationError(
-                "Status de fábrica não muda de categoria — crie um novo."
+                "Status de fábrica não muda de categoria. Crie um novo."
             )
         return value
 

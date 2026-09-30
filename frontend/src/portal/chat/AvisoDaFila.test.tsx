@@ -86,7 +86,7 @@ describe('textoDaFila', () => {
     const t = textoDaFila({ ...POSICAO, queue_open: false, estimated_wait_minutes: null, queue_opens_at: '2026-09-02T11:00:00Z' })
     expect(t.fechada).toBe(true)
     expect(t.titulo).toBe('Fora do horário de atendimento')
-    expect(t.detalhe).toMatch(/^Sua conversa continua na fila e está em 2º lugar\. O atendimento volta em 02\/09\/2026/)
+    expect(t.detalhe).toMatch(/^Sua conversa continua na fila e está em 2º lugar\. O atendimento volta em 02\/09 às \d{2}:\d{2}\.$/)
   })
 
   it('tempo por extenso', () => {

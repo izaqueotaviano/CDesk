@@ -254,7 +254,7 @@ export function PainelCliente({ ticket, agoraMs }: { ticket: TicketDetalhe; agor
         <LinhaSla rotulo="Resolução" relogio={ticket.sla.resolution} />
         {(ticket.sla_cycle ?? 1) > 1 && (
           <p className="cliente__ajuda">
-            Ciclo {ticket.sla_cycle} — o prazo de resolução recomeçou na reabertura.
+            Ciclo {ticket.sla_cycle}: o prazo de resolução recomeçou na reabertura.
           </p>
         )}
       </section>

@@ -135,7 +135,7 @@ export function ModalEmpresa({
         />
         <TextInput
           label="Identificador (slug)"
-          helper="Usado em URLs internas — só letras minúsculas, números e hífen."
+          helper="Usado em URLs internas. Só letras minúsculas, números e hífen."
           value={slug}
           onChange={(e) => {
             setSlug(e.target.value)

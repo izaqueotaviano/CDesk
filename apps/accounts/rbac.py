@@ -296,7 +296,7 @@ def validate_scope_for_role(scope: str, permissions) -> str | None:
     if scope == TicketScope.ASSIGNED and Perm.TICKET_BE_ASSIGNED not in set(permissions):
         return (
             'Escopo "apenas atribuídos a ele" exige a permissão '
-            '"Ser responsável por tickets" — sem ela a fila fica sempre vazia.'
+            '"Ser responsável por tickets". Sem ela, a fila fica sempre vazia.'
         )
     return None
 

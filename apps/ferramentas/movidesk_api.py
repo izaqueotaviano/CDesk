@@ -232,16 +232,16 @@ def _pagina(
                 raise ErroMovidesk("A API respondeu um objeto onde se esperava uma lista.")
             return dados
         if status in (401, 403):
-            raise TokenInvalido("Token recusado pelo Movidesk (401/403) — confira a chave.")
+            raise TokenInvalido("Token recusado pelo Movidesk (401/403). Confira a chave.")
 
         espera = _segundos_de_retry_after(cabecalhos)
         trecho = _sem_token(corpo[:200].decode("utf-8", "replace")) if corpo else ""
         if espera is not None:
-            log(f"API pediu pausa (HTTP {status}, retry-after={espera:.0f}s) — aguardando.")
+            log(f"API pediu pausa (HTTP {status}, retry-after={espera:.0f}s). Aguardando.")
         elif status == 429 or status >= 500:
             espera = 15.0 * tentativa
             log(
-                f"HTTP {status} sem retry-after — tentativa {tentativa}/{TENTATIVAS_POR_PAGINA}, "
+                f"HTTP {status} sem retry-after: tentativa {tentativa}/{TENTATIVAS_POR_PAGINA}, "
                 f"aguardando {espera:.0f}s. {trecho}".rstrip()
             )
         else:
@@ -311,7 +311,7 @@ def baixar_tudo(
                     "recebidos": len(dados),
                     "novos": novos,
                     "total": len(por_id),
-                    "msg": f"/{rota}: página {pagina} — {len(dados)} recebidos, "
+                    "msg": f"/{rota}: página {pagina}, {len(dados)} recebidos, "
                     f"{novos} novos ({len(por_id)} no total)",
                 }
             )
@@ -370,7 +370,7 @@ def baixar_pessoas(
             if exc.status == 400 and skip == 0 and variante + 1 < len(VARIANTES_PESSOAS):
                 variante += 1
                 log(
-                    f"{exc} — tentando a rota de pessoas "
+                    f"{exc}. Tentando a rota de pessoas "
                     + ("sem $orderby." if variante == 1 else "sem $select/$expand.")
                 )
                 continue
@@ -392,7 +392,7 @@ def baixar_pessoas(
                 "recebidos": len(dados),
                 "novos": novos,
                 "total": len(por_id),
-                "msg": f"/persons: página {pagina} — {len(dados)} recebidos, "
+                "msg": f"/persons: página {pagina}, {len(dados)} recebidos, "
                 f"{novos} novos ({len(por_id)} no total)",
             }
         )

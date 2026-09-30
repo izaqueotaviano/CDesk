@@ -215,13 +215,13 @@ describe('nota interna recebida na thread', () => {
   it('vem com selo escrito, não só com cor de fundo', async () => {
     mensagens = [msg(1, { is_internal_note: true, body: 'pedi o estorno' })]
     montar()
-    expect(await screen.findByText(/Nota interna — o cliente não vê/)).toBeInTheDocument()
+    expect(await screen.findByText(/Nota interna: o cliente não vê/)).toBeInTheDocument()
   })
 
   it('não mostra escada de entrega — não há destinatário', async () => {
     mensagens = [msg(1, { is_internal_note: true, body: 'pedi o estorno' })]
     montar()
-    await screen.findByText(/Nota interna — o cliente não vê/)
+    await screen.findByText(/Nota interna: o cliente não vê/)
     expect(screen.queryByText('Enviada')).not.toBeInTheDocument()
   })
 
@@ -233,7 +233,7 @@ describe('nota interna recebida na thread', () => {
   it('mensagem normal não ganha selo nenhum', async () => {
     montar()
     await screen.findByText('mensagem 1')
-    expect(screen.queryByText(/Nota interna — o cliente não vê/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Nota interna: o cliente não vê/)).not.toBeInTheDocument()
   })
 })
 
