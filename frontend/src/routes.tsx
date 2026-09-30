@@ -5,35 +5,56 @@ import { PaginaLogin } from '@/features/auth/PaginaLogin'
 import { PaginaRedefinirSenha } from '@/features/auth/PaginaRedefinirSenha'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
-import { PaginaInicio } from '@/features/tickets/PaginaInicio'
 import { AppShell } from '@/layouts/AppShell'
 import { PortalShell } from '@/portal/shell/PortalShell'
-import { PaginaInicio as PaginaInicioCliente } from '@/portal/inicio/PaginaInicio'
-import { PaginaNovoTicket as PaginaNovoTicketCliente } from '@/portal/tickets/PaginaNovoTicket'
-import { PaginaTicket as PaginaTicketCliente } from '@/portal/tickets/PaginaTicket'
-import { PaginaTickets as PaginaTicketsCliente } from '@/portal/tickets/PaginaTickets'
-import { PaginaChat as PaginaChatCliente } from '@/portal/chat/PaginaChat'
-import { PaginaAjuda } from '@/portal/ajuda/PaginaAjuda'
-import { PaginaArtigo } from '@/portal/ajuda/PaginaArtigo'
-import { PaginaHistorico } from '@/portal/historico/PaginaHistorico'
-import { PaginaConta } from '@/resolv/conta/PaginaConta'
-import { PaginaConfiguracoes as PaginaConfiguracoesCliente } from '@/portal/configuracoes/PaginaConfiguracoes'
 import { NovoShell } from '@/resolv/shell/NovoShell'
-import { PaginaInicio as PaginaInicioResolv } from '@/resolv/inicio/PaginaInicio'
-import { PaginaListaTickets as PaginaListaTicketsResolv } from '@/resolv/tickets/PaginaListaTickets'
-import { PaginaDetalheTicket as PaginaDetalheTicketResolv } from '@/resolv/tickets/detalhe/PaginaDetalheTicket'
-import { PaginaKanban as PaginaQuadroResolv } from '@/resolv/kanban/PaginaKanban'
-import { PaginaChat as PaginaChatResolv } from '@/resolv/chat/PaginaChat'
-import { PaginaNotas } from '@/resolv/notas/PaginaNotas'
 import { SuperficieCvz } from '@/cvz/SuperficieCvz'
-import { PaginaListaEmpresas } from '@/cvz/clientes/PaginaListaEmpresas'
-import { PaginaDetalheEmpresa } from '@/cvz/clientes/PaginaDetalheEmpresa'
-import { PaginaAvisos } from '@/cvz/avisos/PaginaAvisos'
-import { PaginaAuditoria } from '@/cvz/auditoria/PaginaAuditoria'
-import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
-import { PaginaRelatorios as PaginaRelatoriosResolv } from '@/cvz/relatorios/PaginaRelatorios'
-import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
 import { RedirecionarDeChamados } from '@/resolv/tickets/RedirecionarDeChamados'
+import { lazy, Suspense, type ComponentType } from 'react'
+import { CarregandoTela } from '@/ui/CarregandoTela'
+
+/**
+ * Cada tela é um pedaço à parte do bundle, baixado quando a rota é aberta:
+ * quem entra no portal não baixa o console inteiro, e o arquivo principal
+ * fica abaixo do limite de pré-cache do service worker (vite.config.ts). O
+ * login e as casca (shell) seguem no pacote principal, para o primeiro
+ * desenho não esperar rede.
+ */
+function carregavel(carregar: () => Promise<{ default: ComponentType }>) {
+  const Tela = lazy(carregar)
+  return function TelaCarregavel() {
+    return (
+      <Suspense fallback={<CarregandoTela />}>
+        <Tela />
+      </Suspense>
+    )
+  }
+}
+
+const PaginaInicio = carregavel(() => import('@/features/tickets/PaginaInicio').then((m) => ({ default: m.PaginaInicio })))
+const PaginaInicioCliente = carregavel(() => import('@/portal/inicio/PaginaInicio').then((m) => ({ default: m.PaginaInicio })))
+const PaginaNovoTicketCliente = carregavel(() => import('@/portal/tickets/PaginaNovoTicket').then((m) => ({ default: m.PaginaNovoTicket })))
+const PaginaTicketCliente = carregavel(() => import('@/portal/tickets/PaginaTicket').then((m) => ({ default: m.PaginaTicket })))
+const PaginaTicketsCliente = carregavel(() => import('@/portal/tickets/PaginaTickets').then((m) => ({ default: m.PaginaTickets })))
+const PaginaChatCliente = carregavel(() => import('@/portal/chat/PaginaChat').then((m) => ({ default: m.PaginaChat })))
+const PaginaAjuda = carregavel(() => import('@/portal/ajuda/PaginaAjuda').then((m) => ({ default: m.PaginaAjuda })))
+const PaginaArtigo = carregavel(() => import('@/portal/ajuda/PaginaArtigo').then((m) => ({ default: m.PaginaArtigo })))
+const PaginaHistorico = carregavel(() => import('@/portal/historico/PaginaHistorico').then((m) => ({ default: m.PaginaHistorico })))
+const PaginaConta = carregavel(() => import('@/resolv/conta/PaginaConta').then((m) => ({ default: m.PaginaConta })))
+const PaginaConfiguracoesCliente = carregavel(() => import('@/portal/configuracoes/PaginaConfiguracoes').then((m) => ({ default: m.PaginaConfiguracoes })))
+const PaginaInicioResolv = carregavel(() => import('@/resolv/inicio/PaginaInicio').then((m) => ({ default: m.PaginaInicio })))
+const PaginaListaTicketsResolv = carregavel(() => import('@/resolv/tickets/PaginaListaTickets').then((m) => ({ default: m.PaginaListaTickets })))
+const PaginaDetalheTicketResolv = carregavel(() => import('@/resolv/tickets/detalhe/PaginaDetalheTicket').then((m) => ({ default: m.PaginaDetalheTicket })))
+const PaginaQuadroResolv = carregavel(() => import('@/resolv/kanban/PaginaKanban').then((m) => ({ default: m.PaginaKanban })))
+const PaginaChatResolv = carregavel(() => import('@/resolv/chat/PaginaChat').then((m) => ({ default: m.PaginaChat })))
+const PaginaNotas = carregavel(() => import('@/resolv/notas/PaginaNotas').then((m) => ({ default: m.PaginaNotas })))
+const PaginaListaEmpresas = carregavel(() => import('@/cvz/clientes/PaginaListaEmpresas').then((m) => ({ default: m.PaginaListaEmpresas })))
+const PaginaDetalheEmpresa = carregavel(() => import('@/cvz/clientes/PaginaDetalheEmpresa').then((m) => ({ default: m.PaginaDetalheEmpresa })))
+const PaginaAvisos = carregavel(() => import('@/cvz/avisos/PaginaAvisos').then((m) => ({ default: m.PaginaAvisos })))
+const PaginaAuditoria = carregavel(() => import('@/cvz/auditoria/PaginaAuditoria').then((m) => ({ default: m.PaginaAuditoria })))
+const PaginaConfiguracoes = carregavel(() => import('@/cvz/configuracoes/PaginaConfiguracoes').then((m) => ({ default: m.PaginaConfiguracoes })))
+const PaginaRelatoriosResolv = carregavel(() => import('@/cvz/relatorios/PaginaRelatorios').then((m) => ({ default: m.PaginaRelatorios })))
+const PaginaNovoTicket = carregavel(() => import('@/resolv/tickets/novo/PaginaNovoTicket').then((m) => ({ default: m.PaginaNovoTicket })))
 
 /**
  * /app/tickets/:id não tem equivalente estático em /tickets/:id — precisa
@@ -47,9 +68,9 @@ function RedirecionarParaChamado() {
 
 /**
  * Duas árvores separadas — /app (interno) e /portal (cliente) — com bundles
- * de rota distintos (F2 em docs/07-arquitetura-frontend.md). Nesta base as
- * duas ainda carregam eager (sem `lazy:`); o code-splitting por rota é uma
- * melhoria de performance a acrescentar depois, não algo que muda o contrato.
+ * de rota distintos (F2 em docs/07-arquitetura-frontend.md). Cada tela é um
+ * pedaço carregado sob demanda (`carregavel`, acima); login, casca e
+ * redirecionamentos ficam no pacote principal.
  */
 export const router = createBrowserRouter([
   {

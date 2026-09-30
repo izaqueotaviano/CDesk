@@ -7,7 +7,7 @@
 export type Item = {
   id: string
   label: string
-  /** Classe Tabler (`ti ti-*`) — a mesma na sidebar, no "Mais" e na busca. */
+  /** Classe Tabler (`ti ti-*`), a mesma na sidebar, no "Mais" e na busca. */
   icon: string
   route: string
   enabled: boolean
