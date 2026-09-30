@@ -304,10 +304,10 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     # usuários da empresa precisa dizer que aquilo é um visitante e não um
     # acesso ao portal que alguém cadastrou, e o status de convite ("pendente"
     # = tem conta mas nunca definiu senha) seria mentira aqui — visitante NÃO
-    # tem convite nenhum em aberto. Sem senha utilizável e sem
-    # "esqueci minha senha" no produto (ver apps/accounts/admin_api.py
-    # ::reset_password), ele não entra no portal por caminho nenhum enquanto
-    # um admin não o promover de verdade.
+    # tem convite nenhum em aberto. Sem senha utilizável e fora do
+    # "Esqueci minha senha" (apps/accounts/recuperacao.py recusa visitante),
+    # ele não entra no portal por caminho nenhum enquanto um admin ou o
+    # responsável da empresa não o convidar de verdade.
     is_widget_visitor = models.BooleanField(default=False)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     anonymized_at = models.DateTimeField(null=True, blank=True)  # LGPD (D11)

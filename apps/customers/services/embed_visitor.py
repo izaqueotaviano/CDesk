@@ -18,9 +18,10 @@ produção com o visitante na linha.
 
 O que impede isso de virar uma porta dos fundos para o portal:
 
-- a senha nasce inutilizável e **não existe "esqueci minha senha"** no produto
-  (ver `apps.accounts.admin_api.reset_password`): só um admin define senha,
-  e fazer isso é promover o visitante a usuário de verdade, conscientemente;
+- a senha nasce inutilizável e o **"Esqueci minha senha" recusa visitante**
+  (`apps.accounts.recuperacao.entra_por_senha`): só um convite (do admin ou
+  do responsável da empresa) define senha, e convidar é promover o visitante
+  a usuário de verdade, conscientemente;
 - e-mail que já existe em OUTRA empresa (ou de alguém interno) nunca é
   reaproveitado nem sobrescrito — a conversa é recusada;
 - `is_widget_visitor` mantém a listagem da empresa honesta: é visitante do

@@ -76,10 +76,9 @@ function CampoSenha({
 }
 
 /**
- * Trocar a senha provando a identidade com a atual. Não existe "esqueci
- * minha senha" aqui: quem não tem a atual fala com o suporte, que confirma
- * por outro canal. As outras sessões continuam abertas de propósito — a
- * tela avisa.
+ * Trocar a senha provando a identidade com a atual. Quem não tem a atual
+ * usa "Esqueci minha senha" na tela de entrada (o link vai por e-mail). As
+ * outras sessões continuam abertas de propósito — a tela avisa.
  */
 export function SecaoSenha() {
   const { data: me } = useMe()
@@ -129,7 +128,7 @@ export function SecaoSenha() {
       id="senha"
       icone={IconKey}
       titulo="Alterar senha"
-      descricao="Informe a senha atual para confirmar que é você. Esqueceu? Fale com o suporte — não existe recuperação automática."
+      descricao={'Informe a senha atual para confirmar que é você. Não lembra dela? Saia e use "Esqueci minha senha" na tela de entrada.'}
     >
       <form onSubmit={enviar} className="flex flex-col gap-5" noValidate>
         {trocada && (

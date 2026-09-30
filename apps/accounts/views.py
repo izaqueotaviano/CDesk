@@ -742,10 +742,9 @@ class TrocarSenhaSerializer(serializers.Serializer):
 class MyPasswordView(APIView):
     """Trocar a PRÓPRIA senha, provando a identidade com a senha atual.
 
-    Isto não contradiz a decisão de não existir "esqueci minha senha"
-    self-service (ver `DefinirSenhaView` e o cabeçalho de api/account.ts): a
-    recusa lá é sobre provar "sou eu" SEM a senha, que exige alguém
-    verificando por outro canal. Aqui a senha atual é a prova.
+    Quem NÃO tem a senha atual usa "Esqueci minha senha"
+    (apps/accounts/recuperacao.py), que prova a identidade pela caixa de
+    e-mail. Aqui a senha atual é a prova.
 
     As sessões abertas continuam abertas de propósito — trocar a senha por
     higiene não deveria derrubar a pessoa dos outros aparelhos dela. Quem
@@ -936,7 +935,8 @@ class DefinirSenhaView(APIView):
         record_access_event(user, AccessEventKind.PASSWORD_CHANGED, request)
         # NÃO cria sessão aqui: o 2FA é obrigatório para todo login (ver
         # LoginView), e entrar por este caminho seria uma porta que o pula.
-        return Response({"email": user.email})
+        # `kind` diz à tela para qual login mandar (portal ou painel).
+        return Response({"email": user.email, "kind": user.kind})
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
@@ -950,7 +950,10 @@ class DefinirSenhaView(APIView):
         )
         if user is None:
             return Response({"valid": False}, status=200)
-        return Response({"valid": True, "email": user.email, "full_name": user.full_name})
+        return Response({
+            "valid": True, "email": user.email, "full_name": user.full_name,
+            "kind": user.kind,
+        })
 
 
 def _usuario_do_convite(uid: str, token: str):

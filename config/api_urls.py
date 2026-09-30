@@ -13,6 +13,7 @@ from apps.accounts.admin_api import (
     TeamAdminViewSet,
     UserAdminViewSet,
 )
+from apps.accounts.recuperacao import RecuperarSenhaView, RedefinirSenhaView
 from apps.accounts.views import (
     AssinaturaFileView,
     AssinaturaImagemView,
@@ -70,6 +71,7 @@ from apps.core.views import (
     SystemTestEmailView,
 )
 from apps.customers.admin_api import CompanyAdminViewSet, PlanAdminViewSet
+from apps.customers.pessoas import PessoaEmpresaView, PessoasEmpresaView, ReenviarConviteView
 from apps.customers.views import CompanyViewSet, MaintenanceView, MyCompanyView, QuotaView
 from apps.kanban.views import BoardLaneViewSet, BoardViewSet
 from apps.knowledge.views import ArticleViewSet
@@ -168,6 +170,10 @@ urlpatterns = router.urls + [
     # fecha o convite: o link do e-mail vira senha. Público por natureza —
     # quem chega aqui ainda não tem como se autenticar.
     path("auth/definir-senha/", DefinirSenhaView.as_view(), name="auth-definir-senha"),
+    # "Esqueci minha senha": pedir o link (resposta igual exista ou não a
+    # conta) e trocar a senha por ele. Públicos pelo mesmo motivo do convite.
+    path("auth/recuperar-senha/", RecuperarSenhaView.as_view(), name="auth-recuperar-senha"),
+    path("auth/redefinir-senha/", RedefinirSenhaView.as_view(), name="auth-redefinir-senha"),
     path("auth/logout/", LogoutView.as_view(), name="auth-logout"),
     path("auth/me/", MeView.as_view(), name="auth-me"),
     path("me/avatar/", AvatarUploadView.as_view(), name="my-avatar"),
@@ -183,6 +189,11 @@ urlpatterns = router.urls + [
     path("me/presence/", MyPresenceView.as_view(), name="my-presence"),
     # a empresa do próprio cliente (Configurações → Empresa, no portal)
     path("me/company/", MyCompanyView.as_view(), name="my-company"),
+    # as pessoas dela, geridas pelo responsável (Configurações → Pessoas da empresa)
+    path("me/company/users/", PessoasEmpresaView.as_view(), name="my-company-users"),
+    path("me/company/users/<int:pk>/", PessoaEmpresaView.as_view(), name="my-company-user"),
+    path("me/company/users/<int:pk>/invite/", ReenviarConviteView.as_view(),
+         name="my-company-user-invite"),
     path("quota/", QuotaView.as_view(), name="quota"),
     path("maintenance/", MaintenanceView.as_view(), name="maintenance"),
     path("settings/system/", SystemConfigView.as_view(), name="cfg-system"),

@@ -101,6 +101,28 @@ EMAIL_TEMPLATES = {
         "Se você não pediu isso a ninguém, avise o suporte agora.\n\n"
         "Este e-mail não recebe respostas."
     ),
+    # --- "Esqueci minha senha" (apps/accounts/recuperacao.py) ---------------
+    # A parte HTML sai do modelo que o admin configura em Sistema, como a de
+    # todo e-mail do outbox; o link vira link clicável lá (mailer._paragrafos).
+    "password_reset": (
+        "Olá, {full_name}.\n\n"
+        "Recebemos um pedido para redefinir a senha da sua conta ({email}). "
+        "Para criar uma senha nova, abra o link abaixo:\n"
+        "{link}\n\n"
+        "O link vale por {valid_minutes} minutos e só funciona uma vez.\n"
+        "Se você não pediu isso, ignore este e-mail: sua senha continua a "
+        "mesma.\n\n"
+        "Este e-mail não recebe respostas."
+    ),
+    "password_changed": (
+        "Olá, {full_name}.\n\n"
+        "A senha da sua conta ({email}) foi alterada em {quando}, pelo link "
+        "de recuperação enviado a este e-mail.\n\n"
+        "Por segurança, encerramos as sessões abertas em outros aparelhos. "
+        "Para entrar de novo, use a senha nova.\n"
+        "Se não foi você, fale com o suporte agora.\n\n"
+        "Este e-mail não recebe respostas."
+    ),
     # --- ciclo de vida visto por quem ATENDE (agente/admin interno) -------
     # Cada tipo aqui já existia como notificação IN-APP; até esta rodada o
     # toggle de e-mail correspondente em Minha conta > Notificações não

@@ -35,7 +35,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function montar(rota = '/login/cliente', state?: { de: string }, search?: string) {
+function montar(rota = '/login/cliente', state?: { de?: string; email?: string }, search?: string) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
@@ -43,6 +43,8 @@ function montar(rota = '/login/cliente', state?: { de: string }, search?: string
         <Routes>
           <Route path="/login" element={<PaginaLogin />} />
           <Route path="/login/cliente" element={<PaginaLogin />} />
+          <Route path="/login/esqueci-senha" element={<p>esqueci da equipe</p>} />
+          <Route path="/login/cliente/esqueci-senha" element={<p>esqueci do cliente</p>} />
           <Route path="/inicio" element={<p>painel da equipe</p>} />
           <Route path="/portal" element={<p>portal do cliente</p>} />
           <Route path="/portal/tickets/7" element={<p>chamado 7</p>} />
@@ -155,6 +157,33 @@ describe('PaginaLogin', () => {
   it('?erro=inativo mostra que a conta está desativada', () => {
     montar('/login', undefined, '?erro=inativo')
     expect(screen.getByText('Sua conta está inativa. Fale com um administrador.')).toBeInTheDocument()
+  })
+
+  it('"Esqueci minha senha" leva à recuperação do mesmo público, e a nota antiga saiu', async () => {
+    const { unmount } = montar('/login')
+    expect(screen.getByRole('link', { name: 'Esqueci minha senha' })).toHaveAttribute('href', '/login/esqueci-senha')
+    expect(screen.queryByText(/redefinição é feita por um administrador/)).not.toBeInTheDocument()
+    unmount()
+    montar('/login/cliente')
+    fireEvent.click(screen.getByRole('link', { name: 'Esqueci minha senha' }))
+    expect(await screen.findByText('esqueci do cliente')).toBeInTheDocument()
+  })
+
+  it('chegando da senha nova, o e-mail vem preenchido e o foco vai para a senha', () => {
+    montar('/login/cliente', { email: 'ana@acme.test' })
+    expect(screen.getByLabelText('E-mail')).toHaveValue('ana@acme.test')
+    expect(screen.getByLabelText('Senha')).toHaveFocus()
+  })
+
+  it('trava do axes: mostra o tempo que o servidor deu, não "1 minuto"', async () => {
+    respostas['/api/v1/auth/login/'] = () => ({
+      status: 429,
+      corpo: { detail: 'Muitas tentativas de entrar com este e-mail. Aguarde 15 minutos e tente de novo.', code: 'login_bloqueado' },
+    })
+    montar('/login')
+    preencher('samuel@x.test', 'errada')
+    expect(await screen.findByText('Entrada pausada por segurança')).toBeInTheDocument()
+    expect(screen.getByText(/Aguarde 15 minutos/)).toBeInTheDocument()
   })
 
   it('valida antes de chamar a API', async () => {

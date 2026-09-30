@@ -1,93 +1,74 @@
 /*
- * Tela de login — o que não cabe em utilitário do Tailwind.
+ * Telas sem sessão (entrar, pedir o link de senha, criar a senha nova) —
+ * o que não cabe em utilitário do Tailwind.
  *
- * A paleta, a tipografia e o raio saem dos tokens (styles/tokens.css), que
- * desde a troca para o Convertize já são os do kit. O que mora aqui é só a
- * COMPOSIÇÃO desta tela: o formulário dentro de uma seção de papel, o painel
- * de marca em grafite e os dois textos que caem sobre ele.
+ * A paleta, a tipografia e o raio saem dos tokens (styles/tokens.css). O que
+ * mora aqui é só a COMPOSIÇÃO destas telas: o cartão do formulário sobre o
+ * plano, o foco dos campos e o painel da marca.
  *
- * O botão primário desta tela não é mais exceção nenhuma: no v2 a ação do
- * PRODUTO INTEIRO é carvão, então ele é simplesmente o `default` do `Button`.
- * A exceção que existia aqui (`variant="inverse"`) era o kit v1 lido ao
- * contrário — lá o laranja é que era a ação.
- *
- * REGRA DE CASCATA, porque isto já mordeu uma vez: as utilitárias do Tailwind
- * entram DEPOIS deste arquivo no bundle e têm a mesma especificidade de uma
- * classe. Então qualquer propriedade que o JSX também declare (cor de fundo,
- * altura, alinhamento) tem que ser resolvida LÁ, no JSX — onde o
+ * REGRA DE CASCATA, porque isto já mordeu mais de uma vez: as utilitárias do
+ * Tailwind entram DEPOIS deste arquivo no bundle e têm a mesma
+ * especificidade de uma classe. Qualquer propriedade que o JSX também
+ * declare (altura, cor de fundo, tamanho de fonte) é resolvida LÁ, onde o
  * `tailwind-merge` do `cn` faz a última palavra ser a certa. Aqui só entra o
- * que nenhuma utilitária escreve. É por isso que a marca virou `bg-laranja`,
- * em vez de uma regra daqui que perdia.
- *
- * A moldura de "planta baixa" (referência Relume) saiu junto com a paleta
- * antiga: o contêiner do Convertize é a `.ds-section` — papel, linha de 1px e
- * canto generoso —, e era ela ou a moldura, não as duas.
+ * que nenhuma utilitária escreve. (O título de 33px que morava aqui nunca
+ * chegou à tela por esse motivo: o `text-titulo` do JSX vencia.)
  */
 
 /* ------------------------------------------------------------------ formulário
-   A `.ds-section` do kit: papel, linha de 1px e canto generoso. A largura
-   (372px, mais folgada que a coluna de 320px de antes) fica no `max-w-` do
-   JSX, junto do resto do layout — aqui só o que é material. */
+   Branco só para o que é superfície: o cartão e os campos. O resto é o
+   plano (`bg-canvas`), com uma linha de 1px separando os dois. */
 .login-cartao {
-  padding: 30px 28px 28px;
+  padding: 32px 28px 28px;
   background: var(--superficie);
   border: 1px solid var(--divisoria);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-md);
 }
 
-.login-campo {
-  height: var(--altura-controle-lg);  /* `--h-lg` do v2: campo de entrada de tela */
+@media (max-width: 380px) {
+  .login-cartao {
+    padding: 24px 20px 20px;
+  }
 }
 
-/* ------------------------------------------------------------------ tipografia
-   O título é o display do kit (Tenor Sans, peso normal, entrelinha curta) —
-   nada da caixa alta apertada que a escala de UI usa. */
-.login-titulo {
-  font-family: var(--f-display);
-  font-size: 33px;
-  font-weight: 400;
-  line-height: 1.06;
-  letter-spacing: 0;
+/* ------------------------------------------------------------------ foco
+   O foco global (tokens.css) é o contorno de 2px na cor do acento. Num campo
+   ele somava com a borda, que também escurece no foco: carvão, folga,
+   carvão — um anel duplo pesado, e o primeiro campo da tela nasce focado
+   (autoFocus). Aqui o campo fica com a própria borda e ganha UM anel de 2px,
+   afastado 2px, no degrau de tinta mais leve que ainda passa AA como
+   contorno de controle: `--tinta-terciaria` dá 4,5:1 sobre o branco do
+   cartão e 4,2:1 sobre o plano no claro, e ~5,6:1 sobre a superfície escura
+   no escuro (a norma, 1.4.11, pede 3:1). A borda não muda de cor no foco —
+   o JSX troca o `focus-visible:border-acento` do kit por
+   `focus-visible:border-borda-campo`. */
+.login-campo:focus-visible {
+  outline: 2px solid var(--tinta-terciaria);
+  outline-offset: 2px;
 }
 
-/* O eyebrow saiu. "Acesso da equipe" acima de "Entrar no painel" repetia o
-   que o título já diz, e o seletor "É cliente?" no canto cobre o resto —
-   rótulo que só anuncia o que vem embaixo é decoração com cara de estrutura.
-   A classe fica aqui, vazia e documentada, porque a marca configurável do
-   admin ainda pode referenciá-la. */
-
-.login-cabecalho,
-.login-nota {
-  text-align: left;
+/* Links de texto (Esqueci minha senha, Voltar para o login): sublinhado é o
+   sinal de link, já que o acento não é uma cor à parte. */
+.login-link {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-decoration-color: var(--borda-campo);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.login-link:hover {
+  text-decoration-color: currentColor;
 }
 
 /* ---------------------------------------------------------- painel da marca
-   O campo escuro da direita. Ele É a ousadia desta tela, e a única — um
-   formulário centrado sobre bege seria o desenho que qualquer produto tem.
-   Por isso ele fica; o que saiu foi o excesso em cima dele.
-
-   Era grafite com uma GRADE LARANJA por cima. A grade é cor de marca usada
-   como decoração, e o briefing só admite um acento: o sólido escuro. Então o
-   painel virou esse mesmo sólido, liso. Sem a grade, quem carrega o campo é
-   o texto — que é o que deveria carregar desde o começo. */
+   O campo escuro da direita, escuro nos DOIS temas (`--login-painel`): o
+   texto em cima dele é claro e fixo. Sólido e liso — a grade laranja que já
+   morou aqui era cor de marca usada como decoração. */
 .login-painel {
   background-color: var(--login-painel);
 }
 
-.login-painel__cartao {
-  border-radius: var(--r-md);
-  /* Sem sombra: o cartão é claro sobre o carvão, e a diferença de tom já o
-     descola. A sombra de 22px era penumbra sobre um fundo que não tem luz. */
-  box-shadow: none;
-}
-
-/* Os dois textos que ficam SOBRE o grafite e não podem seguir o tom do
-   produto (que é escuro no claro, e sumiria ali). */
-.login-painel__rodape {
-  color: rgba(255, 253, 249, .7);
-}
-@media (min-width: 1024px) {
-  .login-troca__pergunta {
-    color: rgba(255, 253, 249, .72);
-  }
-}
+/* A pergunta do canto ("É cliente?") cai SOBRE o painel escuro no desktop:
+   a cor dela é resolvida no JSX (`lg:text-[#c9c7c2]`), e não aqui — a regra
+   que morava aqui perdia para o `text-tinta-secundaria` da utilitária e
+   deixava o texto a 2,6:1 sobre o carvão. */

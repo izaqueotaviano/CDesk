@@ -1,6 +1,8 @@
 import { Navigate, createBrowserRouter, useParams } from 'react-router-dom'
 import { App } from '@/App'
+import { PaginaEsqueciSenha } from '@/features/auth/PaginaEsqueciSenha'
 import { PaginaLogin } from '@/features/auth/PaginaLogin'
+import { PaginaRedefinirSenha } from '@/features/auth/PaginaRedefinirSenha'
 import { PaginaSessaoExpirada } from '@/features/auth/PaginaSessaoExpirada'
 import { RotaProtegida } from '@/features/auth/RotaProtegida'
 import { PaginaInicio } from '@/features/tickets/PaginaInicio'
@@ -69,6 +71,15 @@ export const router = createBrowserRouter([
 
       { path: '/login', element: <PaginaLogin /> },
       { path: '/login/cliente', element: <PaginaLogin /> },
+      // "Esqueci minha senha" e a senha nova pelo link do e-mail, sob o login
+      // de cada público (o link que o backend manda já aponta para o certo)
+      { path: '/login/esqueci-senha', element: <PaginaEsqueciSenha /> },
+      { path: '/login/cliente/esqueci-senha', element: <PaginaEsqueciSenha /> },
+      { path: '/login/redefinir-senha/:uid/:token', element: <PaginaRedefinirSenha modo="recuperacao" /> },
+      { path: '/login/cliente/redefinir-senha/:uid/:token', element: <PaginaRedefinirSenha modo="recuperacao" /> },
+      // O link do CONVITE (apps/accounts/admin_api.py::send_invite). Público,
+      // fora do `/portal` protegido: quem abre ainda não tem senha.
+      { path: '/portal/definir-senha/:uid/:token', element: <PaginaRedefinirSenha modo="convite" /> },
       { path: '/sessao-expirada', element: <PaginaSessaoExpirada /> },
 
       // ---- Minha conta (equipe): verificação em duas etapas ----

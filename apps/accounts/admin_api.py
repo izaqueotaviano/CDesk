@@ -102,7 +102,9 @@ def send_invite(user) -> None:
         template="invite",
         context={
             "full_name": user.full_name,
-            "company": user.company.name if user.company else "",
+            # o molde é "Seu acesso ao suporte{company} foi criado": sem o
+            # separador aqui o e-mail saía "suporteAcme"
+            "company": f" ({user.company.name})" if user.company else "",
             # absoluta: o link viaja por e-mail (relativo não é clicável lá)
             "link": f"{settings.SITE_URL}/portal/definir-senha/{uid}/{token}/",
         },
@@ -520,15 +522,13 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         senha atual.
 
         Caso de uso real: cliente esquece a senha e liga pedindo pro
-        atendimento trocar. O autoatendimento não tem "esqueci minha senha"
-        nenhum (`accountApi` não expõe troca de senha — não existe self-
-        service pra isso, ver GAPS.md), e a única porta administrativa que já
-        existia (reenviar o CONVITE, `invite` acima) resolve um problema
-        DIFERENTE: manda um e-mail com link pra pessoa escolher a própria
-        senha — útil pra quem nunca acessou, mas exige e-mail acessível
-        naquele instante, e não serve pro atendimento por telefone/chat que
-        precisa resolver na hora. Este endpoint é direto: o admin aciona, o
-        sistema já troca, sem passar por caixa de entrada nenhuma.
+        atendimento trocar. Hoje existe "Esqueci minha senha" self-service
+        (apps/accounts/recuperacao.py), mas ele exige a caixa de e-mail
+        acessível naquele instante — e o convite (`invite` acima) também.
+        Nenhum dos dois serve pro atendimento por telefone/chat que precisa
+        resolver na hora, nem pra quem perdeu o acesso ao próprio e-mail.
+        Este endpoint é direto: o admin aciona, o sistema já troca, sem
+        passar por caixa de entrada nenhuma.
 
         Mesmo espírito do `reset_2fa`: o próprio acesso administrativo já é
         a prova de identidade exigida — ninguém confirma a senha antiga pra

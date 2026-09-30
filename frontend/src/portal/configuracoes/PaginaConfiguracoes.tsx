@@ -1,16 +1,20 @@
-import { IconBuilding, IconDeviceDesktop, IconFileText, IconKey, IconMail, IconPalette, IconShieldCheck, IconUser, type Icon } from '@tabler/icons-react'
+import { IconBuilding, IconDeviceDesktop, IconFileText, IconKey, IconMail, IconPalette, IconShieldCheck, IconUser, IconUsers, type Icon } from '@tabler/icons-react'
+import { useMe } from '@/api/queries/useMe'
 import { SecaoAcessos } from './SecaoAcessos'
 import { SecaoAparencia } from './SecaoAparencia'
 import { SecaoEmpresa } from './SecaoEmpresa'
 import { SecaoMeusDados } from './SecaoMeusDados'
 import { SecaoNotificacoes } from './SecaoNotificacoes'
 import { SecaoPerfil } from './SecaoPerfil'
+import { PERMISSAO_PESSOAS, SecaoPessoasEmpresa } from './SecaoPessoasEmpresa'
 import { SecaoSeguranca } from './SecaoSeguranca'
 import { SecaoSenha } from './SecaoSenha'
 
-const SECOES: { id: string; rotulo: string; icone: Icon }[] = [
+/** `permissao`: a seção só aparece (no menu e na página) para quem a tem. */
+const SECOES: { id: string; rotulo: string; icone: Icon; permissao?: string }[] = [
   { id: 'perfil', rotulo: 'Dados pessoais', icone: IconUser },
   { id: 'empresa', rotulo: 'Empresa', icone: IconBuilding },
+  { id: 'pessoas', rotulo: 'Pessoas da empresa', icone: IconUsers, permissao: PERMISSAO_PESSOAS },
   { id: 'notificacoes', rotulo: 'Notificações por e-mail', icone: IconMail },
   { id: 'aparencia', rotulo: 'Aparência', icone: IconPalette },
   { id: 'senha', rotulo: 'Alterar senha', icone: IconKey },
@@ -26,6 +30,8 @@ const SECOES: { id: string; rotulo: string; icone: Icon }[] = [
  * conta própria: mudar o tema não obriga a "salvar" a senha.
  */
 export function PaginaConfiguracoes() {
+  const { data: me } = useMe()
+  const secoes = SECOES.filter((s) => !s.permissao || me?.permissions.includes(s.permissao))
   return (
     <div className="flex flex-col gap-6">
       <header>
@@ -34,7 +40,7 @@ export function PaginaConfiguracoes() {
       </header>
 
       <nav aria-label="Seções" className="-mx-4 flex gap-2 overflow-x-auto px-4 [scrollbar-width:none] lg:hidden">
-        {SECOES.map((s) => (
+        {secoes.map((s) => (
           <a
             key={s.id}
             href={`#${s.id}`}
@@ -49,7 +55,7 @@ export function PaginaConfiguracoes() {
       <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
         <nav aria-label="Seções" className="hidden lg:block">
           <ul className="sticky top-6 flex flex-col gap-1">
-            {SECOES.map((s) => (
+            {secoes.map((s) => (
               <li key={s.id}>
                 <a
                   href={`#${s.id}`}
@@ -66,6 +72,7 @@ export function PaginaConfiguracoes() {
         <div className="flex min-w-0 flex-col gap-6">
           <SecaoPerfil />
           <SecaoEmpresa />
+          <SecaoPessoasEmpresa />
           <SecaoNotificacoes />
           <SecaoAparencia />
           <SecaoSenha />
