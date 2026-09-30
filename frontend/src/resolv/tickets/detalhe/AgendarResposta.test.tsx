@@ -4,12 +4,10 @@ import type { Me } from '@/api/types'
 import { AgendarResposta } from './AgendarResposta'
 import type { RespostaAgendada, TicketDetalhe } from './tiposDetalhe'
 
-const agendarMock = vi.hoisted(() => vi.fn())
 const cancelarMock = vi.hoisted(() => vi.fn())
 
 vi.mock('./dados', () => ({
   useAcoesTicket: () => ({
-    agendarResposta: { mutate: agendarMock, isPending: false },
     cancelarAgendamento: { mutate: cancelarMock, isPending: false },
   }),
 }))
@@ -107,56 +105,39 @@ function ticket(extra: Partial<TicketDetalhe> = {}): TicketDetalhe {
 }
 
 beforeEach(() => {
-  agendarMock.mockReset()
   cancelarMock.mockReset()
 })
 
 describe('AgendarResposta', () => {
   it('sem a permissão de responder publicamente, não aparece nada', () => {
-    render(<AgendarResposta ticket={ticket()} me={ME_SEM_PERMISSAO} />)
-    expect(screen.queryByRole('button', { name: /Agendar resposta/ })).not.toBeInTheDocument()
+    render(<AgendarResposta ticket={ticket({ scheduled_replies: [agendada()] })} me={ME_SEM_PERMISSAO} />)
+    expect(screen.queryByRole('list', { name: 'Respostas agendadas' })).not.toBeInTheDocument()
   })
 
   it('para o cliente (não interno), não aparece nada', () => {
-    render(<AgendarResposta ticket={ticket()} me={{ ...ME, is_internal: false }} />)
-    expect(screen.queryByRole('button', { name: /Agendar resposta/ })).not.toBeInTheDocument()
-  })
-
-  it('abre o formulário e o botão de confirmar só acende com texto e data', () => {
-    render(<AgendarResposta ticket={ticket()} me={ME} />)
-    fireEvent.click(screen.getByRole('button', { name: /Agendar resposta/ }))
-
-    const botaoConfirmar = screen.getByRole('button', { name: /^Agendar$/ })
-    expect(botaoConfirmar).toBeDisabled()
-
-    fireEvent.change(screen.getByLabelText('Texto da resposta'), {
-      target: { value: 'Bom dia! Segue a atualização.' },
-    })
-    expect(botaoConfirmar).toBeDisabled() // ainda falta a data
-
-    fireEvent.change(screen.getByLabelText('Quando'), { target: { value: '2026-09-16T08:00' } })
-    expect(botaoConfirmar).toBeEnabled()
-  })
-
-  it('confirmar chama a mutation com o corpo, o status e a data em ISO', () => {
-    render(<AgendarResposta ticket={ticket()} me={ME} />)
-    fireEvent.click(screen.getByRole('button', { name: /Agendar resposta/ }))
-    fireEvent.change(screen.getByLabelText('Texto da resposta'), {
-      target: { value: 'Bom dia! Segue a atualização.' },
-    })
-    fireEvent.change(screen.getByLabelText('Quando'), { target: { value: '2026-09-16T08:00' } })
-    fireEvent.change(screen.getByLabelText('Ao enviar, deixar'), { target: { value: 'pending_customer' } })
-    fireEvent.click(screen.getByRole('button', { name: /^Agendar$/ }))
-
-    expect(agendarMock).toHaveBeenCalledWith(
-      {
-        body: 'Bom dia! Segue a atualização.',
-        is_public: true,
-        new_status: 'pending_customer',
-        scheduled_at: new Date('2026-09-16T08:00').toISOString(),
-      },
-      expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) }),
+    render(
+      <AgendarResposta
+        ticket={ticket({ scheduled_replies: [agendada()] })}
+        me={{ ...ME, is_internal: false }}
+      />,
     )
+    expect(screen.queryByRole('list', { name: 'Respostas agendadas' })).not.toBeInTheDocument()
+  })
+
+  it('não tem mais um campo de texto próprio: agendar é no compositor', () => {
+    render(<AgendarResposta ticket={ticket()} me={ME} />)
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Agendar/ })).not.toBeInTheDocument()
+  })
+
+  it('mostra a resposta agendada sem os marcadores de formatação', () => {
+    render(
+      <AgendarResposta
+        ticket={ticket({ scheduled_replies: [agendada({ body: '**Bom dia!** Segue.' })] })}
+        me={ME}
+      />,
+    )
+    expect(screen.getByText('Bom dia! Segue.')).toBeInTheDocument()
   })
 
   it('lista as agendadas pendentes e cancela pelo botão', () => {

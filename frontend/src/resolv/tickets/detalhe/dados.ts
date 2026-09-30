@@ -83,11 +83,14 @@ export function useCategorias() {
  *  NÃO é a lista de quem pode ser Responsável/Dono técnico — ver
  *  `useAgentesAtribuiveis` logo abaixo, que é a pergunta certa para os dois
  *  seletores do painel de propriedades. */
-export function useAlvosMencao(id: number) {
+export function useAlvosMencao(id: number, ativo = true) {
   return useQuery({
     queryKey: ['ticket', id, 'mention-targets'],
     queryFn: () => api.get<AlvoMencao[]>(`/api/v1/tickets/${id}/mention-targets/`),
     staleTime: 60_000,
+    // o compositor só pede quando a pessoa pode escrever nota interna — a
+    // única mensagem em que menção existe
+    enabled: ativo,
   })
 }
 

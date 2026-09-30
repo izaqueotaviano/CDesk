@@ -36,6 +36,7 @@ import { useSalaChat } from '@/realtime/useSalaChat'
 import { fileSize } from '@/cvz/components/ChatWidget/ChatWidget'
 import { useChatUi } from '@/stores/chatUi'
 import { AvatarComPresenca } from './AvatarComPresenca'
+import { abrirNoVisualizador, useVisualizadorImagem } from '@/ui/useVisualizadorImagem'
 import { useAplicarMacroChat, useMacros, type Macro } from './dados'
 import { EsqueletoConversa, EsqueletoLista } from './Esqueletos'
 import { horaDe, iniciais, rotuloDoDia } from './format'
@@ -138,7 +139,16 @@ function mensagemDoErro(e: unknown, padrao: string): string {
 /** Quanto tempo entre dois sinais de "digitando" mandados pra sala. */
 const INTERVALO_DIGITANDO_MS = 2_000
 
-function Anexo({ arquivo, destacado = false }: { arquivo: ArquivoChat; destacado?: boolean }) {
+function Anexo({
+  arquivo,
+  destacado = false,
+  onAbrir,
+}: {
+  arquivo: ArquivoChat
+  destacado?: boolean
+  /** Imagem: abre o visualizador em vez de uma aba nova (ver `AnexosDaBolha`). */
+  onAbrir?: () => void
+}) {
   const indisponivel = motivoIndisponivel(arquivo)
   // "Ver na conversa" no painel de mídia: a rolagem chega perto, e este
   // marca-texto diz QUAL — numa mensagem com três anexos, chegar não basta.
@@ -164,6 +174,7 @@ function Anexo({ arquivo, destacado = false }: { arquivo: ArquivoChat; destacado
         target="_blank"
         rel="noreferrer"
         title={`${arquivo.filename} · ${fileSize(arquivo.size_bytes)}`}
+        onClick={onAbrir ? (e) => abrirNoVisualizador(e, onAbrir) : undefined}
       >
         <img src={`${API_BASE_URL}${arquivo.url}`} alt={arquivo.filename} loading="lazy" />
       </a>
@@ -175,6 +186,33 @@ function Anexo({ arquivo, destacado = false }: { arquivo: ArquivoChat; destacado
       <i className={'ti ' + iconeDoArquivo(arquivo.content_type)} aria-hidden="true" />
       {arquivo.filename} · {fileSize(arquivo.size_bytes)}
     </a>
+  )
+}
+
+/** Os anexos de uma mensagem. As imagens liberadas abrem o visualizador
+ *  compartilhado (ui/VisualizadorImagem), com ← → entre as imagens da mesma
+ *  mensagem; Ctrl/⌘+clique continua abrindo o arquivo numa aba nova. */
+function AnexosDaBolha({ arquivos, destaque }: { arquivos: ArquivoChat[]; destaque: string | null }) {
+  const imagens = arquivos.filter(ehImagemVisivel)
+  const visualizador = useVisualizadorImagem(
+    imagens.map((f) => ({
+      url: `${API_BASE_URL}${f.url}`,
+      nome: f.filename,
+      detalhe: fileSize(f.size_bytes),
+    })),
+  )
+  return (
+    <div className="cc-msg__anexos">
+      {arquivos.map((f) => (
+        <Anexo
+          key={f.id}
+          arquivo={f}
+          destacado={destaque === `arquivo:${f.id}`}
+          onAbrir={ehImagemVisivel(f) ? () => visualizador.abrir(imagens.indexOf(f)) : undefined}
+        />
+      ))}
+      {visualizador.elemento}
+    </div>
   )
 }
 
@@ -317,13 +355,7 @@ export function Bolha({
             )}
           </div>
         )}
-        {msg.files.length > 0 && (
-          <div className="cc-msg__anexos">
-            {msg.files.map((f) => (
-              <Anexo key={f.id} arquivo={f} destacado={destaque === `arquivo:${f.id}`} />
-            ))}
-          </div>
-        )}
+        {msg.files.length > 0 && <AnexosDaBolha arquivos={msg.files} destaque={destaque} />}
         {/* nota interna não tem escada de entrega: não há destinatário para
             receber nem para ler, e "Enviada" para sempre seria uma promessa
             sobre alguém que não existe */}

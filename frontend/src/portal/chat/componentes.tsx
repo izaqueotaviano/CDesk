@@ -24,6 +24,7 @@ import {
   ROTULO_DO_ESTADO,
 } from '@/chat/conversa'
 import { Avatar, PontoDePresenca, type Presenca } from '@/ui/Avatar'
+import { abrirNoVisualizador, useVisualizadorImagem } from '@/ui/useVisualizadorImagem'
 import { cn } from '../lib/cn'
 import { hora, relativo, tamanhoArquivo } from '../lib/formato'
 import { Badge } from '../ui/badge'
@@ -141,6 +142,12 @@ function IconeDeArquivo({ tipo }: { tipo: string }) {
 }
 
 export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
+  // Imagem abre o visualizador compartilhado (← → entre as desta mensagem);
+  // Ctrl/⌘+clique continua abrindo o arquivo numa aba nova.
+  const imagens = (msg.files ?? []).filter(ehImagemVisivel)
+  const visualizador = useVisualizadorImagem(
+    imagens.map((f) => ({ url: urlApi(f.url), nome: f.filename, detalhe: tamanhoArquivo(f.size_bytes) })),
+  )
   if (!msg.files?.length) return null
   return (
     <ul className="mt-2 flex flex-wrap gap-2" aria-label="Anexos">
@@ -155,6 +162,7 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
               rel="noreferrer"
               title={`${f.filename} · ${tamanhoArquivo(f.size_bytes)}`}
               className="block overflow-hidden rounded-md  hover:border-acento"
+              onClick={(e) => abrirNoVisualizador(e, () => visualizador.abrir(imagens.indexOf(f)))}
             >
               <img
                 src={urlApi(f.url)}
@@ -189,6 +197,7 @@ export function Anexos({ msg }: { msg: Pick<MensagemChat, 'files'> }) {
           </li>
         ),
       )}
+      {visualizador.elemento}
     </ul>
   )
 }

@@ -19,9 +19,16 @@ export interface Anexo {
   is_downloadable?: boolean
 }
 
+/** Menção já resolvida (`MentionSerializer`): `key` é o miolo da marcação
+ *  gravada no corpo (`user:12`), `name` é o nome de HOJE de quem foi citado.
+ *  (Antes o tipo dizia `{id, display}`, que o servidor nunca mandou — o chip
+ *  saía "@undefined" e casava pessoa e equipe de mesmo id.) */
 export interface Mencao {
+  key: string
+  type: 'user' | 'team'
   id: number
-  display: string
+  name: string
+  is_active: boolean
 }
 
 export interface Mensagem {

@@ -130,10 +130,13 @@ EMAIL_TEMPLATES = {
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
+    # `{resumo}` num parágrafo só dele: é a nota que a pessoa escreveu, e na
+    # parte HTML ela chega formatada, como bloco citado (`resumo_md`, ver
+    # `_corpos_do_email`). Entre aspas, no meio da frase, uma lista não cabia.
     "mention": (
         "Olá, {agent_name}.\n\n"
-        "{author_name} mencionou você no chamado {reference}: "
-        "\"{resumo}\"\n\n"
+        "{author_name} mencionou você no chamado {reference}:\n\n"
+        "{resumo}\n\n"
         "Acesse o sistema para ver a nota completa:\n"
         "{link}\n\n"
         "Este e-mail não recebe respostas."
@@ -216,6 +219,44 @@ class _ContextoTolerante(dict):
         return ""
 
 
+def _corpos_do_email(template: str, contexto: dict) -> tuple[str, str | None, dict[str, str]]:
+    """As duas partes do e-mail a partir do molde.
+
+    Campo de contexto terminado em `_md` é texto que uma PESSOA escreveu com a
+    formatação leve da tela (`apps/notifications/formatacao.py`) — hoje, a nota
+    citada no aviso de menção. Ele preenche o marcador de mesmo nome sem o
+    sufixo (`resumo_md` → `{resumo}`):
+
+    - na parte de texto puro, sem os marcadores (`**urgente**` → `urgente`);
+    - na parte HTML, como HTML formatado — via uma marca inerte que o
+      `mailer.montar_html` troca DEPOIS de escapar o resto do molde.
+
+    Sem campo `_md` (todos os outros e-mails, e os que já estavam na fila antes
+    desta regra), devolve o molde de sempre e nenhum HTML à parte.
+    """
+    from apps.notifications import formatacao
+
+    formatados = {
+        chave[: -len("_md")]: str(contexto.pop(chave) or "")
+        for chave in [k for k in contexto if k.endswith("_md")]
+    }
+    for chave, bruto in formatados.items():
+        contexto[chave] = formatacao.para_texto(bruto)
+    corpo = template.format_map(contexto)
+    if not formatados:
+        return corpo, None, {}
+
+    contexto_html = _ContextoTolerante(contexto)
+    trechos: dict[str, str] = {}
+    for i, (chave, bruto) in enumerate(formatados.items()):
+        # caracteres de uso privado: não aparecem em texto de verdade, e o
+        # escape de HTML não mexe neles
+        marca = f"{i}"
+        contexto_html[chave] = marca
+        trechos[marca] = formatacao.para_html(bruto)
+    return corpo, template.format_map(contexto_html), trechos
+
+
 @shared_task(bind=True, max_retries=5, default_retry_delay=30)
 def send_outbound_email(self, email_id: int):
     from apps.core.models import SystemConfig
@@ -240,13 +281,16 @@ def send_outbound_email(self, email_id: int):
     # não é marcador do molde de texto: é o bloco HTML da assinatura, que só
     # existe na parte rica do e-mail (a de texto puro recebe `{assinatura}`)
     html_extra = contexto.pop("assinatura_html", "")
+    corpo, corpo_html, trechos_html = _corpos_do_email(template, contexto)
     try:
         mailer.enviar(
             to=email.to_email,
             subject=email.subject,
-            body=template.format_map(contexto),
+            body=corpo,
             config=config,
             html_extra=html_extra,
+            corpo_html=corpo_html,
+            trechos_html=trechos_html,
         )
     except Exception as exc:
         email.attempts += 1

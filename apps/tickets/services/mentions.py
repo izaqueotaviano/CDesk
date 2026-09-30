@@ -22,6 +22,7 @@ from __future__ import annotations
 import re
 
 from apps.accounts.models import Team, User, UserKind
+from apps.notifications import formatacao
 
 # A marcação: `@` + tipo + id entre colchetes. Deliberadamente feia de digitar
 # à mão — quem escreve é o editor, e o que um humano digita ("@iza") nunca casa
@@ -30,6 +31,11 @@ MARCACAO = re.compile(r"@\[(user|team):(\d+)\]")
 
 # limite de `TicketStatusEvent.note`, onde o rastro da menção é gravado
 _LIMITE_NOTA = 200
+
+# Quanto da nota vai no e-mail de menção. Mais que o sino (200) porque ali a
+# nota chega formatada e uma lista curta inteira cabe; menos que a nota toda
+# porque o e-mail convida a abrir o chamado, não o substitui.
+_LIMITE_NOTA_NO_EMAIL = 600
 
 
 def extrair_referencias(body: str) -> tuple[list[int], list[int]]:
@@ -98,6 +104,14 @@ def registrar_mencoes(*, message, author) -> list[User]:
             destinatarios.setdefault(agente.pk, agente)
     destinatarios.pop(author.pk, None)
 
+    # A nota com os nomes no lugar da marcação. Continua com a formatação leve
+    # (`**`, listas, links): o sino recebe o texto sem marcador, e o e-mail
+    # recebe as duas versões — texto puro e HTML (`resumo_md`, convertido no
+    # envio por apps/notifications/formatacao.py).
+    nota = resumir(message.body)
+    resumo = formatacao.para_texto(nota)[:200]
+    nota_no_email = formatacao.recortar(nota, _LIMITE_NOTA_NO_EMAIL)
+
     for user in destinatarios.values():
         # Seguidor (CC) já existia como conceito: `TicketWatcher`. Ser citado
         # passa a criar o vínculo, porque quem foi chamado para o caso quer o
@@ -106,9 +120,6 @@ def registrar_mencoes(*, message, author) -> list[User]:
         # restrito; a leitura continua decidida por `is_content_visible_to`.
         TicketWatcher.objects.get_or_create(ticket=ticket, user=user)
         titulo = f"{author.full_name} mencionou você em {ticket.reference}"
-        # resumo com os nomes trocados (não a marcação crua) — vale tanto
-        # para o sino quanto para o e-mail
-        resumo = resumir(message.body)[:200]
         url = ticket_url(ticket, user, anchor=f"#mensagem-{message.pk}")
         notify(
             recipient=user,
@@ -130,7 +141,10 @@ def registrar_mencoes(*, message, author) -> list[User]:
                     "agent_name": user.full_name,
                     "author_name": author.full_name,
                     "reference": ticket.reference,
+                    # `resumo` sozinho é o que os e-mails antigos da fila
+                    # usam; com `resumo_md` presente, o envio o substitui
                     "resumo": resumo,
+                    "resumo_md": nota_no_email,
                     "link": f"{settings.SITE_URL}{url}",
                 },
                 ticket=ticket,

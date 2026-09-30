@@ -19,6 +19,29 @@ import { tamanhoArquivo } from './detalhe/linhaDoTempo'
  * é a pessoa esperando à toa.
  */
 
+/**
+ * Ícone do arquivo pelo TIPO (o `content_type` que o servidor detectou pelos
+ * primeiros bytes, ou o `type` do File antes de subir), com a extensão como
+ * reserva. Devolve a classe INTEIRA (`ti ti-…`) e não só o nome: o gerador do
+ * subset de ícones (scripts/gerar_subset_icones.py) só enxerga o par escrito
+ * por extenso — um `'ti-' + nome` montado em tempo de execução sairia em
+ * branco em produção.
+ */
+export function classeIconeDoArquivo(contentType = '', nome = ''): string {
+  const tipo = contentType.toLowerCase()
+  const ext = nome.toLowerCase().split('.').pop() ?? ''
+  if (tipo.startsWith('image/')) return 'ti ti-photo'
+  if (tipo === 'application/pdf' || ext === 'pdf') return 'ti ti-file-type-pdf'
+  if (tipo.includes('spreadsheet') || tipo === 'text/csv' || ['xlsx', 'xls', 'csv'].includes(ext)) {
+    return 'ti ti-file-spreadsheet'
+  }
+  if (tipo.includes('wordprocessing') || ['docx', 'doc'].includes(ext)) return 'ti ti-file-type-doc'
+  if (tipo.includes('presentation') || ['pptx', 'ppt'].includes(ext)) return 'ti ti-presentation'
+  if (tipo === 'application/zip' || ext === 'zip') return 'ti ti-file-zip'
+  if (tipo.startsWith('text/') || ext === 'txt') return 'ti ti-file-text'
+  return 'ti ti-file'
+}
+
 export interface LimitesAnexo {
   maxBytes: number
   maxMb: number

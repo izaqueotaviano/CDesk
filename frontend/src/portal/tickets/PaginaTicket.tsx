@@ -35,6 +35,8 @@ import { BotaoAnexar, ListaDeAnexos, RecusasDeAnexo, ZonaDeSoltar } from './Anex
 import { AvisoDeRascunho } from './AvisoDeRascunho'
 import { PilulaPrioridade, PilulaStatus } from './componentes'
 import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
+import { TextoFormatado } from '@/ui/TextoFormatado'
+import { abrirNoVisualizador, useVisualizadorImagem } from '@/ui/useVisualizadorImagem'
 
 // ---------------------------------------------------------------------------
 // Linha do tempo — o que o CLIENTE pode ver. O backend não entrega os eventos
@@ -194,11 +196,33 @@ function agruparPorDia(msgs: Mensagem[], agoraMs: number): { rotulo: string; ite
 }
 
 function Anexos({ msg }: { msg: Mensagem }) {
+  // Imagem liberada pela varredura vira miniatura e abre o visualizador
+  // compartilhado (← → entre as desta mensagem); o resto segue como chip.
+  const ehImagem = (a: Mensagem['attachments'][number]) =>
+    a.is_downloadable !== false && !!a.url && (a.content_type ?? '').startsWith('image/')
+  const imagens = (msg.attachments ?? []).filter(ehImagem)
+  const visualizador = useVisualizadorImagem(
+    imagens.map((a) => ({ url: urlApi(a.url!), nome: a.filename, detalhe: a.size_bytes ? tamanhoArquivo(a.size_bytes) : undefined })),
+  )
   if (!msg.attachments?.length) return null
   return (
     <ul className="mt-2 flex flex-wrap gap-2" aria-label="Anexos">
       {msg.attachments.map((a) =>
-        a.is_downloadable === false || !a.url ? (
+        ehImagem(a) ? (
+          <li key={a.id}>
+            <a
+              href={urlApi(a.url!)}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Ver ${a.filename}`}
+              title={a.filename}
+              className="block overflow-hidden rounded-md"
+              onClick={(e) => abrirNoVisualizador(e, () => visualizador.abrir(imagens.indexOf(a)))}
+            >
+              <img src={urlApi(a.url!)} alt="" loading="lazy" className="h-24 w-32 cursor-zoom-in object-cover" />
+            </a>
+          </li>
+        ) : a.is_downloadable === false || !a.url ? (
           <li key={a.id} className="inline-flex items-center gap-1.5 rounded-lg  bg-navegacao px-2.5 py-1 text-legenda text-tinta-secundaria" title="Em verificação de segurança">
             <IconLock className="size-3" aria-hidden="true" />
             {a.filename} · em verificação
@@ -218,6 +242,7 @@ function Anexos({ msg }: { msg: Mensagem }) {
           </li>
         ),
       )}
+      {visualizador.elemento}
     </ul>
   )
 }
@@ -266,9 +291,10 @@ function MensagemDoTicket({
             </span>
           )}
         </header>
-        <p className={cn('mt-1 whitespace-pre-wrap text-[13px] leading-normal text-tinta [overflow-wrap:anywhere]', msg.is_deleted && 'italic text-tinta-terciaria')}>
-          {msg.is_deleted ? 'Mensagem apagada' : msg.body}
-        </p>
+        {/* div, não p: a formatação leve pode trazer lista (ui/TextoFormatado) */}
+        <div className={cn('mt-1 text-[13px] leading-normal text-tinta [overflow-wrap:anywhere]', msg.is_deleted && 'italic text-tinta-terciaria')}>
+          {msg.is_deleted ? 'Mensagem apagada' : <TextoFormatado texto={msg.body} />}
+        </div>
         {!msg.is_deleted && <AssinaturaDaMensagem html={msg.signature_html} />}
         {!msg.is_deleted && <Anexos msg={msg} />}
       </div>

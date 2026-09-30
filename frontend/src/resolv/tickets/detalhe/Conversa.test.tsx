@@ -475,3 +475,51 @@ describe('Conversa — assinatura do agente', () => {
     expect(container.querySelector('.assinatura-mensagem')).toBeNull()
   })
 })
+
+describe('Conversa — corpo formatado, menção e anexos', () => {
+  it('formatação leve e chip de menção com o nome de hoje (pessoa e equipe de mesmo id)', () => {
+    montar(
+      ticket({
+        messages: [
+          mensagem({
+            is_public: false,
+            author_is_internal: true,
+            body: '**Atenção** @[user:3] e @[team:3]',
+            mentions: [
+              { key: 'user:3', type: 'user', id: 3, name: 'Izaque Sá', is_active: true },
+              { key: 'team:3', type: 'team', id: 3, name: 'Design', is_active: true },
+            ],
+          }),
+        ],
+      }),
+    )
+    const artigo = screen.getByRole('article')
+    expect(artigo.querySelector('strong')).toHaveTextContent('Atenção')
+    const chips = [...artigo.querySelectorAll('.texto-formatado__mencao')].map((c) => c.textContent)
+    expect(chips).toEqual(['@Izaque Sá', '@Design'])
+  })
+
+  it('imagem liberada vira miniatura que abre o visualizador; o resto é chip de download', () => {
+    montar(
+      ticket({
+        messages: [
+          mensagem({
+            attachments: [
+              { id: 1, filename: 'print.png', content_type: 'image/png', size_bytes: 2048, url: '/api/v1/attachments/1/', scan_status: 'clean', is_downloadable: true },
+              { id: 2, filename: 'nota.pdf', content_type: 'application/pdf', size_bytes: 4096, url: '/api/v1/attachments/2/', scan_status: 'clean', is_downloadable: true },
+              { id: 3, filename: 'virus.png', content_type: 'image/png', size_bytes: 10, scan_status: 'infected', is_downloadable: false },
+            ],
+          }),
+        ],
+      }),
+    )
+    const pdf = screen.getByRole('link', { name: /nota\.pdf/ })
+    expect(pdf).toHaveAttribute('download', 'nota.pdf')
+    // imagem em quarentena não vira miniatura
+    expect(screen.queryByRole('link', { name: 'Ver virus.png' })).not.toBeInTheDocument()
+    expect(screen.getByText('bloqueado pelo antivírus')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('link', { name: 'Ver print.png' }))
+    expect(screen.getByRole('dialog', { name: 'print.png' })).toBeInTheDocument()
+  })
+})

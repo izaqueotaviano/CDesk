@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode, type UIEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type UIEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import type { Me } from '@/api/types'
 import { useTabs, type AbaTicket } from '@/stores/tabs'
@@ -7,6 +7,7 @@ import { formatarDataHora } from '../format'
 import { AgendarResposta } from './AgendarResposta'
 import { useDigitacaoLocal } from './colaboracao/canalCompositor'
 import { AvisoColisao } from './colaboracao/PresencaTicket'
+import { AnexosDaMensagem } from './AnexosDaMensagem'
 import { Compositor } from './Compositor'
 import { useAcoesTicket } from './dados'
 import {
@@ -16,59 +17,12 @@ import {
   iniciais,
   mensagemDeErro,
   mesclarLinhaDoTempo,
-  tamanhoArquivo,
   tempoRelativo,
   urlApi,
 } from './linhaDoTempo'
-import type { Anexo, Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
+import type { Evento, Mensagem, TicketDetalhe } from './tiposDetalhe'
 import { AssinaturaDaMensagem } from '@/ui/AssinaturaDaMensagem'
-
-const ROTULO_VARREDURA: Record<string, string> = {
-  pending: 'verificando…',
-  infected: 'bloqueado pelo antivírus',
-  error: 'falha na verificação',
-  skipped: 'não verificado',
-}
-
-/** O corpo guarda `@[user:12]`; o serializer manda `mentions` com o nome. */
-function renderizarCorpo(msg: Mensagem): ReactNode {
-  const partes = msg.body.split(/(@\[(?:user|team):\d+\])/g)
-  if (partes.length === 1) return msg.body
-  return partes.map((p, i) => {
-    const m = p.match(/^@\[(user|team):(\d+)\]$/)
-    if (!m) return p
-    const alvo = msg.mentions.find((x) => x.id === Number(m[2]))
-    return alvo ? (
-      <span key={i} className="msg__mencao">
-        @{alvo.display}
-      </span>
-    ) : (
-      p
-    )
-  })
-}
-
-function AnexoChip({ anexo }: { anexo: Anexo }) {
-  const tamanho = tamanhoArquivo(anexo.size_bytes)
-  if (anexo.is_downloadable && anexo.url) {
-    return (
-      <a className="msg__anexo" href={urlApi(anexo.url)} target="_blank" rel="noreferrer">
-        <i className="ti ti-paperclip" />
-        <span className="msg__anexo-nome">{anexo.filename}</span>
-        {tamanho && <span className="msg__anexo-tam">{tamanho}</span>}
-        <i className="ti ti-download msg__anexo-baixar" aria-hidden="true" />
-      </a>
-    )
-  }
-  const motivo = ROTULO_VARREDURA[anexo.scan_status ?? ''] ?? 'indisponível'
-  return (
-    <span className="msg__anexo msg__anexo--off" title={`Download indisponível: ${motivo}`}>
-      <i className="ti ti-paperclip" />
-      <span className="msg__anexo-nome">{anexo.filename}</span>
-      <span className="msg__anexo-tam">{motivo}</span>
-    </span>
-  )
-}
+import { TextoFormatado } from '@/ui/TextoFormatado'
 
 /** Editor inline de uma mensagem. Monta só enquanto edita — o estado nasce
  *  do corpo atual na montagem, sem efeito para sincronizar. */
@@ -249,7 +203,13 @@ function ItemMensagem({
           <EditorMensagem original={msg.body} onSalvar={onSalvar} onCancelar={onCancelarEdicao} />
         ) : (
           <div className="msg__texto">
-            {msg.is_deleted ? <em>Mensagem apagada</em> : renderizarCorpo(msg)}
+            {/* formatação leve + menções (`@[user:12]` → chip com o nome de
+                hoje, resolvido pelo servidor em `msg.mentions`) */}
+            {msg.is_deleted ? (
+              <em>Mensagem apagada</em>
+            ) : (
+              <TextoFormatado texto={msg.body} mencoes={msg.mentions} />
+            )}
             {!msg.is_deleted && <AssinaturaDaMensagem html={msg.signature_html} />}
           </div>
         )}
@@ -282,13 +242,7 @@ function ItemMensagem({
           </p>
         )}
 
-        {msg.attachments.length > 0 && (
-          <div className="msg__anexos">
-            {msg.attachments.map((a) => (
-              <AnexoChip key={a.id} anexo={a} />
-            ))}
-          </div>
-        )}
+        {msg.attachments.length > 0 && <AnexosDaMensagem anexos={msg.attachments} />}
       </div>
     </article>
   )

@@ -28,6 +28,7 @@ import {
 import { conferirAnexos, limitesDeAnexo } from '../anexos'
 import { COR_PRIORIDADE, ROTULO_PRIORIDADE } from '../format'
 import type { Prioridade } from '../tipos'
+import { useSoltarArquivos } from '../useSoltarArquivos'
 import { useMacros } from '../detalhe/dados'
 import { Campo } from '../detalhe/PainelPropriedades'
 import {
@@ -468,6 +469,9 @@ export function PaginaNovoTicket() {
   // telas dividem `../anexos`, senão elas divergem (e já tinham divergido:
   // esta não recusava extensão bloqueada).
   const limites = limitesDeAnexo(configSistema)
+  // Arrastar arquivos para o bloco da mensagem anexa, com a mesma conferência
+  // do botão (mesmo gancho do compositor do detalhe).
+  const soltar = useSoltarArquivos((arquivos) => adicionarAnexos(arquivos))
 
   // A tela abre com o foco em "Para": é o primeiro campo da tarefa
   // principal (escrever para alguém), e evita sete tabs pelo painel de
@@ -703,7 +707,7 @@ export function PaginaNovoTicket() {
    * servidor agora acontece ANTES de criar o chamado (views.py:create), então
    * ele não deixa mais chamado órfão.
    */
-  function adicionarAnexos(lista: FileList | null) {
+  function adicionarAnexos(lista: FileList | File[] | null) {
     if (!lista?.length) return
     const { aceitos, recusas } = conferirAnexos(anexos, Array.from(lista), limites)
     setAnexos((a) => [...a, ...aceitos])
@@ -1439,7 +1443,19 @@ export function PaginaNovoTicket() {
             {erroDe('subject')}
           </div>
 
-          <div className="novo__bloco novo__bloco--mensagem">
+          <div
+            className={
+              'novo__bloco novo__bloco--mensagem compositor__area-soltar' +
+              (soltar.arrastando ? ' compositor__area-soltar--ativa' : '')
+            }
+            {...soltar.props}
+          >
+            {soltar.arrastando && (
+              <div className="compositor__soltar" aria-hidden="true">
+                <i className="ti ti-upload" />
+                <span>Solte para anexar</span>
+              </div>
+            )}
             <div className="novo__rotulo-linha">
               <label className="novo__rotulo" htmlFor={ids.texto}>
                 Mensagem <Obrigatorio />

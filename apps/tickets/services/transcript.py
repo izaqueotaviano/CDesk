@@ -26,6 +26,8 @@ from html import escape
 
 from django.utils import timezone
 
+from apps.notifications import formatacao
+
 #: Cores em hex, não em `var(--…)`: o PDF é montado no servidor e não enxerga
 #: as CSS vars do frontend. Os valores vêm do tema do portal.
 _ESTILO = """
@@ -123,7 +125,9 @@ def ticket_pdf(ticket, *, para) -> tuple[bytes, str]:
         _bloco(
             "Você" if m.author_id == para.pk else m.author.full_name,
             m.created_at,
-            "Mensagem apagada." if m.is_deleted else m.body,
+            # a formatação leve da tela (`**`, listas, links) sai como texto
+            # limpo: o PDF é leitura, e um `**` solto nele é ruído
+            "Mensagem apagada." if m.is_deleted else formatacao.para_texto(m.body),
             propria=m.author_id == para.pk,
             anexos=[a.filename for a in m.attachments.all()],
         )

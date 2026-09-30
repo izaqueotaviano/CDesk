@@ -15,11 +15,19 @@ const aplicarMacroMock = vi.hoisted(() => vi.fn())
 // o valor volta para `[]` no beforeEach.
 let macros: import('./tiposDetalhe').Macro[] = []
 
+const agendarMock = vi.hoisted(() => vi.fn())
+
+// Quem pode ser @mencionado (GET mention-targets) — só é pedido por quem
+// escreve nota interna; `let` pelo mesmo motivo das macros.
+let alvosMencao: import('./tiposDetalhe').AlvoMencao[] = []
+
 vi.mock('./dados', () => ({
   useMacros: () => ({ data: macros }),
+  useAlvosMencao: () => ({ data: alvosMencao }),
   useAcoesTicket: () => ({
     responder: { mutate: responderMock, isPending: false },
     aplicarMacro: { mutate: aplicarMacroMock },
+    agendarResposta: { mutate: agendarMock, isPending: false },
   }),
 }))
 
@@ -142,8 +150,10 @@ const corpoEnviado = () => (responderMock.mock.calls[0]?.[0] as DadosResposta | 
 beforeEach(() => {
   responderMock.mockReset()
   aplicarMacroMock.mockReset()
+  agendarMock.mockReset()
   config = CONFIG_PADRAO
   macros = []
+  alvosMencao = []
   useTabs.setState({ tabs: [], active: null, reconciliando: false })
 })
 
@@ -545,5 +555,258 @@ describe('Compositor — roda do mouse não fecha o ticket sozinha', () => {
     expect(botao).not.toHaveClass('compositor__botao--fechar')
     expect(botao.textContent).not.toMatch(/fechar/i)
     expect(screen.getByLabelText('Ao enviar, deixar')).toHaveValue('open')
+  })
+})
+
+describe('Compositor — formatação leve', () => {
+  function campo() {
+    return screen.getByRole('textbox', { name: 'Resposta ao cliente' }) as HTMLTextAreaElement
+  }
+
+  it('Ctrl+B envolve a seleção em negrito, e de novo tira', () => {
+    montar()
+    fireEvent.change(campo(), { target: { value: 'muito urgente' } })
+    campo().setSelectionRange(6, 13)
+    fireEvent.keyDown(campo(), { key: 'b', ctrlKey: true })
+    expect(campo()).toHaveValue('muito **urgente**')
+
+    campo().setSelectionRange(8, 15)
+    fireEvent.keyDown(campo(), { key: 'b', ctrlKey: true })
+    expect(campo()).toHaveValue('muito urgente')
+  })
+
+  it('Ctrl+K dentro do texto é link — e não deixa o atalho vazar para a busca global', () => {
+    const buscaGlobal = vi.fn()
+    window.addEventListener('keydown', buscaGlobal)
+    montar()
+    fireEvent.change(campo(), { target: { value: 'o manual' } })
+    campo().setSelectionRange(2, 8)
+    fireEvent.keyDown(campo(), { key: 'k', ctrlKey: true })
+    window.removeEventListener('keydown', buscaGlobal)
+
+    expect(campo()).toHaveValue('o [manual](https://)')
+    expect(buscaGlobal).not.toHaveBeenCalled()
+  })
+
+  it('os botões da barra aplicam lista e itálico', () => {
+    montar()
+    fireEvent.change(campo(), { target: { value: 'um\ndois' } })
+    campo().setSelectionRange(0, 7)
+    fireEvent.click(screen.getByRole('button', { name: 'Lista com marcadores' }))
+    expect(campo()).toHaveValue('- um\n- dois')
+
+    fireEvent.change(campo(), { target: { value: 'nota' } })
+    campo().setSelectionRange(0, 4)
+    fireEvent.click(screen.getByRole('button', { name: 'Itálico' }))
+    expect(campo()).toHaveValue('_nota_')
+  })
+
+  it('Enter no fim de um item continua a lista', () => {
+    montar()
+    fireEvent.change(campo(), { target: { value: '1. abrir' } })
+    campo().setSelectionRange(8, 8)
+    fireEvent.keyDown(campo(), { key: 'Enter' })
+    expect(campo()).toHaveValue('1. abrir\n2. ')
+  })
+
+  it('"Visualizar" mostra a mensagem formatada, e volta a editar', () => {
+    montar()
+    fireEvent.change(campo(), { target: { value: 'um **forte**' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Visualizar' }))
+
+    const previa = screen.getByRole('region', { name: 'Prévia da mensagem' })
+    expect(previa.querySelector('strong')).toHaveTextContent('forte')
+    expect(screen.queryByRole('textbox', { name: 'Resposta ao cliente' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Negrito' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Visualizar' }))
+    expect(campo()).toHaveValue('um **forte**')
+  })
+})
+
+describe('Compositor — @menção na nota interna', () => {
+  const ALVOS = [
+    { type: 'user' as const, id: 7, name: 'Izaque Sá', email: 'izaque@x.test', group: 'ticket' as const },
+    { type: 'user' as const, id: 8, name: 'Ana Lima', email: 'ana@x.test', group: 'outros' as const },
+    { type: 'team' as const, id: 3, name: 'Design', email: '', group: 'equipes' as const },
+  ]
+
+  function nota() {
+    return screen.getByRole('textbox', { name: 'Nota interna' }) as HTMLTextAreaElement
+  }
+
+  function escreverNota(texto: string) {
+    fireEvent.click(screen.getByRole('tab', { name: /Nota interna/ }))
+    fireEvent.change(nota(), { target: { value: texto } })
+  }
+
+  it('"@" abre a lista filtrando pelo que foi digitado; Enter insere o nome', () => {
+    alvosMencao = ALVOS
+    montar()
+    escreverNota('pode olhar @iza')
+
+    const lista = screen.getByRole('listbox', { name: 'Mencionar' })
+    const opcoes = within(lista).getAllByRole('option')
+    expect(opcoes).toHaveLength(1)
+    expect(opcoes[0]).toHaveTextContent('Izaque Sá')
+    expect(opcoes[0]).toHaveAttribute('aria-selected', 'true')
+    expect(nota()).toHaveAttribute('aria-activedescendant', opcoes[0].id)
+
+    fireEvent.keyDown(nota(), { key: 'Enter' })
+    expect(nota()).toHaveValue('pode olhar @Izaque Sá ')
+    expect(screen.queryByRole('listbox', { name: 'Mencionar' })).not.toBeInTheDocument()
+  })
+
+  it('setas escolhem, Tab também insere, e o envio leva a marcação que o servidor lê', () => {
+    alvosMencao = ALVOS
+    montar()
+    escreverNota('@')
+    expect(
+      within(screen.getByRole('listbox', { name: 'Mencionar' })).getAllByRole('option'),
+    ).toHaveLength(3)
+
+    fireEvent.keyDown(nota(), { key: 'ArrowDown' })
+    fireEvent.keyDown(nota(), { key: 'ArrowDown' })
+    fireEvent.keyDown(nota(), { key: 'Tab' })
+    expect(nota()).toHaveValue('@Design ')
+
+    fireEvent.change(nota(), { target: { value: '@Design e @Ana Lima, vejam' } })
+    fireEvent.click(screen.getByRole('button', { name: /Salvar nota/ }))
+    expect(corpoEnviado()?.body).toBe('@[team:3] e @[user:8], vejam')
+    expect(corpoEnviado()?.is_public).toBe(false)
+  })
+
+  it('Esc fecha a lista e mantém o texto como está', () => {
+    alvosMencao = ALVOS
+    montar()
+    escreverNota('@an')
+    fireEvent.keyDown(nota(), { key: 'Escape' })
+    expect(screen.queryByRole('listbox', { name: 'Mencionar' })).not.toBeInTheDocument()
+    expect(nota()).toHaveValue('@an')
+  })
+
+  it('e-mail no meio do texto não abre a lista', () => {
+    alvosMencao = ALVOS
+    montar()
+    escreverNota('mandei para ana@acme')
+    expect(screen.queryByRole('listbox', { name: 'Mencionar' })).not.toBeInTheDocument()
+  })
+
+  it('na resposta ao cliente não há menção: nem lista, nem marcação no envio', () => {
+    alvosMencao = ALVOS
+    montar()
+    const campo = screen.getByRole('textbox', { name: 'Resposta ao cliente' })
+    fireEvent.change(campo, { target: { value: 'Olá @Ana Lima' } })
+    expect(screen.queryByRole('listbox', { name: 'Mencionar' })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: /Enviar resposta/ }))
+    expect(corpoEnviado()?.body).toBe('Olá @Ana Lima')
+  })
+})
+
+describe('Compositor — anexar arrastando e colando', () => {
+  function superficie(container: HTMLElement) {
+    return container.querySelector('.compositor__superficie') as HTMLElement
+  }
+
+  it('arrastar arquivo acende a zona de soltar; soltar anexa com a mesma conferência', () => {
+    const { container } = montar()
+    const alvo = superficie(container)
+
+    fireEvent.dragEnter(alvo, { dataTransfer: { types: ['Files'], files: [] } })
+    expect(screen.getByText('Solte para anexar')).toBeInTheDocument()
+
+    fireEvent.drop(alvo, {
+      dataTransfer: {
+        types: ['Files'],
+        files: [arquivo('print.png', 1024), arquivo('instalador.sh', 10)],
+      },
+    })
+    expect(screen.queryByText('Solte para anexar')).not.toBeInTheDocument()
+    expect(screen.getByText('print.png')).toBeInTheDocument()
+    expect(screen.getByRole('alert')).toHaveTextContent('Tipo de arquivo não permitido')
+  })
+
+  it('arrastar texto selecionado não é arrastar arquivo', () => {
+    const { container } = montar()
+    fireEvent.dragEnter(superficie(container), { dataTransfer: { types: ['text/plain'] } })
+    expect(screen.queryByText('Solte para anexar')).not.toBeInTheDocument()
+  })
+
+  it('colar um print (sem texto junto) vira anexo com nome de captura', () => {
+    montar()
+    const print = new File(['x'], 'image.png', { type: 'image/png' })
+    fireEvent.paste(screen.getByRole('textbox', { name: 'Resposta ao cliente' }), {
+      clipboardData: {
+        getData: () => '',
+        items: [{ kind: 'file', type: 'image/png', getAsFile: () => print }],
+      },
+    })
+    expect(screen.getByText(/^captura-\d{14}\.png$/)).toBeInTheDocument()
+  })
+
+  it('colar texto que traz imagem de brinde (planilha) continua colando texto', () => {
+    montar()
+    const imagem = new File(['x'], 'image.png', { type: 'image/png' })
+    fireEvent.paste(screen.getByRole('textbox', { name: 'Resposta ao cliente' }), {
+      clipboardData: {
+        getData: (tipo: string) => (tipo === 'text/plain' ? 'A1\tB1' : ''),
+        items: [{ kind: 'file', type: 'image/png', getAsFile: () => imagem }],
+      },
+    })
+    expect(screen.queryByRole('list', { name: 'Anexos a enviar' })).not.toBeInTheDocument()
+  })
+
+  it('remover tira o arquivo antes de enviar', () => {
+    const { container } = montar()
+    escolher(container, arquivo('nota.pdf', 1024))
+    fireEvent.click(screen.getByRole('button', { name: 'Remover nota.pdf' }))
+    expect(screen.queryByText('nota.pdf')).not.toBeInTheDocument()
+  })
+})
+
+describe('Compositor — agendar sobre o mesmo texto', () => {
+  it('agenda o texto escrito, com o status escolhido e a hora em ISO', () => {
+    montar()
+    fireEvent.change(screen.getByLabelText('Resposta ao cliente'), {
+      target: { value: 'Bom dia! Segue a atualização.' },
+    })
+    fireEvent.change(screen.getByLabelText('Ao enviar, deixar'), {
+      target: { value: 'pending_customer' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Agendar envio' }))
+
+    const confirmar = screen.getByRole('button', { name: 'Agendar' })
+    expect(confirmar).toBeDisabled() // falta a hora
+    fireEvent.change(screen.getByLabelText('Enviar em'), { target: { value: '2026-10-01T08:00' } })
+    fireEvent.click(confirmar)
+
+    expect(agendarMock).toHaveBeenCalledWith(
+      {
+        body: 'Bom dia! Segue a atualização.',
+        is_public: true,
+        new_status: 'pending_customer',
+        with_signature: false,
+        scheduled_at: new Date('2026-10-01T08:00').toISOString(),
+      },
+      expect.objectContaining({ onSuccess: expect.any(Function) }),
+    )
+  })
+
+  it('com anexo não agenda, e diz por quê', () => {
+    const { container } = montar()
+    fireEvent.change(screen.getByLabelText('Resposta ao cliente'), { target: { value: 'Segue.' } })
+    escolher(container, arquivo('nota.pdf', 1024))
+    fireEvent.click(screen.getByRole('button', { name: 'Agendar envio' }))
+    fireEvent.change(screen.getByLabelText('Enviar em'), { target: { value: '2026-10-01T08:00' } })
+
+    expect(screen.getByRole('button', { name: 'Agendar' })).toBeDisabled()
+    expect(screen.getByText(/Resposta agendada não leva anexo/)).toBeInTheDocument()
+  })
+
+  it('nota interna não tem agendamento', () => {
+    montar()
+    fireEvent.click(screen.getByRole('tab', { name: /Nota interna/ }))
+    expect(screen.queryByRole('button', { name: 'Agendar envio' })).not.toBeInTheDocument()
   })
 })

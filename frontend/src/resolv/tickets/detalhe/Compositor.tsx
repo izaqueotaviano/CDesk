@@ -1,12 +1,23 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState, type ClipboardEvent, type KeyboardEvent } from 'react'
 import type { Me } from '@/api/types'
+import { imagensColadas, TIPOS_ACEITOS } from '@/chat/conversa'
 import { useSistemaCfg } from '@/cvz/configuracoes/dados'
 import { useTabs, type AbaTicket } from '@/stores/tabs'
-import { conferirAnexos, limitesDeAnexo } from '../anexos'
+import {
+  alternarLista,
+  aplicarNoCampo,
+  continuarLista,
+  envolver,
+  inserirLink,
+  type Edicao,
+} from '@/ui/edicaoFormatada'
+import { TextoFormatado } from '@/ui/TextoFormatado'
+import { classeIconeDoArquivo, conferirAnexos, limitesDeAnexo } from '../anexos'
 import { ROTULO_PRIORIDADE, ROTULO_STATUS, formatarDataHora } from '../format'
 import type { StatusTicket } from '../tipos'
 import { useCompositorColaborativo } from './colaboracao/useCompositorColaborativo'
-import { useAcoesTicket, useMacros } from './dados'
+import { usePreviasDeImagem, useSoltarArquivos } from '../useSoltarArquivos'
+import { useAcoesTicket, useAlvosMencao, useMacros } from './dados'
 import {
   STATUS_AO_ENVIAR,
   interpolarMacro,
@@ -18,7 +29,15 @@ import {
   tamanhoArquivo,
   validarFechamento,
 } from './linhaDoTempo'
-import type { Macro, TicketDetalhe } from './tiposDetalhe'
+import {
+  chaveDoAlvo,
+  consultaDeMencao,
+  filtrarAlvos,
+  inserirMencao,
+  paraMarcacao,
+  type ConsultaMencao,
+} from './mencoes'
+import type { AlvoMencao, Macro, TicketDetalhe } from './tiposDetalhe'
 
 const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
   new: 'Novo',
@@ -27,13 +46,45 @@ const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
   closed: 'Fechado',
 }
 
-/** Limites de anexo em vigor. Vêm do servidor (`SystemConfig`), que é quem o
- *  backend consulta em `attachments.limits()` — a tela não tem número próprio. */
-/** Valem enquanto GET /api/v1/settings/system/ não respondeu (e para quem o
- *  endpoint recusa: ele é `IsInternalReadAdminWrite`). São os mesmos números de
- *  config/settings/base.py:260-264 — o fallback que o próprio
- *  `attachments.limits()` usa quando não consegue ler o `SystemConfig`, então
- *  na dúvida a tela erra para o mesmo lado que o servidor. */
+/** Só os dois que não mexem no registro de trabalho técnico (D4): fechar num
+ *  horário futuro exigiria as datas da solução agora, para um trabalho que
+ *  ainda não terminou. Quem quer fechar fecha na hora. */
+const STATUS_AGENDAVEIS: StatusTicket[] = ['open', 'pending_customer']
+
+/** Atalho de envio escrito como a pessoa vê no próprio teclado. */
+const EH_MAC =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent)
+const TECLA = EH_MAC ? '⌘' : 'Ctrl'
+
+type Formato = 'negrito' | 'italico' | 'lista' | 'numerada' | 'link'
+
+/** Os botões de formatação — o subconjunto que `ui/textoFormatado.ts`
+ *  reconhece, nada além. O atalho entra no rótulo porque é lá que a pessoa
+ *  descobre que ele existe. */
+const FORMATOS: { id: Formato; icone: string; rotulo: string; atalho?: string }[] = [
+  { id: 'negrito', icone: 'ti ti-bold', rotulo: 'Negrito', atalho: 'B' },
+  { id: 'italico', icone: 'ti ti-italic', rotulo: 'Itálico', atalho: 'I' },
+  { id: 'lista', icone: 'ti ti-list', rotulo: 'Lista com marcadores' },
+  { id: 'numerada', icone: 'ti ti-list-numbers', rotulo: 'Lista numerada' },
+  { id: 'link', icone: 'ti ti-link', rotulo: 'Link', atalho: 'K' },
+]
+
+const ROTULO_GRUPO_MENCAO: Record<string, string> = {
+  ticket: 'No chamado',
+  equipe: 'Da equipe',
+  equipes: 'Equipe inteira',
+}
+
+/** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme". Mesma função,
+ *  copiada — não importada — de novo/BuscaPessoa.tsx: a casa já aceita essa
+ *  duplicação (BuscaPessoa e resolv/shell/BuscaComando.tsx têm cada uma a
+ *  própria cópia) em vez de um utilitário compartilhado para três linhas. */
+function normalizar(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+}
 
 /**
  * Corpo que vai para `POST /tickets/{id}/reply/`.
@@ -50,22 +101,16 @@ const ROTULO_AO_ENVIAR: Record<StatusTicket, string> = {
  * Sem ponto final: o último caractere é um nome de arquivo, e um ponto colado
  * nele parece parte da extensão.
  */
-/** "Envio de nota" acha "Envio de Nota"; "ACME" acha "acme". Mesma função,
- *  copiada — não importada — de novo/BuscaPessoa.tsx: a casa já aceita essa
- *  duplicação (BuscaPessoa e resolv/shell/BuscaComando.tsx têm cada uma a
- *  própria cópia) em vez de um utilitário compartilhado para três linhas. */
-function normalizar(s: string): string {
-  return s
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .toLowerCase()
-}
-
 function corpoParaEnviar(texto: string, anexos: File[]): string {
   const escrito = texto.trim()
   if (escrito) return escrito
   if (anexos.length === 0) return ''
   return `Segue em anexo: ${anexos.map((f) => f.name).join(', ')}`
+}
+
+function iniciaisDe(nome: string): string {
+  const p = nome.trim().split(/\s+/)
+  return ((p[0]?.[0] ?? '') + (p.length > 1 ? (p.at(-1)?.[0] ?? '') : '')).toUpperCase()
 }
 
 interface Props {
@@ -75,24 +120,36 @@ interface Props {
 }
 
 /**
- * Compositor: responder ao cliente ou anotar para a equipe.
+ * Compositor: responder ao cliente ou anotar para a equipe. É a superfície
+ * mais usada do produto, então o desenho é um campo branco só, calmo, com tudo
+ * que age sobre a mensagem DENTRO dele: o tipo (abas) e o destinatário em
+ * cima, o texto, os anexos, e a barra embaixo — formatação, anexar, macro e o
+ * envio.
  *
- * O que mudou em relação à versão anterior, e por quê:
+ * O que ele faz, e por quê:
+ *  - formatação leve (negrito, itálico, listas, link; Ctrl+B/I/K), gravada
+ *    como Markdown mínimo no próprio texto — a regra e o porquê de cada limite
+ *    estão em `ui/textoFormatado.ts`; "Visualizar" mostra como vai ficar;
+ *  - @menção em nota interna, com lista navegável por teclado; o campo mostra
+ *    o NOME, e a troca pela marcação que o servidor lê acontece no envio
+ *    (`mencoes.ts`, `paraMarcacao`). Em resposta ao cliente não há lista: lá
+ *    a menção não existe (apps/tickets/services/mentions.py);
+ *  - anexo por botão, arrastando para o campo ou colando um print (Ctrl+V),
+ *    com miniatura das imagens e conferência ANTES de subir, contra o limite
+ *    que o servidor publica (`conferirAnexos`);
  *  - o status "ao enviar" é um seletor visível, não um menu escondido atrás de
- *    uma seta (recognition over recall);
- *  - escolher "Fechado" abre AQUI os campos que o backend exige (datas da
- *    solução, D4) — antes o envio falhava com 400 sem explicação;
+ *    uma seta (recognition over recall); "Fechado" abre AQUI os campos que o
+ *    backend exige (datas da solução, D4);
+ *  - "Agendar" usa o MESMO texto: antes havia um segundo campo só para
+ *    agendar, e a pessoa escrevia a resposta no lugar errado;
  *  - o rascunho persiste por aba (`useTabs.atualizarRascunho`, só local);
- *  - erro de envio aparece embaixo e o texto fica; Ctrl+Enter envia;
- *  - macro entra como menu com prévia e ainda grava os campos de triagem no
- *    servidor (apply-macro), que o texto sozinho nunca fez;
- *  - os botões sem função (formatar, emoji, link) saíram;
- *  - o anexo é conferido ANTES de subir, contra o limite que o servidor
- *    publica (`conferirAnexos`), e a tela anuncia esse limite;
- *  - anexo sem texto passou a ser um envio válido: o corpo vira a legenda dos
- *    arquivos (`corpoParaEnviar`), visível antes de enviar;
- *  - "Reabrir…" no cabeçalho não reclassifica mais uma nota interna já
- *    escrita: pergunta.
+ *  - erro de envio aparece junto do botão e o texto fica; Ctrl+Enter envia;
+ *  - macro entra como menu com filtro e ainda grava os campos de triagem no
+ *    servidor (apply-macro);
+ *  - anexo sem texto é um envio válido: o corpo vira a legenda dos arquivos
+ *    (`corpoParaEnviar`), visível antes de enviar;
+ *  - "Reabrir…" no cabeçalho não reclassifica uma nota interna já escrita:
+ *    pergunta.
  */
 export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const idBase = useId()
@@ -103,7 +160,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   // devolve null e a conferência local não recusa nada — ver o porquê lá.
   const { data: cfgSistema } = useSistemaCfg()
   const limites = limitesDeAnexo(cfgSistema)
-  const { responder, aplicarMacro } = useAcoesTicket(ticket.id)
+  const { responder, aplicarMacro, agendarResposta } = useAcoesTicket(ticket.id)
   const rascunhoInicial = useTabs(
     (s) => s.tabs.find((t): t is AbaTicket => t.tipo === 'ticket' && t.ticketId === ticket.id)?.draft ?? '',
   )
@@ -114,7 +171,12 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const podePublico = !interno || perms.includes('ticket.reply_public')
   const podeNota = interno && perms.includes('ticket.add_internal_note')
   const podeMacro = interno && perms.includes('macro.use')
+  const podeAgendar = interno && perms.includes('ticket.reply_public')
   const fechado = ticket.status === 'closed'
+
+  // Quem pode ser mencionado — só é pedido a quem escreve nota interna.
+  const { data: alvosMencao } = useAlvosMencao(ticket.id, podeNota)
+  const alvos: AlvoMencao[] = alvosMencao ?? []
 
   const [modoPublico, setPublico] = useState(true)
   // quem só pode anotar escreve em "nota interna", sem estado extra: deriva
@@ -165,10 +227,36 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   // comportamento de cliente de e-mail, e é o que a pessoa quis dizer ao
   // cadastrá-la. Desmarcar vale só para esta mensagem.
   const [assinar, setAssinar] = useState(true)
+  const [previa, setPrevia] = useState(false)
+  // @menção: o `@` em aberto antes do cursor, a opção ativa, e o `@` que a
+  // pessoa dispensou com Esc (a lista não volta sozinha para o mesmo `@`).
+  const [mencao, setMencao] = useState<ConsultaMencao | null>(null)
+  const [mencaoAtiva, setMencaoAtiva] = useState(0)
+  const [mencaoDispensada, setMencaoDispensada] = useState<number | null>(null)
+  // Quem foi escolhido na lista nesta sessão (nome → chave): desempata homônimos
+  // na hora de trocar o nome pela marcação.
+  const [escolhidos, setEscolhidos] = useState<ReadonlyMap<string, string>>(() => new Map())
+  // Agendar: o painel pequeno ao lado do botão de enviar.
+  const [agendando, setAgendando] = useState(false)
+  const [quando, setQuando] = useState('')
+  const [minimoAgenda, setMinimoAgenda] = useState('')
 
   const areaRef = useRef<HTMLTextAreaElement>(null)
   const inputAnexo = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const agendaRef = useRef<HTMLDivElement>(null)
+
+  function adicionarAnexos(novos: File[]) {
+    if (novos.length === 0) return
+    const { aceitos, recusas } = conferirAnexos(anexos, novos, limites)
+    if (aceitos.length > 0) setAnexos((a) => [...a, ...aceitos])
+    // O que foi recusado some da tela junto com o motivo — não fica um arquivo
+    // na lista que a pessoa acha que vai junto.
+    setErro(recusas.length > 0 ? recusas.join(' ') : null)
+  }
+
+  const previas = usePreviasDeImagem(anexos)
+  const soltar = useSoltarArquivos((arquivos) => adicionarAnexos(arquivos), podePublico || podeNota)
 
   // "Reabrir…" no cabeçalho: além de trocar o modo (acima), leva o foco ao texto
   useEffect(() => {
@@ -187,16 +275,21 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     if (!el) return
     el.style.height = 'auto'
     el.style.height = `${el.scrollHeight}px`
-  }, [texto, publico])
+  }, [texto, publico, previa])
 
-  // menu de macro fecha ao clicar fora / Esc
+  // menu de macro e painel de agendar fecham ao clicar fora / Esc
   useEffect(() => {
-    if (!menuMacro) return
+    if (!menuMacro && !agendando) return
     const fora = (e: MouseEvent) => {
-      if (!menuRef.current?.contains(e.target as Node)) setMenuMacro(false)
+      const alvo = e.target as Node
+      if (menuMacro && !menuRef.current?.contains(alvo)) setMenuMacro(false)
+      if (agendando && !agendaRef.current?.contains(alvo)) setAgendando(false)
     }
-    const tecla = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuMacro(false)
+    const tecla = (e: globalThis.KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMenuMacro(false)
+        setAgendando(false)
+      }
     }
     document.addEventListener('mousedown', fora)
     document.addEventListener('keydown', tecla)
@@ -204,7 +297,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
       document.removeEventListener('mousedown', fora)
       document.removeEventListener('keydown', tecla)
     }
-  }, [menuMacro])
+  }, [menuMacro, agendando])
 
   // aviso (macro aplicada etc.) some sozinho
   useEffect(() => {
@@ -248,26 +341,168 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
   const podeEnviar = temConteudo && !responder.isPending
   // Anexo sem texto continua acendendo o botão — e agora chega ao servidor com
   // corpo, que é o que faltava (ver `corpoParaEnviar`).
-  // (`corpo` já é o nome do texto da macro em `usarMacro`)
   const corpoDaMensagem = corpoParaEnviar(texto, anexos)
   const soAnexo = !texto.trim() && anexos.length > 0
   // Sem configuração carregada não há teto conhecido: não bloqueia e não
   // anuncia número nenhum, em vez de anunciar um chutado.
   const anexosNoLimite = limites != null && anexos.length >= limites.maxArquivos
 
+  // Nota interna: `@Nome` vira a marcação que o servidor lê. Resposta ao
+  // cliente vai como está — lá a marcação seria texto morto na tela do cliente.
+  const corpoFinal = (corpo: string) =>
+    publico ? corpo : paraMarcacao(corpo, alvos, escolhidos)
+
+  // ---- @menção -----------------------------------------------------------
+  const mencaoLigada = !publico && podeNota && alvos.length > 0 && !previa
+  const alvosFiltrados = mencao ? filtrarAlvos(alvos, mencao.consulta) : []
+  // Sem resultado e com espaço na consulta, a pessoa já está escrevendo a
+  // frase ("@ana amanhã cedo"): a lista some em vez de dizer "ninguém".
+  const listaMencaoAberta =
+    mencaoLigada &&
+    mencao != null &&
+    mencao.inicio !== mencaoDispensada &&
+    (alvosFiltrados.length > 0 || !/\s/.test(mencao.consulta))
+  const mencaoAtivaValida = Math.min(mencaoAtiva, Math.max(alvosFiltrados.length - 1, 0))
+  const idListaMencao = `${idBase}-mencoes`
+  const idOpcaoMencao = (a: AlvoMencao) => `${idListaMencao}-${a.type}-${a.id}`
+
+  function atualizarMencao(valor: string, cursor: number | null) {
+    if (!mencaoLigada || cursor == null) {
+      if (mencao) setMencao(null)
+      return
+    }
+    const nova = consultaDeMencao(valor, cursor)
+    if (nova?.inicio !== mencao?.inicio || nova?.consulta !== mencao?.consulta) {
+      setMencao(nova)
+      setMencaoAtiva(0)
+    }
+  }
+
+  function escolherMencao(alvo: AlvoMencao) {
+    const campo = areaRef.current
+    if (!campo || !mencao) return
+    setEscolhidos((m) => new Map(m).set(alvo.name, chaveDoAlvo(alvo)))
+    aplicar(inserirMencao(campo.value, mencao, campo.selectionEnd, alvo))
+    setMencao(null)
+  }
+
+  /** Botão "@": põe um `@` no cursor (com espaço antes, se colado numa
+   *  palavra) — a lista abre sozinha a partir dele. */
+  function comecarMencao() {
+    const campo = areaRef.current
+    if (!campo) return
+    const { selectionStart: a, selectionEnd: b, value } = campo
+    const antes = a > 0 && !/\s/.test(value[a - 1]) ? ' ' : ''
+    const trecho = `${antes}@`
+    const fim = a + trecho.length
+    setMencaoDispensada(null)
+    aplicar({ inicio: a, fim: b, trecho, selecao: [fim, fim] })
+    setMencao({ inicio: fim - 1, consulta: '' })
+  }
+
+  // ---- edição do texto ----------------------------------------------------
+  function aplicar(edicao: Edicao) {
+    const campo = areaRef.current
+    if (!campo) return
+    aplicarNoCampo(campo, edicao, setTexto)
+  }
+
+  function formatar(tipo: Formato) {
+    const campo = areaRef.current
+    if (!campo || previa) return
+    const { selectionStart: a, selectionEnd: b, value } = campo
+    aplicar(
+      tipo === 'negrito'
+        ? envolver(value, a, b, '**')
+        : tipo === 'italico'
+          ? envolver(value, a, b, '_')
+          : tipo === 'lista'
+            ? alternarLista(value, a, b, 'marcada')
+            : tipo === 'numerada'
+              ? alternarLista(value, a, b, 'numerada')
+              : inserirLink(value, a, b),
+    )
+  }
+
+  function aoTeclar(e: KeyboardEvent<HTMLTextAreaElement>) {
+    // Com a lista de menção aberta, setas/Enter/Tab/Esc são dela.
+    if (listaMencaoAberta && mencao) {
+      if (e.key === 'ArrowDown' && alvosFiltrados.length > 0) {
+        e.preventDefault()
+        setMencaoAtiva((i) => Math.min(i + 1, alvosFiltrados.length - 1))
+        return
+      }
+      if (e.key === 'ArrowUp' && alvosFiltrados.length > 0) {
+        e.preventDefault()
+        setMencaoAtiva((i) => Math.max(i - 1, 0))
+        return
+      }
+      if ((e.key === 'Enter' || e.key === 'Tab') && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        const alvo = alvosFiltrados[mencaoAtivaValida]
+        if (alvo) {
+          e.preventDefault()
+          escolherMencao(alvo)
+          return
+        }
+      }
+      if (e.key === 'Escape') {
+        // só fecha a lista: o Esc não vaza para o documento (que fecharia
+        // outras coisas abertas, como o menu de macro)
+        e.preventDefault()
+        e.stopPropagation()
+        setMencaoDispensada(mencao.inicio)
+        return
+      }
+    }
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault()
+      enviar()
+      return
+    }
+    if (e.key === 'Enter' && !e.shiftKey && !e.altKey) {
+      const campo = e.currentTarget
+      const continuacao = continuarLista(campo.value, campo.selectionStart, campo.selectionEnd)
+      if (continuacao) {
+        e.preventDefault()
+        aplicar(continuacao)
+      }
+      return
+    }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey) {
+      const tecla = e.key.toLowerCase()
+      const formato: Formato | null =
+        tecla === 'b' ? 'negrito' : tecla === 'i' ? 'italico' : tecla === 'k' ? 'link' : null
+      if (formato) {
+        // stopPropagation: Ctrl+K no resto da tela abre a busca global
+        // (shell/BuscaComando.tsx); aqui dentro do texto ele é "link"
+        e.preventDefault()
+        e.stopPropagation()
+        formatar(formato)
+      }
+    }
+  }
+
+  function aoColar(e: ClipboardEvent<HTMLTextAreaElement>) {
+    const dados = e.clipboardData
+    if (!dados) return
+    // Texto junto na área de transferência (célula de planilha, trecho do
+    // Word) é colagem de TEXTO — o "print" que esses programas mandam de
+    // brinde não é o que a pessoa quis anexar. Só o print puro vira anexo.
+    if (dados.getData?.('text/plain')) return
+    const imagens = imagensColadas(dados.items ?? null, new Date())
+    if (imagens.length === 0) return
+    e.preventDefault()
+    adicionarAnexos(imagens)
+  }
+
   function trocarModo(paraPublico: boolean) {
     setPublico(paraPublico)
     setPerguntaReabrir(false)
     setErro(null)
+    setMencao(null)
+    setAgendando(false)
+    setPrevia(false)
     areaRef.current?.focus()
-  }
-
-  function adicionarAnexos(escolhidos: File[]) {
-    const { aceitos, recusas } = conferirAnexos(anexos, escolhidos, limites)
-    if (aceitos.length > 0) setAnexos((a) => [...a, ...aceitos])
-    // O que foi recusado some da tela junto com o motivo — não fica um arquivo
-    // na lista que a pessoa acha que vai junto.
-    setErro(recusas.length > 0 ? recusas.join(' ') : null)
   }
 
   function enviar() {
@@ -290,7 +525,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     }
     responder.mutate(
       {
-        body: corpoDaMensagem,
+        body: corpoFinal(corpoDaMensagem),
         is_public: publico,
         // a assinatura NÃO entra no corpo: o servidor a desenha abaixo dele,
         // a partir do perfil (apps/accounts/assinatura.py)
@@ -312,6 +547,8 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
           setAnexos([])
           setNotaFechamento('')
           setTocouFechamento(false)
+          setPrevia(false)
+          setEscolhidos(new Map())
           atualizarRascunho(ticket.id, '')
         },
         onError: (e) => {
@@ -323,6 +560,50 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     )
   }
 
+  // ---- agendar ------------------------------------------------------------
+  const statusAgendavel = STATUS_AGENDAVEIS.includes(status)
+  const motivoSemAgenda = !texto.trim()
+    ? 'Escreva a resposta antes de agendar.'
+    : anexos.length > 0
+      ? 'Resposta agendada não leva anexo: envie agora ou tire os anexos.'
+      : !statusAgendavel
+        ? 'Fechar não pode ser agendado. Escolha “Aberto” ou “Aguardando retorno do cliente”.'
+        : null
+  const podeConfirmarAgenda = !motivoSemAgenda && quando.length > 0 && !agendarResposta.isPending
+
+  function abrirAgenda() {
+    // piso carimbado ao ABRIR, não a cada render: ler o relógio no render é
+    // impuro e faria o mínimo andar sozinho enquanto a pessoa escolhe
+    setMinimoAgenda(paraDatetimeLocal(new Date(Date.now() + 60_000).toISOString()))
+    setAgendando((v) => !v)
+  }
+
+  function agendar() {
+    if (!podeConfirmarAgenda) return
+    setErro(null)
+    agendarResposta.mutate(
+      {
+        body: texto.trim(),
+        is_public: true,
+        new_status: status,
+        with_signature: assinar && podeAssinar,
+        scheduled_at: new Date(quando).toISOString(),
+      },
+      {
+        onSuccess: () => {
+          setAviso(`Resposta agendada para ${formatarDataHora(new Date(quando).toISOString())}.`)
+          setTexto('')
+          setQuando('')
+          setAgendando(false)
+          atualizarRascunho(ticket.id, '')
+        },
+        onError: (e) =>
+          setErro(`${mensagemDeErro(e, 'Não foi possível agendar.')} Seu texto continua aqui.`),
+      },
+    )
+  }
+
+  // ---- macro --------------------------------------------------------------
   function usarMacro(m: Macro) {
     setMenuMacro(false)
     setFiltroMacro('')
@@ -347,17 +628,20 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     }
     setAviso(
       pendentes.length
-        ? `Macro “${m.name}” aplicada — revise ${pendentes.join(', ')} no texto.`
+        ? `Macro “${m.name}” aplicada. Revise ${pendentes.join(', ')} no texto.`
         : `Macro “${m.name}” aplicada${temTriagem ? ' (texto e campos de triagem)' : ''}.`,
     )
+    setPrevia(false)
     areaRef.current?.focus()
   }
 
   const idTexto = `${idBase}-texto`
   const idStatus = `${idBase}-status`
   const idErro = `${idBase}-erro`
+  const idDica = `${idBase}-dica`
   const idMacroLista = `${idBase}-macro-lista`
   const idOpcaoMacro = (m: Macro) => `${idMacroLista}-${m.id}`
+  const idQuando = `${idBase}-quando`
 
   // Filtra por nome E corpo — achar pelo texto que a macro escreve é tão
   // comum quanto achar pelo nome dela. Índice ativo é CLAMPADO aqui, não
@@ -376,8 +660,29 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
     enviando: responder.isPending,
   })
 
+  // Abas no padrão WAI-ARIA: só a ativa entra no Tab; setas trocam.
+  const abas = [podePublico && 'publico', podeNota && 'nota'].filter(Boolean) as ('publico' | 'nota')[]
+  function aoTeclarAbas(e: KeyboardEvent<HTMLDivElement>) {
+    if (abas.length < 2 || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+    e.preventDefault()
+    const paraPublico = e.key === 'Home' ? true : e.key === 'End' ? false : !publico
+    trocarModo(paraPublico)
+    const alvo = e.currentTarget.querySelector<HTMLElement>(
+      `[data-aba="${paraPublico ? 'publico' : 'nota'}"]`,
+    )
+    alvo?.focus()
+  }
+
+  const mencoesDaPrevia = alvos.map((a) => ({ key: chaveDoAlvo(a), name: a.name }))
+
   return (
-    <div className={'compositor' + (publico ? '' : ' compositor--interna')}>
+    <div
+      className={
+        'compositor' +
+        (publico ? '' : ' compositor--interna') +
+        (soltar.arrastando ? ' compositor--soltar' : '')
+      }
+    >
       {fechado && (
         <p className="compositor__aviso-fechado">
           <i className="ti ti-circle-check" aria-hidden="true" />
@@ -387,148 +692,6 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
             ? 'Uma resposta pública reabre o ticket.'
             : 'Uma nota interna não reabre o ticket.'}
         </p>
-      )}
-
-      <div className="compositor__abas" role="tablist" aria-label="Tipo de mensagem">
-        {podePublico && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={publico}
-            aria-controls={idTexto}
-            className={'compositor__aba' + (publico ? ' compositor__aba--ativa' : '')}
-            onClick={() => trocarModo(true)}
-          >
-            <i className="ti ti-arrow-back-up" aria-hidden="true" /> Responder ao cliente
-          </button>
-        )}
-        {podeNota && (
-          <button
-            type="button"
-            role="tab"
-            aria-selected={!publico}
-            aria-controls={idTexto}
-            className={'compositor__aba' + (!publico ? ' compositor__aba--ativa' : '')}
-            onClick={() => trocarModo(false)}
-          >
-            <i className="ti ti-lock" aria-hidden="true" /> Nota interna
-          </button>
-        )}
-        <span className="compositor__destino">
-          {publico ? (
-            <>
-              Para <strong>{ticket.requester_display}</strong>
-              {ticket.requester?.email ? (
-                <span className="compositor__email"> · {ticket.requester.email}</span>
-              ) : null}
-            </>
-          ) : (
-            <>
-              <i className="ti ti-eye-off" aria-hidden="true" /> Só a equipe vê
-            </>
-          )}
-        </span>
-      </div>
-
-      <textarea
-        ref={areaRef}
-        id={idTexto}
-        className="compositor__texto"
-        placeholder={
-          publico
-            ? 'Escreva a resposta ao cliente…'
-            : 'Anote para a equipe — o cliente nunca vê isto…'
-        }
-        aria-label={publico ? 'Resposta ao cliente' : 'Nota interna'}
-        aria-describedby={erro ? idErro : undefined}
-        value={texto}
-        rows={3}
-        onChange={(e) => setTexto(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-            e.preventDefault()
-            enviar()
-          }
-        }}
-      />
-
-      {anexos.length > 0 && (
-        <ul className="compositor__anexos" aria-label="Anexos a enviar">
-          {anexos.map((f, i) => (
-            <li key={`${f.name}-${i}`} className="compositor__anexo">
-              <i className="ti ti-paperclip" aria-hidden="true" />
-              <span className="compositor__anexo-nome">{f.name}</span>
-              <span className="compositor__anexo-tam">{tamanhoArquivo(f.size)}</span>
-              <button
-                type="button"
-                aria-label={`Remover ${f.name}`}
-                onClick={() => setAnexos((a) => a.filter((_, j) => j !== i))}
-              >
-                <i className="ti ti-x" />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {soAnexo && (
-        <p className="compositor__corpo-padrao">
-          <i className="ti ti-corner-down-right" aria-hidden="true" />
-          Sem nada escrito, a mensagem vai com a legenda “{corpoDaMensagem}”.
-        </p>
-      )}
-
-      {vaiFechar && (
-        <fieldset className="compositor__fechamento">
-          <legend>
-            Fechamento — registre o período real da solução
-            <span className="compositor__fechamento-dica">
-              (a resposta e o fechamento vão juntos)
-            </span>
-          </legend>
-          <div className="compositor__fechamento-campos">
-            <div className="compositor__campo">
-              <label htmlFor={`${idBase}-inicio`}>Início da solução</label>
-              <input
-                id={`${idBase}-inicio`}
-                type="datetime-local"
-                value={inicioSolucao}
-                onChange={(e) => setInicioSolucao(e.target.value)}
-                aria-invalid={tocouFechamento && !!errosFechamento.inicio}
-              />
-              {tocouFechamento && errosFechamento.inicio && (
-                <span className="compositor__campo-erro">{errosFechamento.inicio}</span>
-              )}
-            </div>
-            <div className="compositor__campo">
-              <label htmlFor={`${idBase}-fim`}>Fim da solução</label>
-              <input
-                id={`${idBase}-fim`}
-                type="datetime-local"
-                value={fimSolucao}
-                onChange={(e) => setFimSolucao(e.target.value)}
-                aria-invalid={tocouFechamento && !!errosFechamento.fim}
-              />
-              {tocouFechamento && errosFechamento.fim && (
-                <span className="compositor__campo-erro">{errosFechamento.fim}</span>
-              )}
-            </div>
-            <div className="compositor__campo compositor__campo--largo">
-              <label htmlFor={`${idBase}-nota`}>
-                Justificativa{' '}
-                <span className="compositor__opcional">(opcional, vai para o histórico)</span>
-              </label>
-              <input
-                id={`${idBase}-nota`}
-                type="text"
-                maxLength={200}
-                value={notaFechamento}
-                placeholder="Ex.: correção aplicada e validada com o cliente"
-                onChange={(e) => setNotaFechamento(e.target.value)}
-              />
-            </div>
-          </div>
-        </fieldset>
       )}
 
       {perguntaReabrir && (
@@ -566,19 +729,613 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
         </div>
       )}
 
-      {aviso && (
-        <p className="compositor__aviso" role="status">
-          <i className="ti ti-bolt" aria-hidden="true" /> {aviso}
-        </p>
-      )}
-      {erro && (
-        <p id={idErro} className="compositor__erro" role="alert">
-          <i className="ti ti-alert-circle" aria-hidden="true" /> {erro}
-        </p>
-      )}
+      <div className="compositor__superficie" {...soltar.props}>
+        <div className="compositor__cabeca">
+          <div
+            className="compositor__abas"
+            role="tablist"
+            aria-label="Tipo de mensagem"
+            onKeyDown={aoTeclarAbas}
+          >
+            {podePublico && (
+              <button
+                type="button"
+                role="tab"
+                data-aba="publico"
+                aria-selected={publico}
+                aria-controls={idTexto}
+                tabIndex={publico ? 0 : -1}
+                className={'compositor__aba' + (publico ? ' compositor__aba--ativa' : '')}
+                onClick={() => trocarModo(true)}
+              >
+                <i className="ti ti-arrow-back-up" aria-hidden="true" /> Responder ao cliente
+              </button>
+            )}
+            {podeNota && (
+              <button
+                type="button"
+                role="tab"
+                data-aba="nota"
+                aria-selected={!publico}
+                aria-controls={idTexto}
+                tabIndex={!publico ? 0 : -1}
+                className={
+                  'compositor__aba compositor__aba--nota' +
+                  (!publico ? ' compositor__aba--ativa' : '')
+                }
+                onClick={() => trocarModo(false)}
+              >
+                <i className="ti ti-lock" aria-hidden="true" /> Nota interna
+              </button>
+            )}
+          </div>
+          <span className="compositor__destino">
+            {publico ? (
+              <>
+                <span className="compositor__destino-rotulo">Para</span>{' '}
+                <strong>{ticket.requester_display}</strong>
+                {ticket.requester?.email ? (
+                  <span className="compositor__email"> · {ticket.requester.email}</span>
+                ) : null}
+              </>
+            ) : (
+              <>
+                <i className="ti ti-eye-off" aria-hidden="true" /> Só a equipe vê
+                {podeNota && alvos.length > 0 ? (
+                  <span className="compositor__email"> · @ menciona alguém</span>
+                ) : null}
+              </>
+            )}
+          </span>
+        </div>
 
-      {podeAssinar && (
-        <div className="compositor__assinatura">
+        <div className="compositor__campo-texto">
+          {previa ? (
+            <div
+              id={idTexto}
+              className="compositor__previa"
+              role="region"
+              aria-label="Prévia da mensagem"
+              tabIndex={0}
+            >
+              {texto.trim() ? (
+                <TextoFormatado
+                  texto={corpoFinal(texto.trim())}
+                  mencoes={publico ? undefined : mencoesDaPrevia}
+                />
+              ) : (
+                <p className="compositor__previa-vazia">Nada escrito ainda.</p>
+              )}
+            </div>
+          ) : (
+            <textarea
+              ref={areaRef}
+              id={idTexto}
+              className="compositor__texto"
+              placeholder={
+                publico
+                  ? 'Escreva a resposta ao cliente…'
+                  : 'Anote para a equipe. O cliente nunca vê isto…'
+              }
+              aria-label={publico ? 'Resposta ao cliente' : 'Nota interna'}
+              aria-describedby={[erro ? idErro : null, idDica].filter(Boolean).join(' ')}
+              aria-autocomplete={mencaoLigada ? 'list' : undefined}
+              aria-controls={listaMencaoAberta ? idListaMencao : undefined}
+              aria-activedescendant={
+                listaMencaoAberta && alvosFiltrados[mencaoAtivaValida]
+                  ? idOpcaoMencao(alvosFiltrados[mencaoAtivaValida])
+                  : undefined
+              }
+              value={texto}
+              rows={3}
+              onChange={(e) => {
+                setTexto(e.target.value)
+                atualizarMencao(e.target.value, e.target.selectionEnd)
+              }}
+              onSelect={(e) =>
+                atualizarMencao(e.currentTarget.value, e.currentTarget.selectionEnd)
+              }
+              onBlur={() => setMencao(null)}
+              onKeyDown={aoTeclar}
+              onPaste={aoColar}
+            />
+          )}
+
+          {listaMencaoAberta && (
+            <div className="compositor__mencoes">
+              <ul
+                id={idListaMencao}
+                role="listbox"
+                aria-label="Mencionar"
+                className="compositor__mencoes-lista"
+              >
+                {alvosFiltrados.length === 0 ? (
+                  <li className="compositor__mencoes-vazio" role="presentation">
+                    Ninguém com “{mencao?.consulta}”.
+                  </li>
+                ) : (
+                  alvosFiltrados.map((a, i) => (
+                    <li
+                      key={`${a.type}-${a.id}`}
+                      id={idOpcaoMencao(a)}
+                      role="option"
+                      aria-selected={i === mencaoAtivaValida}
+                      className={
+                        'compositor__mencao' +
+                        (i === mencaoAtivaValida ? ' compositor__mencao--ativa' : '')
+                      }
+                      // mousedown, não click: o clique tiraria o foco do texto
+                      // (e o blur fecharia a lista) antes de escolher
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        escolherMencao(a)
+                      }}
+                      onMouseEnter={() => setMencaoAtiva(i)}
+                    >
+                      <span className="compositor__mencao-avatar" aria-hidden="true">
+                        {a.type === 'team' ? <i className="ti ti-users" /> : iniciaisDe(a.name)}
+                      </span>
+                      <span className="compositor__mencao-nome">{a.name}</span>
+                      <span className="compositor__mencao-grupo">
+                        {ROTULO_GRUPO_MENCAO[a.group ?? ''] ?? a.email}
+                      </span>
+                    </li>
+                  ))
+                )}
+              </ul>
+              <p className="compositor__mencoes-dica" aria-hidden="true">
+                ↑↓ para escolher · Enter insere · Esc fecha
+              </p>
+            </div>
+          )}
+          {/* leitor de tela ouve quantas opções há, sem precisar sair do texto */}
+          <span className="compositor__so-leitor" role="status">
+            {listaMencaoAberta
+              ? alvosFiltrados.length === 1
+                ? '1 pessoa para mencionar'
+                : `${alvosFiltrados.length} opções para mencionar`
+              : ''}
+          </span>
+        </div>
+
+        {anexos.length > 0 && (
+          <ul className="compositor__anexos" aria-label="Anexos a enviar">
+            {anexos.map((f, i) => {
+              const miniatura = previas.get(f)
+              return (
+                <li
+                  key={`${f.name}-${f.size}-${i}`}
+                  className={'compositor__anexo' + (miniatura ? ' compositor__anexo--imagem' : '')}
+                >
+                  {miniatura ? (
+                    <img className="compositor__anexo-miniatura" src={miniatura} alt="" />
+                  ) : (
+                    <i className={classeIconeDoArquivo(f.type, f.name)} aria-hidden="true" />
+                  )}
+                  <span className="compositor__anexo-texto">
+                    <span className="compositor__anexo-nome">{f.name}</span>
+                    <span className="compositor__anexo-tam">{tamanhoArquivo(f.size)}</span>
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Remover ${f.name}`}
+                    title="Remover"
+                    onClick={() => {
+                      setAnexos((a) => a.filter((_, j) => j !== i))
+                      setErro(null)
+                    }}
+                  >
+                    <i className="ti ti-x" aria-hidden="true" />
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {soAnexo && (
+          <p className="compositor__corpo-padrao">
+            <i className="ti ti-corner-down-right" aria-hidden="true" />
+            Sem nada escrito, a mensagem vai com a legenda “{corpoDaMensagem}”.
+          </p>
+        )}
+
+        {podeAssinar && assinar && (
+          // a prévia evita a surpresa de descobrir o rodapé depois de enviado;
+          // o HTML já vem higienizado do servidor (`signature_render`)
+          <div
+            className="compositor__assinatura-previa assinatura-mensagem"
+            dangerouslySetInnerHTML={{ __html: me?.signature_render ?? '' }}
+          />
+        )}
+
+        {vaiFechar && (
+          <fieldset className="compositor__fechamento">
+            <legend>
+              Fechamento: registre o período real da solução
+              <span className="compositor__fechamento-dica">
+                (a resposta e o fechamento vão juntos)
+              </span>
+            </legend>
+            <div className="compositor__fechamento-campos">
+              <div className="compositor__campo">
+                <label htmlFor={`${idBase}-inicio`}>Início da solução</label>
+                <input
+                  id={`${idBase}-inicio`}
+                  type="datetime-local"
+                  value={inicioSolucao}
+                  onChange={(e) => setInicioSolucao(e.target.value)}
+                  aria-invalid={tocouFechamento && !!errosFechamento.inicio}
+                />
+                {tocouFechamento && errosFechamento.inicio && (
+                  <span className="compositor__campo-erro">{errosFechamento.inicio}</span>
+                )}
+              </div>
+              <div className="compositor__campo">
+                <label htmlFor={`${idBase}-fim`}>Fim da solução</label>
+                <input
+                  id={`${idBase}-fim`}
+                  type="datetime-local"
+                  value={fimSolucao}
+                  onChange={(e) => setFimSolucao(e.target.value)}
+                  aria-invalid={tocouFechamento && !!errosFechamento.fim}
+                />
+                {tocouFechamento && errosFechamento.fim && (
+                  <span className="compositor__campo-erro">{errosFechamento.fim}</span>
+                )}
+              </div>
+              <div className="compositor__campo compositor__campo--largo">
+                <label htmlFor={`${idBase}-nota`}>
+                  Justificativa{' '}
+                  <span className="compositor__opcional">(opcional, vai para o histórico)</span>
+                </label>
+                <input
+                  id={`${idBase}-nota`}
+                  type="text"
+                  maxLength={200}
+                  value={notaFechamento}
+                  placeholder="Ex.: correção aplicada e validada com o cliente"
+                  onChange={(e) => setNotaFechamento(e.target.value)}
+                />
+              </div>
+            </div>
+          </fieldset>
+        )}
+
+        {aviso && (
+          <p className="compositor__aviso" role="status">
+            <i className="ti ti-bolt" aria-hidden="true" /> {aviso}
+          </p>
+        )}
+        {erro && (
+          <p id={idErro} className="compositor__erro" role="alert">
+            <i className="ti ti-alert-circle" aria-hidden="true" /> {erro}
+          </p>
+        )}
+
+        <div className="compositor__rodape">
+          <div className="compositor__ferramentas" role="toolbar" aria-label="Formatação e anexos">
+            {FORMATOS.map((f) => {
+              const dica = f.atalho ? `${f.rotulo} (${TECLA}+${f.atalho})` : f.rotulo
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  className="compositor__ferramenta compositor__ferramenta--icone"
+                  aria-label={f.rotulo}
+                  aria-keyshortcuts={f.atalho ? `Control+${f.atalho} Meta+${f.atalho}` : undefined}
+                  data-dica={dica}
+                  disabled={previa}
+                  // o clique não pode tirar o foco (nem a seleção) do texto
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => formatar(f.id)}
+                >
+                  <i className={f.icone} aria-hidden="true" />
+                </button>
+              )
+            })}
+            <span className="compositor__separador" aria-hidden="true" />
+            {!publico && podeNota && alvos.length > 0 && (
+              <button
+                type="button"
+                className="compositor__ferramenta compositor__ferramenta--icone"
+                aria-label="Mencionar alguém"
+                data-dica="Mencionar (@)"
+                disabled={previa}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={comecarMencao}
+              >
+                <i className="ti ti-at" aria-hidden="true" />
+              </button>
+            )}
+            <button
+              type="button"
+              className="compositor__ferramenta"
+              onClick={() => inputAnexo.current?.click()}
+              disabled={anexosNoLimite}
+              data-dica={
+                anexosNoLimite && limites
+                  ? `Já são ${limites.maxArquivos}, o máximo por mensagem`
+                  : 'Anexar arquivo (ou arraste, ou cole um print)'
+              }
+            >
+              <i className="ti ti-paperclip" aria-hidden="true" />
+              <span className="compositor__ferramenta-rotulo">Anexar</span>
+            </button>
+            <input
+              ref={inputAnexo}
+              type="file"
+              multiple
+              hidden
+              accept={TIPOS_ACEITOS}
+              aria-label="Escolher arquivos para anexar"
+              onChange={(e) => {
+                adicionarAnexos(Array.from(e.target.files ?? []))
+                e.target.value = '' // permite re-selecionar o mesmo arquivo
+              }}
+            />
+
+            {podeMacro && (macros?.length ?? 0) > 0 && (
+              <div className="compositor__macro" ref={menuRef}>
+                <button
+                  type="button"
+                  className={
+                    'compositor__ferramenta' + (menuMacro ? ' compositor__ferramenta--ativa' : '')
+                  }
+                  aria-label="Aplicar macro"
+                  aria-haspopup="listbox"
+                  aria-expanded={menuMacro}
+                  data-dica={menuMacro ? undefined : 'Aplicar macro (texto pronto e triagem)'}
+                  onClick={() => {
+                    // Abrir sempre começa sem filtro — reabrir com o texto da
+                    // última vez leria como "a macro que eu busquei antes
+                    // sumiu", já que a lista mostraria só o resultado antigo.
+                    if (!menuMacro) {
+                      setFiltroMacro('')
+                      setMacroAtiva(0)
+                    }
+                    setMenuMacro((v) => !v)
+                  }}
+                >
+                  <i className="ti ti-bolt" aria-hidden="true" />
+                  <span className="compositor__ferramenta-rotulo">Macro</span>
+                </button>
+                {menuMacro && (
+                  <div className="compositor__macro-painel">
+                    {/* Fora da área que rola (compositor__macro-menu, abaixo):
+                        um campo fixo que rola junto seria escondido pela
+                        própria lista que ele filtra. O foco fica AQUI o tempo
+                        todo — as opções não são tabuláveis, mesmo padrão de
+                        novo/BuscaPessoa.tsx (combobox com seleção virtual via
+                        aria-activedescendant, não uma navegação por Tab entre
+                        itens de um menu). */}
+                    <input
+                      type="text"
+                      autoFocus
+                      className="compositor__macro-filtro"
+                      role="combobox"
+                      aria-expanded="true"
+                      aria-controls={idMacroLista}
+                      aria-autocomplete="list"
+                      aria-activedescendant={
+                        macrosFiltradas[macroAtivaValida]
+                          ? idOpcaoMacro(macrosFiltradas[macroAtivaValida])
+                          : undefined
+                      }
+                      placeholder="Filtrar macros…"
+                      aria-label="Filtrar macros por nome ou texto"
+                      value={filtroMacro}
+                      onChange={(e) => {
+                        setFiltroMacro(e.target.value)
+                        setMacroAtiva(0)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown') {
+                          e.preventDefault()
+                          setMacroAtiva((i) => Math.min(i + 1, macrosFiltradas.length - 1))
+                        } else if (e.key === 'ArrowUp') {
+                          e.preventDefault()
+                          setMacroAtiva((i) => Math.max(i - 1, 0))
+                        } else if (e.key === 'Enter') {
+                          const m = macrosFiltradas[macroAtivaValida]
+                          if (m) {
+                            e.preventDefault()
+                            usarMacro(m)
+                          }
+                        }
+                        // Escape: sem handler próprio — o keydown de documento
+                        // (useEffect acima) já fecha o menu.
+                      }}
+                    />
+                    <ul
+                      id={idMacroLista}
+                      className="compositor__macro-menu"
+                      role="listbox"
+                      aria-label="Macros"
+                    >
+                      {macrosFiltradas.length === 0 ? (
+                        <li className="compositor__macro-vazio" role="presentation">
+                          Nenhuma macro com “{filtroMacro}”.
+                        </li>
+                      ) : (
+                        macrosFiltradas.map((m, i) => (
+                          <li
+                            key={m.id}
+                            id={idOpcaoMacro(m)}
+                            role="option"
+                            aria-selected={i === macroAtivaValida}
+                            className={
+                              'compositor__macro-opcao' +
+                              (i === macroAtivaValida ? ' compositor__macro-opcao--ativa' : '')
+                            }
+                            onMouseEnter={() => setMacroAtiva(i)}
+                            onClick={() => usarMacro(m)}
+                          >
+                            <span className="compositor__macro-nome">{m.name}</span>
+                            {m.body && (
+                              <span className="compositor__macro-previa">
+                                {m.body.split('\n')[0]}
+                              </span>
+                            )}
+                            {(m.category_name || m.priority || m.assignee_name) && (
+                              <span className="compositor__macro-triagem">
+                                {[
+                                  m.category_name && `categoria → ${m.category_name}`,
+                                  m.priority &&
+                                    `prioridade → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
+                                  m.assignee_name && `responsável → ${m.assignee_name}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')}
+                              </span>
+                            )}
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={
+                'compositor__ferramenta compositor__ferramenta--icone' +
+                (previa ? ' compositor__ferramenta--ativa' : '')
+              }
+              aria-label="Visualizar"
+              aria-pressed={previa}
+              data-dica={previa ? 'Voltar a editar' : 'Visualizar como vai ficar'}
+              onClick={() => {
+                setPrevia((v) => !v)
+                setMencao(null)
+                // voltando a editar, o foco volta para onde se escreve
+                if (previa) requestAnimationFrame(() => areaRef.current?.focus())
+              }}
+            >
+              <i className={previa ? 'ti ti-pencil' : 'ti ti-eye'} aria-hidden="true" />
+            </button>
+          </div>
+
+          <div className="compositor__enviar">
+            {publico && interno && (
+              <span className="compositor__status">
+                <label htmlFor={idStatus}>Ao enviar, deixar</label>
+                <span className="compositor__status-select">
+                  <select
+                    id={idStatus}
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value as StatusTicket)}
+                    // Select nativo focado + roda do mouse por cima = o
+                    // navegador troca a opção selecionada em vez de rolar a
+                    // página (Chrome e Firefox, sem precisar clicar de novo —
+                    // some dar :focus uma vez já bastou). Aqui é o pior lugar
+                    // possível pra isso: rolar até o fim da conversa pra
+                    // responder passa o cursor bem em cima deste combo, e
+                    // "Fechado" é a última opção da lista — um scroll comum
+                    // pousa exatamente nela, o botão vira verde e a resposta
+                    // fecharia o ticket sem ninguém ter escolhido isso.
+                    // Devolve o evento pro scroll normal da página assim que
+                    // ele chega, antes do navegador aplicar a troca.
+                    onWheel={(e) => e.currentTarget.blur()}
+                  >
+                    {STATUS_AO_ENVIAR.map((s) => (
+                      <option key={s} value={s}>
+                        {ROTULO_AO_ENVIAR[s] ?? ROTULO_STATUS[s]}
+                      </option>
+                    ))}
+                  </select>
+                  <i className="ti ti-chevron-down" aria-hidden="true" />
+                </span>
+              </span>
+            )}
+
+            {publico && podeAgendar && (
+              <div className="compositor__agenda" ref={agendaRef}>
+                <button
+                  type="button"
+                  className={
+                    'compositor__ferramenta compositor__ferramenta--icone compositor__agenda-botao' +
+                    (agendando ? ' compositor__ferramenta--ativa' : '')
+                  }
+                  aria-label="Agendar envio"
+                  aria-haspopup="dialog"
+                  aria-expanded={agendando}
+                  data-dica={agendando ? undefined : 'Agendar envio'}
+                  onClick={abrirAgenda}
+                >
+                  <i className="ti ti-calendar-time" aria-hidden="true" />
+                </button>
+                {agendando && (
+                  <div className="compositor__agenda-painel" role="dialog" aria-label="Agendar envio">
+                    <label className="compositor__agenda-rotulo" htmlFor={idQuando}>
+                      Enviar em
+                    </label>
+                    <input
+                      id={idQuando}
+                      type="datetime-local"
+                      autoFocus
+                      value={quando}
+                      min={minimoAgenda}
+                      onChange={(e) => setQuando(e.target.value)}
+                    />
+                    <p className="compositor__agenda-dica">
+                      {motivoSemAgenda ??
+                        `Sai sozinha na hora marcada, com este texto, e o chamado fica “${ROTULO_AO_ENVIAR[status]}”.`}
+                    </p>
+                    <div className="compositor__agenda-acoes">
+                      <button
+                        type="button"
+                        className="compositor__agenda-cancelar"
+                        onClick={() => setAgendando(false)}
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        className="compositor__agenda-confirmar"
+                        disabled={!podeConfirmarAgenda}
+                        onClick={agendar}
+                      >
+                        {agendarResposta.isPending ? 'Agendando…' : 'Agendar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button
+              type="button"
+              className={'compositor__botao' + (vaiFechar ? ' compositor__botao--fechar' : '')}
+              disabled={!podeEnviar}
+              onClick={enviar}
+              aria-keyshortcuts="Control+Enter Meta+Enter"
+              // O convite do title ("ou anexe um arquivo") ficou: agora ele é
+              // verdade — anexo sem texto envia, com a legenda de `corpoParaEnviar`.
+              title={
+                temConteudo
+                  ? `${TECLA}+Enter envia`
+                  : 'Escreva algo ou anexe um arquivo para enviar'
+              }
+            >
+              {rotuloBotao}
+              <kbd aria-hidden="true">{EH_MAC ? '⌘↵' : 'Ctrl ↵'}</kbd>
+            </button>
+          </div>
+        </div>
+
+        {soltar.arrastando && (
+          <div className="compositor__soltar" aria-hidden="true">
+            <i className="ti ti-upload" />
+            <span>Solte para anexar</span>
+          </div>
+        )}
+      </div>
+
+      <div className="compositor__pe">
+        {podeAssinar ? (
           <label className="compositor__assinatura-toggle">
             <input
               type="checkbox"
@@ -587,219 +1344,22 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
             />
             Incluir minha assinatura
           </label>
-          {/* a prévia evita a surpresa de descobrir o rodapé depois de enviado;
-              o HTML já vem higienizado do servidor (`signature_render`) */}
-          {assinar && (
-            <div
-              className="compositor__assinatura-previa assinatura-mensagem"
-              dangerouslySetInnerHTML={{ __html: me?.signature_render ?? '' }}
-            />
-          )}
-        </div>
-      )}
-
-      <div className="compositor__rodape">
-        <div className="compositor__ferramentas">
-          <button
-            type="button"
-            className="compositor__ferramenta"
-            onClick={() => inputAnexo.current?.click()}
-            disabled={anexosNoLimite}
-            title={
-              anexosNoLimite && limites
-                ? `Você já escolheu ${limites.maxArquivos} arquivo(s), o máximo por mensagem.`
-                : undefined
-            }
-          >
-            <i className="ti ti-paperclip" aria-hidden="true" /> Anexar
-          </button>
-          <input
-            ref={inputAnexo}
-            type="file"
-            multiple
-            hidden
-            onChange={(e) => {
-              adicionarAnexos(Array.from(e.target.files ?? []))
-              e.target.value = '' // permite re-selecionar o mesmo arquivo
-            }}
-          />
-          {/* O limite fica visível ANTES de escolher: era a tela de abertura
-              prometendo 20 MB que fazia a pessoa esperar o upload para descobrir
-              que o teto é outro. */}
+        ) : (
+          <span />
+        )}
+        {/* O limite fica visível ANTES de escolher: era a tela de abertura
+            prometendo 20 MB que fazia a pessoa esperar o upload para descobrir
+            que o teto é outro. */}
+        <span id={idDica} className="compositor__dica-anexo">
+          <span className="compositor__dica-arrastar">Arraste ou cole arquivos no campo.</span>
           {limites && (
-            <span className="compositor__dica-anexo">
+            <>
+              {' '}
               Até {limites.maxMb} MB por arquivo · {limites.maxArquivos} arquivos ·{' '}
               {limites.maxMbPorMensagem} MB no total
-            </span>
+            </>
           )}
-
-          {podeMacro && (macros?.length ?? 0) > 0 && (
-            <div className="compositor__macro" ref={menuRef}>
-              <button
-                type="button"
-                className={
-                  'compositor__ferramenta' + (menuMacro ? ' compositor__ferramenta--ativa' : '')
-                }
-                aria-haspopup="listbox"
-                aria-expanded={menuMacro}
-                onClick={() => {
-                  // Abrir sempre começa sem filtro — reabrir com o texto da
-                  // última vez leria como "a macro que eu buscei antes
-                  // sumiu", já que a lista mostraria só o resultado antigo.
-                  if (!menuMacro) {
-                    setFiltroMacro('')
-                    setMacroAtiva(0)
-                  }
-                  setMenuMacro((v) => !v)
-                }}
-              >
-                <i className="ti ti-bolt" aria-hidden="true" /> Aplicar macro…
-              </button>
-              {menuMacro && (
-                <div className="compositor__macro-painel">
-                  {/* Fora da área que rola (compositor__macro-menu, abaixo):
-                      um campo fixo que rola junto seria escondido pela
-                      própria lista que ele filtra. O foco fica AQUI o tempo
-                      todo — as opções não são tabuláveis, mesmo padrão de
-                      novo/BuscaPessoa.tsx (combobox com seleção virtual via
-                      aria-activedescendant, não uma navegação por Tab entre
-                      itens de um menu). */}
-                  <input
-                    type="text"
-                    autoFocus
-                    className="compositor__macro-filtro"
-                    role="combobox"
-                    aria-expanded="true"
-                    aria-controls={idMacroLista}
-                    aria-autocomplete="list"
-                    aria-activedescendant={
-                      macrosFiltradas[macroAtivaValida]
-                        ? idOpcaoMacro(macrosFiltradas[macroAtivaValida])
-                        : undefined
-                    }
-                    placeholder="Filtrar macros…"
-                    aria-label="Filtrar macros por nome ou texto"
-                    value={filtroMacro}
-                    onChange={(e) => {
-                      setFiltroMacro(e.target.value)
-                      setMacroAtiva(0)
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault()
-                        setMacroAtiva((i) => Math.min(i + 1, macrosFiltradas.length - 1))
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault()
-                        setMacroAtiva((i) => Math.max(i - 1, 0))
-                      } else if (e.key === 'Enter') {
-                        const m = macrosFiltradas[macroAtivaValida]
-                        if (m) {
-                          e.preventDefault()
-                          usarMacro(m)
-                        }
-                      }
-                      // Escape: sem handler próprio — o mousedown/keydown de
-                      // documento logo acima (useEffect) já fecha o menu ao
-                      // ouvir Escape em qualquer lugar dentro dele.
-                    }}
-                  />
-                  <ul
-                    id={idMacroLista}
-                    className="compositor__macro-menu"
-                    role="listbox"
-                    aria-label="Macros"
-                  >
-                    {macrosFiltradas.length === 0 ? (
-                      <li className="compositor__macro-vazio" role="presentation">
-                        Nenhuma macro com “{filtroMacro}”.
-                      </li>
-                    ) : (
-                      macrosFiltradas.map((m, i) => (
-                        <li
-                          key={m.id}
-                          id={idOpcaoMacro(m)}
-                          role="option"
-                          aria-selected={i === macroAtivaValida}
-                          className={
-                            'compositor__macro-opcao' +
-                            (i === macroAtivaValida ? ' compositor__macro-opcao--ativa' : '')
-                          }
-                          onMouseEnter={() => setMacroAtiva(i)}
-                          onClick={() => usarMacro(m)}
-                        >
-                          <span className="compositor__macro-nome">{m.name}</span>
-                          {m.body && (
-                            <span className="compositor__macro-previa">
-                              {m.body.split('\n')[0]}
-                            </span>
-                          )}
-                          {(m.category_name || m.priority || m.assignee_name) && (
-                            <span className="compositor__macro-triagem">
-                              {[
-                                m.category_name && `categoria → ${m.category_name}`,
-                                m.priority &&
-                                  `prioridade → ${ROTULO_PRIORIDADE[m.priority] ?? m.priority}`,
-                                m.assignee_name && `responsável → ${m.assignee_name}`,
-                              ]
-                                .filter(Boolean)
-                                .join(' · ')}
-                            </span>
-                          )}
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        <div className="compositor__enviar">
-          {publico && interno && (
-            <span className="compositor__status">
-              <label htmlFor={idStatus}>Ao enviar, deixar</label>
-              <span className="compositor__status-select">
-                <select
-                  id={idStatus}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as StatusTicket)}
-                  // Select nativo focado + roda do mouse por cima = o
-                  // navegador troca a opção selecionada em vez de rolar a
-                  // página (Chrome e Firefox, sem precisar clicar de novo —
-                  // some dar :focus uma vez já bastou). Aqui é o pior lugar
-                  // possível pra isso: rolar até o fim da conversa pra
-                  // responder passa o cursor bem em cima deste combo, e
-                  // "Fechado" é a última opção da lista — um scroll comum
-                  // pousa exatamente nela, o botão vira verde e a resposta
-                  // fecharia o ticket sem ninguém ter escolhido isso.
-                  // Devolve o evento pro scroll normal da página assim que
-                  // ele chega, antes do navegador aplicar a troca.
-                  onWheel={(e) => e.currentTarget.blur()}
-                >
-                  {STATUS_AO_ENVIAR.map((s) => (
-                    <option key={s} value={s}>
-                      {ROTULO_AO_ENVIAR[s] ?? ROTULO_STATUS[s]}
-                    </option>
-                  ))}
-                </select>
-                <i className="ti ti-chevron-down" aria-hidden="true" />
-              </span>
-            </span>
-          )}
-          <button
-            type="button"
-            className={'compositor__botao' + (vaiFechar ? ' compositor__botao--fechar' : '')}
-            disabled={!podeEnviar}
-            onClick={enviar}
-            // O convite do title ("ou anexe um arquivo") ficou: agora ele é
-            // verdade — anexo sem texto envia, com a legenda de `corpoParaEnviar`.
-            title={temConteudo ? 'Ctrl+Enter' : 'Escreva algo ou anexe um arquivo para enviar'}
-          >
-            {rotuloBotao}
-            <kbd aria-hidden="true">⌃↵</kbd>
-          </button>
-        </div>
+        </span>
       </div>
     </div>
   )

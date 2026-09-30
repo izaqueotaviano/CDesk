@@ -167,6 +167,35 @@ class TestEmailDaMencao:
         assert Notification.objects.filter(recipient=izaque, kind=NotificationKind.MENTION).exists()
         assert not OutboundEmail.objects.filter(template="mention").exists()
 
+    def test_nota_formatada_chega_ao_email_em_texto_puro_e_em_html(
+        self, make_ticket, ana, suporte, agente_suporte, izaque,
+        django_capture_on_commit_callbacks,
+    ):
+        """A nota escrita com a formatação leve (`**`, lista) não chega crua:
+        a parte de texto vai sem marcador e a parte HTML vai formatada."""
+        from django.core import mail
+
+        ticket = make_ticket(ana, suporte)
+        mail.outbox.clear()
+        with django_capture_on_commit_callbacks(execute=True):
+            _nota(
+                ticket, agente_suporte,
+                f"@[user:{izaque.pk}] **urgente**: conferir\n- nota fiscal\n- boleto",
+            )
+
+        enviado = next(m for m in mail.outbox if m.to == [izaque.email])
+        assert "**" not in enviado.body
+        assert "urgente: conferir" in enviado.body
+        assert "• nota fiscal" in enviado.body
+        assert "@Izaque Sá" in enviado.body
+        html = enviado.alternatives[0][0]
+        assert "<strong>urgente</strong>" in html
+        assert "<li>nota fiscal</li>" in html
+
+        # o sino recebe a mesma nota, sem marcador
+        aviso = Notification.objects.get(recipient=izaque, kind=NotificationKind.MENTION)
+        assert "**" not in aviso.body
+
     def test_mencao_repetida_gera_um_email_so(
         self, make_ticket, ana, suporte, agente_suporte, izaque
     ):
