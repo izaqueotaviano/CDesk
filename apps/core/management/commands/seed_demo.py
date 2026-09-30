@@ -402,27 +402,27 @@ class Command(BaseCommand):
 
         if not Article.objects.exists():
             artigos = [
-                ("Como abrir um chamado pelo portal",
+                ("Como abrir um ticket pelo portal",
                  "Primeiros passos",
                  "O caminho do cliente: entrar, escolher o assunto e anexar o que ajudar.",
-                 "<h2>Antes de abrir</h2><p>Confira se o chamado já não existe: "
-                 "responder no chamado aberto é mais rápido que abrir outro.</p>"
+                 "<h2>Antes de abrir</h2><p>Confira se o ticket já não existe: "
+                 "responder no ticket aberto é mais rápido que abrir outro.</p>"
                  "<h2>Abrindo</h2><ol><li>Entre no portal.</li>"
                  "<li>Descreva o problema em uma frase no assunto.</li>"
                  "<li>Anexe print ou arquivo, se houver.</li></ol>"),
                 ("O que é SLA de primeira resposta",
                  "SLA e prazos",
-                 "Os dois relógios de um chamado e quando cada um começa a contar.",
-                 "<p>Todo chamado tem <strong>dois</strong> prazos independentes.</p>"
+                 "Os dois relógios de um ticket e quando cada um começa a contar.",
+                 "<p>Todo ticket tem <strong>dois</strong> prazos independentes.</p>"
                  "<h2>Primeira resposta</h2><p>Da abertura até a primeira resposta "
                  "pública de um agente. Nota interna não conta.</p>"
                  "<h2>Resolução</h2><p>Da abertura ao fechamento.</p>"
                  "<p>Os dois contam em horas úteis, pelo calendário comercial.</p>"),
                 ("Reabertura: como funciona",
                  "SLA e prazos",
-                 "Responder num chamado fechado o reabre e começa um ciclo novo.",
+                 "Responder num ticket fechado o reabre e começa um ciclo novo.",
                  "<p>Não existe botão de reabrir sozinho: reabrir é "
-                 "<strong>responder publicamente</strong> num chamado fechado.</p>"
+                 "<strong>responder publicamente</strong> num ticket fechado.</p>"
                  "<p>A reabertura começa um <em>novo ciclo de SLA</em>. O histórico "
                  "do ciclo anterior fica preservado.</p>"),
                 ("Anexos bloqueados pelo antivírus",
@@ -441,9 +441,9 @@ class Command(BaseCommand):
                  "<p>Por isso a macro tem efeito mesmo se você apagar o texto.</p>"),
                 ("Quem enxerga o quê: equipes e escopo",
                  "Atendimento",
-                 "Por que um chamado aparece mascarado com cadeado.",
-                 "<p>Um agente enxerga os chamados das equipes de que participa.</p>"
-                 "<p>Chamado de equipe em que você não está aparece "
+                 "Por que um ticket aparece mascarado com cadeado.",
+                 "<p>Um agente enxerga os tickets das equipes de que participa.</p>"
+                 "<p>Ticket de equipe em que você não está aparece "
                  "<strong>mascarado</strong>, com cadeado. Não é erro, é o "
                  "comportamento esperado. Peça acesso a um supervisor da equipe.</p>"),
             ]
@@ -478,7 +478,7 @@ class Command(BaseCommand):
             TicketMacro.objects.create(
                 name="Pedir mais informação",
                 body=(
-                    "Olá, {{solicitante}}! Para seguir com este chamado preciso de "
+                    "Olá, {{solicitante}}! Para seguir com este ticket preciso de "
                     "mais um detalhe:\n\n- \n\nAssim que você responder, retomo daqui."
                 ),
                 category=duvida,

@@ -285,11 +285,11 @@ _LIMITE_POR_GRUPO = 8  # prévia pra dropdown, não listagem — cada tela dona
 @extend_schema(
     parameters=[OpenApiParameter("q", str, description="termo buscado")],
     description=(
-        "Busca através de chamados, empresas e solicitantes — recurso "
+        "Busca através de tickets, empresas e solicitantes — recurso "
         "interno (a tela que consome isto, o cabeçalho, só existe do lado "
         "do agente). Cada grupo é uma PRÉVIA (até 8 linhas), não uma "
         "listagem paginada; quem quer a lista completa de um grupo já tem "
-        "tela própria (Chamados, Empresas, settings/users/)."
+        "tela própria (Tickets, Empresas, settings/users/)."
     ),
 )
 class GlobalSearchView(APIView):

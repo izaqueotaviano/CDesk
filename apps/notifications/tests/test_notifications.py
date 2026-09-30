@@ -27,11 +27,11 @@ def _ticket(ana, suporte, **kw):
 
 
 class TestTicketUrl:
-    """A rota do sino não pode inventar `/tickets/<id>` — nenhuma das duas
-    bases do frontend tem essa rota (ver docstring de `ticket_url`)."""
+    """A rota do sino depende de quem clica: painel interno em `/tickets/<id>`,
+    portal em `/portal/tickets/<id>` (ver docstring de `ticket_url`)."""
 
     def test_interno_cai_no_painel(self):
-        assert ticket_url(SimpleNamespace(pk=7), SimpleNamespace(is_internal=True)) == "/chamados/7"
+        assert ticket_url(SimpleNamespace(pk=7), SimpleNamespace(is_internal=True)) == "/tickets/7"
 
     def test_cliente_cai_no_portal(self):
         cliente = SimpleNamespace(is_internal=False)
@@ -40,7 +40,7 @@ class TestTicketUrl:
     def test_ancora_e_anexada(self):
         agente = SimpleNamespace(is_internal=True)
         url = ticket_url(SimpleNamespace(pk=7), agente, anchor="#mensagem-9")
-        assert url == "/chamados/7#mensagem-9"
+        assert url == "/tickets/7#mensagem-9"
 
 
 @pytest.mark.django_db(transaction=True)

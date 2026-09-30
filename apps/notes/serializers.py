@@ -148,7 +148,7 @@ class ChamadoVisivelField(serializers.PrimaryKeyRelatedField):
 
     default_error_messages = {
         **serializers.PrimaryKeyRelatedField.default_error_messages,
-        "does_not_exist": "Chamado não encontrado.",
+        "does_not_exist": "Ticket não encontrado.",
     }
 
     def get_queryset(self):

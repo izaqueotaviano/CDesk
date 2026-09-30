@@ -171,12 +171,12 @@ class SystemConfig(TimeStampedModel):
     )
     auto_close_message = models.TextField(
         default=(
-            "Como não tivemos retorno, estamos encerrando este chamado. Se ainda "
-            "precisar de ajuda, abra um novo chamado. Este aqui não pode mais "
+            "Como não tivemos retorno, estamos encerrando este ticket. Se ainda "
+            "precisar de ajuda, abra um novo ticket. Este aqui não pode mais "
             "ser reaberto por resposta."
         ),
         verbose_name="Mensagem enviada ao fechar por falta de resposta",
-        help_text="O cliente vê este texto no chamado quando ele fecha sozinho.",
+        help_text="O cliente vê este texto no ticket quando ele fecha sozinho.",
     )
     # Aviso prévio (D5): reduz reabertura e reclamação — chega faltando estas
     # horas para o fechamento, não em um horário fixo. Zero desliga o aviso
@@ -191,7 +191,7 @@ class SystemConfig(TimeStampedModel):
     )
     auto_close_warning_message = models.TextField(
         default=(
-            "Ainda estamos aguardando seu retorno neste chamado. Se não "
+            "Ainda estamos aguardando seu retorno neste ticket. Se não "
             "recebermos resposta em breve, ele será encerrado automaticamente "
             "por falta de retorno."
         ),

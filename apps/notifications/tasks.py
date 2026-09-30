@@ -33,7 +33,7 @@ EMAIL_TEMPLATES = {
     # vazia quando ele não pediu para incluí-la — ver `_notify_requester_replied`
     "ticket_replied": (
         "Olá, {requester_name}.\n\n"
-        "{agent_name} respondeu o chamado {reference} ({subject}).\n\n"
+        "{agent_name} respondeu o ticket {reference} ({subject}).\n\n"
         "Acesse o portal de suporte para ler a resposta e continuar a "
         "conversa.\n"
         "Este e-mail não recebe respostas.\n"
@@ -41,7 +41,7 @@ EMAIL_TEMPLATES = {
     ),
     "chat_converted": (
         "Olá, {requester_name}.\n\n"
-        "Sua conversa virou o chamado {reference} ({subject}).\n\n"
+        "Sua conversa virou o ticket {reference} ({subject}).\n\n"
         "Acesse o portal de suporte para acompanhar o andamento.\n"
         "Este e-mail não recebe respostas."
     ),
@@ -52,7 +52,7 @@ EMAIL_TEMPLATES = {
     # TICKET_CLOSED e o chat sob CHAT_CLOSED.
     "ticket_opened": (
         "Olá, {requester_name}.\n\n"
-        "Recebemos seu chamado {reference} ({subject}).\n\n"
+        "Recebemos seu ticket {reference} ({subject}).\n\n"
         "Equipe responsável: {team}. Você recebe um e-mail a cada resposta "
         "do suporte, e pode acompanhar tudo pelo portal:\n"
         "{link}\n\n"
@@ -60,19 +60,19 @@ EMAIL_TEMPLATES = {
     ),
     "ticket_resolved": (
         "Olá, {requester_name}.\n\n"
-        "O chamado {reference} ({subject}) foi resolvido pelo suporte.\n\n"
+        "O ticket {reference} ({subject}) foi resolvido pelo suporte.\n\n"
         "Se ainda precisar de algo sobre este assunto, é só responder ao "
-        "chamado pelo portal, e ele reabre. E, se puder, avalie o "
+        "ticket pelo portal, e ele reabre. E, se puder, avalie o "
         "atendimento: leva menos de um minuto.\n"
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
     "ticket_auto_closed": (
         "Olá, {requester_name}.\n\n"
-        "O chamado {reference} ({subject}) foi encerrado automaticamente "
+        "O ticket {reference} ({subject}) foi encerrado automaticamente "
         "porque ficou aguardando o seu retorno por mais tempo que o "
         "combinado.\n\n"
-        "Se ainda precisar de ajuda, abra um novo chamado pelo portal:\n"
+        "Se ainda precisar de ajuda, abra um novo ticket pelo portal:\n"
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
@@ -131,14 +131,14 @@ EMAIL_TEMPLATES = {
     # já calculados para o `notify()` de cada ponto (título, corpo, link).
     "ticket_assigned": (
         "Olá, {agent_name}.\n\n"
-        "O chamado {reference} ({subject}) foi atribuído a você.\n\n"
+        "O ticket {reference} ({subject}) foi atribuído a você.\n\n"
         "Acesse o sistema para atender:\n"
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
     "ticket_owner_set": (
         "Olá, {agent_name}.\n\n"
-        "Você foi definido como dono técnico do chamado {reference} "
+        "Você foi definido como dono técnico do ticket {reference} "
         "({subject}).\n\n"
         "Acesse o sistema para acompanhar:\n"
         "{link}\n\n"
@@ -146,7 +146,7 @@ EMAIL_TEMPLATES = {
     ),
     "ticket_reopened": (
         "Olá, {agent_name}.\n\n"
-        "O chamado {reference} ({subject}), atribuído a você, foi reaberto: "
+        "O ticket {reference} ({subject}), atribuído a você, foi reaberto: "
         "{author_name} respondeu depois do fechamento.\n\n"
         "Acesse o sistema para continuar o atendimento:\n"
         "{link}\n\n"
@@ -157,7 +157,7 @@ EMAIL_TEMPLATES = {
     # `_corpos_do_email`). Entre aspas, no meio da frase, uma lista não cabia.
     "mention": (
         "Olá, {agent_name}.\n\n"
-        "{author_name} mencionou você no chamado {reference}:\n\n"
+        "{author_name} mencionou você no ticket {reference}:\n\n"
         "{resumo}\n\n"
         "Acesse o sistema para ver a nota completa:\n"
         "{link}\n\n"
@@ -165,7 +165,7 @@ EMAIL_TEMPLATES = {
     ),
     "sla_warning": (
         "Olá, {agent_name}.\n\n"
-        "O SLA de {label} do chamado {reference} ({subject}) está próximo "
+        "O SLA de {label} do ticket {reference} ({subject}) está próximo "
         "do limite.\n\n"
         "Acesse o sistema para atender antes do prazo:\n"
         "{link}\n\n"
@@ -173,14 +173,14 @@ EMAIL_TEMPLATES = {
     ),
     "sla_breached": (
         "Olá, {agent_name}.\n\n"
-        "O SLA de {label} do chamado {reference} ({subject}) estourou.\n\n"
+        "O SLA de {label} do ticket {reference} ({subject}) estourou.\n\n"
         "Acesse o sistema para atender:\n"
         "{link}\n\n"
         "Este e-mail não recebe respostas."
     ),
     "kanban_due": (
         "Olá, {agent_name}.\n\n"
-        "O prazo do card do chamado {reference} ({subject}) venceu no "
+        "O prazo do card do ticket {reference} ({subject}) venceu no "
         "quadro {board}.\n\n"
         "Acesse o sistema para atualizar:\n"
         "{link}\n\n"

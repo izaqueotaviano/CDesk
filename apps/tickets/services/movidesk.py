@@ -200,8 +200,8 @@ class ImportReport:
             self.unmatched_agents.items(), key=lambda item: -item[1]
         ):
             lines.append(
-                f"“{name}” respondia por {total} chamado(s) e não existe como usuário "
-                f"interno, e esses chamados ficaram sem responsável. Cadastre em Configurações → "
+                f"“{name}” respondia por {total} ticket(s) e não existe como usuário "
+                f"interno, e esses tickets ficaram sem responsável. Cadastre em Configurações → "
                 f"Usuários com esse nome exato e rode a importação de novo."
             )
         return lines

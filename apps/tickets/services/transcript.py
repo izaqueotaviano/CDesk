@@ -138,7 +138,7 @@ def ticket_pdf(ticket, *, para) -> tuple[bytes, str]:
     ]
     if ticket.closed_at:
         partes.append(
-            f'<p class="marco">Chamado resolvido em {_e(_quando(ticket.closed_at))}.</p>'
+            f'<p class="marco">Ticket resolvido em {_e(_quando(ticket.closed_at))}.</p>'
         )
 
     meta = f"Aberto em {_quando(ticket.created_at)} · {ticket.company.name}"

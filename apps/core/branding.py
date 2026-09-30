@@ -31,9 +31,9 @@ PADRAO = {
     "cliente": {
         "brand_name": "Central de Suporte",
         "headline": "Seu suporte, no seu tempo.",
-        "subtitle": "Acompanhe seus chamados, fale com a equipe e avalie o atendimento.",
+        "subtitle": "Acompanhe seus tickets, fale com a equipe e avalie o atendimento.",
         "highlights": [
-            "Abra chamados e acompanhe cada resposta, com prazo à vista.",
+            "Abra tickets e acompanhe cada resposta, com prazo à vista.",
             "Converse por chat com quem atende, no horário de atendimento.",
             "Resolva sozinho com a Central de Ajuda, a qualquer hora.",
         ],
@@ -43,8 +43,8 @@ PADRAO = {
         "headline": "Tudo que a equipe precisa, num lugar só.",
         "subtitle": "A fila, o chat e os indicadores da equipe.",
         "highlights": [
-            "Fila de chamados com SLA, triagem e quadro por etapa.",
-            "Chat em tempo real com transferência e conversão em chamado.",
+            "Fila de tickets com SLA, triagem e quadro por etapa.",
+            "Chat em tempo real com transferência e conversão em ticket.",
             "Auditoria, LGPD e verificação em duas etapas por conta.",
         ],
     },

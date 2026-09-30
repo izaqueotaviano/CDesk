@@ -47,7 +47,7 @@ class Command(BaseCommand):
         self.stdout.write(f"{len(alvos)} empresa(s) que são, na verdade, contatos:")
         for empresa, _pessoa in alvos[:20]:
             n = Ticket.objects.filter(company=empresa).count()
-            self.stdout.write(f"  - {empresa.name} ({n} chamado(s))")
+            self.stdout.write(f"  - {empresa.name} ({n} ticket(s))")
         if len(alvos) > 20:
             self.stdout.write(f"  … e mais {len(alvos) - 20}")
 

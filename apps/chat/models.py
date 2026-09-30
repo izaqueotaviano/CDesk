@@ -479,12 +479,12 @@ class ClientQuickReply(models.Model):
 
     class Contexto(models.TextChoices):
         CHAT = "chat", "chat"
-        TICKET = "ticket", "chamado"
+        TICKET = "ticket", "ticket"
 
     contexto = models.CharField(
         max_length=8, choices=Contexto.choices, default=Contexto.CHAT,
         verbose_name="onde aparece",
-        help_text="No chat (frases que ABREM a conversa) ou no chamado "
+        help_text="No chat (frases que ABREM a conversa) ou no ticket "
                   "(frases que RESPONDEM ao atendimento).",
     )
     rotulo = models.CharField(

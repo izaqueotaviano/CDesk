@@ -113,7 +113,7 @@ class TicketStageViewSet(viewsets.ModelViewSet):
         ).first()
         if destino is None:
             raise ValidationError(
-                {"detail": "Sem status de fábrica nesta categoria para receber os chamados."}
+                {"detail": "Sem status de fábrica nesta categoria para receber os tickets."}
             )
         instance.tickets.update(stage=destino)
         instance.delete()

@@ -194,4 +194,4 @@ class TestNoEmail:
             "agent_name": "Samuel",
         }
         texto = EMAIL_TEMPLATES["ticket_replied"].format_map(_ContextoTolerante(antigo))
-        assert "Samuel respondeu o chamado TD-1" in texto
+        assert "Samuel respondeu o ticket TD-1" in texto

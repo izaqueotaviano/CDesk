@@ -316,7 +316,7 @@ class TestAutoCloseBlockReopen:
         assert ticket.status == TicketStatus.CLOSED
         assert ticket.auto_closed is True
 
-        with pytest.raises(TicketRuleViolation, match="novo chamado"):
+        with pytest.raises(TicketRuleViolation, match="novo ticket"):
             ticket_service.add_reply(ticket=ticket, author=ana, body="ainda preciso de ajuda")
 
         # a tentativa bloqueada não deixa rastro: nem mensagem, nem reabertura

@@ -158,7 +158,7 @@ def _notify_team_about_new_ticket(ticket_pk, actor_pk) -> None:
             notify(
                 recipient=agente,
                 kind=NotificationKind.TICKET_CREATED,
-                title=f"Novo chamado {ticket.reference}",
+                title=f"Novo ticket {ticket.reference}",
                 body=f"{ticket.company.name} · {ticket.subject}",
                 url=ticket_url(ticket, agente),
                 ticket=ticket,
@@ -218,7 +218,7 @@ def _email_requester_about_new_ticket(ticket: Ticket) -> None:
         return
     queue_email(
         to=requester.email,
-        subject=f"Recebemos seu chamado {ticket.reference}",
+        subject=f"Recebemos seu ticket {ticket.reference}",
         template="ticket_opened",
         context={
             "requester_name": requester.full_name,
@@ -253,15 +253,15 @@ def _notify_requester_closed(ticket_pk, *, automatic: bool) -> None:
         if requester is None or requester.is_internal:
             return
         if automatic:
-            titulo = f"Chamado {ticket.reference} encerrado por falta de retorno"
+            titulo = f"Ticket {ticket.reference} encerrado por falta de retorno"
             corpo = (
                 "Ficou aguardando seu retorno além do prazo. "
-                "Precisa de ajuda? Abra um novo chamado."
+                "Precisa de ajuda? Abra um novo ticket."
             )
             template = "ticket_auto_closed"
         else:
-            titulo = f"Seu chamado {ticket.reference} foi resolvido"
-            corpo = "Se puder, avalie o atendimento. Responder ao chamado reabre."
+            titulo = f"Seu ticket {ticket.reference} foi resolvido"
+            corpo = "Se puder, avalie o atendimento. Responder ao ticket reabre."
             template = "ticket_resolved"
         notify(
             recipient=requester,
@@ -444,7 +444,7 @@ def _notify_chat_converted(*, ticket, client, actor) -> None:
     notify(
         recipient=client,
         kind=NotificationKind.CHAT_CONVERTED,
-        title=f"Sua conversa virou o chamado {ticket.reference}",
+        title=f"Sua conversa virou o ticket {ticket.reference}",
         body=ticket.subject,
         url=ticket_url(ticket, client),
         ticket=ticket,
@@ -453,7 +453,7 @@ def _notify_chat_converted(*, ticket, client, actor) -> None:
     if client.email and quer_email(client, NotificationKind.CHAT_CONVERTED):
         queue_email(
             to=client.email,
-            subject=f"Sua conversa virou o chamado {ticket.reference}",
+            subject=f"Sua conversa virou o ticket {ticket.reference}",
             template="chat_converted",
             context={
                 "requester_name": client.full_name,
@@ -611,8 +611,8 @@ def add_reply(
                 # abre um novo chamado. A mensagem de fechamento já avisa isso;
                 # aqui é a garantia de que a resposta tardia não reabre sozinha.
                 raise TicketRuleViolation(
-                    "Este chamado foi encerrado automaticamente por falta de "
-                    "resposta e não pode mais ser reaberto. Abra um novo chamado "
+                    "Este ticket foi encerrado automaticamente por falta de "
+                    "resposta e não pode mais ser reaberto. Abra um novo ticket "
                     "para continuar."
                 )
             # Regra do portal: antes de reabrir, a nota. Só para quem PODE
@@ -624,7 +624,7 @@ def add_reply(
                         and not survey.is_expired)
             if author.pk == ticket.requester_id and pendente:
                 raise TicketRuleViolation(
-                    "Avalie o atendimento antes de reabrir o chamado. Leva "
+                    "Avalie o atendimento antes de reabrir o ticket. Leva "
                     "menos de um minuto."
                 )
             _reopen(ticket, author, now)
@@ -859,7 +859,7 @@ def reclassify(*, ticket: Ticket, actor, priority=None, category=_NAO_INFORMADO,
             # cliente — o ticket sumiria da visão do próprio solicitante
             if not ticket.requester.is_internal and team.internal_only:
                 raise TicketRuleViolation(
-                    "Equipe interna não pode receber chamado de cliente."
+                    "Equipe interna não pode receber ticket de cliente."
                 )
             ticket.team = team
             mudancas.append(f"equipe → {team.name}")
@@ -968,7 +968,7 @@ def _notify_requester_replied(ticket: Ticket, author, *, com_assinatura: bool = 
     notify(
         recipient=requester,
         kind=NotificationKind.TICKET_REPLIED,
-        title=f"Seu chamado {ticket.reference} foi respondido",
+        title=f"Seu ticket {ticket.reference} foi respondido",
         body=ticket.subject,
         url=ticket_url(ticket, requester),
         ticket=ticket,
@@ -987,7 +987,7 @@ def _notify_requester_replied(ticket: Ticket, author, *, com_assinatura: bool = 
         )
         queue_email(
             to=requester.email,
-            subject=f"Resposta no chamado {ticket.reference}",
+            subject=f"Resposta no ticket {ticket.reference}",
             template="ticket_replied",
             context={
                 "requester_name": requester.full_name,
@@ -1115,7 +1115,9 @@ def close_ticket_by_requester(*, ticket: Ticket, actor, note: str = "") -> Ticke
     fecha e o QUE se registra mudam.
     """
     if not ticket.can_close_as_requester(actor):
-        raise TicketRuleViolation("Só quem abre o chamado (ou o titular da empresa) pode encerrá-lo.")
+        raise TicketRuleViolation(
+            "Só quem abre o ticket (ou o titular da empresa) pode encerrá-lo."
+        )
 
     with transaction.atomic():
         ticket = Ticket.objects.select_for_update().get(pk=ticket.pk)
@@ -1376,7 +1378,7 @@ def mudar_status(*, ticket: Ticket, stage: TicketStage, actor) -> Ticket:
     with transaction.atomic():
         ticket = Ticket.objects.select_for_update().get(pk=ticket.pk)
         if ticket.status == TicketStatus.CLOSED:
-            raise TicketRuleViolation("Ticket fechado. Para reabrir, responda pelo chamado.")
+            raise TicketRuleViolation("Ticket fechado. Para reabrir, responda no próprio ticket.")
         if ticket.stage_id == stage.pk:
             raise TicketRuleViolation("Já está neste status.")
         if ticket.status != stage.category:

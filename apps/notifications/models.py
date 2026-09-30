@@ -18,12 +18,12 @@ class NotificationKind(models.TextChoices):
     # Ciclo de vida visto pelo CLIENTE (o portal): o e-mail de "seu chamado
     # foi resolvido/encerrado" e o de "sua conversa por chat terminou" — a
     # regra do portal é avisar por e-mail da abertura ao encerramento.
-    TICKET_CLOSED = "ticket_closed", "Chamado encerrado"
+    TICKET_CLOSED = "ticket_closed", "Ticket encerrado"
     MENTION = "mention", "Menção"
     SLA_WARNING = "sla_warning", "SLA próximo do limite"
     SLA_BREACHED = "sla_breached", "SLA estourado"
     CHAT_INCOMING = "chat_incoming", "Chat na fila"
-    CHAT_CONVERTED = "chat_converted", "Chat virou chamado"
+    CHAT_CONVERTED = "chat_converted", "Chat virou ticket"
     CHAT_CLOSED = "chat_closed", "Chat encerrado"
     ANNOUNCEMENT = "announcement", "Aviso"
     ATTACHMENT_BLOCKED = "attachment_blocked", "Anexo bloqueado"

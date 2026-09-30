@@ -546,7 +546,7 @@ class TicketViewSet(viewsets.GenericViewSet):
         ticket = self.get_object()
         if not ticket.is_content_visible_to(request.user):
             raise PermissionDenied(
-                "Este chamado é restrito ao solicitante; a conversa não pode ser exportada."
+                "Este ticket é restrito ao solicitante; a conversa não pode ser exportada."
             )
         if ticket.is_restricted():
             record_ticket_access(
@@ -697,16 +697,16 @@ class TicketViewSet(viewsets.GenericViewSet):
         """
         user = request.user
         if not user.is_internal:
-            raise PermissionDenied("Apenas usuários internos pegam chamados.")
+            raise PermissionDenied("Apenas usuários internos pegam tickets.")
         if not user.can(Perm.TICKET_BE_ASSIGNED):
-            raise PermissionDenied("Seu papel não pode ser responsável por chamados.")
+            raise PermissionDenied("Seu papel não pode ser responsável por tickets.")
         try:
             ticket = ticket_service.take_next(
                 actor=user, candidatos=selectors.visible_tickets(user),
             )
         except ticket_service.NadaParaPegar:
             return Response(
-                {"code": "nada_para_pegar", "detail": "Nenhum chamado sem responsável agora."},
+                {"code": "nada_para_pegar", "detail": "Nenhum ticket sem responsável agora."},
                 status=http.HTTP_409_CONFLICT,
             )
         except TicketRuleViolation as exc:
@@ -765,7 +765,7 @@ class TicketViewSet(viewsets.GenericViewSet):
         efeito colateral de virar seguidor por @menção, `mentions.py:108`,
         nenhuma porta para fazer isso de propósito)."""
         if not request.user.is_internal:
-            raise PermissionDenied("Seguir chamado é ação interna.")
+            raise PermissionDenied("Seguir ticket é ação interna.")
         ticket = self.get_object()
         if not ticket.is_content_visible_to(request.user):
             raise PermissionDenied("Sem acesso ao conteúdo deste ticket.")
@@ -931,10 +931,10 @@ class TicketViewSet(viewsets.GenericViewSet):
     def rate(self, request, pk=None):
         ticket = self.get_object()
         if ticket.requester_id != request.user.id:
-            raise PermissionDenied("Só quem abriu o chamado avalia o atendimento.")
+            raise PermissionDenied("Só quem abriu o ticket avalia o atendimento.")
         survey = getattr(ticket, "survey", None)
         if survey is None:
-            raise NotFound("Este chamado não tem pesquisa de satisfação.")
+            raise NotFound("Este ticket não tem pesquisa de satisfação.")
         ser = TicketRatingAnswerSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         try:

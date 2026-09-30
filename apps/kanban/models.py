@@ -80,7 +80,7 @@ class BoardLane(models.Model):
     # errada. Nulo = sem limite.
     wip_limit = models.PositiveSmallIntegerField(
         null=True, blank=True, validators=[MinValueValidator(1)],
-        help_text="Limite de chamados na coluna (aviso, não bloqueia).",
+        help_text="Limite de tickets na coluna (aviso, não bloqueia).",
     )
 
     class Meta:

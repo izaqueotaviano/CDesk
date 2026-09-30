@@ -33,4 +33,4 @@ class Command(BaseCommand):
         ticket = TicketAttachment.objects.filter(
             scan_status__in=(ScanStatus.PENDING, ScanStatus.ERROR)
         ).update(scan_status=ScanStatus.SKIPPED, scanned_at=agora)
-        self.stdout.write(f"Liberados: {chat} anexo(s) de chat, {ticket} de chamado.")
+        self.stdout.write(f"Liberados: {chat} anexo(s) de chat, {ticket} de ticket.")

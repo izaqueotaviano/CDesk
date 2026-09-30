@@ -115,4 +115,4 @@ class TestEncerramento:
         assert "falta de retorno" in email.subject
         assert not OutboundEmail.objects.filter(template="ticket_resolved").exists()
         aviso = Notification.objects.get(recipient=ana, kind=NotificationKind.TICKET_CLOSED)
-        assert "novo chamado" in aviso.body
+        assert "novo ticket" in aviso.body

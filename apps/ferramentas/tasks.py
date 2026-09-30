@@ -123,7 +123,7 @@ def importar_movidesk(self, job_id: int) -> None:
         )
 
         if job.apenas_baixar:
-            job.registrar("Só baixar: nada foi gravado nos chamados.", etapa="Concluído")
+            job.registrar("Só baixar: nada foi gravado nos tickets.", etapa="Concluído")
             job.concluir()
             _auditar(
                 job.requested_by,

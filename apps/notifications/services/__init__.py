@@ -64,13 +64,14 @@ def notify(*, recipient, kind, title, body="", url="", ticket=None, actor=None):
 def ticket_url(ticket, recipient, *, anchor: str = "") -> str:
     """Link do sino para um ticket — depende de QUEM vai clicar: agente cai
     no painel interno, cliente cai no portal. As duas bases do frontend têm
-    rotas diferentes para o mesmo ticket (`/chamados/<id>` vs.
-    `/portal/tickets/<id>`) — não existe `/tickets/<id>` em NENHUMA das
-    duas. Toda chamada a `notify()` sobre um ticket usa isto para montar
+    rotas diferentes para o mesmo ticket (`/tickets/<id>` vs.
+    `/portal/tickets/<id>`); o antigo `/chamados/<id>` do painel só
+    sobrevive como redirecionamento no frontend, para os links já gravados.
+    Toda chamada a `notify()` sobre um ticket usa isto para montar
     `url`, em vez de escrever o caminho na mão (foi assim que o caminho
     errado se espalhou por 9 pontos antes de existir uma tela que clicasse
     no link e revelasse o 404)."""
-    base = f"/chamados/{ticket.pk}" if recipient.is_internal else f"/portal/tickets/{ticket.pk}"
+    base = f"/tickets/{ticket.pk}" if recipient.is_internal else f"/portal/tickets/{ticket.pk}"
     return f"{base}{anchor}"
 
 

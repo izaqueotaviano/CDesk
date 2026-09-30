@@ -68,7 +68,7 @@ QUICK_REPLIES = [
 # "Estou com um problema no pedido nº" não é resposta a nada.
 QUICK_REPLIES_TICKET = [
     ("Ainda estou com o problema", "O problema continua acontecendo. "),
-    ("Já resolvi, pode fechar", "Consegui resolver por aqui, pode encerrar o chamado. Obrigado!"),
+    ("Já resolvi, pode fechar", "Consegui resolver por aqui, pode encerrar o ticket. Obrigado!"),
     ("Vou verificar e retorno", "Recebi, vou verificar por aqui e retorno com a informação."),
     ("Segue o print", "Segue em anexo o print do que está acontecendo."),
 ]
@@ -86,10 +86,16 @@ class Command(BaseCommand):
         ("Sem resposta do cliente", False),
         ("Cliente desistiu", False),
         ("Duplicado", False),
-        ("Virou chamado", False),
+        ("Virou ticket", False),
         ("Transferido para outro canal", True),
         ("Outro", True),
     ]
+
+    #: Motivo renomeado depois de já existir em banco: a chave do
+    #: `update_or_create` é o slug, então ele fica o de antes. Com o slug
+    #: derivado do nome novo, rodar o seed de novo criaria um segundo motivo
+    #: em vez de renomear o que já estava lá.
+    SLUG_FIXO = {"Virou ticket": "virou-chamado"}
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -208,7 +214,7 @@ class Command(BaseCommand):
 
         for ordem, (nome, exige_nota) in enumerate(self.CLOSE_REASONS):
             ChatCloseReason.objects.update_or_create(
-                slug=slugify(nome)[:50],
+                slug=self.SLUG_FIXO.get(nome) or slugify(nome)[:50],
                 defaults={"name": nome, "requires_note": exige_nota, "order": ordem},
             )
 

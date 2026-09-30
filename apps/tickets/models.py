@@ -286,7 +286,7 @@ class Ticket(TimeStampedModel):
         on_delete=models.PROTECT,
         null=True, blank=True,
         related_name="tickets",
-        help_text="Coluna do quadro. Nulo só em chamado antigo, antes da migração.",
+        help_text="Coluna do quadro. Nulo só em ticket antigo, antes da migração.",
     )
     priority = models.CharField(
         max_length=10, choices=TicketPriority.choices, default=TicketPriority.NORMAL
@@ -798,7 +798,7 @@ class TicketMacro(models.Model):
     #: chamado é ignorado. Veio do antigo `ChatMacro` na unificação.
     chat_name = models.CharField(
         max_length=200, blank=True, verbose_name="nome do chat",
-        help_text="Ao aplicar num chat, nomeia a conversa. Ignorado em chamado.",
+        help_text="Ao aplicar num chat, nomeia a conversa. Ignorado em ticket.",
     )
     category = models.ForeignKey(
         "tickets.TicketCategory",

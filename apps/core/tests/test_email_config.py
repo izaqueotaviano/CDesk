@@ -36,7 +36,7 @@ def config(db):
 
 def _enfileirar():
     email = queue_email(
-        to="ana@acme.test", subject="Resposta no chamado TD-1", template="ticket_replied",
+        to="ana@acme.test", subject="Resposta no ticket TD-1", template="ticket_replied",
         context={"requester_name": "Ana", "agent_name": "Samuel",
                  "reference": "TD-1", "subject": "Boleto"},
     )
