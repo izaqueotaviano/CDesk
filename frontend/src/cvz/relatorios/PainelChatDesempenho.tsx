@@ -39,7 +39,7 @@ const COLUNAS_PADRAO: Column<LinhaRelatorioChat>[] = [
     sortBy: (r) => r.fechados ?? 0, render: (r) => r.fechados ?? 0,
   },
   {
-    key: 'convertidos', header: 'Convertidos em chamado', numeric: true,
+    key: 'convertidos', header: 'Convertidos em ticket', numeric: true,
     sortBy: (r) => r.convertidos ?? 0, render: (r) => r.convertidos ?? 0,
   },
   {

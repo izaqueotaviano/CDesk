@@ -84,31 +84,31 @@ export const ABAS: DefinicaoAba[] = [
     rotulo: 'Aguardando seu retorno',
     params: { status: 'pending_customer' },
     destaque: true,
-    vazio: { titulo: 'Nada aguardando você', descricao: 'Quando o suporte precisar de uma resposta sua, o chamado aparece aqui.' },
+    vazio: { titulo: 'Nada aguardando você', descricao: 'Quando o suporte precisar de uma resposta sua, o ticket aparece aqui.' },
   },
   {
     id: 'aguardando-suporte',
     rotulo: 'Aguardando suporte',
     params: { status: 'new' },
-    vazio: { titulo: 'Nenhum chamado na fila', descricao: 'Chamados recém-abertos ficam aqui até a primeira resposta do suporte.' },
+    vazio: { titulo: 'Nenhum ticket na fila', descricao: 'Tickets recém-abertos ficam aqui até a primeira resposta do suporte.' },
   },
   {
     id: 'em-andamento',
     rotulo: 'Em andamento',
     params: { status: 'open' },
-    vazio: { titulo: 'Nenhum chamado em andamento', descricao: 'Chamados que o suporte já está tratando aparecem aqui.' },
+    vazio: { titulo: 'Nenhum ticket em andamento', descricao: 'Tickets que o suporte já está tratando aparecem aqui.' },
   },
   {
     id: 'resolvidos',
     rotulo: 'Resolvidos',
     params: { resolucao: 'resolvido' },
-    vazio: { titulo: 'Nenhum chamado resolvido ainda', descricao: 'Chamados concluídos pelo suporte ficam aqui, e podem ser reabertos respondendo.' },
+    vazio: { titulo: 'Nenhum ticket resolvido ainda', descricao: 'Tickets concluídos pelo suporte ficam aqui, e podem ser reabertos respondendo.' },
   },
   {
     id: 'fechados',
     rotulo: 'Fechados',
     params: { resolucao: 'fechado' },
-    vazio: { titulo: 'Nenhum chamado fechado', descricao: 'Chamados encerrados automaticamente por falta de retorno ficam aqui.' },
+    vazio: { titulo: 'Nenhum ticket fechado', descricao: 'Tickets encerrados automaticamente por falta de retorno ficam aqui.' },
   },
 ]
 

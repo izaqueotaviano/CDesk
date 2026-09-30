@@ -124,10 +124,10 @@ export function BuscaComando({
       [
         grupoNavegar,
         {
-          titulo: 'Chamados',
+          titulo: 'Tickets',
           linhas: (data?.tickets ?? []).map<Linha>((t) => ({
             chave: `chamado-${t.id}`,
-            rota: `/chamados/${t.id}`,
+            rota: `/tickets/${t.id}`,
             icone: 'ti ti-ticket',
             referencia: t.reference,
             titulo: t.subject,
@@ -233,7 +233,7 @@ export function BuscaComando({
             type="text"
             className="busca-comando__campo"
             role="combobox"
-            aria-label="Buscar chamado, empresa, pessoa ou área do sistema"
+            aria-label="Buscar ticket, empresa, pessoa ou área do sistema"
             placeholder="Buscar ou ir para…"
             autoComplete="off"
             spellCheck={false}

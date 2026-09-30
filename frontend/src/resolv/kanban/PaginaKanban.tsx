@@ -58,17 +58,17 @@ const idDoTicket = (id: string | number) => Number(String(id).replace('ticket-',
 function anuncios(nomeDoCartao: (id: number) => string, nomeDaColuna: (key: string) => string) {
   return {
     onDragStart: ({ active }: { active: { id: string | number } }) =>
-      `Pegou o chamado ${nomeDoCartao(idDoTicket(active.id))}. Setas para os lados mudam de coluna, espaço solta, Esc cancela.`,
+      `Pegou o ticket ${nomeDoCartao(idDoTicket(active.id))}. Setas para os lados mudam de coluna, espaço solta, Esc cancela.`,
     onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
       over
-        ? `Chamado ${nomeDoCartao(idDoTicket(active.id))} sobre a coluna ${nomeDaColuna(String(over.id))}.`
-        : `Chamado ${nomeDoCartao(idDoTicket(active.id))} fora de qualquer coluna.`,
+        ? `Ticket ${nomeDoCartao(idDoTicket(active.id))} sobre a coluna ${nomeDaColuna(String(over.id))}.`
+        : `Ticket ${nomeDoCartao(idDoTicket(active.id))} fora de qualquer coluna.`,
     onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
       over
-        ? `Chamado ${nomeDoCartao(idDoTicket(active.id))} solto na coluna ${nomeDaColuna(String(over.id))}.`
-        : `Movimento cancelado. O chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
+        ? `Ticket ${nomeDoCartao(idDoTicket(active.id))} solto na coluna ${nomeDaColuna(String(over.id))}.`
+        : `Movimento cancelado. O ticket ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
     onDragCancel: ({ active }: { active: { id: string | number } }) =>
-      `Movimento cancelado. O chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
+      `Movimento cancelado. O ticket ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
   }
 }
 
@@ -76,7 +76,7 @@ function anuncios(nomeDoCartao: (id: number) => string, nomeDaColuna: (key: stri
  *  inglês e fala de "space bar" e "draggable item"). */
 const INSTRUCOES = {
   draggable:
-    'Enter abre o chamado. Para mover, aperte espaço, use as setas para os lados para escolher a coluna e espaço de novo para soltar. Esc cancela.',
+    'Enter abre o ticket. Para mover, aperte espaço, use as setas para os lados para escolher a coluna e espaço de novo para soltar. Esc cancela.',
 }
 
 function mensagemDoErro(err: unknown, padrao: string): string {
@@ -239,7 +239,7 @@ export function PaginaKanban() {
       }
       // qualquer outra recusa (equipe interna, coluna de outro quadro etc.)
       // — o card volta pro lugar, e agora com o motivo à vista
-      setAvisoErro(mensagemDoErro(err, 'Não foi possível mover o chamado.'))
+      setAvisoErro(mensagemDoErro(err, 'Não foi possível mover o ticket.'))
       if (porTeclado) focarCartao(ticketId)
     }
   }
@@ -284,7 +284,7 @@ export function PaginaKanban() {
         <h1 className="kb-estado__titulo">Nenhum quadro ainda</h1>
         {me?.is_admin ? (
           <>
-            <p>Crie o primeiro quadro. Ele mostra os chamados não resolvidos por status.</p>
+            <p>Crie o primeiro quadro. Ele mostra os tickets não resolvidos por status.</p>
             <form
               className="kb-estado__form"
               onSubmit={(e) => {
@@ -339,7 +339,7 @@ export function PaginaKanban() {
       <header className="kb-pagina__header">
         <div className="kb-pagina__titulo-bloco">
           <h1 className="kb-pagina__titulo">Quadro</h1>
-          <p className="kb-pagina__subtitulo">Chamados não resolvidos por status. Arraste um cartão para mudar o status.</p>
+          <p className="kb-pagina__subtitulo">Tickets não resolvidos por status. Arraste um cartão para mudar o status.</p>
         </div>
         {quadros && quadros.length > 1 && (
           <div className="kb-filtro kb-filtro--quadro">
@@ -403,7 +403,7 @@ export function PaginaKanban() {
               total={totalPorColuna.get(coluna.key) ?? 0}
               filtrando={filtrando}
               agoraMs={agoraMs}
-              onAbrirTicket={(id) => navigate(`/chamados/${id}`)}
+              onAbrirTicket={(id) => navigate(`/tickets/${id}`)}
               onDefinirPrazo={(ticketId, iso) =>
                 quadroAtivo != null &&
                 definirPrazo.mutate(
@@ -414,7 +414,7 @@ export function PaginaKanban() {
               onDefinirLimite={salvarLimite}
               salvandoLimite={definirLimite.isPending}
               onApagarLane={(laneId) => {
-                if (window.confirm('Apagar esta coluna? Os chamados fixados nela voltam para a coluna do status. Nenhum é apagado.')) {
+                if (window.confirm('Apagar esta coluna? Os tickets fixados nela voltam para a coluna do status. Nenhum é apagado.')) {
                   apagarLane.mutate(laneId, {
                     onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível apagar a coluna.')),
                   })
@@ -446,7 +446,7 @@ export function PaginaKanban() {
                   aria-describedby="kb-nova-coluna-ajuda"
                 />
                 <p id="kb-nova-coluna-ajuda" className="kb-coluna__form-ajuda">
-                  Só agrupa os cartões. O status do chamado não muda.
+                  Só agrupa os cartões. O status do ticket não muda.
                 </p>
                 <div className="kb-coluna__form-nova-acoes">
                   <button type="submit" className="kb-botao kb-botao--primario" disabled={criarLane.isPending || !nomeNovaColuna.trim()}>

@@ -43,7 +43,7 @@ function montar() {
       <MemoryRouter initialEntries={['/inicio']}>
         <Routes>
           <Route path="/inicio" element={<FilaDePrioridade />} />
-          <Route path="/chamados/:id" element={<p>detalhe do ticket</p>} />
+          <Route path="/tickets/:id" element={<p>detalhe do ticket</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

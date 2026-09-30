@@ -56,10 +56,10 @@ function descreverAtualizacaoDeFundo(
   if (statusMudou) {
     const maisRecente = [...atual.events].sort((a, b) => (a.created_at > b.created_at ? -1 : 1))[0]
     if (maisRecente?.actor_name && maisRecente.to_status === atual.status) {
-      return `${maisRecente.actor_name} atualizou este chamado. O status agora é "${ROTULO_STATUS[atual.status]}".`
+      return `${maisRecente.actor_name} atualizou este ticket. O status agora é "${ROTULO_STATUS[atual.status]}".`
     }
   }
-  return 'Este chamado foi atualizado enquanto você olhava.'
+  return 'Este ticket foi atualizado enquanto você olhava.'
 }
 
 /** Placeholder com a forma da tela — a pessoa vê onde cada coisa vai
@@ -203,8 +203,8 @@ function DetalheCarregado({
     'ticket.nota': ticket.content_hidden ? undefined : () => pedirCompositor(ticket.id, 'nota'),
     'ticket.atribuir': podeAssumir ? assumir : undefined,
     'ticket.encerrar': podeFechar ? () => setModalFechar(true) : undefined,
-    'ticket.anterior': anterior !== undefined ? () => navigate(`/chamados/${anterior}`) : undefined,
-    'ticket.proximo': proximo !== undefined ? () => navigate(`/chamados/${proximo}`) : undefined,
+    'ticket.anterior': anterior !== undefined ? () => navigate(`/tickets/${anterior}`) : undefined,
+    'ticket.proximo': proximo !== undefined ? () => navigate(`/tickets/${proximo}`) : undefined,
     'geral.fechar': painelAberto ? () => setPainelAberto(null) : undefined,
   })
 
@@ -370,7 +370,7 @@ export function PaginaDetalheTicket() {
             >
               {isFetching ? 'Tentando…' : 'Tentar de novo'}
             </button>
-            <button type="button" className="detalhe__botao" onClick={() => navigate('/chamados')}>
+            <button type="button" className="detalhe__botao" onClick={() => navigate('/tickets')}>
               Voltar para a lista
             </button>
           </div>

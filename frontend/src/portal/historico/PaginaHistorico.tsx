@@ -137,7 +137,7 @@ function NotaChat({ chat, max }: { chat: Chat; max: number }) {
   if (chat.ticket_id) {
     return (
       <Link to={`/portal/tickets/${chat.ticket_id}`} className="text-pequeno font-medio text-tinta underline decoration-borda-controle underline-offset-2 hover:decoration-current">
-        Continuou no chamado {chat.ticket_reference}
+        Continuou no ticket {chat.ticket_reference}
       </Link>
     )
   }
@@ -157,7 +157,7 @@ function LinhaTicket({ ticket, pendente }: { ticket: TicketResumo; pendente: boo
           <PilulaStatus ticket={ticket} />
         </div>
         <Link to={`/portal/tickets/${ticket.id}`} className="mt-0.5 block truncate rounded-sm text-corpo font-medio text-tinta hover:underline">
-          {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
+          {ticket.content_hidden ? 'Ticket restrito' : ticket.subject}
         </Link>
         <p className="mt-0.5 text-legenda text-tinta-secundaria">
           {ticket.auto_closed ? 'Fechado' : 'Resolvido'} em {dataCurta(ticket.closed_at)}
@@ -286,7 +286,7 @@ export function PaginaHistorico() {
       <header>
         <h1 className="text-titulo-lg font-forte">Histórico</h1>
         <p className="mt-1 text-corpo text-tinta-secundaria">
-          Chamados resolvidos ou fechados e conversas encerradas, com as avaliações que você deu.
+          Tickets resolvidos ou fechados e conversas encerradas, com as avaliações que você deu.
         </p>
       </header>
 
@@ -319,7 +319,7 @@ export function PaginaHistorico() {
                     <span className="block truncate text-pequeno font-medio">
                       <span className="fonte-mono text-tinta-secundaria">{t.reference}</span> · {t.subject}
                     </span>
-                    <span className="block text-legenda text-tinta-secundaria">chamado resolvido</span>
+                    <span className="block text-legenda text-tinta-secundaria">ticket resolvido</span>
                   </span>
                   <Link to={`/portal/tickets/${t.ticket_id}`} className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
                     Avaliar
@@ -332,10 +332,10 @@ export function PaginaHistorico() {
       )}
 
       <section aria-label="Resumo" className="grid grid-cols-3 gap-2 sm:gap-3 md:gap-4">
-        <CartaoNumero rotulo="Chamados encerrados" valor={contagens.tickets} icone={IconTicket} />
+        <CartaoNumero rotulo="Tickets encerrados" valor={contagens.tickets} icone={IconTicket} />
         <CartaoNumero rotulo="Conversas encerradas" valor={contagens.chats} icone={IconMessageCircle} />
         <CartaoNumero
-          rotulo="Chamados avaliados"
+          rotulo="Tickets avaliados"
           valor={contagens.ticketsAvaliados}
           icone={IconStar}
           detalhe={contagens.tickets ? `de ${contagens.tickets} encerrado${contagens.tickets === 1 ? '' : 's'}` : undefined}
@@ -443,7 +443,7 @@ export function PaginaHistorico() {
               temRecorteTickets ? (
                 <EstadoVazio
                   icone={IconZoomCancel}
-                  titulo="Nenhum chamado encontrado"
+                  titulo="Nenhum ticket encontrado"
                   descricao="Tente outro termo ou limpe os filtros."
                   acao={
                     <Button variant="secondary" size="sm" onClick={limparTudo}>
@@ -454,11 +454,11 @@ export function PaginaHistorico() {
               ) : (
                 <EstadoVazio
                   icone={IconHistory}
-                  titulo="Nenhum chamado encerrado ainda"
-                  descricao="Quando um chamado for resolvido ou fechado, ele aparece aqui com a avaliação que você der."
+                  titulo="Nenhum ticket encerrado ainda"
+                  descricao="Quando um ticket for resolvido ou fechado, ele aparece aqui com a avaliação que você der."
                   acao={
                     <Link to="/portal/tickets" className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
-                      Ver chamados em aberto
+                      Ver tickets em aberto
                     </Link>
                   }
                 />

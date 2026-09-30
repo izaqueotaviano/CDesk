@@ -309,7 +309,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
           {podeEditar && (
             <span className="props__ajuda">{avisoEquipes ?? 'Transferir muda quem enxerga'}</span>
           )}
-          <EstadoCampo m={mudarEquipe} padrao="Não foi possível transferir o chamado." />
+          <EstadoCampo m={mudarEquipe} padrao="Não foi possível transferir o ticket." />
         </Campo>
       </section>
 
@@ -511,7 +511,7 @@ export function PainelPropriedades({ ticket, me }: { ticket: TicketDetalhe; me: 
             )
           }
           title={`Transferir para ${nomeDaEquipe(equipeAlvo)}?`}
-          description={`O chamado sai da fila de ${ticket.team?.name ?? 'nenhuma equipe'} e passa a ser visto por quem atende ${nomeDaEquipe(equipeAlvo)}. A troca fica registrada no histórico.`}
+          description={`O ticket sai da fila de ${ticket.team?.name ?? 'nenhuma equipe'} e passa a ser visto por quem atende ${nomeDaEquipe(equipeAlvo)}. A troca fica registrada no histórico.`}
           confirmLabel="Transferir"
         />
       )}

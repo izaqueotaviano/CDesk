@@ -19,7 +19,7 @@ function listar(extra: string) {
  *  antes, ou o último foi fechado. Não é falha de rede: a tela diz outra coisa. */
 export class NadaParaPegar extends Error {
   constructor() {
-    super('Nenhum chamado sem responsável agora.')
+    super('Nenhum ticket sem responsável agora.')
     this.name = 'NadaParaPegar'
   }
 }

@@ -114,7 +114,7 @@ describe('Minha conta (console)', () => {
 
   it('cada chave de aviso grava só o seu tipo e o seu canal', async () => {
     montar()
-    const chave = await screen.findByRole('switch', { name: 'Chamado atribuído a você por e-mail' })
+    const chave = await screen.findByRole('switch', { name: 'Ticket atribuído a você por e-mail' })
     await waitFor(() => expect(chave).toHaveAttribute('aria-checked', 'true'))
 
     fireEvent.click(chave)
@@ -134,7 +134,7 @@ describe('Minha conta (console)', () => {
 
   it('prazo de pedido LGPD só aparece para administrador', async () => {
     montar()
-    await screen.findByRole('switch', { name: 'Chamado atribuído a você no Resolv' })
+    await screen.findByRole('switch', { name: 'Ticket atribuído a você no Resolv' })
     expect(screen.queryByText('Prazo de pedido LGPD')).not.toBeInTheDocument()
   })
 

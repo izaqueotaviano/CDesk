@@ -128,7 +128,7 @@ function validar(f: FormularioSistema): Erros {
   // desabilitado nesse caso, então não atrapalha ninguém, e evita gravar um
   // texto vazio que só apareceria no dia em que alguém religasse a regra.
   if (!f.fechamentoMensagem.trim()) {
-    erros.fechamentoMensagem = 'O cliente precisa ler alguma coisa quando o chamado fecha sozinho.'
+    erros.fechamentoMensagem = 'O cliente precisa ler alguma coisa quando o ticket fecha sozinho.'
   }
   if (!f.avisoMensagem.trim()) {
     erros.avisoMensagem = 'O cliente precisa ler alguma coisa no aviso.'
@@ -321,7 +321,7 @@ export function AbaSistema() {
     <div className="cfg-aba">
       <FormSection
         title="Anexos"
-        description="Vale para chamados e chat. O backend recusa o upload que passar destes limites, e a tela do cliente anuncia os mesmos números. Aumentar aqui exige que o proxy acompanhe (nginx: client_max_body_size), senão o upload morre com 413 antes de chegar na validação."
+        description="Vale para tickets e chat. O backend recusa o upload que passar destes limites, e a tela do cliente anuncia os mesmos números. Aumentar aqui exige que o proxy acompanhe (nginx: client_max_body_size), senão o upload morre com 413 antes de chegar na validação."
       >
         <FormRow columns={3}>
           <TextInput
@@ -357,7 +357,7 @@ export function AbaSistema() {
 
       <FormSection
         title="Fechamento automático"
-        description="Chamado parado em “aguardando o cliente” fecha sozinho depois do prazo. As horas são corridas (relógio de parede), não horário comercial: quem para na sexta à tarde pode fechar no domingo."
+        description="Ticket parado em “aguardando o cliente” fecha sozinho depois do prazo. As horas são corridas (relógio de parede), não horário comercial: quem para na sexta à tarde pode fechar no domingo."
       >
         <FormRow columns={2}>
           <TextInput
@@ -392,7 +392,7 @@ export function AbaSistema() {
             label="Mensagem do aviso prévio"
             rows={3}
             disabled={!avisoLigado}
-            helper="O cliente lê isto antes do chamado fechar."
+            helper="O cliente lê isto antes do ticket fechar."
             value={form.avisoMensagem}
             error={erros.avisoMensagem}
             onChange={(e) => atualizarCampo('avisoMensagem', e.target.value)}
@@ -401,7 +401,7 @@ export function AbaSistema() {
             label="Mensagem do fechamento"
             rows={3}
             disabled={!prazoLigado}
-            helper="O cliente lê isto no chamado que fechou por falta de resposta."
+            helper="O cliente lê isto no ticket que fechou por falta de resposta."
             value={form.fechamentoMensagem}
             error={erros.fechamentoMensagem}
             onChange={(e) => atualizarCampo('fechamentoMensagem', e.target.value)}
@@ -411,10 +411,10 @@ export function AbaSistema() {
 
       <FormSection
         title="Pesquisa de satisfação"
-        description="Enviada quando o chamado é fechado, com um link de resposta que expira."
+        description="Enviada quando o ticket é fechado, com um link de resposta que expira."
       >
         <FormRow columns={2}>
-          <Field label="Enviar ao fechar o chamado">
+          <Field label="Enviar ao fechar o ticket">
             <Toggle
               checked={form.csatAtivo}
               onChange={(e) => atualizarCampo('csatAtivo', e.target.checked)}
@@ -452,7 +452,7 @@ export function AbaSistema() {
 
       <FormSection
         title="E-mail"
-        description="Por onde saem os avisos (resposta no chamado, código de login, pesquisa…). Desligado, nada sai, nem o código de login. A fila registra o que deixou de ir. Sem servidor SMTP, usa o que o ambiente definiu (em desenvolvimento, o console)."
+        description="Por onde saem os avisos (resposta no ticket, código de login, pesquisa…). Desligado, nada sai, nem o código de login. A fila registra o que deixou de ir. Sem servidor SMTP, usa o que o ambiente definiu (em desenvolvimento, o console)."
       >
         <FormRow columns={2}>
           <Field label="Entrega de e-mail">

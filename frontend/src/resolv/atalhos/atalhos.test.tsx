@@ -172,7 +172,7 @@ describe('regras do despachante', () => {
 describe('AtalhosGlobais e o painel', () => {
   function montar(onAbrirBusca = vi.fn()) {
     render(
-      <MemoryRouter initialEntries={['/chamados/42']}>
+      <MemoryRouter initialEntries={['/tickets/42']}>
         <AtalhosGlobais onAbrirBusca={onAbrirBusca} />
         <button>fora do painel</button>
         <Routes>

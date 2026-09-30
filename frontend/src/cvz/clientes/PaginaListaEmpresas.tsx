@@ -219,7 +219,7 @@ export function PaginaListaEmpresas() {
                   title="Nenhuma empresa cadastrada"
                   description={
                     podeEditar
-                      ? 'Cadastre a primeira empresa para abrir chamados em nome dela.'
+                      ? 'Cadastre a primeira empresa para abrir tickets em nome dela.'
                       : 'Quando um administrador cadastrar empresas, elas aparecem aqui.'
                   }
                   action={

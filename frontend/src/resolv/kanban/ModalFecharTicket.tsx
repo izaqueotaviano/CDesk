@@ -53,7 +53,7 @@ export function ModalFecharTicket({ cartao, enviando, onFechar, onCancelar }: Pr
   const fimDate = fim ? new Date(fim) : null
 
   const erroInicio =
-    inicioDate && inicioDate < criadoEm ? 'Não pode ser antes da abertura do chamado.' : undefined
+    inicioDate && inicioDate < criadoEm ? 'Não pode ser antes da abertura do ticket.' : undefined
   const erroFim =
     fimDate && inicioDate && fimDate < inicioDate
       ? 'Não pode ser antes do início.'
@@ -71,7 +71,7 @@ export function ModalFecharTicket({ cartao, enviando, onFechar, onCancelar }: Pr
         note: nota.trim(),
       })
     } catch (e) {
-      setErro(e instanceof ApiError ? (e.detail ?? 'Não foi possível fechar o chamado.') : 'Não foi possível fechar o chamado.')
+      setErro(e instanceof ApiError ? (e.detail ?? 'Não foi possível fechar o ticket.') : 'Não foi possível fechar o ticket.')
     }
   }
 
@@ -87,14 +87,14 @@ export function ModalFecharTicket({ cartao, enviando, onFechar, onCancelar }: Pr
             Cancelar
           </Button>
           <Button onClick={confirmar} disabled={enviando || !inicio || !fim || !!erroInicio || !!erroFim}>
-            {enviando ? 'Fechando…' : 'Fechar chamado'}
+            {enviando ? 'Fechando…' : 'Fechar ticket'}
           </Button>
         </>
       }
     >
       <p className="kb-modal-fechar__intro">
-        Para fechar o chamado, informe quando a solução começou e terminou, como na tela do
-        chamado.
+        Para fechar o ticket, informe quando a solução começou e terminou, como na tela do
+        ticket.
       </p>
 
       <div className="kb-modal-fechar__campo">

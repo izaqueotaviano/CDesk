@@ -101,7 +101,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
     converter.mutate(Number(equipeId), {
       onSuccess: (c) => {
         setAcao(null)
-        navigate(`/chamados/${c.ticket_id}`)
+        navigate(`/tickets/${c.ticket_id}`)
       },
       onError: (e) => setErro(mensagemDe(e, 'Não foi possível converter.')),
     })
@@ -256,9 +256,9 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
             )}
             {chat.ticket_reference && (
               <>
-                <dt>Chamado</dt>
+                <dt>Ticket</dt>
                 <dd>
-                  <button type="button" className="cc-link" onClick={() => navigate(`/chamados/${chat.ticket_id}`)}>
+                  <button type="button" className="cc-link" onClick={() => navigate(`/tickets/${chat.ticket_id}`)}>
                     {chat.ticket_reference}
                   </button>
                 </dd>
@@ -287,7 +287,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
           <h3 id={`cc-acoes-${chat.id}`}>Ações</h3>
           <div className="cc-painel__botoes">
             {botaoDeAcao('transferir', 'ti-arrows-left-right', 'Transferir')}
-            {botaoDeAcao('converter', 'ti-ticket', 'Converter em chamado')}
+            {botaoDeAcao('converter', 'ti-ticket', 'Converter em ticket')}
             {botaoDeAcao('encerrar', 'ti-circle-x', 'Encerrar', true)}
           </div>
 
@@ -301,7 +301,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
 
           {acao === 'converter' && (
             <div className="cc-painel__form cc-acao">
-              <label htmlFor="cc-equipe">Equipe do chamado</label>
+              <label htmlFor="cc-equipe">Equipe do ticket</label>
               <select id="cc-equipe" value={equipeId} onChange={(e) => setEquipeId(e.target.value)}>
                 <option value="">Escolha a equipe</option>
                 {(equipes ?? []).map((t) => (
@@ -311,7 +311,7 @@ export function PainelChat({ chatId, me }: { chatId: number; me: Me | undefined 
                 ))}
               </select>
               <p className="cc-acao__ajuda">
-                O chat encerra, a transcrição inteira vira a primeira mensagem do chamado, e o cliente recebe o número.
+                O chat encerra, a transcrição inteira vira a primeira mensagem do ticket, e o cliente recebe o número.
               </p>
               {erro && (
                 <p className="cc-acao__erro" role="alert">

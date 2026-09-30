@@ -70,7 +70,7 @@ const FORMATOS: { id: Formato; icone: string; rotulo: string; atalho?: string }[
 ]
 
 const ROTULO_GRUPO_MENCAO: Record<string, string> = {
-  ticket: 'No chamado',
+  ticket: 'No ticket',
   equipe: 'Da equipe',
   equipes: 'Equipe inteira',
 }
@@ -1282,7 +1282,7 @@ export function Compositor({ ticket, me, pedidoReabrir }: Props) {
                     />
                     <p className="compositor__agenda-dica">
                       {motivoSemAgenda ??
-                        `Sai sozinha na hora marcada, com este texto, e o chamado fica “${ROTULO_AO_ENVIAR[status]}”.`}
+                        `Sai sozinha na hora marcada, com este texto, e o ticket fica “${ROTULO_AO_ENVIAR[status]}”.`}
                     </p>
                     <div className="compositor__agenda-acoes">
                       <button

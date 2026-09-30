@@ -12,7 +12,7 @@ import './relatorios.scss'
  * existia inteiro (`apps/reports/`, indicadores gerenciais + exportação
  * síncrona de CSV). Fora desta rodada, de propósito: exportação assíncrona em
  * XLSX/PDF (`ReportExportViewSet`) e uma segunda listagem de tickets no
- * "Relatório detalhado" — a de /chamados já cobre isso, com os mesmos filtros.
+ * "Relatório detalhado" — a de /tickets já cobre isso, com os mesmos filtros.
  *
  * "Chats" (`PainelChats`/`ChatStatsView`) é volume — quantos chats cada
  * agente atendeu. "Desempenho do chat" (`PainelChatDesempenho`) é qualidade

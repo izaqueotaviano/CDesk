@@ -72,7 +72,7 @@ export function PainelAcessos() {
                 <LinhaVazia colunas={7}>
                   {ticket || user || apenasNegados
                     ? 'Nenhum acesso registrado para esse filtro.'
-                    : 'Nenhuma leitura de chamado de equipe restrita registrada ainda.'}
+                    : 'Nenhuma leitura de ticket de equipe restrita registrada ainda.'}
                 </LinhaVazia>
               )}
             </tbody>

@@ -37,10 +37,10 @@ const GRUPOS: { rotulo: string; secoes: Secao[] }[] = [
   {
     rotulo: 'Atendimento',
     secoes: [
-      { id: 'status', rotulo: 'Status', descricao: 'As etapas por onde o chamado passa, da abertura ao fechamento.', conteudo: () => <AbaStatus /> },
+      { id: 'status', rotulo: 'Status', descricao: 'As etapas por onde o ticket passa, da abertura ao fechamento.', conteudo: () => <AbaStatus /> },
       { id: 'servicos', rotulo: 'Serviços', descricao: 'O que a equipe atende. Cada categoria pode ficar dentro de um serviço.', conteudo: () => <AbaServicos /> },
-      { id: 'categorias', rotulo: 'Categorias', descricao: 'Assuntos para classificar os chamados na abertura e na triagem.', conteudo: () => <AbaCategorias /> },
-      { id: 'tags', rotulo: 'Tags', descricao: 'Marcadores livres para agrupar e filtrar chamados.', conteudo: () => <AbaTags /> },
+      { id: 'categorias', rotulo: 'Categorias', descricao: 'Assuntos para classificar os tickets na abertura e na triagem.', conteudo: () => <AbaCategorias /> },
+      { id: 'tags', rotulo: 'Tags', descricao: 'Marcadores livres para agrupar e filtrar tickets.', conteudo: () => <AbaTags /> },
       { id: 'sla', rotulo: 'SLA', descricao: 'Prazos de primeira resposta e de resolução, por plano e por equipe.', conteudo: () => <AbaSla /> },
       // Rótulo "Expediente", não "Calendário", pra não confundir com o
       // item de mesmo nome no menu principal (agenda/eventos). Aqui é só
@@ -53,7 +53,7 @@ const GRUPOS: { rotulo: string; secoes: Secao[] }[] = [
     secoes: [
       { id: 'equipes', rotulo: 'Equipes', descricao: 'Os times, quem faz parte de cada um e o que cada time enxerga.', conteudo: () => <AbaEquipes /> },
       { id: 'papeis', rotulo: 'Papéis', descricao: 'O que cada perfil de acesso pode ver e fazer.', conteudo: () => <AbaPapeis /> },
-      { id: 'planos', rotulo: 'Planos', descricao: 'Os planos de suporte dos clientes: limite de chamados, franquia e chat.', conteudo: () => <AbaPlanos /> },
+      { id: 'planos', rotulo: 'Planos', descricao: 'Os planos de suporte dos clientes: limite de tickets, franquia e chat.', conteudo: () => <AbaPlanos /> },
     ],
   },
   {
@@ -79,7 +79,7 @@ const GRUPOS: { rotulo: string; secoes: Secao[] }[] = [
       // Ferramentas de administração (apps/ferramentas): trazer os tickets
       // do Movidesk pela API, e o backup/restauração do banco. Por último
       // porque não são cadastro nem parâmetro, são operações.
-      { id: 'importar', rotulo: 'Importar', descricao: 'Traga pessoas e chamados do Movidesk.', conteudo: () => <AbaImportar /> },
+      { id: 'importar', rotulo: 'Importar', descricao: 'Traga pessoas e tickets do Movidesk.', conteudo: () => <AbaImportar /> },
       { id: 'backup', rotulo: 'Backup', descricao: 'Cópias do banco de dados: criar, baixar, restaurar e agendar.', conteudo: () => <AbaBackup /> },
     ],
   },

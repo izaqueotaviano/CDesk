@@ -72,7 +72,7 @@ export function ListaTrabalho() {
   const definirAtiva = useTabs((s) => s.definirAtiva)
 
   const tickets: AbaDeTicket[] = todas.filter(ehTicket).map((a) => ({ ...a, chave: chaveAba(a) }))
-  const ativa = pathname.match(/^\/chamados\/(\d+)$/)?.[1]
+  const ativa = pathname.match(/^\/tickets\/(\d+)$/)?.[1]
   const chaveAtiva = ativa ? `ticket:${ativa}` : null
 
   // Roving tabindex: um item da lista por vez recebe o Tab; as setas movem.
@@ -93,7 +93,7 @@ export function ListaTrabalho() {
   function sairSeFoiAAtiva(fechadas: Set<string>) {
     if (!chaveAtiva || !fechadas.has(chaveAtiva)) return
     const sobrou = tickets.filter((t) => !fechadas.has(t.chave)).at(-1)
-    navigate(sobrou ? `/chamados/${sobrou.ticketId}` : '/chamados')
+    navigate(sobrou ? `/tickets/${sobrou.ticketId}` : '/tickets')
   }
 
   /** Rascunho é local por contrato (docs/06: nunca vai ao servidor), então
@@ -130,7 +130,7 @@ export function ListaTrabalho() {
   function abrir(aba: AbaDeTicket) {
     setChaveComFoco(aba.chave)
     definirAtiva(aba.chave)
-    navigate(`/chamados/${aba.ticketId}`)
+    navigate(`/tickets/${aba.ticketId}`)
   }
 
   function moverFoco(indice: number, direcao: 1 | -1) {

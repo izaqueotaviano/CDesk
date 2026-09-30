@@ -33,15 +33,16 @@ import { PaginaAuditoria } from '@/cvz/auditoria/PaginaAuditoria'
 import { PaginaConfiguracoes } from '@/cvz/configuracoes/PaginaConfiguracoes'
 import { PaginaRelatorios as PaginaRelatoriosResolv } from '@/cvz/relatorios/PaginaRelatorios'
 import { PaginaNovoTicket } from '@/resolv/tickets/novo/PaginaNovoTicket'
+import { RedirecionarDeChamados } from '@/resolv/tickets/RedirecionarDeChamados'
 
 /**
- * /app/tickets/:id não tem equivalente estático em /chamados/:id — precisa
+ * /app/tickets/:id não tem equivalente estático em /tickets/:id — precisa
  * ler o :id da URL antiga antes de redirecionar, então não dá pra ser um
  * <Navigate> direto como as rotas irmãs (chat, relatórios, tickets, kanban).
  */
 function RedirecionarParaChamado() {
   const { id } = useParams<{ id: string }>()
-  return <Navigate to={`/chamados/${id}`} replace />
+  return <Navigate to={`/tickets/${id}`} replace />
 }
 
 /**
@@ -95,7 +96,7 @@ export const router = createBrowserRouter([
       },
       // ---- Tela de tickets no NOVO design system Resolv (a que estamos testando) ----
       {
-        path: '/chamados',
+        path: '/tickets',
         element: (
           <RotaProtegida>
             <NovoShell>
@@ -104,10 +105,10 @@ export const router = createBrowserRouter([
           </RotaProtegida>
         ),
       },
-      // Antes de `/chamados/:id` por clareza — o React Router já classifica o
+      // Antes de `/tickets/:id` por clareza — o React Router já classifica o
       // segmento estático acima do dinâmico, então "novo" nunca cai no detalhe.
       {
-        path: '/chamados/novo',
+        path: '/tickets/novo',
         element: (
           <RotaProtegida>
             <NovoShell>
@@ -117,7 +118,7 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/chamados/:id',
+        path: '/tickets/:id',
         element: (
           <RotaProtegida>
             <NovoShell>
@@ -126,9 +127,15 @@ export const router = createBrowserRouter([
           </RotaProtegida>
         ),
       },
+      // Endereços antigos do console (antes de "chamado" virar "ticket" no
+      // produto): e-mails e notificações já gravadas ainda apontam para cá.
+      // Só redirecionam, mantendo query e hash — ver RedirecionarDeChamados.
+      { path: '/chamados', element: <RedirecionarDeChamados /> },
+      { path: '/chamados/novo', element: <RedirecionarDeChamados /> },
+      { path: '/chamados/:id', element: <RedirecionarDeChamados /> },
 
       // ---- Quadro (Kanban) — vista computada sobre os mesmos tickets de
-      // /chamados, nunca uma lista própria (ver apps/kanban/services/board_view.py) ----
+      // /tickets, nunca uma lista própria (ver apps/kanban/services/board_view.py) ----
       {
         path: '/quadro',
         element: (
@@ -268,8 +275,8 @@ export const router = createBrowserRouter([
         ),
         children: [
           { index: true, element: <PaginaInicio /> },
-          // a lista de tickets virou tela própria (/chamados, NovoShell); o caminho antigo só redireciona
-          { path: 'tickets', element: <Navigate to="/chamados" replace /> },
+          // a lista de tickets virou tela própria (/tickets, NovoShell); o caminho antigo só redireciona
+          { path: 'tickets', element: <Navigate to="/tickets" replace /> },
           { path: 'tickets/:id', element: <RedirecionarParaChamado /> },
           // o console de chat virou tela própria (/chat, NovoShell); o caminho antigo só redireciona
           { path: 'chat', element: <Navigate to="/chat" replace /> },

@@ -38,10 +38,10 @@ export function PaginaInicio() {
   const navigate = useNavigate()
 
   const irPara: Record<string, string> = {
-    'nao-resolvidos': '/chamados',
-    'nao-atribuidos': '/chamados',
-    meus: '/chamados',
-    resolvidos: '/chamados',
+    'nao-resolvidos': '/tickets',
+    'nao-atribuidos': '/tickets',
+    meus: '/tickets',
+    resolvidos: '/tickets',
   }
 
   const filaAberta = config.data?.queue_open
@@ -86,7 +86,7 @@ export function PaginaInicio() {
             key={k.chave}
             type="button"
             className="inicio__kpi"
-            onClick={() => navigate(irPara[k.chave] ?? '/chamados')}
+            onClick={() => navigate(irPara[k.chave] ?? '/tickets')}
           >
             <span className="inicio__kpi-rotulo">{k.rotulo}</span>
             <span

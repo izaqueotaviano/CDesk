@@ -37,7 +37,7 @@ const REENVIO_SEGUNDOS = 30
 
 const TITULO = { cliente: 'Entrar no portal', equipe: 'Entrar no painel' } as const
 const SUBTITULO = {
-  cliente: 'Acompanhe seus chamados, fale com a equipe e avalie o atendimento.',
+  cliente: 'Acompanhe seus tickets, fale com a equipe e avalie o atendimento.',
   equipe: 'A fila, o chat e os indicadores da equipe.',
 } as const
 

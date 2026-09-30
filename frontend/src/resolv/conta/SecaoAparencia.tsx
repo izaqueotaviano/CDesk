@@ -60,7 +60,7 @@ export function SecaoAparencia() {
         <LinhaDeAjuste
           id={idDensidade}
           titulo="Densidade das listas"
-          descricao="Compacta mostra mais chamados por tela; confortável dá mais respiro a cada linha."
+          descricao="Compacta mostra mais tickets por tela; confortável dá mais respiro a cada linha."
         >
           <Segmentado<Densidade>
             rotuladoPor={idDensidade}

@@ -116,7 +116,7 @@ describe('Avisos de segundo plano', () => {
       kind: 'ticket_created',
       title: 'Novo chamado TCK-0012',
       body: 'Acme · Impressora não imprime',
-      url: '/chamados/12',
+      url: '/tickets/12',
     })
     await cederAoLoop()
 
@@ -179,14 +179,14 @@ describe('Avisos de segundo plano', () => {
     const navegou: string[] = []
     modulo.definirNavegacao((url) => navegou.push(url))
 
-    ouvinte!({ type: 'notification', kind: 'ticket_assigned', title: 'Te atribuíram', url: '/chamados/12' })
+    ouvinte!({ type: 'notification', kind: 'ticket_assigned', title: 'Te atribuíram', url: '/tickets/12' })
     await cederAoLoop()
 
     const aviso = avisosCriados[0].instancia as { onclick: () => void }
     window.focus = () => {}
     aviso.onclick()
 
-    expect(navegou).toEqual(['/chamados/12'])
+    expect(navegou).toEqual(['/tickets/12'])
   })
 })
 

@@ -65,7 +65,7 @@ export function CartoesTickets({
 
             <div className="cartao-ticket__corpo">
               <Link
-                to={`/chamados/${t.id}`}
+                to={`/tickets/${t.id}`}
                 className="cartao-ticket__assunto"
                 aria-label={rotuloAbrirChamado(t)}
                 onClick={(e) => e.stopPropagation()}

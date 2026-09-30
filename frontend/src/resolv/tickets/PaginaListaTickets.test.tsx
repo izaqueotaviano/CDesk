@@ -141,14 +141,14 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function montar(url = '/chamados') {
+function montar(url = '/tickets') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[url]}>
         <Routes>
           <Route
-            path="/chamados"
+            path="/tickets"
             element={
               <>
                 <PaginaListaTickets />
@@ -156,7 +156,7 @@ function montar(url = '/chamados') {
               </>
             }
           />
-          <Route path="/chamados/:id" element={<UrlAtual />} />
+          <Route path="/tickets/:id" element={<UrlAtual />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -328,7 +328,7 @@ describe('PaginaListaTickets — recorte de cada gaveta', () => {
 
 describe('PaginaListaTickets — filtros na URL', () => {
   it('marcar prioridades vira ?priority= na URL e na consulta, e combina com a visão', async () => {
-    montar('/chamados?view=nao-atribuidos')
+    montar('/tickets?view=nao-atribuidos')
     await screen.findByText('T-0007')
 
     fireEvent.click(pilula('Prioridade'))
@@ -363,7 +363,7 @@ describe('PaginaListaTickets — filtros na URL', () => {
   })
 
   it('filtro vindo da URL já chega aplicado (link compartilhado)', async () => {
-    montar('/chamados?team=suporte&sla=at_risk')
+    montar('/tickets?team=suporte&sla=at_risk')
     await screen.findByText('T-0007')
 
     const q = ultimaListagem()
@@ -373,7 +373,7 @@ describe('PaginaListaTickets — filtros na URL', () => {
   })
 
   it('?solicitante= (link do detalhe) vira ?requester= na API e uma pílula que só desliga', async () => {
-    montar('/chamados?solicitante=41')
+    montar('/tickets?solicitante=41')
     await screen.findByText('T-0007')
 
     expect(ultimaListagem().get('requester')).toBe('41')
@@ -388,7 +388,7 @@ describe('PaginaListaTickets — filtros na URL', () => {
   })
 
   it('?empresa= (link da página da empresa) vira ?company= na API, com o nome da faceta na pílula', async () => {
-    montar('/chamados?empresa=31')
+    montar('/tickets?empresa=31')
     await screen.findByText('T-0007')
 
     expect(ultimaListagem().get('company')).toBe('31')
@@ -397,19 +397,19 @@ describe('PaginaListaTickets — filtros na URL', () => {
   })
 
   it('"Limpar filtros" tira todos os filtros e mantém a visão', async () => {
-    montar('/chamados?view=todos&priority=urgent&team=suporte')
+    montar('/tickets?view=todos&priority=urgent&team=suporte')
     await screen.findByText('T-0007')
 
     fireEvent.click(screen.getByRole('button', { name: 'Limpar filtros' }))
 
     await waitFor(() =>
-      expect(screen.getByTestId('url-atual')).toHaveTextContent('/chamados?view=todos'),
+      expect(screen.getByTestId('url-atual')).toHaveTextContent('/tickets?view=todos'),
     )
     expect(screen.getByTestId('url-atual')).not.toHaveTextContent('priority')
   })
 
   it('trocar de visão do sistema zera os filtros da anterior', async () => {
-    montar('/chamados?priority=urgent')
+    montar('/tickets?priority=urgent')
     await screen.findByText('T-0007')
 
     fireEvent.click(screen.getByRole('button', { name: /Tickets resolvidos/ }))
@@ -422,7 +422,7 @@ describe('PaginaListaTickets — filtros na URL', () => {
 
   it('filtro sem resultado oferece "Limpar filtros" em vez do vazio da visão', async () => {
     respostaDaLista = () => jsonDe({ count: 0, next: null, previous: null, results: [] })
-    montar('/chamados?tag=vip')
+    montar('/tickets?tag=vip')
 
     expect(await screen.findByText('Nenhum ticket com esses filtros.')).toBeInTheDocument()
     expect(screen.getAllByRole('button', { name: 'Limpar filtros' }).length).toBeGreaterThan(0)
@@ -431,7 +431,7 @@ describe('PaginaListaTickets — filtros na URL', () => {
 
 describe('PaginaListaTickets — visões pessoais', () => {
   it('"Salvar visão" guarda a visão, a busca e os filtros de agora', async () => {
-    montar('/chamados?view=nao-resolvidos&priority=urgent&team=suporte')
+    montar('/tickets?view=nao-resolvidos&priority=urgent&team=suporte')
     await screen.findByText('T-0007')
 
     fireEvent.click(screen.getByRole('button', { name: 'Salvar visão' }))
@@ -483,7 +483,7 @@ describe('PaginaListaTickets — visões pessoais', () => {
         filters: { view: 'todos', priority: 'urgent' },
       },
     ]
-    montar('/chamados?pessoal=4&view=todos&priority=urgent')
+    montar('/tickets?pessoal=4&view=todos&priority=urgent')
     await screen.findByText('T-0007')
     expect(screen.queryByRole('button', { name: 'Salvar alterações' })).not.toBeInTheDocument()
 
@@ -536,7 +536,7 @@ describe('PaginaListaTickets — teclado (j/k, Enter/o, x)', () => {
 
     fireEvent.keyDown(linha(1), { key: 'Enter' })
 
-    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('/chamados/8'))
+    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('/tickets/8'))
   })
 
   it('não rouba teclas de quem está digitando nem de atalhos com Ctrl', async () => {
@@ -580,7 +580,7 @@ describe('PaginaListaTickets — carregando, vazio e erro', () => {
 
   it('visão vazia explica o vazio e convida a abrir um ticket', async () => {
     respostaDaLista = () => jsonDe({ count: 0, next: null, previous: null, results: [] })
-    montar('/chamados?view=aguardando-voce')
+    montar('/tickets?view=aguardando-voce')
 
     expect(await screen.findByText('Nada aguardando você agora.')).toBeInTheDocument()
     fireEvent.click(
@@ -588,7 +588,7 @@ describe('PaginaListaTickets — carregando, vazio e erro', () => {
         name: /Novo ticket/,
       }),
     )
-    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('/chamados/novo'))
+    await waitFor(() => expect(screen.getByTestId('url-atual')).toHaveTextContent('/tickets/novo'))
   })
 })
 
@@ -634,7 +634,7 @@ describe('PaginaListaTickets — a seleção segue o recorte da tela', () => {
 
 describe('PaginaListaTickets — recorte mora na URL (item 18)', () => {
   it('trocar de visão grava ?view= na URL e não carrega offset de página anterior', async () => {
-    montar('/chamados?offset=25')
+    montar('/tickets?offset=25')
     await screen.findByText('T-0007')
 
     fireEvent.click(screen.getByRole('button', { name: /Tickets resolvidos/ }))

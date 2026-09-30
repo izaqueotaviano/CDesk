@@ -155,7 +155,7 @@ export function BarraDeFiltros({ filtros, onMudar, onLimpar, responsaveis, empre
         {/* Região viva SEMPRE montada (só o texto muda): uma que nasce junto
             com o conteúdo costuma não ser anunciada. Quem filtra pelo teclado
             ouve o resultado sem ir procurar coluna por coluna. */}
-        <span role="status">{ativo ? `${visiveis} de ${total} ${total === 1 ? 'chamado' : 'chamados'}` : ''}</span>
+        <span role="status">{ativo ? `${visiveis} de ${total} ${total === 1 ? 'ticket' : 'tickets'}` : ''}</span>
         {ativo && (
           <button type="button" className="kb-filtros__limpar" onClick={onLimpar}>
             Limpar filtros

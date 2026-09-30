@@ -93,7 +93,7 @@ export function SecaoFranquias() {
         ) : (
           <BlocoFranquia
             icone={IconMessage}
-            rotulo="Chamados"
+            rotulo="Tickets"
             usado={me.quota.used}
             limite={me.quota.limit}
             periodoInicio={me.quota.period_start}

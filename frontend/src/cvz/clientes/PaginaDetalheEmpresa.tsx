@@ -142,7 +142,7 @@ export function PaginaDetalheEmpresa() {
 
   // Abrir chamado já com a empresa escolhida. `?empresa=` é o recorte da
   // tela de novo ticket (o filtro acima do campo "Para").
-  const novoTicket = () => navigate(`/chamados/novo?empresa=${id}`)
+  const novoTicket = () => navigate(`/tickets/novo?empresa=${id}`)
   const migalhas = [{ label: 'Clientes', onClick: () => navigate('/clientes') }]
 
   const colunasUsuarios: Column<UsuarioCliente>[] = [

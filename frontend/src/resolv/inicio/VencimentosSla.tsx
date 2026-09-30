@@ -37,7 +37,7 @@ export function VencimentosSla() {
         <ul className="inicio-lista__itens">
           {linhas.map((t) => (
             <li key={t.id}>
-              <button type="button" className="inicio-lista__item" onClick={() => navigate(`/chamados/${t.id}`)}>
+              <button type="button" className="inicio-lista__item" onClick={() => navigate(`/tickets/${t.id}`)}>
                 <span className="inicio-lista__barra" style={{ background: corEstadoSla(t.sla.resolution) }} aria-hidden="true" />
                 <span className="inicio-lista__texto">
                   <span className="inicio-lista__assunto">{t.subject}</span>

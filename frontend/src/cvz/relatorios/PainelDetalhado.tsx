@@ -10,7 +10,7 @@ import { urlExportarCsv, useRelatorioTickets, type FiltrosRelatorio } from './da
  * O mesmo dado do painel acima, num recorte livre — período, agente/empresa
  * e equipe —, exportado em CSV (na hora) ou em XLSX/PDF (assíncrono,
  * `PainelExportacoes` logo abaixo). Não repete a lista de tickets ticket a
- * ticket: essa já existe em /chamados com os próprios filtros; aqui é só o
+ * ticket: essa já existe em /tickets com os próprios filtros; aqui é só o
  * resumo do recorte + os dois jeitos de exportar (`TicketReportExportView`,
  * download síncrono sem fetch/blob, e `ReportExportViewSet`, fila do Celery
  * pros formatos mais pesados de montar).
@@ -46,8 +46,8 @@ export function PainelDetalhado() {
   return (
     <div className="relatorios-detalhado">
       <p className="relatorios-detalhado__intro">
-        Escolha o período e baixe em CSV para abrir na sua planilha (Excel, Google Sheets). Para olhar chamado por
-        chamado, use a lista de tickets, que tem os mesmos filtros.
+        Escolha o período e baixe em CSV para abrir na sua planilha (Excel, Google Sheets). Para olhar ticket por
+        ticket, use a lista de tickets, que tem os mesmos filtros.
       </p>
 
       <div className="relatorios-detalhado__filtros">

@@ -75,7 +75,7 @@ function montar() {
       <MemoryRouter initialEntries={['/inicio']}>
         <Routes>
           <Route path="/inicio" element={<PaginaInicio />} />
-          <Route path="/chamados/:id" element={<p>detalhe do chamado</p>} />
+          <Route path="/tickets/:id" element={<p>detalhe do chamado</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -118,7 +118,7 @@ describe('PaginaInicio', () => {
 
   it('sem nada para pegar, o botão diz por quê e não faz nada', async () => {
     montar()
-    const dica = await screen.findByText('Nenhum chamado sem responsável agora')
+    const dica = await screen.findByText('Nenhum ticket sem responsável agora')
     const botao = screen.getByRole('button', { name: 'Pegar o próximo' })
     expect(botao).toHaveAttribute('aria-disabled', 'true')
     expect(botao).toHaveAttribute('aria-describedby', dica.id)

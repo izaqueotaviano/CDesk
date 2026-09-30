@@ -60,18 +60,18 @@ export interface PreferenciasNotificacao {
 export const AVISOS_EMAIL_CLIENTE: { kind: string; rotulo: string; descricao: string }[] = [
   {
     kind: 'ticket_created',
-    rotulo: 'Abertura de chamado',
-    descricao: 'Confirmação assim que um chamado é aberto, por você ou pelo suporte em seu nome.',
+    rotulo: 'Abertura de ticket',
+    descricao: 'Confirmação assim que um ticket é aberto, por você ou pelo suporte em seu nome.',
   },
   {
     kind: 'ticket_replied',
     rotulo: 'Resposta do suporte',
-    descricao: 'Quando o suporte responde um chamado ou pede um retorno seu.',
+    descricao: 'Quando o suporte responde um ticket ou pede um retorno seu.',
   },
   {
     kind: 'ticket_closed',
-    rotulo: 'Encerramento de chamado',
-    descricao: 'Quando um chamado é resolvido, ou fechado por falta de retorno.',
+    rotulo: 'Encerramento de ticket',
+    descricao: 'Quando um ticket é resolvido, ou fechado por falta de retorno.',
   },
   {
     kind: 'chat_closed',
@@ -80,8 +80,8 @@ export const AVISOS_EMAIL_CLIENTE: { kind: string; rotulo: string; descricao: st
   },
   {
     kind: 'chat_converted',
-    rotulo: 'Conversa que virou chamado',
-    descricao: 'Quando um chat não atendido continua como chamado.',
+    rotulo: 'Conversa que virou ticket',
+    descricao: 'Quando um chat não atendido continua como ticket.',
   },
 ]
 

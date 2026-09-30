@@ -23,10 +23,10 @@ interface Props {
 }
 
 function mensagemVazia(coluna: ColunaTipo, total: number, filtrando: boolean): string {
-  if (coluna.concludes) return 'Solte um chamado aqui para fechá-lo. Chamados fechados saem do quadro.'
-  if (filtrando && total > 0) return 'Nenhum chamado com estes filtros.'
-  if (coluna.kind === 'lane') return 'Arraste chamados para cá para agrupá-los. O status não muda.'
-  return 'Nenhum chamado. Arraste um cartão para cá.'
+  if (coluna.concludes) return 'Solte um ticket aqui para fechá-lo. Tickets fechados saem do quadro.'
+  if (filtrando && total > 0) return 'Nenhum ticket com estes filtros.'
+  if (coluna.kind === 'lane') return 'Arraste tickets para cá para agrupá-los. O status não muda.'
+  return 'Nenhum ticket. Arraste um cartão para cá.'
 }
 
 export function Coluna({
@@ -174,7 +174,7 @@ export function Coluna({
 
       {editandoLimite && (
         <form className="kb-coluna__limite" onSubmit={salvarLimite} noValidate>
-          <label htmlFor={idLimite}>Limite de chamados</label>
+          <label htmlFor={idLimite}>Limite de tickets</label>
           <div className="kb-coluna__limite-linha">
             <input
               id={idLimite}

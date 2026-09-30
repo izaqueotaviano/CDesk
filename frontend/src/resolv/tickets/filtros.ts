@@ -29,7 +29,7 @@ export const CHAVES_FILTRO = [
   'desde',
   'ate',
   // Vem do painel do cliente no detalhe ("outros chamados deste
-  // solicitante" → `/chamados?solicitante=<id>`). Sem pílula de escolha na
+  // solicitante" → `/tickets?solicitante=<id>`). Sem pílula de escolha na
   // barra (não há faceta de solicitante); aparece só ligado, para desligar.
   'solicitante',
 ] as const

@@ -211,7 +211,7 @@ export function PaginaNovoTicket() {
                     <IconClock className="size-3.5" aria-hidden="true" /> Costuma responder em {estimativa.label}
                   </Ajuda>
                 ) : (
-                  <Ajuda id={`${ids.equipe}-ajuda`}>Quem vai cuidar do seu chamado.</Ajuda>
+                  <Ajuda id={`${ids.equipe}-ajuda`}>Quem vai cuidar do seu ticket.</Ajuda>
                 )}
                 <ErroCampo id={`${ids.equipe}-erro`}>{erros.team_id}</ErroCampo>
               </div>

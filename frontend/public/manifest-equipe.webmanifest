@@ -11,7 +11,7 @@
     { "src": "/icones/equipe-512.png", "sizes": "512x512", "type": "image/png" }
   ],
   "shortcuts": [
-    { "name": "Tickets", "url": "/chamados" },
+    { "name": "Tickets", "url": "/tickets" },
     { "name": "Quadro", "url": "/quadro" }
   ]
 }

@@ -130,31 +130,31 @@ describe('PaginaTicket (cliente)', () => {
   it('em aberto: "Encerrar chamado" pede confirmação e chama /close/ sem campos de resolução técnica', async () => {
     montar()
     await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
-    expect(screen.queryByRole('button', { name: /Reabrir chamado/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Reabrir ticket/ })).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: /Encerrar chamado/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Encerrar ticket/ }))
     expect(await screen.findByRole('dialog')).toBeInTheDocument()
-    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Encerrar chamado' }))
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Encerrar ticket' }))
 
     await waitFor(() => expect(chamadas.some((c) => c.url === '/api/v1/tickets/5/close/' && c.metodo === 'POST')).toBe(true))
     const envio = chamadas.find((c) => c.url === '/api/v1/tickets/5/close/')!
     expect(envio.corpo).toEqual({})
     // grava o ticket fechado que a rota devolveu — some "Encerrar chamado"
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument())
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Encerrar ticket/ })).not.toBeInTheDocument())
   })
 
   it('já fechado: não mostra "Encerrar chamado"', async () => {
     ticketAtual = detalhe({ status: 'closed', closed_at: '2026-09-02T12:00:00Z', first_response_at: '2026-09-01T12:00:00Z' })
     montar()
     await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
-    expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Encerrar ticket/ })).not.toBeInTheDocument()
   })
 
   it('conteúdo restrito: não mostra "Encerrar chamado" (não é o solicitante)', async () => {
     ticketAtual = detalhe({ content_hidden: true, is_restricted: true })
     montar()
-    await screen.findByRole('heading', { name: 'Chamado restrito' })
-    expect(screen.queryByRole('button', { name: /Encerrar chamado/ })).not.toBeInTheDocument()
+    await screen.findByRole('heading', { name: 'Ticket restrito' })
+    expect(screen.queryByRole('button', { name: /Encerrar ticket/ })).not.toBeInTheDocument()
   })
 
   it('resolvido: sem compositor até clicar em "Reabrir chamado", que explica o efeito', async () => {
@@ -162,8 +162,8 @@ describe('PaginaTicket (cliente)', () => {
     montar()
     await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
     expect(screen.queryByLabelText('Responder')).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: /Reabrir chamado/ }))
-    expect(await screen.findByText(/reabre o chamado/)).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /Reabrir ticket/ }))
+    expect(await screen.findByText(/reabre o ticket/)).toBeInTheDocument()
     expect(screen.getByLabelText('Reabrir com uma mensagem')).toHaveFocus()
   })
 
@@ -171,7 +171,7 @@ describe('PaginaTicket (cliente)', () => {
     ticketAtual = detalhe({ status: 'closed', auto_closed: true, closed_at: '2026-09-02T12:00:00Z' })
     montar()
     await screen.findByRole('heading', { name: 'Logo errada no rodapé' })
-    expect(screen.queryByRole('button', { name: /Reabrir chamado/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Reabrir ticket/ })).not.toBeInTheDocument()
     expect(screen.getByText(/encerrado automaticamente/)).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /Abrir novo ticket/ })).toHaveAttribute('href', '/portal/tickets/novo')
   })

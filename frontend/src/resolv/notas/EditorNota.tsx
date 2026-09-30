@@ -36,7 +36,7 @@ function Campos({ nota }: { nota: Nota }) {
   return (
     <div className="editor-nota">
       {nota.ticket_reference && (
-        <a className="editor-nota__chamado" href={`/chamados/${nota.ticket}`}>
+        <a className="editor-nota__chamado" href={`/tickets/${nota.ticket}`}>
           <i className="ti ti-ticket" aria-hidden="true" />
           {nota.ticket_reference}
           {nota.ticket_subject ? `: ${nota.ticket_subject}` : ''}

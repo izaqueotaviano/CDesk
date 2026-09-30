@@ -54,7 +54,7 @@ export type Item = {
 // uma fonte só de nome, ícone e rota. A ORDEM aqui é a ordem nos dois.
 export const NAV: Item[] = [
   { id: 'inicio', label: 'Início', icon: 'ti ti-home', route: '/inicio', enabled: true },
-  { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/chamados', enabled: true },
+  { id: 'tickets', label: 'Tickets', icon: 'ti ti-ticket', route: '/tickets', enabled: true },
   { id: 'chat', label: 'Chats', icon: 'ti ti-message-circle-2', route: '/chat', enabled: true },
   { id: 'kanban', label: 'Quadro', icon: 'ti ti-layout-grid', route: '/quadro', enabled: true },
   { id: 'clientes', label: 'Clientes', icon: 'ti ti-users', route: '/clientes', enabled: true },
@@ -96,18 +96,18 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
   // (barra recolhida, ou o resumo ainda não chegou), quem acende é Tickets,
   // para a pessoa nunca ficar sem saber onde está.
   const caminho = location.pathname
-  const naNovoTicket = caminho === '/chamados/novo'
-  const idNaRota = caminho.match(/^\/chamados\/(\d+)$/)?.[1]
+  const naNovoTicket = caminho === '/tickets/novo'
+  const idNaRota = caminho.match(/^\/tickets\/(\d+)$/)?.[1]
   const ticketVisivelNaLista = useTabs((st) =>
     idNaRota !== undefined && st.tabs.some((a) => a.tipo === 'ticket' && String(a.ticketId) === idNaRota),
   )
   const ativo = (r: string) => {
     if (r === '/inicio') return caminho === '/inicio'
-    if (r === '/chamados') {
-      if (caminho === '/chamados') return true
+    if (r === '/tickets') {
+      if (caminho === '/tickets') return true
       if (naNovoTicket) return false
       if (idNaRota) return recolhida || !ticketVisivelNaLista
-      return caminho.startsWith('/chamados/')
+      return caminho.startsWith('/tickets/')
     }
     return caminho === r || caminho.startsWith(`${r}/`)
   }
@@ -244,7 +244,7 @@ export function Sidebar({ onAbrirBusca, gaveta }: Props) {
             aria-label="Novo ticket"
             title="Novo ticket"
             aria-current={naNovoTicket ? 'page' : undefined}
-            onClick={() => navigate('/chamados/novo')}
+            onClick={() => navigate('/tickets/novo')}
           >
             <span className="sidebar-rail__icone">
               <span className="sidebar-rail__novo" aria-hidden="true">

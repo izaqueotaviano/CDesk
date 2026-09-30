@@ -260,7 +260,7 @@ export function PaginaListaTickets() {
     quantidade: linhas.length,
     onAbrir: (i) => {
       const t = linhas[i]
-      if (t) navigate(`/chamados/${t.id}`)
+      if (t) navigate(`/tickets/${t.id}`)
     },
     onAlternar: (i) => {
       const t = linhas[i]
@@ -482,7 +482,7 @@ export function PaginaListaTickets() {
               <button
                 type="button"
                 className="lista-tickets__botao lista-tickets__botao--secundario"
-                onClick={() => navigate('/chamados/novo')}
+                onClick={() => navigate('/tickets/novo')}
               >
                 <i className="ti ti-plus" aria-hidden="true" />
                 Novo ticket
@@ -499,7 +499,7 @@ export function PaginaListaTickets() {
             linhas={linhas}
             selecionados={selecionados}
             onSelecionar={alternarSelecao}
-            onAbrir={(id) => navigate(`/chamados/${id}`)}
+            onAbrir={(id) => navigate(`/tickets/${id}`)}
             indiceFocado={indiceFocado}
             onFocarLinha={setIndiceFocado}
           />
@@ -511,7 +511,7 @@ export function PaginaListaTickets() {
             selecionados={selecionados}
             onSelecionar={alternarSelecao}
             onSelecionarTodos={selecionarTodos}
-            onAbrir={(id) => navigate(`/chamados/${id}`)}
+            onAbrir={(id) => navigate(`/tickets/${id}`)}
             agoraMs={agoraMs}
             indiceFocado={indiceFocado}
             onFocarLinha={setIndiceFocado}
@@ -591,7 +591,7 @@ export function PaginaListaTickets() {
               <button
                 type="button"
                 className="lista-tickets__botao lista-tickets__botao--primario"
-                onClick={() => navigate('/chamados/novo')}
+                onClick={() => navigate('/tickets/novo')}
               >
                 <i className="ti ti-plus" aria-hidden="true" />
                 Novo ticket
@@ -628,7 +628,7 @@ export function PaginaListaTickets() {
               className="lista-tickets__botao lista-tickets__botao--primario lista-tickets__novo-icone"
               aria-label="Novo ticket"
               title="Novo ticket"
-              onClick={() => navigate('/chamados/novo')}
+              onClick={() => navigate('/tickets/novo')}
             >
               <i className="ti ti-plus" aria-hidden="true" />
             </button>

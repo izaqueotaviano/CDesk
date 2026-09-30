@@ -156,9 +156,9 @@ describe('PaginaKanban — carregamento e estados', () => {
   it('subtítulo e coluna de conclusão vazia sem travessão, convidando à ação', async () => {
     montar()
     await screen.findByRole('heading', { name: 'Quadro' })
-    expect(screen.getByText('Chamados não resolvidos por status. Arraste um cartão para mudar o status.')).toBeInTheDocument()
+    expect(screen.getByText('Tickets não resolvidos por status. Arraste um cartão para mudar o status.')).toBeInTheDocument()
     const fechado = colunaChamada('Fechado')
-    expect(within(fechado).getByText('Solte um chamado aqui para fechá-lo. Chamados fechados saem do quadro.')).toBeInTheDocument()
+    expect(within(fechado).getByText('Solte um ticket aqui para fechá-lo. Tickets fechados saem do quadro.')).toBeInTheDocument()
     expect(document.body.textContent).not.toContain('—')
   })
 })
@@ -190,7 +190,7 @@ describe('PaginaKanban — filtros', () => {
     const novo = colunaChamada('Novo')
     expect(within(novo).getAllByRole('button', { name: /^TD-/ })).toHaveLength(1)
     expect(within(novo).getByText('1 de 3')).toBeInTheDocument()
-    expect(screen.getByText('1 de 3 chamados')).toHaveAttribute('role', 'status')
+    expect(screen.getByText('1 de 3 tickets')).toHaveAttribute('role', 'status')
   })
 
   it('a busca filtra na hora e vai para a URL; "Limpar filtros" volta tudo', async () => {
@@ -236,7 +236,7 @@ describe('PaginaKanban — limite de WIP', () => {
     await screen.findByRole('heading', { name: 'Quadro' })
     const novo = colunaChamada('Novo')
     expect(within(novo).getByText('3/2')).toBeInTheDocument()
-    expect(within(novo).getByText('3 chamados, limite de 2. Acima do limite')).toBeInTheDocument()
+    expect(within(novo).getByText('3 tickets, limite de 2. Acima do limite')).toBeInTheDocument()
     expect(novo).toHaveClass('kb-coluna--acima')
   })
 
@@ -244,7 +244,7 @@ describe('PaginaKanban — limite de WIP', () => {
     montar()
     const menu = await abrirMenuDaColuna('Novo')
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Definir limite' }))
-    const campo = screen.getByRole('spinbutton', { name: 'Limite de chamados' })
+    const campo = screen.getByRole('spinbutton', { name: 'Limite de tickets' })
     fireEvent.change(campo, { target: { value: '5' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
 
@@ -252,14 +252,14 @@ describe('PaginaKanban — limite de WIP', () => {
       expect(chamadas).toContainEqual({ url: '/api/v1/kanban/boards/1/columns/new/', metodo: 'PATCH', corpo: { wip_limit: 5 } }),
     )
     expect(await within(colunaChamada('Novo')).findByText('3/5')).toBeInTheDocument()
-    expect(screen.queryByRole('spinbutton', { name: 'Limite de chamados' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton', { name: 'Limite de tickets' })).not.toBeInTheDocument()
   })
 
   it('valor inválido não vai ao servidor', async () => {
     montar()
     const menu = await abrirMenuDaColuna('Novo')
     fireEvent.click(within(menu).getByRole('menuitem', { name: 'Definir limite' }))
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Limite de chamados' }), { target: { value: '0' } })
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Limite de tickets' }), { target: { value: '0' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar' }))
     expect(await screen.findByText(/Use um número inteiro de 1 a 999/)).toBeInTheDocument()
     expect(chamadas.some((c) => c.metodo === 'PATCH')).toBe(false)

@@ -117,7 +117,7 @@ function Lista({
               className="py-8"
               icone={IconMessageCircle}
               titulo="Nenhuma conversa ainda"
-              descricao="Fale com um atendente agora. Se ninguém puder atender, a conversa vira um chamado automaticamente."
+              descricao="Fale com um atendente agora. Se ninguém puder atender, a conversa vira um ticket automaticamente."
             />
           )
         )}

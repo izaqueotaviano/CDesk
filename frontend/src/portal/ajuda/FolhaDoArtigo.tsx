@@ -72,8 +72,8 @@ export function FolhaDoArtigo({ artigoId, onFechar }: { artigoId: number | null;
             )}
           </div>
           <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-divisoria px-4 py-3 md:px-6">
-            <span className="text-pequeno text-tinta-secundaria">Não resolveu? Seu chamado continua aqui.</span>
-            <DialogPrimitive.Close className={buttonVariants({ size: 'sm' })}>Voltar ao chamado</DialogPrimitive.Close>
+            <span className="text-pequeno text-tinta-secundaria">Não resolveu? Seu ticket continua aqui.</span>
+            <DialogPrimitive.Close className={buttonVariants({ size: 'sm' })}>Voltar ao ticket</DialogPrimitive.Close>
           </footer>
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

@@ -64,7 +64,7 @@ export function CartaoTicket({ ticket, agoraMs, compacto }: CartaoProps) {
           )}
         </div>
         <p className="truncate text-corpo font-medio text-tinta">
-          {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
+          {ticket.content_hidden ? 'Ticket restrito' : ticket.subject}
         </p>
         {!compacto && (
           <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-legenda text-tinta-secundaria">

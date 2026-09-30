@@ -148,7 +148,7 @@ let chamadasScroll: { id: string; opts: ScrollIntoViewOptions | undefined }[]
 
 function montar(t: TicketDetalhe, hash = '') {
   return render(
-    <MemoryRouter initialEntries={[`/chamados/${t.id}${hash}`]}>
+    <MemoryRouter initialEntries={[`/tickets/${t.id}${hash}`]}>
       <Conversa ticket={t} me={ME} agoraMs={Date.parse(t.created_at)} pedidoReabrir={0} />
     </MemoryRouter>,
   )
@@ -256,7 +256,7 @@ describe('Conversa — mensagem nova só arrasta a rolagem se a pessoa já estav
 
     chamadasScroll = []
     rerender(
-      <MemoryRouter initialEntries={['/chamados/42']}>
+      <MemoryRouter initialEntries={['/tickets/42']}>
         <Conversa
           ticket={ticket({ messages: [mensagem({ id: 1 }), mensagem({ id: 2 })] })}
           me={ME}
@@ -278,7 +278,7 @@ describe('Conversa — mensagem nova só arrasta a rolagem se a pessoa já estav
 
     chamadasScroll = []
     rerender(
-      <MemoryRouter initialEntries={['/chamados/42']}>
+      <MemoryRouter initialEntries={['/tickets/42']}>
         <Conversa
           ticket={ticket({ messages: [mensagem({ id: 1 }), mensagem({ id: 2 })] })}
           me={ME}

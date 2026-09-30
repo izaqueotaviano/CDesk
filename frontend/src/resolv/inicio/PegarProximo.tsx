@@ -25,17 +25,17 @@ export function PegarProximo({ meuId }: { meuId: number | undefined }) {
 
   function aoClicar() {
     if (indisponivel) return
-    pegar.mutate(undefined, { onSuccess: (t) => navigate(`/chamados/${t.id}`) })
+    pegar.mutate(undefined, { onSuccess: (t) => navigate(`/tickets/${t.id}`) })
   }
 
   const erro = pegar.error
   const textoErro =
     erro instanceof NadaParaPegar
-      ? 'Alguém pegou antes. Não sobrou chamado sem responsável.'
+      ? 'Alguém pegou antes. Não sobrou ticket sem responsável.'
       : erro instanceof ApiError && erro.detail
-        ? `Não foi possível pegar o chamado: ${erro.detail}`
+        ? `Não foi possível pegar o ticket: ${erro.detail}`
         : erro
-          ? 'Não foi possível pegar o chamado. Tente de novo.'
+          ? 'Não foi possível pegar o ticket. Tente de novo.'
           : null
 
   return (
@@ -58,9 +58,9 @@ export function PegarProximo({ meuId }: { meuId: number | undefined }) {
       ) : (
         <p id={dicaId} className="inicio__dica">
           {isLoading
-            ? 'Procurando chamados sem responsável'
+            ? 'Procurando tickets sem responsável'
             : nada
-              ? 'Nenhum chamado sem responsável agora'
+              ? 'Nenhum ticket sem responsável agora'
               : `${quantos} sem responsável, o mais urgente primeiro`}
         </p>
       )}

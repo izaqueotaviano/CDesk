@@ -111,7 +111,7 @@ export function PaginaTickets() {
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-titulo-lg font-forte">Tickets</h1>
-          <p className="mt-1 text-corpo text-tinta-secundaria">Seus chamados com o suporte, do mais urgente ao já resolvido.</p>
+          <p className="mt-1 text-corpo text-tinta-secundaria">Seus tickets com o suporte, do mais urgente ao já resolvido.</p>
         </div>
         <Link to="/portal/tickets/novo" className={buttonVariants()}>
           <IconPlus /> Abrir ticket
@@ -119,7 +119,7 @@ export function PaginaTickets() {
       </header>
 
       <Tabs value={aba} onValueChange={(v) => definir({ aba: v })}>
-        <TabsList aria-label="Situação do chamado" className="w-full sm:w-auto">
+        <TabsList aria-label="Situação do ticket" className="w-full sm:w-auto">
           {ABAS.map((a) => {
             const n = contagens[a.id]
             const realce = a.destaque && (n ?? 0) > 0
@@ -132,7 +132,7 @@ export function PaginaTickets() {
                 {n === undefined ? (
                   <Skeleton className="h-4 w-5 rounded-total" />
                 ) : (
-                  <Badge variant={realce ? 'alerta' : 'neutro'} className="px-1.5 py-0 text-micro" aria-label={`${n} chamados`}>
+                  <Badge variant={realce ? 'alerta' : 'neutro'} className="px-1.5 py-0 text-micro" aria-label={`${n} tickets`}>
                     {n}
                   </Badge>
                 )}
@@ -248,7 +248,7 @@ export function PaginaTickets() {
             <EstadoVazio
               icone={IconZoomCancel}
               titulo="Nenhum ticket encontrado"
-              descricao="Tente outro termo ou limpe os filtros. A busca olha o número do chamado, o assunto e o nº do pedido."
+              descricao="Tente outro termo ou limpe os filtros. A busca olha o número do ticket, o assunto e o nº do pedido."
               acao={
                 <Button variant="secondary" size="sm" onClick={limparTudo}>
                   Limpar busca e filtros

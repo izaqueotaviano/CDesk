@@ -55,7 +55,7 @@ function montar(props: Partial<Parameters<typeof TicketsTable>[0]> = {}) {
   // MemoryRouter: a célula de protocolo agora é um <Link> de verdade (item
   // 26) — sem Router em volta, o próprio render lançaria.
   render(
-    <MemoryRouter initialEntries={['/chamados']}>
+    <MemoryRouter initialEntries={['/tickets']}>
       <TicketsTable {...finais} />
       <RotaAtual />
     </MemoryRouter>,
@@ -151,7 +151,7 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
     screen.getByRole('checkbox', { name: 'Selecionar T-0001' }).focus()
 
     await usuario.tab()
-    expect(screen.getByRole('link', { name: /Abrir chamado T-0001/ })).toHaveFocus()
+    expect(screen.getByRole('link', { name: /Abrir ticket T-0001/ })).toHaveFocus()
 
     await usuario.tab()
     expect(screen.getByRole('checkbox', { name: 'Selecionar T-0002' })).toHaveFocus()
@@ -161,10 +161,10 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
     const usuario = userEvent.setup()
     montar({ linhas: [linha(7, { state: 'ok' as EstadoSla, minutes_left: 300 })] })
 
-    screen.getByRole('link', { name: /Abrir chamado T-0007/ }).focus()
+    screen.getByRole('link', { name: /Abrir ticket T-0007/ }).focus()
     await usuario.keyboard('{Enter}')
 
-    expect(await screen.findByTestId('rota-atual')).toHaveTextContent('/chamados/7')
+    expect(await screen.findByTestId('rota-atual')).toHaveTextContent('/tickets/7')
   })
 
   it('o nome acessível do link leva o contexto da linha, não só a referência', () => {
@@ -179,7 +179,7 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
     })
 
     expect(
-      screen.getByRole('link', { name: 'Abrir chamado T-0001: Teclado sem resposta (Acme Marketing)' }),
+      screen.getByRole('link', { name: 'Abrir ticket T-0001: Teclado sem resposta (Acme Marketing)' }),
     ).toBeInTheDocument()
   })
 
@@ -187,7 +187,7 @@ describe('TicketsTable — link de abrir chamado na célula de protocolo (item 2
     const onAbrir = vi.fn()
     montar({ onAbrir })
 
-    fireEvent.click(screen.getByRole('link', { name: /Abrir chamado/ }))
+    fireEvent.click(screen.getByRole('link', { name: /Abrir ticket/ }))
 
     expect(onAbrir).not.toHaveBeenCalled()
   })

@@ -158,7 +158,7 @@ describe('AbaImportar', () => {
     montar()
     await screen.findByRole('button', { name: 'Importar tickets' })
     fireEvent.change(screen.getByLabelText('Token da API do Movidesk'), { target: { value: 'abc' } })
-    fireEvent.click(screen.getByRole('checkbox', { name: /sem gravar nos chamados/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /sem gravar nos tickets/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Baixar tickets' }))
     await waitFor(() => expect(chamadas.find((c) => c.metodo === 'POST' && c.url === ROTA)).toBeTruthy())
     expect((chamadas.find((c) => c.metodo === 'POST' && c.url === ROTA)!.corpo as { apenas_baixar: boolean }).apenas_baixar).toBe(true)

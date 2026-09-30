@@ -144,7 +144,7 @@ describe('EditorNota', () => {
     detalhe.data = nota({ ticket: 42, ticket_reference: 'TD-00042', ticket_subject: 'Impressora' })
     render(<EditorNota notaId={7} />)
 
-    expect(screen.getByRole('link', { name: /TD-00042/ })).toHaveAttribute('href', '/chamados/42')
+    expect(screen.getByRole('link', { name: /TD-00042/ })).toHaveAttribute('href', '/tickets/42')
   })
 
   it('chamado fora do escopo não aparece — nem o id vira link', () => {

@@ -147,13 +147,13 @@ function evento(extra: Partial<Evento> = {}): Evento {
 // reconciliar em vez de desmontar — é isso que preserva os refs internos de
 // `DetalheCarregado` entre as "chegadas de refetch" simuladas no teste.
 const queryClient = new QueryClient()
-function pagina(rota = '/chamados/42') {
+function pagina(rota = '/tickets/42') {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <MemoryRouter initialEntries={[rota]}>
           <Routes>
-            <Route path="/chamados/:id" element={<PaginaDetalheTicket />} />
+            <Route path="/tickets/:id" element={<PaginaDetalheTicket />} />
             <Route path="/fora" element={<p>outra tela</p>} />
           </Routes>
         </MemoryRouter>
@@ -212,7 +212,7 @@ describe('PaginaDetalheTicket — faixa "chamado atualizado por baixo" (item 20)
     }
     rerender(pagina())
 
-    const faixa = screen.getByText(/Marcos Agente atualizou este chamado/)
+    const faixa = screen.getByText(/Marcos Agente atualizou este ticket/)
     expect(faixa.closest('[role="status"]')).toBeInTheDocument()
   })
 
@@ -229,7 +229,7 @@ describe('PaginaDetalheTicket — faixa "chamado atualizado por baixo" (item 20)
     }
     rerender(pagina())
 
-    expect(screen.getByText('Este chamado foi atualizado enquanto você olhava.')).toBeInTheDocument()
+    expect(screen.getByText('Este ticket foi atualizado enquanto você olhava.')).toBeInTheDocument()
     // Nome nenhum inventado: "Ana Agente" não aparece dentro da faixa.
     expect(screen.queryByText(/Ana Agente atualizou/)).not.toBeInTheDocument()
   })
@@ -423,9 +423,9 @@ describe('PaginaDetalheTicket — atalhos do ticket aberto', () => {
     montar()
 
     fireEvent.keyDown(document.body, { key: ']' })
-    expect(navegar).toHaveBeenLastCalledWith('/chamados/99')
+    expect(navegar).toHaveBeenLastCalledWith('/tickets/99')
     fireEvent.keyDown(document.body, { key: '[' })
-    expect(navegar).toHaveBeenLastCalledWith('/chamados/10')
+    expect(navegar).toHaveBeenLastCalledWith('/tickets/10')
   })
 
   it('Esc fecha a gaveta aberta', () => {

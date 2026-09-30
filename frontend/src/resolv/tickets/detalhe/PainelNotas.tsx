@@ -127,7 +127,7 @@ function FormularioDeNota({
       <EditorConteudo
         valor={rascunho.content}
         onMudar={(content) => setRascunho((r) => ({ ...r, content }))}
-        placeholder="O que você precisa lembrar sobre este chamado…"
+        placeholder="O que você precisa lembrar sobre este ticket…"
       />
       {erro && (
         <p className="notas__erro" role="alert">
@@ -211,7 +211,7 @@ export function PainelNotas({
   const notas = data?.results ?? []
 
   return (
-    <aside className="notas" aria-label="Minhas notas sobre este chamado">
+    <aside className="notas" aria-label="Minhas notas sobre este ticket">
       <header className="notas__cabecalho">
         <h2 className="notas__cabecalho-titulo">
           <i className="ti ti-notes" aria-hidden="true" />
@@ -278,7 +278,7 @@ export function PainelNotas({
       )}
 
       {!isLoading && !isError && notas.length === 0 && !editando && (
-        <p className="notas__estado">Nenhuma nota sobre este chamado ainda.</p>
+        <p className="notas__estado">Nenhuma nota sobre este ticket ainda.</p>
       )}
 
       {notas.length > 0 && (

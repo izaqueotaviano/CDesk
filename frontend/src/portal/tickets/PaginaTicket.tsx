@@ -55,7 +55,7 @@ interface Passo {
 
 function passosDoTicket(t: TicketDetalhe): Passo[] {
   const fechado = t.status === 'closed'
-  const passos: Passo[] = [{ id: 'aberto', rotulo: 'Chamado aberto', quando: t.created_at, estado: 'feito' }]
+  const passos: Passo[] = [{ id: 'aberto', rotulo: 'Ticket aberto', quando: t.created_at, estado: 'feito' }]
   passos.push({
     id: 'resposta',
     rotulo: 'Primeira resposta',
@@ -83,7 +83,7 @@ function passosDoTicket(t: TicketDetalhe): Passo[] {
 function LinhaDoTempo({ ticket }: { ticket: TicketDetalhe }) {
   const passos = passosDoTicket(ticket)
   return (
-    <ol className="grid gap-4 sm:grid-cols-2 lg:flex lg:gap-0" aria-label="Linha do tempo do chamado">
+    <ol className="grid gap-4 sm:grid-cols-2 lg:flex lg:gap-0" aria-label="Linha do tempo do ticket">
       {passos.map((p, i) => {
         const ultimo = i === passos.length - 1
         return (
@@ -132,7 +132,7 @@ function AvaliacaoTicket({ ticketId }: { ticketId: number }) {
     <Card id="avaliacao" className="scroll-mt-20">
       <CardHeader>
         <CardTitle>Como foi o atendimento?</CardTitle>
-        <p className="text-pequeno text-tinta-secundaria">De 0 (péssimo) a 10 (excelente). Sua nota vai para quem cuidou do chamado.</p>
+        <p className="text-pequeno text-tinta-secundaria">De 0 (péssimo) a 10 (excelente). Sua nota vai para quem cuidou do ticket.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div role="radiogroup" aria-labelledby={idNota} className="flex flex-wrap gap-1.5">
@@ -308,7 +308,7 @@ function MensagemDoTicket({
 
 function EsqueletoTicket() {
   return (
-    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando chamado">
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Carregando ticket">
       <Skeleton className="h-4 w-24" />
       <Card>
         <CardContent className="space-y-3 p-6">
@@ -370,7 +370,7 @@ export function PaginaTicket() {
         </Link>
         <Alert
           variant="destructive"
-          titulo={naoExiste ? 'Este chamado não existe ou não é seu.' : 'Não foi possível carregar o chamado.'}
+          titulo={naoExiste ? 'Este ticket não existe ou não é seu.' : 'Não foi possível carregar o ticket.'}
           acao={
             !naoExiste ? (
               <Button size="sm" variant="secondary" onClick={() => refetch()} disabled={isFetching}>
@@ -417,7 +417,7 @@ export function PaginaTicket() {
           anexos.limpar()
           rascunho.limpar()
           setReabrindo(false)
-          toast.success(podeReabrir && reabrindo ? 'Chamado reaberto com sua mensagem.' : 'Mensagem enviada ao suporte.')
+          toast.success(podeReabrir && reabrindo ? 'Ticket reaberto com sua mensagem.' : 'Mensagem enviada ao suporte.')
         },
         onError: (e) => toast.error(mensagemDeErro(e, 'Não foi possível enviar.'), { description: 'Seu texto e os anexos continuam aqui.' }),
       },
@@ -470,7 +470,7 @@ export function PaginaTicket() {
             <div className="min-w-0">
               <span className="fonte-mono text-pequeno text-tinta-secundaria">{ticket.reference}</span>
               <h1 className="mt-0.5 text-titulo-lg font-forte leading-justa [overflow-wrap:anywhere]">
-                {ticket.content_hidden ? 'Chamado restrito' : ticket.subject}
+                {ticket.content_hidden ? 'Ticket restrito' : ticket.subject}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <PilulaStatus ticket={ticket} />
@@ -488,12 +488,12 @@ export function PaginaTicket() {
               </Button>
               {podeEncerrar && (
                 <Button variant="secondary" size="sm" onClick={() => setConfirmandoEncerrar(true)}>
-                  <IconCircleCheck /> Encerrar chamado
+                  <IconCircleCheck /> Encerrar ticket
                 </Button>
               )}
               {podeReabrir && !reabrindo && (
                 <Button size="sm" onClick={() => setReabrindo(true)}>
-                  <IconRotateClockwise /> Reabrir chamado
+                  <IconRotateClockwise /> Reabrir ticket
                 </Button>
               )}
               {prazoSolucao && (
@@ -553,7 +553,7 @@ export function PaginaTicket() {
                 </Button>
               }
             >
-              Sem retorno, o chamado pode ser encerrado automaticamente.
+              Sem retorno, o ticket pode ser encerrado automaticamente.
             </Alert>
           )}
           {esperandoSuporte && (prazoResposta || estimativa?.label) && (
@@ -571,13 +571,13 @@ export function PaginaTicket() {
             </p>
           )}
           {fechado && ticket.auto_closed && (
-            <Alert variant="info" titulo="Este chamado foi encerrado automaticamente por falta de retorno.">
+            <Alert variant="info" titulo="Este ticket foi encerrado automaticamente por falta de retorno.">
               Ele não pode ser reaberto. Se o problema continua, abra um novo ticket e cite o número {ticket.reference}.
             </Alert>
           )}
           {ticket.content_hidden && (
-            <Alert variant="warning" titulo="Chamado restrito ao solicitante">
-              Só quem abriu este chamado vê a conversa.
+            <Alert variant="warning" titulo="Ticket restrito ao solicitante">
+              Só quem abriu este ticket vê a conversa.
             </Alert>
           )}
         </CardHeader>
@@ -673,7 +673,7 @@ export function PaginaTicket() {
                 )}
               </div>
               {reabrindo && (
-                <p className="text-pequeno text-tinta-secundaria">Sua mensagem reabre o chamado e volta para a fila do suporte.</p>
+                <p className="text-pequeno text-tinta-secundaria">Sua mensagem reabre o ticket e volta para a fila do suporte.</p>
               )}
               {rascunho.restaurado && (
                 <AvisoDeRascunho
@@ -738,8 +738,8 @@ export function PaginaTicket() {
       {fechado && !reabrindo && !ticket.auto_closed && !ticket.content_hidden && (
         <p className="inline-flex items-center gap-2 text-pequeno text-tinta-secundaria">
           <IconFileText className="size-4" aria-hidden="true" />
-          Chamado resolvido{ticket.closed_at ? ` em ${dataHora(ticket.closed_at)}` : ''}.{' '}
-          {aguardaAvaliacao ? 'Ainda precisa de ajuda? Avalie o atendimento e o botão “Reabrir chamado” aparece.' : 'Ainda precisa de ajuda? Use “Reabrir chamado”.'}
+          Ticket resolvido{ticket.closed_at ? ` em ${dataHora(ticket.closed_at)}` : ''}.{' '}
+          {aguardaAvaliacao ? 'Ainda precisa de ajuda? Avalie o atendimento e o botão “Reabrir ticket” aparece.' : 'Ainda precisa de ajuda? Use “Reabrir ticket”.'}
         </p>
       )}
 
@@ -749,15 +749,15 @@ export function PaginaTicket() {
         onConfirmar={async () => {
           try {
             await encerrar.mutateAsync({})
-            toast.success('Chamado encerrado.')
+            toast.success('Ticket encerrado.')
           } catch (e) {
             toast.error(mensagemDeErro(e, 'Não foi possível encerrar.'))
             throw e
           }
         }}
-        titulo="Encerrar este chamado?"
+        titulo="Encerrar este ticket?"
         descricao="Se precisar de novo, é só responder aqui que ele reabre."
-        rotuloConfirmar="Encerrar chamado"
+        rotuloConfirmar="Encerrar ticket"
       />
 
       <Dialog open={excluindo != null} onOpenChange={(aberto) => !aberto && setExcluindo(null)}>

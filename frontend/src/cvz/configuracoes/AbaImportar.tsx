@@ -53,7 +53,7 @@ function AvisoDoQueNaoVem() {
         </li>
         <li>
           <b>Apontamentos de hora e despesas</b>: vêm no JSON baixado, mas não viram campo de
-          chamado aqui.
+          ticket aqui.
         </li>
         <li>
           <b>Tempo de solução</b>: o export não traz o tempo trabalhado, e calcular pela data de
@@ -328,7 +328,7 @@ export function AbaImportar() {
 
       <FormSection
         title="2. Tickets"
-        description="As duas rotas, /tickets e /tickets/past, gravadas como chamados MD-<id>. Cada chamado vai pra equipe de mesmo nome que ele tem no Movidesk (criada aqui se ainda não existir)."
+        description="As duas rotas, /tickets e /tickets/past, gravadas como tickets MD-<id>. Cada ticket vai pra equipe de mesmo nome que ele tem no Movidesk (criada aqui se ainda não existir)."
       >
         <FormRow columns={2}>
           <Select
@@ -353,7 +353,7 @@ export function AbaImportar() {
         <Checkbox
           checked={apenasBaixarTickets}
           onChange={(e) => setApenasBaixarTickets(e.target.checked)}
-          label="Só baixar o JSON, sem gravar nos chamados"
+          label="Só baixar o JSON, sem gravar nos tickets"
           description="Pra conferir o que vem antes de importar de verdade. O arquivo fica disponível pra download."
         />
         <FormActions>

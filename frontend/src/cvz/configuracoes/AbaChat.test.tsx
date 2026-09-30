@@ -80,7 +80,7 @@ describe('AbaChat', () => {
 
   it('equipe do chamado automático vem da lista de equipes e vai como id', async () => {
     montar()
-    const select = await screen.findByLabelText('Equipe do chamado automático')
+    const select = await screen.findByLabelText('Equipe do ticket automático')
     await screen.findByRole('option', { name: 'Suporte' })
     fireEvent.change(select, { target: { value: '2' } })
     fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }))

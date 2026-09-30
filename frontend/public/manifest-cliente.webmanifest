@@ -11,7 +11,7 @@
     { "src": "/icones/cliente-512.png", "sizes": "512x512", "type": "image/png" }
   ],
   "shortcuts": [
-    { "name": "Abrir chamado", "url": "/portal/tickets/novo" },
-    { "name": "Meus chamados", "url": "/portal/tickets" }
+    { "name": "Abrir ticket", "url": "/portal/tickets/novo" },
+    { "name": "Meus tickets", "url": "/portal/tickets" }
   ]
 }

@@ -19,7 +19,7 @@ export function AtalhosGlobais({ onAbrirBusca }: { onAbrirBusca: () => void }) {
     'geral.ajuda': () => abrirPainelAtalhos(),
     'geral.busca': () => onAbrirBusca(),
     'geral.ir-inicio': () => navigate('/inicio'),
-    'geral.ir-tickets': () => navigate('/chamados'),
+    'geral.ir-tickets': () => navigate('/tickets'),
     'geral.ir-chats': () => navigate('/chat'),
     'geral.ir-quadro': () => navigate('/quadro'),
   })

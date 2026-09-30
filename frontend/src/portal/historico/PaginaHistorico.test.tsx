@@ -161,8 +161,8 @@ describe('PaginaHistorico', () => {
     await screen.findByText('Boleto errado')
     const resumo = screen.getByRole('region', { name: 'Resumo' })
     const cartao = (rotulo: string) => within(resumo).getByText(rotulo).parentElement!.parentElement as HTMLElement
-    await waitFor(() => expect(cartao('Chamados encerrados')).toHaveTextContent('3'))
-    expect(cartao('Chamados avaliados')).toHaveTextContent('1')
+    await waitFor(() => expect(cartao('Tickets encerrados')).toHaveTextContent('3'))
+    expect(cartao('Tickets avaliados')).toHaveTextContent('1')
     expect(cartao('Conversas encerradas')).toHaveTextContent('3')
   })
 
@@ -175,7 +175,7 @@ describe('PaginaHistorico', () => {
     const pendente = screen.getByText('Conversa com Samuel').closest('li')!
     expect(within(pendente).getByRole('link', { name: /Avaliar/ })).toHaveAttribute('href', '/portal/chat')
     const convertido = screen.getByText('Conversa sem atendimento').closest('li')!
-    expect(within(convertido).getByRole('link', { name: /Continuou no chamado TD-00007/ })).toHaveAttribute('href', '/portal/tickets/7')
+    expect(within(convertido).getByRole('link', { name: /Continuou no ticket TD-00007/ })).toHaveAttribute('href', '/portal/tickets/7')
     expect(screen.getAllByText('12 min de atendimento', { exact: false }).length).toBeGreaterThan(0)
   })
 
@@ -199,7 +199,7 @@ describe('PaginaHistorico', () => {
     await screen.findByText('Boleto errado')
     fireEvent.change(screen.getByLabelText('Buscar no histórico'), { target: { value: 'nada disso' } })
     await waitFor(() => expect(urls.some((u) => u.includes('q=nada+disso'))).toBe(true))
-    expect(await screen.findByText('Nenhum chamado encontrado')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum ticket encontrado')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Limpar busca e filtros' }))
     expect(await screen.findByText('Boleto errado')).toBeInTheDocument()
   })
@@ -208,7 +208,7 @@ describe('PaginaHistorico', () => {
     tickets = []
     chats = []
     montar()
-    expect(await screen.findByText('Nenhum chamado encerrado ainda')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver chamados em aberto' })).toHaveAttribute('href', '/portal/tickets')
+    expect(await screen.findByText('Nenhum ticket encerrado ainda')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver tickets em aberto' })).toHaveAttribute('href', '/portal/tickets')
   })
 })

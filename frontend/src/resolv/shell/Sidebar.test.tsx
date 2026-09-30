@@ -79,7 +79,7 @@ describe('Sidebar — navegação principal', () => {
   it('"Novo ticket" é a ação primária e abre a tela de novo ticket', () => {
     montar()
     fireEvent.click(screen.getByRole('button', { name: 'Novo ticket' }))
-    expect(rota()).toBe('/chamados/novo')
+    expect(rota()).toBe('/tickets/novo')
   })
 
   it('os destinos do dia a dia ficam na coluna: "Clientes" leva pra /clientes', () => {
@@ -139,7 +139,7 @@ describe('Sidebar — um estado ativo por vez', () => {
 
   it('com o ticket em "Trabalhando agora", é ele que acende — "Tickets" não', () => {
     abrirTicket()
-    montar('/chamados/5')
+    montar('/tickets/5')
     expect(screen.getByRole('button', { name: '#1005 · Impressora' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
   })
@@ -147,13 +147,13 @@ describe('Sidebar — um estado ativo por vez', () => {
   it('recolhida, "Trabalhando agora" some e quem acende no ticket é "Tickets"', () => {
     abrirTicket()
     usePrefs.setState({ sidebarRecolhida: true })
-    montar('/chamados/5')
+    montar('/tickets/5')
     expect(screen.queryByRole('region', { name: 'Trabalhando agora' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Tickets' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('na tela de novo ticket acende "Novo ticket", não "Tickets"', () => {
-    montar('/chamados/novo')
+    montar('/tickets/novo')
     expect(screen.getByRole('button', { name: 'Novo ticket' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: 'Tickets' })).not.toHaveAttribute('aria-current')
   })

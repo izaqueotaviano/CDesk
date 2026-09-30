@@ -31,7 +31,7 @@ function Rota() {
   return <output data-testid="rota">{useLocation().pathname}</output>
 }
 
-function montar(abas: Aba[], rota = '/chamados/1') {
+function montar(abas: Aba[], rota = '/tickets/1') {
   useTabs.setState({ tabs: abas, active: null, reconciliando: false })
   return render(
     <MemoryRouter initialEntries={[rota]}>
@@ -85,7 +85,7 @@ describe('ListaTrabalho — o que aparece', () => {
   })
 
   it('o ticket da URL é o atual (aria-current), e o nome acessível leva a referência', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/chamados/2')
+    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/tickets/2')
     expect(screen.getByRole('button', { name: '#1002 · Assunto #1002' })).toHaveAttribute('aria-current', 'page')
     expect(screen.getByRole('button', { name: '#1001 · Assunto #1001' })).not.toHaveAttribute('aria-current')
   })
@@ -99,7 +99,7 @@ describe('ListaTrabalho — o que aparece', () => {
   it('clicar abre o ticket', () => {
     montar([ticket(1, '#1001'), ticket(2, '#1002')])
     fireEvent.click(screen.getByRole('button', { name: '#1002 · Assunto #1002' }))
-    expect(rota()).toBe('/chamados/2')
+    expect(rota()).toBe('/tickets/2')
   })
 })
 
@@ -117,28 +117,28 @@ describe('ListaTrabalho — fechar', () => {
   })
 
   it('fecha sem perguntar quando não há rascunho', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/chamados/2')
+    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/tickets/2')
     fireEvent.click(fecharDe('Fechar #1001'))
     expect(confirmar).not.toHaveBeenCalled()
     expect(idsNoStore()).toEqual([2])
     // não era o da tela: a pessoa fica onde está
-    expect(rota()).toBe('/chamados/2')
+    expect(rota()).toBe('/tickets/2')
   })
 
   it('fechar o ticket da tela leva ao último que sobrou; fechar o último leva à lista', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/3')
+    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/tickets/3')
 
     fireEvent.click(fecharDe('Fechar #1003'))
-    expect(rota()).toBe('/chamados/2')
+    expect(rota()).toBe('/tickets/2')
 
     fireEvent.click(fecharDe('Fechar #1002'))
     fireEvent.click(fecharDe('Fechar #1001'))
-    expect(rota()).toBe('/chamados')
+    expect(rota()).toBe('/tickets')
     expect(idsNoStore()).toEqual([])
   })
 
   it('Delete com o item focado fecha, e o clique do meio também', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/3')
+    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/tickets/3')
 
     fireEvent.keyDown(screen.getByRole('button', { name: '#1001 · Assunto #1001' }), { key: 'Delete' })
     expect(idsNoStore()).toEqual([2, 3])
@@ -159,13 +159,13 @@ describe('ListaTrabalho — fechar', () => {
 
 describe('ListaTrabalho — teclado', () => {
   it('só um item entra na ordem de tabulação: o ticket da tela', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/2')
+    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/tickets/2')
     const [a, b, c] = within(screen.getByRole('list')).getAllByRole('button', { name: /· Assunto/ })
     expect([a, b, c].map((el) => el!.getAttribute('tabindex'))).toEqual(['-1', '0', '-1'])
   })
 
   it('setas movem o foco sem navegar, dando a volta nas pontas', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/chamados/1')
+    montar([ticket(1, '#1001'), ticket(2, '#1002')], '/tickets/1')
     const primeiro = screen.getByRole('button', { name: '#1001 · Assunto #1001' })
     const segundo = screen.getByRole('button', { name: '#1002 · Assunto #1002' })
 
@@ -176,19 +176,19 @@ describe('ListaTrabalho — teclado', () => {
     expect(primeiro).toHaveFocus()
     fireEvent.keyDown(primeiro, { key: 'ArrowUp' })
     expect(segundo).toHaveFocus()
-    expect(rota()).toBe('/chamados/1')
+    expect(rota()).toBe('/tickets/1')
   })
 })
 
 describe('ListaTrabalho — menu de contexto', () => {
   it('"Fechar os outros" deixa só o escolhido', () => {
-    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/chamados/1')
+    montar([ticket(1, '#1001'), ticket(2, '#1002'), ticket(3, '#1003')], '/tickets/1')
     fireEvent.contextMenu(screen.getByRole('button', { name: '#1002 · Assunto #1002' }), { clientX: 40, clientY: 80 })
     fireEvent.click(within(screen.getByRole('menu', { name: 'Ações do ticket' })).getByRole('menuitem', { name: /Fechar os outros/ }))
 
     expect(idsNoStore()).toEqual([2])
     // o da tela (1) fechou junto: vai para o que sobrou
-    expect(rota()).toBe('/chamados/2')
+    expect(rota()).toBe('/tickets/2')
   })
 
   it('em lote pergunta UMA vez pelo conjunto e desiste se a pessoa recusar', () => {

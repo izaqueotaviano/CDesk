@@ -761,10 +761,10 @@ export function PaginaNovoTicket() {
   function validar(): Partial<Record<NomeCampo, string>> {
     const e: Partial<Record<NomeCampo, string>> = {}
     if (!equipeId) e.team_id = 'Escolha a equipe que vai atender.'
-    if (solicitanteIdValido == null) e.requester_id = 'Escolha para quem o chamado é aberto.'
-    if (!assunto.trim()) e.subject = 'Resuma o chamado em uma linha.'
+    if (solicitanteIdValido == null) e.requester_id = 'Escolha para quem o ticket é aberto.'
+    if (!assunto.trim()) e.subject = 'Resuma o ticket em uma linha.'
     if (!texto.trim()) {
-      e.body = 'Escreva a mensagem. É ela que abre o chamado para o cliente.'
+      e.body = 'Escreva a mensagem. É ela que abre o ticket para o cliente.'
     } else {
       // última barreira antes de o texto virar mensagem para o cliente: um
       // marcador que sobrou da macro chegaria ao pé da letra
@@ -859,7 +859,7 @@ export function PaginaNovoTicket() {
         })
         return
       }
-      navigate(`/chamados/${ticket.id}`)
+      navigate(`/tickets/${ticket.id}`)
     } catch (e) {
       if (e instanceof ApiError && e.fieldErrors) {
         // O cliente HTTP normaliza as duas formas do backend — `["msg"]` do
@@ -879,7 +879,7 @@ export function PaginaNovoTicket() {
           // (apps/tickets/views.py:create): 400 em `files` significa agora que
           // nada foi criado. Dizer isso é o que impede o agente de achar que o
           // chamado nasceu e abrir um segundo por precaução.
-          porCampo.files = `${porCampo.files} Nenhum chamado foi aberto. Troque o arquivo e envie de novo.`
+          porCampo.files = `${porCampo.files} Nenhum ticket foi aberto. Troque o arquivo e envie de novo.`
         }
         setErros((atuais) => ({ ...atuais, ...porCampo }))
         focarPrimeiroInvalido(porCampo)
@@ -887,17 +887,17 @@ export function PaginaNovoTicket() {
         setErroGeral(geral || null)
       } else {
         setErroGeral(
-          `${mensagemDeErro(e, 'Não foi possível abrir o chamado.')} Nada foi perdido: o texto continua aqui.`,
+          `${mensagemDeErro(e, 'Não foi possível abrir o ticket.')} Nada foi perdido: o texto continua aqui.`,
         )
       }
     }
   }
 
   function cancelar() {
-    if (sujo && !window.confirm('Descartar o chamado que você começou a escrever?')) return
+    if (sujo && !window.confirm('Descartar o ticket que você começou a escrever?')) return
     enviadoRef.current = true
     limparRascunho()
-    navigate('/chamados')
+    navigate('/tickets')
   }
 
   function aoTeclar(e: KeyboardEvent<HTMLDivElement>) {
@@ -929,7 +929,7 @@ export function PaginaNovoTicket() {
         <header className="ticket-cab novo__cab">
           <div className="ticket-cab__linha">
             <div className="ticket-cab__identidade novo__identidade">
-              <h1 className="ticket-cab__assunto">Chamado aberto</h1>
+              <h1 className="ticket-cab__assunto">Ticket aberto</h1>
               <span className="novo__cab-sub">{criado.assunto}</span>
             </div>
           </div>
@@ -950,8 +950,8 @@ export function PaginaNovoTicket() {
             <p className="novo__feito-pendencia">
               <i className="ti ti-alert-triangle" aria-hidden="true" />
               <span>
-                O chamado está lá, mas {criado.pendencias.join(' e ')}. Dá para ajustar no próprio
-                chamado.
+                O ticket está lá, mas {criado.pendencias.join(' e ')}. Dá para ajustar no próprio
+                ticket.
               </span>
             </p>
           )}
@@ -959,14 +959,14 @@ export function PaginaNovoTicket() {
             <button
               type="button"
               className="compositor__botao"
-              onClick={() => navigate(`/chamados/${criado.id}`)}
+              onClick={() => navigate(`/tickets/${criado.id}`)}
             >
               Abrir {criado.referencia}
             </button>
             <button type="button" className="novo__cancelar" onClick={abrirOutroParaMesmoCliente}>
-              Abrir outro chamado{criado.cliente ? ` para ${criado.cliente}` : ''}
+              Abrir outro ticket{criado.cliente ? ` para ${criado.cliente}` : ''}
             </button>
-            <button type="button" className="novo__link" onClick={() => navigate('/chamados')}>
+            <button type="button" className="novo__link" onClick={() => navigate('/tickets')}>
               Voltar para a lista
             </button>
           </div>
@@ -996,7 +996,7 @@ export function PaginaNovoTicket() {
               <i className="ti ti-arrow-left" />
             </button>
             <div className="ticket-cab__identidade novo__identidade">
-              <h1 className="ticket-cab__assunto">Novo chamado</h1>
+              <h1 className="ticket-cab__assunto">Novo ticket</h1>
             </div>
           </div>
         </header>
@@ -1008,7 +1008,7 @@ export function PaginaNovoTicket() {
           <i className="ti ti-users-group" aria-hidden="true" />
           <p role="status">Você não atende nenhuma equipe.</p>
           <p>
-            Chamado sempre nasce numa equipe, e a abertura só oferece as equipes que você atende.
+            Ticket sempre nasce numa equipe, e a abertura só oferece as equipes que você atende.
             Peça a um administrador para te incluir em uma.
           </p>
           <button type="button" className="novo__cancelar" onClick={cancelar}>
@@ -1033,12 +1033,12 @@ export function PaginaNovoTicket() {
             <i className="ti ti-arrow-left" />
           </button>
           <div className="ticket-cab__identidade novo__identidade">
-            <h1 className="ticket-cab__assunto">Novo chamado</h1>
+            <h1 className="ticket-cab__assunto">Novo ticket</h1>
             <span className="novo__cab-sub">
               Aberto por você em nome de um cliente. Campos com <Obrigatorio /> são obrigatórios.
             </span>
           </div>
-          <span className="ticket-cab__pilula" title="Todo chamado nasce como Novo">
+          <span className="ticket-cab__pilula" title="Todo ticket nasce como Novo">
             <span className="ticket-cab__ponto" style={{ ['--cor' as string]: 'var(--accent)' }} />
             Novo
           </span>
@@ -1047,7 +1047,7 @@ export function PaginaNovoTicket() {
 
       <div className="novo__colunas">
         {/* ---------------- triagem: mesmo painel e controles do detalhe ---------------- */}
-        <aside className="props novo__props" aria-label="Triagem do chamado">
+        <aside className="props novo__props" aria-label="Triagem do ticket">
           <section className="props__grupo">
             <h2 className="props__titulo">Atendimento</h2>
 
@@ -1094,7 +1094,7 @@ export function PaginaNovoTicket() {
                 <span className="props__ajuda" id={`${ids.equipe}-ajuda`}>
                   {estimativa?.label
                     ? `Primeira resposta costuma sair em ${estimativa.label}.`
-                    : 'Quem vai atender o chamado.'}
+                    : 'Quem vai atender o ticket.'}
                 </span>
               )}
               {erroDe('team_id')}
@@ -1282,7 +1282,7 @@ export function PaginaNovoTicket() {
         </aside>
 
         {/* ---------------- a mensagem: o que o cliente vai ler ---------------- */}
-        <section className="novo__compor" aria-label="Redação do chamado">
+        <section className="novo__compor" aria-label="Redação do ticket">
           {erroGeral && (
             <p className="compositor__erro" role="alert">
               <i className="ti ti-alert-circle" aria-hidden="true" /> {erroGeral}
@@ -1292,7 +1292,7 @@ export function PaginaNovoTicket() {
             <p className="compositor__aviso novo__rascunho" role="status">
               <i className="ti ti-history" aria-hidden="true" />
               <span>
-                Recuperamos o chamado que você tinha começado a escrever aqui.
+                Recuperamos o ticket que você tinha começado a escrever aqui.
                 {rascunhoSalvo?.anexos.length
                   ? ` Os anexos (${rascunhoSalvo.anexos.join(', ')}) precisam ser escolhidos de novo.`
                   : ''}{' '}
@@ -1392,7 +1392,7 @@ export function PaginaNovoTicket() {
               />
             ) : (
               <span className="props__ajuda" id={`${ids.para}-ajuda`}>
-                O cliente em nome de quem o chamado é aberto. Ele recebe a mensagem abaixo por
+                O cliente em nome de quem o ticket é aberto. Ele recebe a mensagem abaixo por
                 e-mail.
               </span>
             )}
@@ -1408,14 +1408,14 @@ export function PaginaNovoTicket() {
                 <i className="ti ti-alert-triangle" aria-hidden="true" />
                 <span>
                   {solicitante.full_name} já tem {chamadosAbertos!.count}{' '}
-                  {chamadosAbertos!.count === 1 ? 'chamado aberto' : 'chamados abertos'} que você
+                  {chamadosAbertos!.count === 1 ? 'ticket aberto' : 'tickets abertos'} que você
                   enxerga:{' '}
                   {chamadosAbertos!.results.map((t, i) => (
                     <span key={t.id}>
                       {i > 0 && ', '}
                       <a
                         className="novo__link"
-                        href={`/chamados/${t.id}`}
+                        href={`/tickets/${t.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -1440,7 +1440,7 @@ export function PaginaNovoTicket() {
               className="novo__assunto"
               type="text"
               maxLength={200}
-              placeholder="Resuma o chamado em uma linha"
+              placeholder="Resuma o ticket em uma linha"
               value={assunto}
               aria-invalid={erros.subject ? true : undefined}
               aria-describedby={descreve('subject')}
@@ -1470,7 +1470,7 @@ export function PaginaNovoTicket() {
                 Mensagem <Obrigatorio />
               </label>
               <span className="novo__dica" id={`${ids.texto}-ajuda`}>
-                Vira a primeira mensagem do chamado, visível para o cliente.
+                Vira a primeira mensagem do ticket, visível para o cliente.
               </span>
             </div>
             <textarea
@@ -1630,7 +1630,7 @@ export function PaginaNovoTicket() {
                   disabled={abrir.isPending}
                   title="Ctrl+Enter"
                 >
-                  {abrir.isPending ? 'Abrindo…' : 'Abrir chamado'}
+                  {abrir.isPending ? 'Abrindo…' : 'Abrir ticket'}
                   <kbd aria-hidden="true">⌃↵</kbd>
                 </button>
               </div>

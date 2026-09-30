@@ -143,7 +143,7 @@ export function PaginaInicio() {
             {me ? `Olá, ${primeiroNome(me.full_name)}` : <Skeleton className="h-8 w-40" />}
           </h1>
           <p className="mt-1 text-corpo text-tinta-secundaria">
-            {me?.company_name ? `${me.company_name} · ` : ''}Acompanhe seus chamados e fale com o suporte.
+            {me?.company_name ? `${me.company_name} · ` : ''}Acompanhe seus tickets e fale com o suporte.
             {filaAberta != null && (
               <>
                 {' · '}
@@ -188,7 +188,7 @@ export function PaginaInicio() {
       {pendentesTicket > 0 && (
         <Alert
           variant="info"
-          titulo={pendentesTicket === 1 ? 'Um chamado resolvido aguarda sua avaliação' : `${pendentesTicket} chamados resolvidos aguardam sua avaliação`}
+          titulo={pendentesTicket === 1 ? 'Um ticket resolvido aguarda sua avaliação' : `${pendentesTicket} tickets resolvidos aguardam sua avaliação`}
           acao={
             <Link to={`/portal/tickets/${ticketsPendentes![0].ticket_id}`} className={buttonVariants({ size: 'sm', variant: 'secondary' })}>
               Avaliar {ticketsPendentes![0].reference}

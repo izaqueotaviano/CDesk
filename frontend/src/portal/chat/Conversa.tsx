@@ -484,7 +484,7 @@ export function Conversa({
 
       {chat.ticket_reference && (
         <p className="px-4 py-2 text-pequeno text-tinta-secundaria">
-          Esta conversa virou o chamado <strong className="text-tinta">{chat.ticket_reference}</strong>.
+          Esta conversa virou o ticket <strong className="text-tinta">{chat.ticket_reference}</strong>.
         </p>
       )}
 

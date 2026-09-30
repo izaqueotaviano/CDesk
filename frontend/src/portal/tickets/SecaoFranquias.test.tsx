@@ -55,7 +55,7 @@ describe('SecaoFranquias', () => {
     expect(await screen.findByText((_, el) => el?.tagName === 'P' && el.textContent === '3 de 10 usados')).toBeInTheDocument()
     // 330 min = 5h30, 500 min = 8h20 — mesma leitura do backend
     expect(screen.getByText((_, el) => el?.tagName === 'P' && el.textContent === '5h30 de 8h20 usados')).toBeInTheDocument()
-    expect(screen.getByText('Chamados')).toBeInTheDocument()
+    expect(screen.getByText('Tickets')).toBeInTheDocument()
     expect(screen.getByText('Manutenção')).toBeInTheDocument()
   })
 

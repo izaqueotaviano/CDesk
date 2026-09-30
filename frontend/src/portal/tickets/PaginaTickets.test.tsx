@@ -97,7 +97,7 @@ describe('PaginaTickets', () => {
 
     fireEvent.mouseDown(screen.getByRole('tab', { name: /^Fechados/ }))
     fireEvent.click(screen.getByRole('tab', { name: /^Fechados/ }))
-    expect(await screen.findByText('Nenhum chamado fechado')).toBeInTheDocument()
+    expect(await screen.findByText('Nenhum ticket fechado')).toBeInTheDocument()
     expect(urls.some((u) => u.includes('resolucao=fechado'))).toBe(true)
   })
 

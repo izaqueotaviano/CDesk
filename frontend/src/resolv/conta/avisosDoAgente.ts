@@ -26,21 +26,21 @@ export interface AvisoDoAgente {
  */
 export const GRUPOS_DE_AVISOS: { titulo: string; avisos: AvisoDoAgente[] }[] = [
   {
-    titulo: 'Chamados',
+    titulo: 'Tickets',
     avisos: [
-      { kind: 'ticket_assigned', rotulo: 'Chamado atribuído a você', descricao: 'Quando alguém passa um chamado para você.', email: true },
-      { kind: 'ticket_replied', rotulo: 'Resposta do cliente', descricao: 'Quando o cliente responde um chamado seu.', email: false },
+      { kind: 'ticket_assigned', rotulo: 'Ticket atribuído a você', descricao: 'Quando alguém passa um ticket para você.', email: true },
+      { kind: 'ticket_replied', rotulo: 'Resposta do cliente', descricao: 'Quando o cliente responde um ticket seu.', email: false },
       { kind: 'mention', rotulo: 'Menção', descricao: 'Quando alguém cita você numa nota interna.', email: true },
-      { kind: 'ticket_reopened', rotulo: 'Chamado reaberto', descricao: 'Quando o cliente volta a escrever num chamado seu já fechado.', email: true },
-      { kind: 'ticket_owner_set', rotulo: 'Dono técnico', descricao: 'Quando você passa a ser o dono técnico de um chamado.', email: true },
-      { kind: 'ticket_created', rotulo: 'Chamado novo na sua equipe', descricao: 'Quando um cliente abre um chamado para uma equipe sua.', email: false },
+      { kind: 'ticket_reopened', rotulo: 'Ticket reaberto', descricao: 'Quando o cliente volta a escrever num ticket seu já fechado.', email: true },
+      { kind: 'ticket_owner_set', rotulo: 'Dono técnico', descricao: 'Quando você passa a ser o dono técnico de um ticket.', email: true },
+      { kind: 'ticket_created', rotulo: 'Ticket novo na sua equipe', descricao: 'Quando um cliente abre um ticket para uma equipe sua.', email: false },
     ],
   },
   {
     titulo: 'Prazos',
     avisos: [
-      { kind: 'sla_warning', rotulo: 'SLA em risco', descricao: 'Quando o prazo de um chamado seu está perto do fim.', email: true },
-      { kind: 'sla_breached', rotulo: 'SLA estourado', descricao: 'Quando o prazo de um chamado seu passou.', email: true },
+      { kind: 'sla_warning', rotulo: 'SLA em risco', descricao: 'Quando o prazo de um ticket seu está perto do fim.', email: true },
+      { kind: 'sla_breached', rotulo: 'SLA estourado', descricao: 'Quando o prazo de um ticket seu passou.', email: true },
       { kind: 'kanban_due', rotulo: 'Prazo do quadro', descricao: 'Quando vence o prazo de um card seu no quadro.', email: true },
     ],
   },

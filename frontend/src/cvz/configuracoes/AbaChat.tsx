@@ -189,8 +189,8 @@ export function AbaChat() {
         />
         <FormRow columns={2}>
           <TextInput
-            label="Tempo na fila até virar chamado (minutos)"
-            helper="Ninguém pegou nesse tempo → vira o chamado “Chat não atendido”."
+            label="Tempo na fila até virar ticket (minutos)"
+            helper="Ninguém pegou nesse tempo → vira o ticket “Chat não atendido”."
             type="number"
             min={1}
             value={form.timeoutMin}
@@ -198,8 +198,8 @@ export function AbaChat() {
             error={erros.timeoutMin}
           />
           <Select
-            label="Equipe do chamado automático"
-            helper="Quem recebe o chamado da conversão por tempo esgotado."
+            label="Equipe do ticket automático"
+            helper="Quem recebe o ticket da conversão por tempo esgotado."
             value={form.equipePadrao}
             onChange={(e) => atualizarCampo('equipePadrao', e.target.value)}
             options={opcoesEquipe}

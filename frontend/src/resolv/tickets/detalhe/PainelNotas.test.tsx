@@ -95,7 +95,7 @@ describe('PainelNotas', () => {
 
   it('mostra o vazio quando não há nota sobre o chamado', () => {
     montar()
-    expect(screen.getByText(/nenhuma nota sobre este chamado/i)).toBeInTheDocument()
+    expect(screen.getByText(/nenhuma nota sobre este ticket/i)).toBeInTheDocument()
   })
 
   it('avisa quando a lista falha e deixa tentar de novo', async () => {

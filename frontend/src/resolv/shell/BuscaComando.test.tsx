@@ -67,7 +67,7 @@ function montar(comecaAberto = true) {
         <Harness comecaAberto={comecaAberto} />
         <Routes>
           <Route path="/inicio" element={<p>tela inicial</p>} />
-          <Route path="/chamados/:id" element={<p>detalhe do chamado</p>} />
+          <Route path="/tickets/:id" element={<p>detalhe do chamado</p>} />
           <Route path="/clientes/:id" element={<p>painel da empresa</p>} />
           <Route path="/clientes" element={<p>lista de clientes</p>} />
         </Routes>
@@ -77,7 +77,7 @@ function montar(comecaAberto = true) {
 }
 
 function campo() {
-  return screen.getByRole('combobox', { name: 'Buscar chamado, empresa, pessoa ou área do sistema' })
+  return screen.getByRole('combobox', { name: 'Buscar ticket, empresa, pessoa ou área do sistema' })
 }
 
 function digitar(texto: string) {
@@ -102,7 +102,7 @@ describe('Busca + navegação do shell', () => {
     // Mais que o debounce (250ms): se fosse disparar, já teria disparado.
     await new Promise((r) => setTimeout(r, 450))
     expect(buscas()).toHaveLength(0)
-    expect(screen.queryByText('Chamados')).not.toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Tickets' })).not.toBeInTheDocument()
   })
 
   it('a partir de dois caracteres busca no servidor com o termo digitado', async () => {
@@ -116,7 +116,7 @@ describe('Busca + navegação do shell', () => {
     montar()
     digitar('acme')
 
-    expect(await screen.findByText('Chamados')).toBeInTheDocument()
+    expect(await screen.findByRole('group', { name: 'Tickets' })).toBeInTheDocument()
     expect(screen.getByText('Empresas')).toBeInTheDocument()
     expect(screen.getByText('Solicitantes')).toBeInTheDocument()
 

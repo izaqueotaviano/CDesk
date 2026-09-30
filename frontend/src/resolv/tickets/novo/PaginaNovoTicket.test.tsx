@@ -231,15 +231,15 @@ apiGetMock.mockImplementation((path: string) => {
   return Promise.reject(new Error(`GET não mockado neste teste: ${path}`))
 })
 
-function montar(endereco = '/chamados/novo') {
+function montar(endereco = '/tickets/novo') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[endereco]}>
         <Routes>
-          <Route path="/chamados/novo" element={<PaginaNovoTicket />} />
-          <Route path="/chamados/:id" element={<p>detalhe do chamado</p>} />
-          <Route path="/chamados" element={<p>lista de chamados</p>} />
+          <Route path="/tickets/novo" element={<PaginaNovoTicket />} />
+          <Route path="/tickets/:id" element={<p>detalhe do chamado</p>} />
+          <Route path="/tickets" element={<p>lista de chamados</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -307,11 +307,11 @@ describe('PaginaNovoTicket', () => {
     montar()
     expect(campoPara()).toHaveFocus()
 
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(await screen.findByText('Escolha a equipe que vai atender.')).toBeInTheDocument()
-    expect(screen.getByText('Escolha para quem o chamado é aberto.')).toBeInTheDocument()
-    expect(screen.getByText('Resuma o chamado em uma linha.')).toBeInTheDocument()
+    expect(screen.getByText('Escolha para quem o ticket é aberto.')).toBeInTheDocument()
+    expect(screen.getByText('Resuma o ticket em uma linha.')).toBeInTheDocument()
     expect(screen.getByText(/Escreva a mensagem/)).toBeInTheDocument()
     // Equipe é o primeiro campo inválido na ordem da tela
     expect(screen.getByLabelText(/^Equipe/)).toHaveFocus()
@@ -332,7 +332,7 @@ describe('PaginaNovoTicket', () => {
   })
 
   it('aberto pela página do cliente (`?empresa=`), já nasce com a empresa escolhida', () => {
-    montar('/chamados/novo?empresa=2')
+    montar('/tickets/novo?empresa=2')
     expect(screen.getByLabelText('Empresa')).toHaveValue('2')
   })
 
@@ -341,7 +341,7 @@ describe('PaginaNovoTicket', () => {
       'resolv:novo-chamado',
       JSON.stringify({ versao: 1, dados: { empresaId: 1, assunto: 'Antigo' } }),
     )
-    montar('/chamados/novo?empresa=2')
+    montar('/tickets/novo?empresa=2')
     expect(screen.getByLabelText('Empresa')).toHaveValue('2')
   })
 
@@ -394,7 +394,7 @@ describe('PaginaNovoTicket', () => {
       target: { value: 'Olá, segue o boleto.' },
     })
 
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
     expect(abrirMock.mock.calls[0][0]).toMatchObject({
@@ -425,12 +425,12 @@ describe('PaginaNovoTicket', () => {
     })
     montar()
     await preencherObrigatorios('Ana Almeida')
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(await screen.findByRole('button', { name: 'Abrir TD-00007' })).toBeInTheDocument()
     expect(screen.getByText(/o responsável não foi atribuído/)).toBeInTheDocument()
     // o formulário SAIU: não há como mandar o mesmo chamado de novo
-    expect(screen.queryByRole('button', { name: /^Abrir chamado/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Abrir ticket/ })).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/^Mensagem/)).not.toBeInTheDocument()
     expect(screen.queryByText('detalhe do chamado')).not.toBeInTheDocument()
   })
@@ -442,10 +442,10 @@ describe('PaginaNovoTicket', () => {
     })
     montar()
     await preencherObrigatorios('Ana Almeida')
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Abrir outro chamado para Ana Almeida' }),
+      await screen.findByRole('button', { name: 'Abrir outro ticket para Ana Almeida' }),
     )
 
     expect(campoPara()).toHaveValue('Ana Almeida')
@@ -526,12 +526,12 @@ describe('PaginaNovoTicket', () => {
     )
     montar()
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(
       await screen.findByText(/'manual\.pdf' tem 12 MB; o limite por arquivo é 10 MB\./),
     ).toBeInTheDocument()
-    expect(screen.getByText(/Nenhum chamado foi aberto/)).toBeInTheDocument()
+    expect(screen.getByText(/Nenhum ticket foi aberto/)).toBeInTheDocument()
     // nada de "Erro 400" solto no topo, e o foco vai para onde se troca o arquivo
     expect(screen.queryByText(/Erro 400/)).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Anexar/ })).toHaveFocus()
@@ -541,7 +541,7 @@ describe('PaginaNovoTicket', () => {
     abrirMock.mockRejectedValue(new ApiError(400, { requester_id: 'Cliente não encontrado.' }))
     montar()
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(await screen.findByText('Cliente não encontrado.')).toBeInTheDocument()
     expect(campoPara()).toHaveFocus()
@@ -554,7 +554,7 @@ describe('PaginaNovoTicket', () => {
     )
     montar()
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(await screen.findByText('Equipe sem agente ativo.')).toBeInTheDocument()
   })
@@ -580,7 +580,7 @@ describe('PaginaNovoTicket', () => {
 
     montar()
     expect(
-      await screen.findByText(/Recuperamos o chamado que você tinha começado/),
+      await screen.findByText(/Recuperamos o ticket que você tinha começado/),
     ).toBeInTheDocument()
     expect(screen.getByLabelText(/^Assunto/)).toHaveValue('Boleto em duplicidade')
     expect(screen.getByLabelText(/^Mensagem/)).toHaveValue('Segue o comprovante.')
@@ -591,7 +591,7 @@ describe('PaginaNovoTicket', () => {
     expect(screen.getByLabelText(/^Assunto/)).toHaveValue('')
     expect(screen.getByLabelText(/^Mensagem/)).toHaveValue('')
     expect(screen.getByLabelText(/^Equipe/)).toHaveValue('')
-    expect(screen.queryByText(/Recuperamos o chamado/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Recuperamos o ticket/)).not.toBeInTheDocument()
   })
 
   it('rascunho com solicitante que continua válido busca a pessoa por id e repõe o cartão', async () => {
@@ -631,8 +631,8 @@ describe('PaginaNovoTicket', () => {
     // importa aqui é que o clique NUNCA chega a mandar `requester_id: 5`;
     // `waitFor` reclica até o 404 assentar e a mensagem certa aparecer.
     await waitFor(() => {
-      fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
-      expect(screen.getByText('Escolha para quem o chamado é aberto.')).toBeInTheDocument()
+      fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
+      expect(screen.getByText('Escolha para quem o ticket é aberto.')).toBeInTheDocument()
     })
     expect(abrirMock).not.toHaveBeenCalled()
   })
@@ -641,12 +641,12 @@ describe('PaginaNovoTicket', () => {
     abrirMock.mockResolvedValue({ ticket: { id: 42, reference: 'TD-00042' }, pendencias: [] })
     const tela = montar()
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
     expect(await screen.findByText('detalhe do chamado')).toBeInTheDocument()
     tela.unmount()
 
     montar()
-    expect(screen.queryByText(/Recuperamos o chamado/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Recuperamos o ticket/)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/^Assunto/)).toHaveValue('')
   })
 
@@ -669,11 +669,11 @@ describe('PaginaNovoTicket', () => {
 
   it('campo inválido é anunciado como inválido e aponta para o erro e para a ajuda', async () => {
     montar()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     const equipe = await screen.findByLabelText(/^Equipe/)
     const erro = screen.getByText('Escolha a equipe que vai atender.')
-    const ajuda = screen.getByText('Quem vai atender o chamado.')
+    const ajuda = screen.getByText('Quem vai atender o ticket.')
     expect(equipe).toHaveAttribute('aria-invalid', 'true')
     expect(equipe.getAttribute('aria-describedby')).toContain(erro.id)
     expect(equipe.getAttribute('aria-describedby')).toContain(ajuda.id)
@@ -685,7 +685,7 @@ describe('PaginaNovoTicket', () => {
     servidor.sistema = { ...CFG_SISTEMA, attachment_max_files_per_message: 1 }
     montar()
     anexar([arquivoDe('a.pdf', 1024), arquivoDe('b.pdf', 1024)])
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     expect(await screen.findByText(/Escreva a mensagem/)).toBeInTheDocument()
     expect(screen.getByText(/Máximo de 1 arquivo\(s\) por mensagem/)).toBeInTheDocument()
@@ -774,7 +774,7 @@ describe('PaginaNovoTicket', () => {
     abrirMock.mockResolvedValue({ ticket: { id: 51, reference: 'TD-00051' }, pendencias: [] })
     montar()
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
 
     await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
     expect(abrirMock.mock.calls[0][0]).toMatchObject({ assignee_id: null, tag_ids: [] })
@@ -805,7 +805,7 @@ describe('PaginaNovoTicket', () => {
     expect(recarregarCategoriasMock).toHaveBeenCalledTimes(1)
 
     await preencherObrigatorios()
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
     await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
     expect(abrirMock.mock.calls[0][0]).toMatchObject({ category_id: null })
   })
@@ -881,8 +881,8 @@ describe('PaginaNovoTicket', () => {
     fireEvent.click(await screen.findByRole('option', { name: /Beto Barros/ }))
 
     const aviso = await screen.findByRole('status')
-    expect(aviso).toHaveTextContent(/Beto Barros já tem 2 chamados abertos que você enxerga/)
-    expect(screen.getByRole('link', { name: 'TCK-0101' })).toHaveAttribute('href', '/chamados/101')
+    expect(aviso).toHaveTextContent(/Beto Barros já tem 2 tickets abertos que você enxerga/)
+    expect(screen.getByRole('link', { name: 'TCK-0101' })).toHaveAttribute('href', '/tickets/101')
     expect(screen.getByRole('link', { name: 'TCK-0101' })).toHaveAttribute('target', '_blank')
 
     // company DELE (1, de Beto/Acme), não um filtro solto
@@ -897,7 +897,7 @@ describe('PaginaNovoTicket', () => {
     fireEvent.change(screen.getByLabelText(/^Equipe/), { target: { value: '1' } })
     fireEvent.change(screen.getByLabelText(/^Assunto/), { target: { value: 'Outro caso' } })
     fireEvent.change(screen.getByLabelText(/^Mensagem/), { target: { value: 'Mais um.' } })
-    fireEvent.click(screen.getByRole('button', { name: /abrir chamado/i }))
+    fireEvent.click(screen.getByRole('button', { name: /abrir ticket/i }))
     await waitFor(() => expect(abrirMock).toHaveBeenCalledTimes(1))
   })
 

@@ -174,7 +174,7 @@ function BlocoTickets({ empresaId, onNovoTicket }: { empresaId: number; onNovoTi
       acao={
         // O filtro por empresa da lista de tickets mora na URL (`?empresa=`),
         // como os demais recortes daquela tela.
-        <Link className="empresa-bloco__link" to={`/chamados?empresa=${empresaId}`} aria-label="Ver todos os tickets">
+        <Link className="empresa-bloco__link" to={`/tickets?empresa=${empresaId}`} aria-label="Ver todos os tickets">
           Ver todos
         </Link>
       }
@@ -191,7 +191,7 @@ function BlocoTickets({ empresaId, onNovoTicket }: { empresaId: number; onNovoTi
         <EmptyState
           Icon={IconTicket}
           title="Nenhum ticket aberto"
-          description="Tudo em dia com esta empresa. Um chamado novo aparece aqui assim que for aberto."
+          description="Tudo em dia com esta empresa. Um ticket novo aparece aqui assim que for aberto."
           action={
             <Button variant="secondary" size="sm" Icon={IconPlus} onClick={onNovoTicket}>
               Abrir ticket
@@ -215,7 +215,7 @@ function LinhaTicket({ ticket: t }: { ticket: TicketLinha }) {
   const prioridadeAlta = t.priority === 'high' || t.priority === 'urgent'
   return (
     <li>
-      <Link className="empresa-lista__item" to={`/chamados/${t.id}`}>
+      <Link className="empresa-lista__item" to={`/tickets/${t.id}`}>
         <span className="empresa-lista__principal">
           <span className="empresa-lista__titulo">{t.subject}</span>
           <Meta
@@ -432,8 +432,8 @@ function BlocoContatos({
           title="Nenhum usuário ainda"
           description={
             podeEditar
-              ? 'Convide quem vai abrir chamados por esta empresa.'
-              : 'Quem abrir chamados por esta empresa aparece aqui.'
+              ? 'Convide quem vai abrir tickets por esta empresa.'
+              : 'Quem abrir tickets por esta empresa aparece aqui.'
           }
           action={
             podeEditar ? (

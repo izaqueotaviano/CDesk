@@ -46,7 +46,7 @@ export function OutrosTicketsDoSolicitante({ ticket }: { ticket: TicketDetalhe }
         {data && data.total > 0 && (
           <Link
             className="outros-tickets__todos"
-            to={`/chamados?solicitante=${solicitanteId}`}
+            to={`/tickets?solicitante=${solicitanteId}`}
             aria-label={`Ver todos os tickets de ${nome}`}
           >
             Ver todos{data.total > data.itens.length ? ` (${data.total})` : ''}
@@ -78,7 +78,7 @@ export function OutrosTicketsDoSolicitante({ ticket }: { ticket: TicketDetalhe }
         <ul className="outros-tickets__lista">
           {data.itens.map((t) => (
             <li key={t.id}>
-              <Link className="outros-tickets__item" to={`/chamados/${t.id}`}>
+              <Link className="outros-tickets__item" to={`/tickets/${t.id}`}>
                 <span className="outros-tickets__linha">
                   <span className="outros-tickets__ref">{t.reference}</span>
                   <span

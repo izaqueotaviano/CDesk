@@ -253,7 +253,7 @@ export function AbaBackup() {
       >
         <p>
           O banco inteiro será substituído pelo conteúdo de <code>{paraRestaurar?.nome}</code> ({paraRestaurar ? dataHora(paraRestaurar.criado_em) : ''}).
-          <strong> Tudo que aconteceu depois desse backup (chamados, mensagens, usuários, configurações, agendamentos) some.</strong>
+          <strong> Tudo que aconteceu depois desse backup (tickets, mensagens, usuários, configurações, agendamentos) some.</strong>
         </p>
         <p>Antes de restaurar, o sistema tira um backup de segurança do estado atual. Durante a restauração (alguns segundos) ninguém consegue usar o sistema.</p>
         <TextInput

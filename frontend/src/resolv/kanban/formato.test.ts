@@ -57,21 +57,21 @@ describe('descreverSla', () => {
 
 describe('contagemDaColuna', () => {
   it('sem limite e sem filtro: só o número', () => {
-    expect(contagemDaColuna(3, 3, null, false)).toMatchObject({ texto: '3', acima: false, descricao: '3 chamados' })
+    expect(contagemDaColuna(3, 3, null, false)).toMatchObject({ texto: '3', acima: false, descricao: '3 tickets' })
   })
 
   it('com limite: "total/limite", e acima só quando passa (não quando empata)', () => {
     expect(contagemDaColuna(3, 3, 3, false)).toMatchObject({ texto: '3/3', acima: false })
     const acima = contagemDaColuna(4, 4, 3, false)
     expect(acima).toMatchObject({ texto: '4/3', acima: true })
-    expect(acima.descricao).toBe('4 chamados, limite de 3. Acima do limite')
+    expect(acima.descricao).toBe('4 tickets, limite de 3. Acima do limite')
   })
 
   it('com filtro: mostra o recorte e o todo, e o limite continua medindo o todo', () => {
     const c = contagemDaColuna(1, 4, 3, true)
     expect(c.texto).toBe('1 de 4')
     expect(c.acima).toBe(true)
-    expect(c.descricao).toBe('1 de 4 chamados com os filtros atuais, limite de 3. Acima do limite')
+    expect(c.descricao).toBe('1 de 4 tickets com os filtros atuais, limite de 3. Acima do limite')
   })
 
   it('com filtro que não escondeu nada na coluna, não repete o número', () => {

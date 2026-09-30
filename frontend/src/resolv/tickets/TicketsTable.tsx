@@ -191,7 +191,7 @@ export function TicketsTable({
                   disparos do mesmo destino em sequência. */}
               <td className="col-protocolo" onClick={(e) => e.stopPropagation()}>
                 <Link
-                  to={`/chamados/${t.id}`}
+                  to={`/tickets/${t.id}`}
                   className="tickets-tabela__ref"
                   aria-label={rotuloAbrirChamado(t)}
                 >

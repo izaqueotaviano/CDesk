@@ -1193,8 +1193,8 @@ export function ConversaChat({ chatId, me, compacto = false, historico, navegaca
             {chat.ticket_reference && (
               <>
                 {' '}
-                Virou o chamado{' '}
-                <button type="button" className="cc-link" onClick={() => navigate(`/chamados/${chat.ticket_id}`)}>
+                Virou o ticket{' '}
+                <button type="button" className="cc-link" onClick={() => navigate(`/tickets/${chat.ticket_id}`)}>
                   {chat.ticket_reference}
                 </button>
                 .

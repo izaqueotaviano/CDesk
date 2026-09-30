@@ -108,7 +108,7 @@ describe('PaginaNovoTicket', () => {
     fireEvent.click(link)
     const folha = await screen.findByRole('dialog')
     expect(await within(folha).findByText('Reemita pela tela de pedidos.')).toBeInTheDocument()
-    fireEvent.click(within(folha).getByRole('button', { name: 'Voltar ao chamado' }))
+    fireEvent.click(within(folha).getByRole('button', { name: 'Voltar ao ticket' }))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(screen.getByLabelText('Assunto *')).toHaveValue('NF saiu com CNPJ errado')
   })

@@ -42,7 +42,7 @@ export const PERMISSAO_PESSOAS = 'portal.company_users'
 const DESCRICAO = 'Quem da sua empresa acessa o suporte. Convide colegas, escolha quem também é responsável e tire o acesso de quem saiu.'
 
 const PAPEIS: { valor: PapelNaEmpresa; rotulo: string; descricao: string }[] = [
-  { valor: 'member', rotulo: 'Usuário', descricao: 'Abre e acompanha chamados, e fala com o suporte.' },
+  { valor: 'member', rotulo: 'Usuário', descricao: 'Abre e acompanha tickets, e fala com o suporte.' },
   { valor: 'owner', rotulo: 'Responsável', descricao: 'Também convida pessoas, muda papéis e edita os dados da empresa.' },
 ]
 
@@ -266,7 +266,7 @@ function textosDaConfirmacao(a: Acao): { titulo: string; descricao: string; rotu
     case 'desativar':
       return {
         titulo: `Desativar o acesso de ${nome}?`,
-        descricao: 'A pessoa sai de todas as sessões agora e não consegue mais entrar. Os chamados que ela abriu continuam na empresa, e você pode reativar o acesso depois.',
+        descricao: 'A pessoa sai de todas as sessões agora e não consegue mais entrar. Os tickets que ela abriu continuam na empresa, e você pode reativar o acesso depois.',
         rotulo: 'Desativar acesso',
         perigo: true,
       }
@@ -436,7 +436,7 @@ export function SecaoPessoasEmpresa() {
       <EstadoVazio
         icone={IconUsers}
         titulo="Só você por enquanto"
-        descricao="Convide colegas para abrir e acompanhar chamados em nome da empresa. Cada pessoa cria a própria senha pelo convite."
+        descricao="Convide colegas para abrir e acompanhar tickets em nome da empresa. Cada pessoa cria a própria senha pelo convite."
         acao={botaoConvidar}
         className="py-6"
       />

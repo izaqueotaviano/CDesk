@@ -206,7 +206,7 @@ describe('PaginaDetalheEmpresa — cabeçalho', () => {
     montar()
     await screen.findByRole('heading', { level: 1, name: 'Acme Ltda' })
     fireEvent.click(screen.getByRole('button', { name: 'Novo ticket' }))
-    expect(endereco()).toBe('/chamados/novo?empresa=7')
+    expect(endereco()).toBe('/tickets/novo?empresa=7')
   })
 
   it('"Editar dados" leva à aba Dados e põe o foco nela', async () => {
@@ -255,7 +255,7 @@ describe('PaginaDetalheEmpresa — visão geral', () => {
     montar()
 
     const link = await screen.findByRole('link', { name: /Assunto 1/ })
-    expect(link).toHaveAttribute('href', '/chamados/1')
+    expect(link).toHaveAttribute('href', '/tickets/1')
     expect(within(link).getByText('TD-00001')).toBeInTheDocument()
     expect(within(link).getByText('Samuel')).toBeInTheDocument()
     expect(within(link).getByText('Urgente')).toBeInTheDocument()
@@ -272,14 +272,14 @@ describe('PaginaDetalheEmpresa — visão geral', () => {
   it('"Ver todos" leva à lista de tickets filtrada pela empresa', async () => {
     montar()
     const verTodos = await screen.findByRole('link', { name: 'Ver todos os tickets' })
-    expect(verTodos).toHaveAttribute('href', '/chamados?empresa=7')
+    expect(verTodos).toHaveAttribute('href', '/tickets?empresa=7')
   })
 
   it('sem ticket aberto, convida a abrir um', async () => {
     montar()
     expect(await screen.findByText('Nenhum ticket aberto')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Abrir ticket' }))
-    expect(endereco()).toBe('/chamados/novo?empresa=7')
+    expect(endereco()).toBe('/tickets/novo?empresa=7')
   })
 
   it('falha nos tickets fica no bloco, com tentar de novo', async () => {

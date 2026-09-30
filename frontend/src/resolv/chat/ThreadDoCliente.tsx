@@ -188,7 +188,7 @@ function MarcoDeSessao({
     <div className="cc-thread__marco" role="separator">
       <span>
         {sessao?.ticket_reference
-          ? `Chamado ${sessao.ticket_reference} aberto`
+          ? `Ticket ${sessao.ticket_reference} aberto`
           : `Atendimento #${chatId} aberto`}
         {sessao?.queued_at && ` · ${dataHoraDe(sessao.queued_at)}`}
         {/* quem atendeu MUDA de uma abertura para outra — é o que impede

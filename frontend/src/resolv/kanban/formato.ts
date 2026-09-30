@@ -153,8 +153,8 @@ export function contagemDaColuna(visiveis: number, total: number, limite: number
   const recortada = filtrando && visiveis < total
   const texto = recortada ? `${visiveis} de ${total}` : limite != null ? `${total}/${limite}` : String(total)
   let descricao = recortada
-    ? `${visiveis} de ${plural(total, 'chamado', 'chamados')} com os filtros atuais`
-    : plural(total, 'chamado', 'chamados')
+    ? `${visiveis} de ${plural(total, 'ticket', 'tickets')} com os filtros atuais`
+    : plural(total, 'ticket', 'tickets')
   if (limite != null) descricao += `, limite de ${limite}`
   if (acima) descricao += '. Acima do limite'
   return { texto, descricao, acima }

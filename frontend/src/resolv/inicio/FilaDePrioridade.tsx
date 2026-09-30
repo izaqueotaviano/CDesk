@@ -24,14 +24,14 @@ export function FilaDePrioridade() {
         {data && <span className="inicio-lista__contador">{data.count}</span>}
       </header>
       {isLoading ? (
-        <EsqueletoLista rotulo="Carregando seus próximos chamados" />
+        <EsqueletoLista rotulo="Carregando seus próximos tickets" />
       ) : linhas.length === 0 ? (
         <p className="inicio-lista__vazio">Nada pendente com você agora.</p>
       ) : (
         <ul className="inicio-lista__itens">
           {linhas.map((t) => (
             <li key={t.id}>
-              <button type="button" className="inicio-lista__item" onClick={() => navigate(`/chamados/${t.id}`)}>
+              <button type="button" className="inicio-lista__item" onClick={() => navigate(`/tickets/${t.id}`)}>
                 <span className="inicio-lista__barra" style={{ background: COR_PRIORIDADE[t.priority] }} aria-hidden="true" />
                 <span className="inicio-lista__texto">
                   <span className="inicio-lista__assunto">{t.subject}</span>

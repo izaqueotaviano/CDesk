@@ -6,8 +6,8 @@ import { usePrefs } from '@/stores/prefs'
 import { PainelNotificacoes } from './PainelNotificacoes'
 
 const NOTIFICACOES = [
-  { id: 1, kind: 'ticket_assigned', title: 'Ticket atribuído a você: T-0007', body: 'Impressora não liga', url: '/chamados/7', ticket_id: 7, actor_name: 'Ana', read_at: null, created_at: '2026-09-06T00:00:00Z' },
-  { id: 2, kind: 'mention', title: 'Samuel mencionou você', body: 'pode olhar?', url: '/chamados/9#mensagem-3', ticket_id: 9, actor_name: 'Samuel', read_at: '2026-09-05T00:00:00Z', created_at: '2026-09-05T00:00:00Z' },
+  { id: 1, kind: 'ticket_assigned', title: 'Ticket atribuído a você: T-0007', body: 'Impressora não liga', url: '/tickets/7', ticket_id: 7, actor_name: 'Ana', read_at: null, created_at: '2026-09-06T00:00:00Z' },
+  { id: 2, kind: 'mention', title: 'Samuel mencionou você', body: 'pode olhar?', url: '/tickets/9#mensagem-3', ticket_id: 9, actor_name: 'Samuel', read_at: '2026-09-05T00:00:00Z', created_at: '2026-09-05T00:00:00Z' },
 ]
 
 let chamadas: { url: string; metodo: string }[]
@@ -60,7 +60,7 @@ function montar() {
       <MemoryRouter initialEntries={['/inicio']}>
         <Routes>
           <Route path="/inicio" element={<PainelNotificacoes />} />
-          <Route path="/chamados/:id" element={<p>detalhe do ticket</p>} />
+          <Route path="/tickets/:id" element={<p>detalhe do ticket</p>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

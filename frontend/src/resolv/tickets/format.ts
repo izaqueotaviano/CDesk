@@ -40,7 +40,7 @@ export function rotuloAbrirChamado(
   t: Pick<TicketLinha, 'reference' | 'subject' | 'company_name'>,
 ): string {
   const empresa = t.company_name ? ` (${t.company_name})` : ''
-  return `Abrir chamado ${t.reference}: ${t.subject}${empresa}`
+  return `Abrir ticket ${t.reference}: ${t.subject}${empresa}`
 }
 
 export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {

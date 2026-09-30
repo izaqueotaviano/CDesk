@@ -80,12 +80,12 @@ describe('Outros tickets do solicitante', () => {
     const itens = await screen.findAllByRole('link', { name: /^T-\d+/ })
     expect(itens).toHaveLength(5)
     expect(screen.queryByText('T-42')).not.toBeInTheDocument()
-    expect(itens[0]).toHaveAttribute('href', '/chamados/1')
+    expect(itens[0]).toHaveAttribute('href', '/tickets/1')
     expect(within(itens[0]!).getByText('Assunto 1')).toBeInTheDocument()
     expect(within(itens[0]!).getByText('Fechado')).toBeInTheDocument()
 
     const todos = screen.getByRole('link', { name: 'Ver todos os tickets de Beto Barros' })
-    expect(todos).toHaveAttribute('href', '/chamados?solicitante=7')
+    expect(todos).toHaveAttribute('href', '/tickets?solicitante=7')
     expect(todos).toHaveTextContent('Ver todos (11)')
   })
 

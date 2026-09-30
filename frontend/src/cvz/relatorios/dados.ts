@@ -177,7 +177,7 @@ export interface ResumoRelatorio {
 export interface RelatorioTickets {
   summary: ResumoRelatorio
   /** Linha por ticket — hoje só usada para contar quantas o CSV vai ter; a
-   *  listagem em si é a de tickets (mesma que /chamados), não duplicada aqui. */
+   *  listagem em si é a de tickets (mesma que /tickets), não duplicada aqui. */
   rows: unknown[]
 }
 
