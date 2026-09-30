@@ -2,12 +2,31 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
 import type { ParamsListagem, TicketLinha } from './tipos'
 
+/** Filtros da barra da fila que viajam como estão (mesmo nome, mesmo valor)
+ *  — ver resolv/tickets/filtros.ts. */
+const FILTROS_DIRETOS = [
+  'priority',
+  'sla',
+  'status',
+  'assignee',
+  'team',
+  'company',
+  'category',
+  'tag',
+  'periodo',
+  'desde',
+  'ate',
+  'requester',
+] as const
+
 function montarQuery(p: ParamsListagem): string {
   const q = new URLSearchParams()
   if (p.view) q.set('view', p.view)
   if (p.q && p.q.length >= 3) q.set('q', p.q) // backend/print pedem 3+ caracteres
-  if (p.priority) q.set('priority', p.priority)
-  if (p.sla) q.set('sla', p.sla)
+  for (const chave of FILTROS_DIRETOS) {
+    const valor = p[chave]
+    if (valor) q.set(chave, valor)
+  }
   if (p.ordering) q.set('ordering', p.ordering)
   q.set('limit', String(p.limit))
   q.set('offset', String(p.offset))

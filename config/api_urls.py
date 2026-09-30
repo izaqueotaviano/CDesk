@@ -99,6 +99,7 @@ from apps.tickets.views import (
     TicketCategoryViewSet,
     TicketViewSet,
 )
+from apps.tickets.visoes_pessoais import SavedTicketViewViewSet
 
 router = DefaultRouter()
 
@@ -107,6 +108,10 @@ router.register("tickets", TicketViewSet, basename="ticket")
 router.register("teams", TeamViewSet, basename="team")
 router.register("categories", TicketCategoryViewSet, basename="category")
 router.register("services", ServiceViewSet, basename="service")
+# visualizações pessoais da fila (só do dono) — prefixo próprio e não
+# `tickets/…`: debaixo de `tickets/` o detalhe `tickets/{pk}/` casaria com
+# `tickets/views/` e a ordem de registro passaria a decidir a rota.
+router.register("ticket-views", SavedTicketViewViewSet, basename="ticket-view")
 router.register("users", UserViewSet, basename="user")
 router.register("companies", CompanyViewSet, basename="company")
 router.register("chat/chats", ChatViewSet, basename="chat")

@@ -1,6 +1,9 @@
 // ============================================================================
-// Lista de tickets — design system Resolv (densidade alta, ruído baixo).
-// Borda 1px, radius 2px, mono nos números, accent único #0275DE.
+// Lista de tickets — um plano só (o do shell), fios de 1px entre as partes,
+// branco só no que é superfície de verdade (tabela, cartão, campo). Corpo de
+// letra 28/16/14/12, raio 8 (controle) / 12 (superfície) / 999 (pílula e
+// busca). Sombra só no que flutua (popover de filtro, diálogo). Um acento só
+// (--accent, carvão no claro); cor apenas para estado.
 // ============================================================================
 
 .lista-tickets {
@@ -10,8 +13,7 @@
 
   // ---------------------------------------------------------------- views panel
   // Mesmo plano do resto da tela, com o fio de 1px à direita — a divisão da
-  // sidebar do shell, repetida um nível abaixo. Um painel branco aqui era a
-  // única ilha de outra cor entre a navegação e a tabela.
+  // sidebar do shell, repetida um nível abaixo.
   &__views {
     width: 256px;
     flex-shrink: 0;
@@ -20,24 +22,22 @@
     display: flex;
     flex-direction: column;
     overflow-y: auto;
-    transition: width 0.12s ease;
 
-    // Recolhida (ViewsPanel.tsx): o botão da rodada 2 estava inerte e os
-    // 256px eram fixos em QUALQUER largura — quem trabalha com a janela
-    // dividida ou notebook pequeno não tinha saída. Vira uma faixa só com o
-    // botão de expandir; o PADRÃO (sem escolha salva) já nasce assim abaixo
-    // do breakpoint de tablet — ver `useJanelaEstreita` em ViewsPanel.tsx,
-    // mesmo número de resolv/shell/topbar.scss:17 ($bp-lg), copiado pelo
-    // mesmo motivo de lá (nenhum .scss de resolv/ usa @use hoje).
+    // Recolhida (ViewsPanel.tsx): uma faixa só com o botão de expandir; o
+    // PADRÃO (sem escolha salva) já nasce assim abaixo do breakpoint de
+    // tablet — mesmo número de resolv/shell/topbar.scss ($bp-lg).
     &--recolhido {
-      width: 44px;
+      width: 48px;
       align-items: center;
-      padding-top: 8px;
+      padding-top: 12px;
       overflow: visible;
     }
   }
 
   // ---------------------------------------------------------------- coluna main
+  // `container-type`: a tabela esconde colunas pela largura DESTA coluna
+  // (mais abaixo), não da janela — o painel de visões aberto ou recolhido
+  // muda o espaço sem mudar a janela.
   &__main {
     flex: 1;
     min-width: 0;
@@ -45,18 +45,12 @@
     flex-direction: column;
     padding: 24px;
     gap: 16px;
+    container-type: inline-size;
+    container-name: fila;
   }
 
-  // Item (impeccable/layout): sem `flex-wrap`, o título não tinha pra onde
-  // ir — `__acoes` abaixo é `flex-shrink: 0` (nunca cede largura), então
-  // era só o bloco do título que sobrava pra espremer, e span/h1 quebra
-  // PALAVRA por palavra à medida que o espaço aperta (o mínimo de um item
-  // flex sem wrap é o tamanho da palavra mais longa, não zero). Abaixo de
-  // ~900px de coluna principal (tablet com o painel de views recolhido, e
-  // todo o celular) o título virava uma coluna de uma palavra por linha
-  // ilegível. `.inicio__cabecalho` (inicio.scss) já resolve o mesmo par
-  // título/ações com `flex-wrap: wrap` — mesma correção aqui, não um
-  // padrão novo.
+  // Título e ações lado a lado; `flex-wrap` para o título não virar uma
+  // coluna de uma palavra por linha quando a coluna aperta.
   &__header {
     display: flex;
     align-items: flex-start;
@@ -66,38 +60,64 @@
   }
 
   &__titulo-bloco {
-    // Preferência de largura antes do wrap decidir empurrar `__acoes` pra
-    // baixo — sem isso o navegador só teria a razão dos tamanhos de
-    // conteúdo de cada lado pra decidir, e podia ainda assim tentar
-    // acomodar os dois lado a lado numa faixa intermediária, voltando a
-    // espremer o título antes de finalmente quebrar.
     flex: 1 1 240px;
     min-width: 0;
   }
 
   &__titulo {
-    font-size: 18px;
+    font-size: 28px;
+    line-height: 1.2;
     font-weight: 600;
     color: var(--text-primary);
-    letter-spacing: -0.01em;
-  }
-  &__subtitulo {
-    margin-top: 4px;
-    font-size: 12px;
-    font-weight: 400;
-    color: var(--text-muted);
-  }
-  // "· Atualizado às HH:MM" ao lado da contagem — mesmo tom (--text-muted),
-  // não pede destaque próprio, só diz QUANDO é o dado da tabela abaixo.
-  &__atualizado {
-    color: var(--text-muted);
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
   }
 
-  // `flex-wrap` aqui é o mesmo raciocínio do `&__header` acima, um nível
-  // abaixo: no celular a faixa inteira de ações (chamado + refresh +
-  // densidade + busca, ~500px de conteúdo que não cede) não cabe nem
-  // sozinha na coluna disponível — sem quebra, `__search` é quem sofreria
-  // a mesma compressão ilegível que o título sofria antes.
+  &__subtitulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 4px;
+    min-height: 28px;
+    font-size: 14px;
+    color: var(--text-secondary);
+  }
+
+  // "Visão alterada": a visão pessoal aberta não bate mais com os filtros da
+  // tela. Texto, não ponto colorido — não é estado de sistema.
+  &__alterada {
+    font-size: 12px;
+    color: var(--text-muted);
+    &::before {
+      content: '·';
+      margin-right: 8px;
+    }
+  }
+
+  // Atualizar: discreto, ao lado do total. Quando foi a última busca mora na
+  // dica (title/aria-label), não numa frase fixa no cabeçalho.
+  &__refresh {
+    width: 28px;
+    height: 28px;
+    display: inline-grid;
+    place-items: center;
+    background: transparent;
+    color: var(--text-muted);
+    border: none;
+    border-radius: var(--raio);
+    cursor: pointer;
+    i {
+      font-size: 16px;
+    }
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &.is-loading i {
+      animation: resolv-spin 0.8s linear infinite;
+    }
+  }
+
   &__acoes {
     display: flex;
     align-items: center;
@@ -106,191 +126,320 @@
     gap: 8px;
   }
 
-  &__refresh {
-    width: 34px;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    // Secundário, e por isso OUTLINE — não sólido. O sólido escuro é do CTA
-    // primário, e só dele; lado a lado com "Novo chamado" os dois pesavam
-    // igual e a tela não dizia mais qual era a ação principal.
-    background: transparent;
-    color: var(--text-primary);
-    border: 1px solid var(--borda-campo);
-    border-radius: var(--raio);
-    cursor: pointer;
-    i {
-      font-size: 16px;
-    }
-    &.is-loading i {
-      animation: resolv-spin 0.8s linear infinite;
-    }
-  }
-
-  // Entrada para a tela de abertura (/chamados/novo). Mesma altura e raio dos
-  // outros controles da barra; sólida porque é a única ação primária daqui.
-  &__novo {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 12px;
-    // --accent/--surface-card (paleta Resolv), nao --acento/--acento-sobre:
-    // aqueles dois nao existem em resolv/styles/tokens.scss e vinham por
-    // heranca de styles/tokens.css, o design system do portal. Era a unica
-    // superficie do Resolv pintada com o azul da outra paleta.
-    background: var(--primario);
-    border: 1px solid var(--accent);
-    border-radius: var(--raio);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--primario-sobre);
-    cursor: pointer;
-    i {
-      font-size: 15px;
-    }
-    &:hover {
-      filter: brightness(1.06);
-    }
-  }
-
-  // Densidade — o par com `.tickets-tabela--confortavel` (mesma folha, mais
-  // abaixo). Contorno em vez de preenchido: são duas opções de MESMO peso
-  // (nenhuma é "a ação" como Novo chamado), então nem uma pede a cor de marca.
+  // Densidade — duas opções de MESMO peso, então nenhuma leva a cor de ação.
   &__densidade {
     display: flex;
-    height: 34px;
+    height: 36px;
     padding: 2px;
-    background: var(--surface-card);
     border-radius: var(--raio);
   }
   &__densidade-btn {
-    width: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 32px;
+    display: grid;
+    place-items: center;
     border: none;
     border-radius: calc(var(--raio) - 2px);
     background: transparent;
     color: var(--text-muted);
     cursor: pointer;
     i {
-      font-size: 15px;
+      font-size: 16px;
     }
     &:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
+      background: var(--sidebar-hover);
     }
-    // Marcado: mesmo par cor+fundo que `__sort--ativo` usa em qualquer
-    // coluna ordenada — "isto está em uso agora" não é só uma cor, o ícone
-    // já muda de desenho (linhas juntas/espaçadas) junto com o estado.
     &[aria-pressed='true'] {
-      background: var(--surface-alt);
+      background: var(--sidebar-ativo);
       color: var(--text-primary);
     }
   }
 
+  // Busca em pílula (999), branca: é campo.
   &__search {
     display: flex;
     align-items: center;
-    gap: 6px;
-    // Item (impeccable/layout): era `width: 260px` fixo — junto com
-    // `__acoes` agora quebrando linha em vez de espremer, o campo de busca
-    // é o único controle da faixa com largura "elástica" o bastante pra
-    // fazer sentido encolher; os outros (chamado/refresh/densidade) são
-    // conteúdo de tamanho fixo (ícone/rótulo curto). `min-width` evita que
-    // ele encolha a ponto de não caber nem um caractere de placeholder.
-    flex: 1 1 260px;
+    gap: 8px;
+    flex: 1 1 240px;
     min-width: 160px;
-    max-width: 260px;
-    height: 34px;
-    padding: 0 10px;
+    max-width: 280px;
+    height: 36px;
+    padding: 0 14px;
     background: var(--surface-card);
-    border-radius: var(--raio);
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    cursor: text;
     i {
-      font-size: 15px;
+      font-size: 16px;
       color: var(--text-muted);
     }
     input {
       flex: 1;
+      min-width: 0;
       border: none;
       outline: none;
       background: transparent;
       font-family: var(--f-ui);
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-primary);
       &::placeholder {
         color: var(--text-muted);
       }
+      &::-webkit-search-cancel-button {
+        cursor: pointer;
+      }
     }
     &:focus-within {
-      border-color: var(--accent);
-      // Anel de foco derivado do accent do tema: cravado no azul do claro ele
-      // some no escuro, e foco invisível é falha de acessibilidade.
-      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 15%, transparent);
+      box-shadow: inset 0 0 0 1px var(--accent), var(--anel-foco);
     }
   }
 
   &__dica {
     font-size: 12px;
-    color: var(--away);
+    color: var(--text-secondary);
     margin-top: -8px;
   }
 
-  &__lote {
-    display: flex;
+  // ---------------------------------------------------------------- botões
+  // Os botões da tela e dos diálogos dela. Primário = o acento (carvão no
+  // claro, claro no escuro); o resto é neutro.
+  &__botao {
+    display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    // Barra de ação em lote: accent diluído. Em rgba cru ela ficava no azul
-    // escuro do tema claro e sumia sobre a superfície escura.
-    background: color-mix(in srgb, var(--accent) 4%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent) 12%, transparent);
-    border-radius: var(--raio);
-    font-size: 12px;
-    color: var(--text-secondary);
-    strong {
-      color: var(--accent);
-      font-weight: 600;
-    }
-    button {
-      margin-left: auto;
-      border: none;
-      background: transparent;
-      color: var(--accent);
-      font-size: 12px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-  }
-
-  &__lote-select {
-    height: 28px;
-    padding: 0 8px;
-    background: var(--surface-card);
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: none;
     border-radius: var(--raio);
     font-family: var(--f-ui);
-    font-size: 12px;
-    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
     cursor: pointer;
-    &:hover {
-      border-color: var(--stroke-hover);
+    i {
+      font-size: 16px;
     }
     &:disabled {
       opacity: 0.5;
       cursor: default;
     }
+    &--primario {
+      background: var(--primario);
+      color: var(--primario-sobre);
+      &:hover:not(:disabled) {
+        background: var(--primario-hover);
+      }
+    }
+    &--secundario {
+      background: var(--surface-card);
+      color: var(--text-primary);
+      box-shadow: inset 0 0 0 1px var(--stroke);
+      &:hover:not(:disabled) {
+        box-shadow: inset 0 0 0 1px var(--stroke-hover);
+      }
+    }
+    &--fantasma {
+      background: transparent;
+      color: var(--text-primary);
+      &:hover:not(:disabled) {
+        background: var(--sidebar-hover);
+      }
+    }
+    &--perigo {
+      background: var(--danger);
+      color: var(--surface-card);
+      &:hover:not(:disabled) {
+        filter: brightness(0.95);
+      }
+    }
   }
 
-  &__aviso-erro,
-  &__aviso-sucesso {
+  &__icone {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 16px;
+    }
+    &:hover:not(:disabled) {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:disabled {
+      opacity: 0.35;
+      cursor: default;
+    }
+    &--perigo:hover:not(:disabled) {
+      color: var(--danger);
+    }
+  }
+
+  // ---------------------------------------------------------------- celular
+  &__barra-mobile {
+    display: flex;
+    gap: 8px;
+  }
+  &__seletor-visao {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    height: 40px;
+    padding: 0 14px;
+    background: var(--surface-card);
+    border: none;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    i {
+      font-size: 16px;
+      color: var(--text-muted);
+    }
+  }
+  &__botao-filtros {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 14px;
+    background: transparent;
+    border: none;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    i {
+      font-size: 16px;
+    }
+    &.is-ativo {
+      background: var(--sidebar-ativo);
+      box-shadow: none;
+    }
+  }
+  &__contador {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  &__filtros-resumo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: -8px;
+  }
+
+  // ---------------------------------------------------------------- lote
+  // Barra de seleção: superfície branca (é onde se age), sem cor de marca.
+  &__lote {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px 12px;
+    padding: 8px 8px 8px 14px;
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    font-size: 14px;
+    color: var(--text-secondary);
+    strong {
+      color: var(--text-primary);
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+  // Os selects encolhem antes de a barra quebrar linha — o texto da opção
+  // escolhida nunca fica à vista (value=""), então largura fixa grande é
+  // só espaço tomado.
+  &__lote-acoes {
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 8px;
+  }
+  &__lote-select {
+    flex: 0 1 170px;
+    min-width: 110px;
+    height: 36px;
+    padding: 0 28px 0 12px;
+    background: var(--surface-card);
+    border: none;
     border-radius: var(--raio);
-    padding: 8px 12px;
-    font-size: 13px;
+    box-shadow: inset 0 0 0 1px var(--borda-campo);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+  &__lote-contagem {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+  &__lote-limpar {
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: auto;
+    height: 36px;
+    padding: 0 12px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    cursor: pointer;
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+  }
+
+  // Resumo da ação em lote. A cor diz o desfecho: ok (tudo mudou), neutro
+  // (parte mudou, parte foi ignorada com motivo), perigo (nada mudou).
+  &__aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--raio-cartao);
+    font-size: 14px;
+    line-height: 1.4;
+    i {
+      font-size: 16px;
+      margin-top: 1px;
+    }
     span {
       flex: 1;
     }
@@ -302,23 +451,46 @@
       color: inherit;
       cursor: pointer;
       padding: 2px;
+      border-radius: var(--raio);
+    }
+    &--sucesso {
+      color: var(--ok);
+      background: var(--tom-ok);
+    }
+    &--parcial {
+      color: var(--text-primary);
+      background: var(--surface-card);
+      box-shadow: inset 0 0 0 1px var(--stroke);
+      i {
+        color: var(--text-secondary);
+      }
+    }
+    &--falha {
+      color: var(--danger);
+      background: var(--tom-perigo);
     }
   }
-  &__aviso-erro {
-    border: 1px solid var(--danger);
-    color: var(--danger);
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
+
+  // ---------------------------------------------------------------- lista
+  // Quem rola é esta caixa (a tabela rola dentro do próprio wrap, com o
+  // cabeçalho fixo; os cartões rolam aqui).
+  &__lista {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
   }
-  // Caminho feliz da ação em lote (rodada 3): mesmo desenho do erro acima,
-  // trocando --danger por --ok — a mesma dupla de tokens que já cobre o
-  // resto da tela (COR_PRIORIDADE/corEstadoSla em format.ts).
-  &__aviso-sucesso {
-    border: 1px solid var(--ok);
-    color: var(--ok);
-    background: var(--tom-ok);
+  &__novo-icone {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 999px;
+    flex-shrink: 0;
   }
 
   // ---------------------------------------------------------------- estados
+  // Vazio e erro: convite para a próxima ação, na mesma superfície da lista.
   &__estado {
     flex: 1;
     display: flex;
@@ -327,27 +499,20 @@
     justify-content: center;
     gap: 12px;
     padding: 64px 24px;
-    color: var(--text-muted);
+    text-align: center;
+    color: var(--text-secondary);
     background: var(--surface-card);
-    border-radius: var(--raio);
-    i {
+    border-radius: var(--raio-cartao);
+    > i {
       font-size: 32px;
+      color: var(--text-muted);
     }
     p {
-      font-size: 13px;
+      font-size: 16px;
+      color: var(--text-primary);
+      max-width: 42ch;
     }
-    button {
-      margin-top: 4px;
-      padding: 7px 16px;
-      background: var(--primario);
-      color: var(--primario-sobre);
-      border: none;
-      border-radius: var(--raio);
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-    }
-    &--erro i {
+    &--erro > i {
       color: var(--danger);
     }
   }
@@ -361,29 +526,234 @@
     align-items: center;
     justify-content: flex-end;
     gap: 16px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
     button {
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 6px 12px;
-      background: var(--surface-card);
+      height: 36px;
+      padding: 0 12px;
+      background: transparent;
+      border: none;
       border-radius: var(--raio);
-      font-size: 12px;
+      font-family: var(--f-ui);
+      font-size: 14px;
       font-weight: 500;
-      color: var(--text-secondary);
+      color: var(--text-primary);
       cursor: pointer;
       i {
-        font-size: 15px;
+        font-size: 16px;
       }
       &:hover:not(:disabled) {
-        border-color: var(--stroke-hover);
-        color: var(--text-primary);
+        background: var(--sidebar-hover);
       }
       &:disabled {
         opacity: 0.4;
         cursor: default;
+      }
+    }
+  }
+
+  // Texto só para leitor de tela (técnica de recorte de 1px, local — a
+  // `.sr-only` do cvz não é carregada sob o shell Resolv).
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  // Foco visível em tudo que é clicável na tela — o mesmo anel do resto da
+  // base (`--anel-foco`) mais um contorno sólido, que é o que aparece sobre
+  // o branco e sobre o plano.
+  button:focus-visible,
+  select:focus-visible,
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  // ---------------------------------------------------------------- diálogos
+  // O Modal do cvz pinta fundo e véu com `--cvz-*`, que só existem quando o
+  // global.scss do cvz está carregado — sob o shell Resolv não é garantido
+  // (mesma âncora de detalhe.scss).
+  .modal-overlay {
+    background: var(--veu);
+  }
+  .modal {
+    background: var(--surface-card);
+    color: var(--text-primary);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    font-family: var(--f-ui);
+  }
+  .modal__head,
+  .modal__foot {
+    border-color: var(--stroke);
+    background: var(--surface-card);
+  }
+  .modal__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .modal__close {
+    color: var(--text-secondary);
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+  }
+}
+
+// ============================================================================
+// Formulários dos diálogos (salvar visão, encerrar em lote)
+// ============================================================================
+.lista-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+
+  &__intro {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  &__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 14px;
+    > span:first-child {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    input,
+    textarea {
+      min-height: 36px;
+      padding: 7px 12px;
+      border: none;
+      border-radius: var(--raio);
+      box-shadow: inset 0 0 0 1px var(--borda-campo);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      color-scheme: inherit;
+      &:focus {
+        outline: none;
+        box-shadow: inset 0 0 0 1px var(--accent), var(--anel-foco);
+      }
+      &[aria-invalid='true'] {
+        box-shadow: inset 0 0 0 1px var(--danger);
+      }
+    }
+    textarea {
+      resize: vertical;
+    }
+  }
+
+  &__opcional {
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  &__opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    input {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+    }
+  }
+
+  &__erro {
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger);
+  }
+}
+
+// ============================================================================
+// Personalizar visualizações
+// ============================================================================
+.gerenciar-visoes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--stroke);
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__acoes {
+    display: flex;
+    gap: 2px;
+  }
+  &__edicao,
+  &__confirmar {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 14px;
+    > span {
+      flex: 1 1 160px;
+    }
+    input {
+      flex: 1 1 160px;
+      min-width: 0;
+      height: 36px;
+      padding: 0 12px;
+      border: none;
+      border-radius: var(--raio);
+      box-shadow: inset 0 0 0 1px var(--borda-campo);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 14px;
+      &:focus {
+        outline: none;
+        box-shadow: inset 0 0 0 1px var(--accent), var(--anel-foco);
       }
     }
   }
@@ -393,15 +763,29 @@
 // Painel de visualizações
 // ============================================================================
 .views-panel {
+  &__cabeca {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px 8px 12px;
+    flex-shrink: 0;
+  }
+
+  // Filtro das visualizações: campo em pílula, branco (é campo).
   &__busca {
+    flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: 8px;
-    height: 48px;
+    height: 36px;
     padding: 0 12px;
-    flex-shrink: 0;
+    background: var(--surface-card);
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    cursor: text;
     i {
-      font-size: 15px;
+      font-size: 16px;
       color: var(--text-muted);
     }
     input {
@@ -411,50 +795,34 @@
       outline: none;
       background: transparent;
       font-family: var(--f-ui);
-      font-size: 13px;
+      font-size: 14px;
       color: var(--text-primary);
       &::placeholder {
-        color: var(--text-secondary);
+        color: var(--text-muted);
       }
     }
-  }
-  &__recolher {
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: transparent;
-    border-radius: var(--raio);
-    color: var(--text-secondary);
-    cursor: pointer;
-    flex-shrink: 0;
-    i {
-      font-size: 14px;
-      color: var(--text-secondary);
+    &:focus-within {
+      box-shadow: inset 0 0 0 1px var(--accent), var(--anel-foco);
     }
-    &:hover {
-      background: var(--sidebar-hover);
-      color: var(--text-primary);
+    &--folha {
+      margin-bottom: 8px;
     }
   }
 
-  // Único conteúdo da faixa recolhida (`.lista-tickets__views--recolhido`) —
-  // mesmo desenho de `__recolher`, só que sozinho e centralizado na faixa de
-  // 44px, sem o resto do painel (busca, lista de views, personalizar) que
-  // some junto: é assim que a janela estreita ganha os 212px de volta.
+  &__recolher,
   &__expandir {
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
     background: transparent;
+    border: none;
     border-radius: var(--raio);
     color: var(--text-secondary);
     cursor: pointer;
     i {
-      font-size: 14px;
+      font-size: 18px;
     }
     &:hover {
       background: var(--sidebar-hover);
@@ -465,7 +833,7 @@
   &__lista {
     display: flex;
     flex-direction: column;
-    gap: 1px;
+    gap: 2px;
     padding: 4px 8px;
   }
 
@@ -476,9 +844,10 @@
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    width: 100%;
     text-align: left;
-    min-height: 32px;
-    padding: 0 8px;
+    min-height: 36px;
+    padding: 0 10px;
     border: none;
     border-radius: var(--raio);
     background: transparent;
@@ -487,24 +856,18 @@
     font-weight: 400;
     color: var(--text-primary);
     cursor: pointer;
-    transition: background 0.1s ease;
     &:hover {
       background: var(--sidebar-hover);
     }
-    // O mesmo pill da sidebar: é o mesmo tipo de escolha ("onde estou"), um
-    // nível abaixo — sem a barra lateral e sem cor de ação.
+    // O mesmo pill da sidebar: é o mesmo tipo de escolha ("onde estou").
     &--ativo,
     &--ativo:hover {
       background: var(--sidebar-ativo);
       font-weight: 500;
     }
-    &--inerte {
-      color: var(--text-muted);
-      cursor: default;
-      &:hover {
-        background: transparent;
-        color: var(--text-muted);
-      }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
     }
   }
 
@@ -515,69 +878,505 @@
     white-space: nowrap;
   }
 
-  // Contagem da visão (GET /tickets/resumo/). Mono como todo número da tela.
   &__contagem {
     flex-shrink: 0;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
     font-variant-numeric: tabular-nums;
-    // Gaveta vazia continua sendo informação — só não compete com as que
-    // têm trabalho dentro.
+    // Gaveta vazia continua sendo informação — só não compete com as cheias.
     &--zero {
-      opacity: 0.45;
+      color: var(--text-muted);
     }
   }
 
-  &__aviso {
-    padding: 2px 16px 8px;
-    font-size: 11px;
+  &__aviso,
+  &__dica {
+    padding: 4px 18px 8px;
+    font-size: 12px;
+    line-height: 1.5;
     color: var(--text-muted);
   }
 
   &__sep {
     height: 1px;
     background: var(--stroke);
-    margin: 4px 0;
+    margin: 8px 0;
   }
   &__grupo {
-    padding: 8px 16px 2px;
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-  }
-  &__personalizar {
-    margin: 8px 16px 16px;
-    padding: 8px;
-    border: 1px dashed var(--stroke);
-    background: transparent;
-    border-radius: var(--raio);
+    padding: 8px 18px 4px;
     font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
+  }
+  &__personalizar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 8px 16px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-secondary);
     cursor: pointer;
+    i {
+      font-size: 16px;
+    }
     &:hover {
       background: var(--sidebar-hover);
       color: var(--text-primary);
     }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+}
+
+// ============================================================================
+// Barra de filtros
+// ============================================================================
+.barra-filtros {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 16px;
+  flex-wrap: wrap;
+
+  &__pilulas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
   }
 
-  // Controles que ainda não fazem nada (ver ViewsPanel): mesmo tratamento das
-  // visões pessoais inertes — aria-disabled + title "em breve". O hover de
-  // convite sai, senão o controle continua prometendo com o ponteiro o que
-  // não cumpre no clique.
-  &__busca input[aria-disabled='true'] {
+  &__pilulas {
+    flex: 1;
+  }
+
+  &__acoes {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    .lista-tickets__botao {
+      height: 32px;
+      border-radius: 999px;
+    }
+  }
+
+  // A busca na mesma linha e na mesma altura das pílulas.
+  .lista-tickets__search {
+    flex: 0 1 220px;
+    min-width: 160px;
+    height: 32px;
+    margin-right: 4px;
+  }
+
+  &__limpar {
+    height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+}
+
+.filtro {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  border-radius: 999px;
+
+  &__pilula {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    max-width: 280px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    cursor: pointer;
+    i {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+  }
+  &__seta {
+    margin-right: -2px;
+  }
+  // Pílula sem popover (solicitante): não é botão, só mostra o valor.
+  &__pilula--fixa {
     cursor: default;
   }
-  &__recolher[aria-disabled='true'],
-  &__personalizar[aria-disabled='true'] {
-    cursor: default;
-    opacity: 0.55;
-  }
-  &__personalizar[aria-disabled='true']:hover {
-    border-color: var(--stroke);
+  &__rotulo {
     color: var(--text-secondary);
   }
+  &__valor {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+  }
+
+  // Ligado: preenchido no cinza de "selecionado" do shell (o mesmo do item
+  // ativo da sidebar) — o estado aparece sem gastar cor.
+  &--ativo {
+    background: var(--sidebar-ativo);
+    .filtro__pilula {
+      box-shadow: none;
+      background: transparent;
+      padding-right: 4px;
+      &:hover {
+        background: transparent;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+    }
+  }
+  &__limpar {
+    width: 28px;
+    height: 28px;
+    margin-right: 2px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      background: var(--surface-card);
+      color: var(--text-primary);
+    }
+  }
+
+  &--mais .filtro__pilula {
+    box-shadow: none;
+    color: var(--text-secondary);
+  }
+
+  &__popover {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    z-index: 30;
+    width: 280px;
+    max-height: min(420px, 70vh);
+    overflow-y: auto;
+    padding: 6px;
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    &--fim {
+      left: auto;
+      right: 0;
+    }
+  }
+}
+
+.filtro-opcoes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__busca {
+    height: 32px;
+    margin: 2px 2px 4px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px var(--borda-campo);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    &:focus {
+      outline: none;
+      box-shadow: inset 0 0 0 1px var(--accent), var(--anel-foco);
+    }
+  }
+
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 36px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+    text-align: left;
+    cursor: pointer;
+    &:hover,
+    &:focus-visible {
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+
+  // Caixa (lista) ou rádio (valor único), desenhados — o estado real está no
+  // `aria-selected` do botão.
+  &__marca {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    box-shadow: inset 0 0 0 1.5px var(--borda-campo);
+    color: var(--primario-sobre);
+    i {
+      font-size: 12px;
+    }
+    &--caixa {
+      border-radius: 4px;
+    }
+    &--radio {
+      border-radius: 50%;
+    }
+  }
+  &__item--marcado &__marca {
+    background: var(--primario);
+    box-shadow: none;
+    &--radio {
+      background: transparent;
+      box-shadow: inset 0 0 0 1.5px var(--primario);
+      &::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--primario);
+      }
+    }
+  }
+
+  &__rotulo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__contagem {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+    &.is-zero {
+      color: var(--text-muted);
+    }
+  }
+  &__vazio {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+}
+
+.filtro-mais {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 36px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+    &:hover,
+    &:focus-visible {
+      background: var(--sidebar-hover);
+    }
+  }
+  &__voltar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    min-height: 32px;
+    margin-bottom: 4px;
+    padding: 0 6px;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    border-radius: var(--raio) var(--raio) 0 0;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+}
+
+.filtro-periodo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 10px 6px 4px;
+  border-top: 1px solid var(--stroke);
+
+  &__titulo {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  &__campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    input {
+      height: 32px;
+      min-width: 0;
+      padding: 0 8px;
+      border: none;
+      border-radius: var(--raio);
+      box-shadow: inset 0 0 0 1px var(--borda-campo);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font-family: var(--f-ui);
+      font-size: 12px;
+      color-scheme: inherit;
+    }
+  }
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+  }
+  &__aplicar {
+    height: 32px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+// Folha de filtros do celular: cada dimensão num <details>.
+.filtros-mobile {
+  display: flex;
+  flex-direction: column;
+
+  &__secao {
+    border-bottom: 1px solid var(--stroke);
+    &:last-child {
+      border-bottom: none;
+    }
+    summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 48px;
+      list-style: none;
+      cursor: pointer;
+      font-size: 14px;
+      &::-webkit-details-marker {
+        display: none;
+      }
+      i {
+        font-size: 16px;
+        color: var(--text-muted);
+        transition: transform 0.15s ease;
+      }
+    }
+    &[open] summary i {
+      transform: rotate(180deg);
+    }
+    .filtro-opcoes {
+      padding-bottom: 12px;
+    }
+  }
+  &__fixo {
+    padding: 4px 0 12px;
+  }
+  &__rotulo {
+    font-weight: 500;
+  }
+  &__resumo {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: right;
+    color: var(--text-secondary);
+  }
+}
+
+.folha-visoes .views-panel__lista {
+  padding: 0;
+}
+.folha-visoes .views-panel__grupo,
+.folha-visoes .views-panel__dica,
+.folha-visoes .views-panel__aviso {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 // ============================================================================
@@ -585,45 +1384,44 @@
 // ============================================================================
 .tickets-tabela {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: var(--surface-card);
-  font-size: 13px;
+  font-size: 14px;
 
   &__wrap {
     flex: 1;
     min-height: 0;
     overflow: auto;
-    border-radius: var(--raio);
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: inset 0 0 0 1px var(--stroke);
   }
 
+  // Cabeçalho fixo ao rolar: o fundo precisa ser opaco (branco da tabela)
+  // e o fio de baixo é o que separa o cabeçalho das linhas.
   thead th {
     position: sticky;
     top: 0;
     z-index: 1;
-    background: var(--surface-alt);
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--stroke);
     text-align: left;
     padding: 0 12px;
-    height: 40px;
-    font-size: 11px;
+    height: 44px;
+    font-size: 12px;
     font-weight: 500;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     white-space: nowrap;
   }
 
-  // Densidade (stores/prefs.ts, alternador em PaginaListaTickets.tsx): o
-  // padrão acima (40/44px) não muda — só o modificador acrescenta altura,
-  // mesmo incremento de +8px que o DataTable do cvz usa entre seus estados.
-  //
-  // `&.tickets-tabela--confortavel` (duas classes no MESMO elemento — o
-  // `<table>` recebe as duas juntas, ver TicketsTable.tsx), não
-  // `&--confortavel` (que geraria só `.tickets-tabela--confortavel` sozinho):
-  // o `tbody td` "base" mora mais ABAIXO nesta folha com a mesma
-  // especificidade de um seletor de uma classe só, e ganharia por ordem — a
-  // segunda classe aqui é o que garante a vitória, esteja este bloco antes
-  // ou depois do outro.
   &.tickets-tabela--confortavel {
-    thead th { height: 48px; }
-    tbody td { height: 68px; }
+    thead th {
+      height: 48px;
+    }
+    tbody td {
+      height: 68px;
+    }
   }
 
   &__sort {
@@ -633,20 +1431,19 @@
     border: none;
     background: transparent;
     font: inherit;
-    letter-spacing: inherit;
-    text-transform: inherit;
     color: inherit;
     cursor: pointer;
     padding: 0;
+    border-radius: 4px;
     i {
-      font-size: 13px;
-      opacity: 0.5;
+      font-size: 14px;
+      opacity: 0.45;
     }
     &:hover {
-      color: var(--text-secondary);
+      color: var(--text-primary);
     }
     &--ativo {
-      color: var(--accent);
+      color: var(--text-primary);
       i {
         opacity: 1;
       }
@@ -654,43 +1451,60 @@
   }
 
   tbody td {
-    // Respiro vertical. Sem divisória entre as linhas, é o ESPAÇO que
-    // separa um registro do seguinte — e 44px de altura deixava o olho
-    // colar duas linhas numa só. O briefing é explícito: espaçamento
-    // generoso entre itens de lista é essencial.
     padding: 0 12px;
     height: 56px;
     color: var(--text-primary);
     vertical-align: middle;
+    border-bottom: 1px solid var(--stroke);
   }
 
   tbody tr {
     cursor: pointer;
-    transition: background 0.1s ease;
-    &:hover {
-      background: var(--surface);
-    }
+    outline: none;
     &:last-child td {
       border-bottom: none;
+    }
+    &:hover td {
+      background: var(--sidebar-hover);
+    }
+    // Selecionada: o mesmo cinza de "selecionado" do shell.
+    &.is-selecionada td {
+      background: var(--sidebar-ativo);
+    }
+    // Foco da linha (j/k, Tab): contorno sólido por dentro das células — um
+    // `outline` no <tr> não é desenhado igual em todo navegador.
+    &:focus-visible td {
+      box-shadow:
+        inset 0 2px 0 var(--foco),
+        inset 0 -2px 0 var(--foco);
+    }
+    &:focus-visible td:first-child {
+      box-shadow:
+        inset 2px 0 0 var(--foco),
+        inset 0 2px 0 var(--foco),
+        inset 0 -2px 0 var(--foco);
+    }
+    &:focus-visible td:last-child {
+      box-shadow:
+        inset -2px 0 0 var(--foco),
+        inset 0 2px 0 var(--foco),
+        inset 0 -2px 0 var(--foco);
     }
   }
 
   // colunas
   .col-check {
-    width: 40px;
+    width: 44px;
     text-align: center;
     input {
       cursor: pointer;
       accent-color: var(--accent);
-      // O desenho é 16px; quem tem os 24px de alvo do WCAG 2.5.8 é o <label>
-      // em volta (a exceção de espaçamento não valeria: a linha inteira também
-      // é clicável e envolve a caixa).
       width: 16px;
       height: 16px;
       margin: 0;
     }
   }
-
+  // O <label> em volta é o alvo de 24px (WCAG 2.5.8); a caixa desenha 16px.
   .col-check__alvo {
     display: inline-flex;
     align-items: center;
@@ -700,67 +1514,67 @@
     cursor: pointer;
   }
   .col-protocolo {
-    width: 150px;
+    width: 110px;
   }
   .col-assunto {
-    min-width: 220px;
-    max-width: 320px;
+    min-width: 240px;
+    max-width: 420px;
   }
   .col-data {
-    width: 140px;
+    width: 130px;
   }
   .col-cliente {
-    min-width: 180px;
+    width: 190px;
     max-width: 240px;
   }
   .col-resp {
     width: 140px;
   }
   .col-cat {
-    width: 150px;
+    width: 140px;
   }
   .col-urg {
-    width: 80px;
+    width: 100px;
   }
   .col-status {
     width: 150px;
   }
   .col-sla {
-    width: 120px;
+    width: 130px;
   }
   .col-just {
-    min-width: 170px;
+    width: 180px;
     max-width: 220px;
   }
   .col-espera {
     width: 90px;
   }
 
-  // células
-  // Item 26: agora é um <Link> de verdade (antes era <span>) — sem
-  // `text-decoration: none` herdaria o sublinhado padrão de âncora e
-  // destoaria do resto da tabela, que não sublinha nada. Sublinha só em
-  // hover/foco: mesmo sinal visual que um link ganha em qualquer outro
-  // lugar da casa, sem "azul sublinhado" constante brigando com a densidade
-  // da lista.
+  // Protocolo e cliente embaixo do assunto — só na tabela compacta (as
+  // colunas próprias somem, ver o @container no fim desta seção).
+  &__meta {
+    display: none;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Sublinha só em hover/foco, como link em qualquer outro lugar da casa.
   &__ref {
     display: inline-block;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--accent);
+    font-size: 12px;
+    color: var(--text-secondary);
     text-decoration: none;
+    font-variant-numeric: tabular-nums;
     &:hover,
     &:focus-visible {
+      color: var(--text-primary);
       text-decoration: underline;
     }
   }
-  // Texto que existe só para o leitor de tela (o cadeado da célula de
-  // assunto e a barra de urgência): a técnica de recorte 1px é a mesma do
-  // utilitário `sr-only` do Tailwind, só que local a este componente — a
-  // folha do shell cvz que declara `.sr-only` (cvz/styles/global.scss) só é
-  // importada por cvz/AppLayout.tsx, que não envolve `/chamados` (rota usa
-  // NovoShell, ver routes.tsx); depender dela aqui apagaria o texto também
-  // do relatório de acessibilidade, não só da tela.
   &__sr {
     position: absolute;
     width: 1px;
@@ -773,10 +1587,10 @@
     border: 0;
   }
   &__mono-muted {
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
   }
   &__assunto {
     display: block;
@@ -801,8 +1615,8 @@
   }
   &__empresa {
     display: block;
-    font-size: 11px;
-    color: var(--text-muted);
+    font-size: 12px;
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -810,32 +1624,34 @@
   &__vazio {
     color: var(--text-muted);
   }
-  // Prioridade como pílula: ícone + texto + fundo tingido (a barra de 4px
-  // sozinha não se lia — e cor sozinha nem devia, WCAG 1.4.1). `--cor` vem
-  // de COR_PRIORIDADE; fundo e borda são a mesma cor diluída, texto sólido.
+  // Alta/Urgente: pílula com ícone + texto + fundo tingido (cor nunca é o
+  // único sinal, WCAG 1.4.1). `--cor` vem de COR_PRIORIDADE.
   &__prio {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    height: 22px;
-    padding: 0 9px 0 7px;
+    gap: 4px;
+    height: 24px;
+    padding: 0 10px 0 8px;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--cor) 35%, transparent);
     background: color-mix(in srgb, var(--cor) 12%, var(--surface-card));
     color: var(--cor);
     font-size: 12px;
     font-weight: 500;
     white-space: nowrap;
-
     i {
       font-size: 14px;
     }
+  }
+  // Baixa/Normal: texto corrido, sem cor.
+  &__prio-neutra {
+    font-size: 14px;
+    color: var(--text-secondary);
   }
   &__status {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-primary);
     white-space: nowrap;
   }
@@ -853,16 +1669,224 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  // A COR vem do estado (corEstadoSla), como nas listas da Início; o texto diz
-  // o mesmo em palavras ("Estourado", "em risco"), então quem não distingue a
-  // cor não perde a informação.
+  // A COR vem do estado (corEstadoSla); o texto diz o mesmo em palavras.
   &__sla {
     display: block;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  &--esqueleto tbody tr {
+    cursor: default;
+    &:hover td {
+      background: transparent;
+    }
+  }
+}
+
+// Colunas que saem primeiro quando a coluna da fila aperta (painel aberto,
+// notebook, janela dividida) — pela largura DA COLUNA, não da janela. O
+// assunto, o dono, a prioridade, o status e o prazo ficam sempre; abaixo de
+// 800px a página troca a tabela por cartões (LARGURA_MINIMA_TABELA).
+@container fila (max-width: 1659px) {
+  .tickets-tabela .col-just,
+  .tickets-tabela .col-espera {
+    display: none;
+  }
+}
+@container fila (max-width: 1389px) {
+  .tickets-tabela .col-cat {
+    display: none;
+  }
+}
+// Compacta: protocolo, cliente e abertura viram a linha de apoio do assunto.
+@container fila (max-width: 1249px) {
+  .tickets-tabela .col-protocolo,
+  .tickets-tabela .col-cliente,
+  .tickets-tabela .col-data {
+    display: none;
+  }
+  .tickets-tabela__meta {
+    display: block;
+  }
+  // O assunto fica com a sobra e trunca, em vez de alargar a tabela.
+  .tickets-tabela .col-assunto {
+    width: 100%;
+    max-width: 0;
+  }
+}
+
+// ============================================================================
+// Cartões (celular e coluna estreita)
+// ============================================================================
+.cartoes-tickets {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface-card);
+  border-radius: var(--raio-cartao);
+  box-shadow: inset 0 0 0 1px var(--stroke);
+  overflow: hidden;
+}
+
+.cartao-ticket {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 14px 10px;
+  border-bottom: 1px solid var(--stroke);
+  cursor: pointer;
+  outline: none;
+  &:last-child {
+    border-bottom: none;
+  }
+  &:hover {
+    background: var(--sidebar-hover);
+  }
+  &.is-selecionada {
+    background: var(--sidebar-ativo);
+  }
+  &:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--foco);
+  }
+
+  &__check {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    input {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+  }
+
+  &__corpo {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  // `.cartoes-tickets` na frente: o sublinhado de link dentro de <li> vem de
+  // styles/index.css com especificidade (0,1,3); o assunto é título do
+  // cartão, não link de texto corrido — sublinha só em hover/foco.
+  .cartoes-tickets &__assunto {
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-decoration: none;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    &:hover,
+    &:focus-visible {
+      text-decoration: underline;
+    }
+  }
+  &__cadeado {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-right: 4px;
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__estado {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    margin-top: 4px;
+    font-size: 14px;
+  }
+  &__sla {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__dono {
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+  &__sem-dono {
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1px var(--stroke);
+    color: var(--text-muted);
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &--esqueleto {
+    cursor: default;
+    &:hover {
+      background: transparent;
+    }
+  }
+}
+
+// ============================================================================
+// Celular
+// ============================================================================
+@media (max-width: 767px) {
+  .lista-tickets {
+    &__main {
+      padding: 16px;
+      gap: 12px;
+    }
+    // A busca é filha direta da coluna (flex vertical): sem `flex: none`
+    // ela cresceria na ALTURA.
+    &__main > &__search {
+      flex: none;
+      max-width: none;
+      height: 40px;
+    }
+    &__lote {
+      flex-wrap: wrap;
+      padding: 8px;
+    }
+    &__lote-acoes {
+      flex-wrap: wrap;
+      width: 100%;
+      order: 3;
+    }
+    &__lote-select {
+      flex: 1 1 140px;
+    }
+    &__paginacao {
+      justify-content: space-between;
+    }
   }
 }
 

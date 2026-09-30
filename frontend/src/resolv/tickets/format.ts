@@ -58,12 +58,21 @@ export const ICONE_PRIORIDADE: Record<Prioridade, string> = {
   urgent: 'ti-alert-triangle',
 }
 
-/** Cor da pílula de prioridade — mapeada às cores semânticas do design system. */
+/** Cor da pílula de prioridade. Só Alta e Urgente têm cor: cor é sinal de
+ *  ESTADO que pede atenção, e "Normal" em verde (como era) dizia "tudo
+ *  certo" em 80% das linhas da fila, gastando a única coisa que faz o
+ *  vermelho saltar. Baixa e Normal ficam na tinta neutra. */
 export const COR_PRIORIDADE: Record<Prioridade, string> = {
   low: 'var(--text-muted)',
-  normal: 'var(--ok)',
+  normal: 'var(--text-secondary)',
   high: 'var(--away)',
   urgent: 'var(--danger)',
+}
+
+/** Prioridades que merecem pílula colorida na fila (e no cartão do
+ *  celular). As outras são texto corrido — ver `COR_PRIORIDADE`. */
+export function prioridadeEmDestaque(p: Prioridade): boolean {
+  return p === 'high' || p === 'urgent'
 }
 
 export const ROTULO_STATUS: Record<StatusTicket, string> = {
@@ -98,6 +107,20 @@ export function textoEstadoSla(sla: RelogioSla): string {
   const h = Math.floor(sla.minutes_left / 60)
   const restante = h > 0 ? `${h}h` : `${sla.minutes_left}min`
   return sla.state === 'at_risk' ? `${restante} — em risco` : `${restante} restantes`
+}
+
+/** "agora mesmo" / "há 3 min" / "há 2 h" — quando a lista na tela foi
+ *  buscada (dica do botão de atualizar da fila). */
+export function atualizadoHa(desdeMs: number, agoraMs: number): string {
+  const min = Math.floor(Math.max(0, agoraMs - desdeMs) / 60_000)
+  if (min < 1) return 'atualizado agora mesmo'
+  if (min < 60) return `atualizado há ${min} min`
+  return `atualizado há ${Math.floor(min / 60)} h`
+}
+
+/** "8 tickets" / "1 ticket" — o total da fila no cabeçalho. */
+export function totalDeTickets(n: number): string {
+  return n === 1 ? '1 ticket' : `${n.toLocaleString('pt-BR')} tickets`
 }
 
 /**

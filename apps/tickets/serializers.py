@@ -756,3 +756,14 @@ class BulkCloseSerializer(_BulkTicketIdsSerializer):
     resolution_started_at = serializers.DateTimeField()
     resolution_ended_at = serializers.DateTimeField()
     note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class BulkStatusSerializer(_BulkTicketIdsSerializer):
+    """Ação "Mudar status" da barra de seleção da fila. É o STATUS (coluna do
+    quadro, `TicketStage`), não a categoria: a coluna "Status" da fila mostra
+    o nome do stage ("Em análise"), e escolher ali uma categoria crua
+    ("open") jogaria todo mundo no status de fábrica sem a pessoa pedir.
+    Quem resolve o id e recusa stage de conclusão é a view — a regra de
+    negócio mesmo mora em `ticket_service.mudar_status`."""
+
+    stage_id = serializers.IntegerField()

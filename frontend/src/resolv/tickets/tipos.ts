@@ -52,14 +52,73 @@ export type ColunaOrdenavel =
 export interface ParamsListagem {
   view?: string
   q?: string
-  priority?: Prioridade
+  /** Um valor ou LISTA separada por vírgula (`high,urgent`) — o backend
+   *  aceita os dois desde a barra de filtros da fila. */
+  priority?: Prioridade | string
   /** Mesmo filtro que alimenta os cards de SLA da Início (`useKpis`) —
    *  sozinho já implica "não resolvido" (um ticket fechado não tem relógio
    *  de SLA vivo), por isso não precisa combinar com `view=`. */
-  sla?: 'at_risk' | 'breached'
+  sla?: 'at_risk' | 'breached' | string
+  /** Filtros da barra da fila (resolv/tickets/filtros.ts) — mesmas chaves
+   *  de `_aplicar_filtros` em apps/tickets/views.py. */
+  status?: string
+  assignee?: string
+  team?: string
+  company?: string
+  category?: string
+  tag?: string
+  periodo?: string
+  desde?: string
+  ate?: string
+  /** id do solicitante (`?solicitante=` na URL da fila). */
+  requester?: string
   ordering?: string // ex.: '-criado'
   limit: number
   offset: number
+}
+
+/** Uma opção de faceta de `GET /tickets/facets/` — `value` é exatamente o
+ *  que o filtro correspondente aceita (slug, id ou o valor do enum). */
+export interface OpcaoFaceta {
+  value: string | number | null
+  label: string
+  count: number
+}
+
+/** Resposta de `GET /tickets/facets/` (apps/tickets/views.py, `facets` +
+ *  `_facetas_da_fila`), conferida chave a chave. */
+export interface Facetas {
+  status: OpcaoFaceta[]
+  priority: OpcaoFaceta[]
+  company: OpcaoFaceta[]
+  assignee: OpcaoFaceta[]
+  team: OpcaoFaceta[]
+  category: OpcaoFaceta[]
+  tag: OpcaoFaceta[]
+  sla: OpcaoFaceta[]
+  plan: OpcaoFaceta[]
+  sem_dominio: number
+}
+
+/** `GET /api/v1/ticket-views/` (apps/tickets/visoes_pessoais.py). `count` só
+ *  vem na LISTA — criar/renomear devolvem sem ele. */
+export interface VisaoPessoal {
+  id: number
+  name: string
+  filters: Record<string, string>
+  position: number
+  count?: number
+}
+
+/** Status do quadro (`GET /settings/statuses/`) — é o que a coluna "Status"
+ *  da fila mostra e o que "Mudar status" em lote escolhe. */
+export interface StatusDoQuadro {
+  id: number
+  name: string
+  category: StatusTicket
+  color: string
+  order: number
+  is_active: boolean
 }
 
 /**

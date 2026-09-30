@@ -204,6 +204,33 @@ describe('TicketsTable — urgência e cadeado têm nome pra leitor de tela (ite
     expect(screen.getByText('Urgente', { selector: '.tickets-tabela__prio' })).toBeInTheDocument()
   })
 
+  it('Baixa e Normal são texto neutro: cor e pílula só para Alta e Urgente', () => {
+    montar({
+      linhas: [
+        { ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }), priority: 'normal' },
+        { ...linha(2, { state: 'ok' as EstadoSla, minutes_left: 300 }), priority: 'high' },
+      ],
+    })
+
+    expect(screen.getByText('Normal', { selector: '.tickets-tabela__prio-neutra' })).toBeInTheDocument()
+    expect(screen.queryByText('Normal', { selector: '.tickets-tabela__prio' })).not.toBeInTheDocument()
+    expect(screen.getByText('Alta', { selector: '.tickets-tabela__prio' })).toBeInTheDocument()
+  })
+
+  it('foco roving: só a linha lembrada entra no Tab, e aria-selected segue a seleção', () => {
+    montar({
+      linhas: [linha(1, { state: 'ok', minutes_left: 300 }), linha(2, { state: 'ok', minutes_left: 300 })],
+      selecionados: new Set([2]),
+      indiceFocado: 1,
+    })
+
+    const linhas = document.querySelectorAll('tbody tr')
+    expect(linhas[0]).toHaveAttribute('tabindex', '-1')
+    expect(linhas[1]).toHaveAttribute('tabindex', '0')
+    expect(linhas[0]).toHaveAttribute('aria-selected', 'false')
+    expect(linhas[1]).toHaveAttribute('aria-selected', 'true')
+  })
+
   it('o cadeado de ticket restrito diz o motivo em texto fixo, não fica mudo', () => {
     montar({
       linhas: [{ ...linha(1, { state: 'ok' as EstadoSla, minutes_left: 300 }), is_restricted: true }],

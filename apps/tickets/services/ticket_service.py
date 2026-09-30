@@ -1293,6 +1293,52 @@ def mover_para_stage(*, ticket: Ticket, stage: TicketStage, actor, board) -> Tic
     return ticket
 
 
+def mudar_status(*, ticket: Ticket, stage: TicketStage, actor) -> Ticket:
+    """Troca o status de um chamado FORA do quadro — é a ação em lote da fila
+    ("Mudar status" com vários selecionados).
+
+    Mesma mecânica de `mover_para_stage` (coluna sempre, categoria só quando
+    muda), com três recusas a mais, cada uma com o motivo que a fila mostra
+    no resumo do lote:
+
+    - status de conclusão: fechar pede as datas da solução (D4/D7), que é o
+      fluxo de "Encerrar", não uma troca de coluna;
+    - chamado já fechado: reabrir é responder (é assim que o cliente é
+      avisado e a pesquisa de satisfação é respeitada, ver `add_reply`) —
+      reabrir 30 de uma vez por um select passaria por cima das duas coisas;
+    - já está nesse status: não é erro, mas também não é "atualizado" — sem
+      a recusa, o resumo diria "30 atualizados" para um lote que não mudou
+      nada.
+
+    Sem `note` no evento: a nota da troca de status vira a coluna
+    "Justificativa" da fila (`current_status_note`) e o verbo do feed de
+    atividade ("alterou …" em vez de "mudou o status de …"). Uma frase de
+    máquina ali apagaria a justificativa real que alguém escreveu antes.
+    """
+    if not actor.is_internal:
+        raise TicketRuleViolation("Apenas usuários internos mudam o status.")
+    if not actor.can(Perm.TICKET_EDIT_PROPERTIES):
+        raise TicketRuleViolation("Seu papel não permite mudar o status do ticket.")
+    if stage.category == TicketStatus.CLOSED:
+        raise TicketRuleViolation("Encerrar exige as datas da solução (D4/D7).")
+
+    with transaction.atomic():
+        ticket = Ticket.objects.select_for_update().get(pk=ticket.pk)
+        if ticket.status == TicketStatus.CLOSED:
+            raise TicketRuleViolation("Ticket fechado. Para reabrir, responda pelo chamado.")
+        if ticket.stage_id == stage.pk:
+            raise TicketRuleViolation("Já está neste status.")
+        if ticket.status != stage.category:
+            _change_status(ticket, stage.category, actor, stage=stage)
+        else:
+            ticket.stage = stage
+            ticket.save(update_fields=["stage"])
+    from apps.notifications.services import broadcast_ticket_event
+
+    broadcast_ticket_event(ticket=ticket, kind="updated", actor=actor)
+    return ticket
+
+
 def stage_padrao(category: str) -> TicketStage | None:
     """O status de fábrica de uma categoria — para onde o chamado vai quando
     quem mudou o status não escolheu uma coluna específica.

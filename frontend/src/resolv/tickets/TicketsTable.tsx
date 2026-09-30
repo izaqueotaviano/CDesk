@@ -10,6 +10,7 @@ import {
   corEstadoSla,
   esperaEmFila,
   formatarDataHora,
+  prioridadeEmDestaque,
   rotuloAbrirChamado,
   textoEstadoSla,
 } from './format'
@@ -58,6 +59,9 @@ interface Props {
   onSelecionarTodos: (marcar: boolean) => void
   onAbrir: (id: number) => void
   agoraMs: number
+  /** Linha com o foco roving (`useTecladoDaLista`): a única com tabIndex=0. */
+  indiceFocado?: number
+  onFocarLinha?: (indice: number) => void
 }
 
 export function TicketsTable({
@@ -69,6 +73,8 @@ export function TicketsTable({
   onSelecionarTodos,
   onAbrir,
   agoraMs,
+  indiceFocado = 0,
+  onFocarLinha,
 }: Props) {
   // Mesma preferência global do admin (stores/prefs.ts) — 'compacta' é o que
   // esta tabela já renderizava antes de existir alternador nenhum, então
@@ -143,8 +149,19 @@ export function TicketsTable({
           </tr>
         </thead>
         <tbody>
-          {linhas.map((t) => (
-            <tr key={t.id} onClick={() => onAbrir(t.id)}>
+          {linhas.map((t, i) => (
+            // Linha focável (foco roving, ver useTecladoDaLista): j/k andam,
+            // Enter/o abrem, x marca. `aria-selected` acompanha a caixa de
+            // seleção, para o leitor de tela dizer "selecionada" na linha.
+            <tr
+              key={t.id}
+              data-linha={i}
+              tabIndex={i === indiceFocado ? 0 : -1}
+              aria-selected={selecionados.has(t.id)}
+              className={selecionados.has(t.id) ? 'is-selecionada' : undefined}
+              onFocus={() => onFocarLinha?.(i)}
+              onClick={() => onAbrir(t.id)}
+            >
               <td className="col-check" onClick={(e) => e.stopPropagation()}>
                 {/* O <label> em volta é o ALVO: a caixa continua com 16px de
                     desenho, mas a área clicável passa a ter 24px (WCAG 2.5.8)
@@ -202,6 +219,13 @@ export function TicketsTable({
                   )}
                   {t.subject}
                 </span>
+                {/* Linha de apoio da tabela COMPACTA (coluna da fila estreita,
+                    lista.scss): protocolo e cliente saem das colunas próprias
+                    e vêm para baixo do assunto. Um texto só (não três spans)
+                    para não duplicar o protocolo como nó de texto. */}
+                <span className="tickets-tabela__meta">
+                  {[t.reference, t.requester_display, t.company_name].filter(Boolean).join(' · ')}
+                </span>
               </td>
               <td className="col-data tickets-tabela__mono-muted">{formatarDataHora(t.created_at)}</td>
               <td className="col-cliente">
@@ -215,14 +239,21 @@ export function TicketsTable({
               {/* Prioridade escrita, com ícone e cor: a barra de 4px de
                   antes não se distinguia entre uma linha e outra — e cor
                   sozinha nunca devia ser o único sinal (WCAG 1.4.1). */}
+              {/* Só Alta e Urgente ganham pílula com cor e ícone: cor é para
+                  o que pede atenção. Baixa e Normal são texto neutro — em
+                  verde, "Normal" gritava "tudo certo" na maioria das linhas. */}
               <td className="col-urg">
-                <span
-                  className="tickets-tabela__prio"
-                  style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
-                >
-                  <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
-                  {ROTULO_PRIORIDADE[t.priority]}
-                </span>
+                {prioridadeEmDestaque(t.priority) ? (
+                  <span
+                    className="tickets-tabela__prio"
+                    style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
+                  >
+                    <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
+                    {ROTULO_PRIORIDADE[t.priority]}
+                  </span>
+                ) : (
+                  <span className="tickets-tabela__prio-neutra">{ROTULO_PRIORIDADE[t.priority]}</span>
+                )}
               </td>
               <td className="col-status">
                 <span className="tickets-tabela__status">

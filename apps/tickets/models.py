@@ -985,6 +985,53 @@ class UserTicketTabs(TimeStampedModel):
         return f"Abas de {self.user_id} ({len(self.tabs)})"
 
 
+class SavedTicketView(TimeStampedModel):
+    """Visualização PESSOAL da fila: um recorte que o agente monta com os
+    filtros da tela ("Acme, urgentes, sem responsável") e guarda com nome.
+
+    Diferente das visões do sistema (`SAVED_VIEWS` em views.py), que são
+    recortes nomeados definidos no servidor e iguais para todo mundo, esta é
+    só de quem criou — nunca aparece para outra pessoa, nem para admin pela
+    API. Guarda os PARÂMETROS da listagem (as mesmas chaves de `?status=`,
+    `?team=`...), não uma lista de ids: a visão é uma pergunta que se refaz a
+    cada abertura, e o escopo de visibilidade é reaplicado na hora
+    (`selectors.visible_tickets`) — perder acesso a uma equipe tira os
+    chamados dela da visão sem ninguém precisar editar nada.
+
+    `filters` passa por uma allowlist no serializer
+    (`SavedTicketViewSerializer`): chave desconhecida ou valor fora do
+    domínio é recusado na gravação, não ignorado na leitura — uma visão que
+    "filtra por algo que não existe" mostraria a fila inteira sem explicar.
+    """
+
+    owner = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="saved_ticket_views"
+    )
+    name = models.CharField(max_length=60)
+    # {"view": "nao-resolvidos", "priority": "high,urgent", "team": "suporte"}
+    filters = models.JSONField(default=dict, blank=True)
+    # ordem na barra lateral; reordenar reescreve 0..n-1 de uma vez
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "id"]
+        verbose_name = "visualização pessoal"
+        verbose_name_plural = "visualizações pessoais"
+        constraints = [
+            # Nome repetido na MESMA lista (ignorando maiúsculas) é duas
+            # linhas iguais na barra lateral sem jeito de saber qual é qual.
+            # O serializer já recusa com mensagem; isto é a trava contra
+            # corrida entre duas abas.
+            models.UniqueConstraint(
+                models.functions.Lower("name"), "owner",
+                name="visao_pessoal_nome_unico_por_dono",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.owner_id})"
+
+
 def ticket_is_overdue(ticket: Ticket) -> bool:
     """Helper de listagem: SLA de resolução estourado e ticket ainda vivo."""
     return bool(

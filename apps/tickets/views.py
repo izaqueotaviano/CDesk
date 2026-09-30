@@ -41,6 +41,7 @@ from apps.tickets.models import (
     TicketMessage,
     TicketPriority,
     TicketSource,
+    TicketStage,
     TicketStatus,
     TicketStatusEvent,
     TicketWatcher,
@@ -52,6 +53,7 @@ from apps.tickets.serializers import (
     BulkAssignSerializer,
     BulkCloseSerializer,
     BulkPrioritySerializer,
+    BulkStatusSerializer,
     MentionTargetSerializer,
     PresencaBatimentoSerializer,
     PresencaSerializer,
@@ -193,6 +195,11 @@ SAVED_VIEWS = (
     "mencionam-voce", "aguardando-voce",
 )
 
+# `?periodo=` da fila: quantos dias de calendário (hoje incluso) cada opção
+# cobre. Só valores fechados — um `?periodo=` livre viraria um segundo
+# `desde` com outra sintaxe.
+PERIODOS_RELATIVOS = {"hoje": 1, "7d": 7, "30d": 30, "90d": 90}
+
 # Ordenação por coluna da fila (allowlist — nunca o nome do campo cru vindo
 # da URL): cada chave pública aponta pro campo (ou anotação) real que o
 # `order_by` usa. `criado` e `espera` apontam para o MESMO campo — "aberto
@@ -281,7 +288,10 @@ class TicketViewSet(viewsets.GenericViewSet):
             "assignee", str,
             description="'me' (minha fila), 'unassigned' (sem responsável) ou o id do agente",
         ),
-        OpenApiParameter("priority", str, description="low | normal | high | urgent"),
+        OpenApiParameter(
+            "priority", str,
+            description="low | normal | high | urgent — ou uma LISTA separada por vírgula.",
+        ),
         OpenApiParameter("requester", int, description="id do solicitante"),
         OpenApiParameter("q", str, description="busca por assunto ou referência"),
         OpenApiParameter(
@@ -316,6 +326,13 @@ class TicketViewSet(viewsets.GenericViewSet):
         OpenApiParameter(
             "ate", str,
             description="data de ABERTURA máxima (YYYY-MM-DD), inclusive.",
+        ),
+        OpenApiParameter(
+            "periodo", str,
+            description=(
+                "abertura relativa a hoje: " + " | ".join(PERIODOS_RELATIVOS)
+                + " (dias de calendário, hoje incluso)."
+            ),
         ),
         OpenApiParameter(
             "avaliacao", str,
@@ -995,8 +1012,10 @@ class TicketViewSet(viewsets.GenericViewSet):
             .order_by("-company__plan__rank", "company__plan__name")
         )
         sem_dominio = contar({"sem_dominio"}).filter(company__domains__isnull=True).count()
+        extras = _facetas_da_fila(contar)
 
         return Response({
+            **extras,
             "status": [
                 {"value": value, "label": label, "count": status_counts.get(value, 0)}
                 for value, label in TicketStatus.choices
@@ -1284,6 +1303,95 @@ class TicketViewSet(viewsets.GenericViewSet):
                 failed.append({"id": ticket.pk, "detail": str(exc)})
         return Response({"updated": updated, "failed": failed})
 
+    @action(detail=False, methods=["post"], url_path="bulk-status")
+    def bulk_status(self, request):
+        """Muda o status (coluna) de vários chamados — mesma porta e mesma
+        forma de resposta das outras três ações em lote. O stage é o mesmo
+        para o lote inteiro, então um stage inválido é 400 no pedido todo
+        (não uma falha repetida em cada linha de `failed`)."""
+        _exige(request.user, Perm.TICKET_BULK_ACTIONS)
+        ser = BulkStatusSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        stage = TicketStage.objects.filter(
+            pk=ser.validated_data["stage_id"], is_active=True,
+        ).first()
+        if stage is None:
+            raise ValidationError({"stage_id": "Status não encontrado."})
+        if stage.category == TicketStatus.CLOSED:
+            raise ValidationError({
+                "stage_id": "Para encerrar, use Encerrar: fechar pede as datas da solução.",
+            })
+        updated, failed = [], []
+        for ticket in self._tickets_visiveis(ser.validated_data["ticket_ids"]):
+            try:
+                ticket_service.mudar_status(ticket=ticket, stage=stage, actor=request.user)
+                updated.append(ticket.pk)
+            except TicketRuleViolation as exc:
+                failed.append({"id": ticket.pk, "detail": str(exc)})
+        return Response({"updated": updated, "failed": failed})
+
+
+def _facetas_da_fila(contar):
+    """As facetas que a barra de filtros da fila (resolv/tickets) pede além
+    das quatro de `facets()`: equipe, categoria, etiqueta e SLA.
+
+    Mesma regra de faceta de lá (`contar(exceto)` conta com todos os filtros
+    MENOS o da própria dimensão) e mesmo formato `{value, label, count}`,
+    com `value` sendo exatamente o que o filtro correspondente aceita — slug
+    para equipe e etiqueta, id para categoria. Dimensão aberta: só entra quem
+    tem count > 0, maior primeiro; "sem categoria" não entra porque não
+    existe filtro que o selecione.
+
+    SLA são só duas perguntas fixas (em risco / estourado), então as duas
+    voltam sempre, zero inclusive — mesmo raciocínio de status/prioridade.
+    Contadas reaplicando o próprio `?sla=` sobre a base sem ele: a definição
+    de "em risco" continua morando num lugar só (`_aplicar_filtros`).
+    """
+    equipes = (
+        contar({"team"})
+        .exclude(team__isnull=True)
+        .values("team__slug", "team__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "team__name")
+    )
+    categorias = (
+        contar({"category"})
+        .exclude(category__isnull=True)
+        .values("category_id", "category__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "category__name")
+    )
+    etiquetas = (
+        contar({"tag"})
+        .exclude(tags__isnull=True)
+        .values("tags__slug", "tags__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "tags__name")
+    )
+    sem_sla = contar({"sla"})
+    return {
+        "team": [
+            {"value": r["team__slug"], "label": r["team__name"], "count": r["n"]}
+            for r in equipes
+        ],
+        "category": [
+            {"value": r["category_id"], "label": r["category__name"], "count": r["n"]}
+            for r in categorias
+        ],
+        "tag": [
+            {"value": r["tags__slug"], "label": r["tags__name"], "count": r["n"]}
+            for r in etiquetas
+        ],
+        "sla": [
+            {
+                "value": valor,
+                "label": rotulo,
+                "count": _aplicar_filtros(sem_sla, {"sla": valor}, None).count(),
+            }
+            for valor, rotulo in (("at_risk", "Em risco"), ("breached", "Estourado"))
+        ],
+    }
+
 
 def _busca_q(user, term: str) -> Q:
     """O `?q=` da fila e da busca global.
@@ -1351,8 +1459,14 @@ def _aplicar_filtros(qs, params, user, *, exceto=frozenset()):
     # e não existia filtro nenhum (GAPS.md).
     if "company" not in exceto and (company_id := params.get("company")):
         qs = qs.filter(company_id=company_id)
+    # LISTA também, pelo mesmo motivo do status: "Alta ou Urgente" é o
+    # recorte que a fila mais pede ("o que pega fogo"), e são dois valores.
     if "priority" not in exceto and (priority := params.get("priority")):
-        qs = qs.filter(priority=priority)
+        valores = [p for p in priority.split(",") if p]
+        if len(valores) > 1:
+            qs = qs.filter(priority__in=valores)
+        elif valores:
+            qs = qs.filter(priority=valores[0])
     # "Outros tickets desta pessoa" (painel do cliente no detalhe) e o link
     # "Ver todos" que leva para a fila recortada. Só número: o recorte é
     # SOBRE o escopo que `visible_tickets` já aplicou, então pedir o id de
@@ -1434,6 +1548,15 @@ def _aplicar_filtros(qs, params, user, *, exceto=frozenset()):
         qs = qs.filter(created_at__date__gte=desde)
     if "ate" not in exceto and (ate := params.get("ate")):
         qs = qs.filter(created_at__date__lte=ate)
+    # Período RELATIVO ("últimos 7 dias"): `desde` guardado numa visão
+    # pessoal congelaria a data do dia em que a visão foi salva — daqui a um
+    # mês "últimos 7 dias" mostraria 37. Conta em dias de calendário, com
+    # hoje incluso, igual a `desde`/`ate` (que também comparam a data).
+    if "periodo" not in exceto and (periodo := params.get("periodo")):
+        dias = PERIODOS_RELATIVOS.get(periodo)
+        if dias is not None:
+            inicio = timezone.localdate() - dt.timedelta(days=dias - 1)
+            qs = qs.filter(created_at__date__gte=inicio)
 
     # As visões da barra lateral são recortes NOMEADOS, não filtros soltos: a
     # definição mora aqui, no servidor, para "Tickets sem atendimento" querer
