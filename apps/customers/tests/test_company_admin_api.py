@@ -109,3 +109,57 @@ class TestPaginacaoDeVerdade:
         assert pagina1["count"] == 3
         assert [c["name"] for c in pagina1["results"]] == ["Empresa 000", "Empresa 001"]
         assert [c["name"] for c in pagina2["results"]] == ["Empresa 002"]
+
+
+class TestCabecalhoDoCliente360:
+    """Os fatos do cabeçalho da página da empresa: quem é o gerente de conta
+    (nome, não id) e desde quando a empresa está no cadastro."""
+
+    def test_nome_do_gerente_de_conta(self, api, acme, admin):
+        acme.account_manager = admin
+        acme.save(update_fields=["account_manager"])
+
+        corpo = api.get(f"/api/v1/settings/companies/{acme.pk}/").json()
+
+        assert corpo["account_manager"] == admin.pk
+        assert corpo["account_manager_name"] == "Alice"
+
+    def test_sem_gerente_o_nome_vem_nulo(self, api, acme):
+        corpo = api.get(f"/api/v1/settings/companies/{acme.pk}/").json()
+
+        assert corpo["account_manager"] is None
+        assert corpo["account_manager_name"] is None
+
+    def test_data_de_cadastro_vem_e_nao_e_editavel(self, api, acme):
+        original = api.get(f"/api/v1/settings/companies/{acme.pk}/").json()["created_at"]
+        assert original
+
+        resp = api.patch(
+            f"/api/v1/settings/companies/{acme.pk}/",
+            {"created_at": "2001-01-01T00:00:00Z"},
+            format="json",
+        )
+
+        assert resp.status_code == 200
+        assert resp.json()["created_at"] == original
+
+    def test_nome_do_gerente_vem_no_join_e_nao_por_linha(self, api, plan, admin):
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        for i in range(3):
+            Company.objects.create(
+                name=f"Empresa {i}", slug=f"empresa-{i}", plan=plan, account_manager=admin,
+            )
+        with CaptureQueriesContext(connection) as contexto:
+            corpo = api.get("/api/v1/settings/companies/").json()
+
+        assert {c["account_manager_name"] for c in corpo["results"]} == {"Alice"}
+        # Nenhuma ida à tabela de usuários só para ler o nome do gerente: ele
+        # vem no JOIN da consulta da lista (`select_related`).
+        por_linha = [
+            q["sql"] for q in contexto.captured_queries
+            if q["sql"].lstrip().upper().startswith("SELECT")
+            and 'FROM "accounts_user"' in q["sql"]
+        ]
+        assert por_linha == []

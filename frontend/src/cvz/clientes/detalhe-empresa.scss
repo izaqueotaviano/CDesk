@@ -1,0 +1,358 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+// =============================================================================
+// Página da empresa (Cliente 360) — cabeçalho com os fatos da conta e a
+// visão geral em blocos. Linguagem do resto do console: um plano de fundo só
+// (`$canvas`, pintado pela SuperficieCvz), cartão branco (`$raised`) só onde
+// há conteúdo, linha fina só entre LINHAS de uma lista. Sem sombra, sem borda
+// de enfeite; cor só para estado (SLA, prioridade, consumo perto do limite).
+// =============================================================================
+
+// --- cabeçalho: fatos da conta ------------------------------------------------
+// O antigo cartão solto "Usuários 3" virou um fato aqui, ao lado dos outros:
+// quantas pessoas, desde quando, com quem fala do nosso lado.
+.empresa-fatos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $sp-3 $sp-6;
+  margin: (-$sp-2) 0 $sp-5;
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  dt {
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+  }
+
+  dd {
+    margin: 0;
+    @include type($fs-body, $w-medium);
+    color: $text;
+    overflow-wrap: anywhere;
+  }
+
+  @include mobile {
+    gap: $sp-3 $sp-5;
+  }
+}
+
+// --- visão geral: grade de blocos ---------------------------------------------
+// Duas colunas no desktop — o que está acontecendo (tickets, conversas) à
+// esquerda, a conta (consumo, contatos) à direita. Abaixo do tablet empilha
+// na ordem do DOM, que é a ordem de importância.
+.empresa-visao {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: $sp-4;
+  align-items: start;
+
+  &__coluna {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-4;
+    min-width: 0;
+  }
+
+  @include below-desktop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// --- bloco (cartão) -----------------------------------------------------------
+.empresa-bloco {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: $sp-4 $sp-4 $sp-2;
+  border-radius: $radius-card;
+  background-color: $raised;
+
+  &__cabeca {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $sp-3;
+    margin-bottom: $sp-2;
+  }
+
+  &__titulo {
+    display: flex;
+    align-items: baseline;
+    gap: $sp-2;
+    margin: 0;
+    @include type($fs-title, $w-semibold);
+    color: $text;
+  }
+
+  &__contagem {
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // "Ver todos" — link de texto, não botão: leva a outra tela (ou aba).
+  &__link {
+    @include button-reset;
+    @include focus-ring;
+    flex: 0 0 auto;
+    border-radius: $radius;
+    @include type($fs-meta, $w-medium);
+    color: $text-secondary;
+    text-decoration: none;
+
+    &:hover { color: $text; text-decoration: underline; }
+  }
+
+  // Os estados vazio/erro do catálogo nascem para a página inteira (48px de
+  // respiro); dentro de um cartão pequeno isso empurrava o resto da coluna.
+  .state {
+    padding: $sp-5 $sp-3 $sp-4;
+  }
+}
+
+// --- linhas de lista (tickets, conversas, contatos) ----------------------------
+.empresa-lista {
+  margin: 0 (-$sp-2);
+  padding: 0;
+  list-style: none;
+
+  > li + li {
+    border-top: $stroke-w solid $stroke;
+  }
+
+  // A linha inteira é o link, e se anuncia por hover e foco. O sublinhado de
+  // "link dentro de <li>" (styles/index.css, pensado para lista de TEXTO)
+  // riscava assunto, referência e meta de toda linha; o seletor composto é
+  // só para vencer a especificidade daquela regra.
+  & &__item {
+    text-decoration: none;
+  }
+
+  &__item {
+    @include button-reset;
+    @include focus-ring;
+    display: flex;
+    align-items: center;
+    gap: $sp-3;
+    width: 100%;
+    min-height: 56px;
+    padding: $sp-2;
+    border-radius: $radius;
+    text-align: left;
+    text-decoration: none;
+    color: $text;
+    transition: background-color $dur $ease;
+
+    &:hover { background-color: $hover-soft; }
+  }
+
+  &__principal {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__titulo {
+    @include type($fs-body, $w-medium);
+    @include truncate;
+    color: $text;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 6px;
+    min-width: 0;
+    @include type($fs-meta, $w-regular);
+    color: $text-secondary;
+  }
+
+  &__sep {
+    color: $text-muted;
+  }
+
+  &__ref {
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Trecho da última mensagem: uma linha só, o resto da meta não pode
+  // ser empurrado para fora por um parágrafo colado no chat.
+  &__trecho {
+    @include truncate;
+    max-width: 100%;
+  }
+
+  &__lado {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: $sp-2;
+  }
+
+  &__texto-lado {
+    @include type($fs-meta, $w-regular);
+    color: $text-secondary;
+    white-space: nowrap;
+  }
+
+  &__vazio-sla {
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+    white-space: nowrap;
+  }
+
+  // Esqueleto com o formato da linha de verdade: título, meta, e o que vai
+  // à direita — a lista não "pula" quando os dados chegam.
+  &__avatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+  }
+
+  &__esqueleto {
+    display: flex;
+    align-items: center;
+    gap: $sp-3;
+    min-height: 56px;
+    padding: $sp-2;
+
+    .skeleton-group { flex: 1 1 auto; }
+  }
+
+  &__esqueleto-lado {
+    flex: 0 0 72px;
+  }
+
+  // No celular a coluna da direita desce para baixo do título, alinhada à
+  // esquerda: 360px não comportam assunto + prioridade + SLA numa linha.
+  @include mobile {
+    &__item {
+      flex-wrap: wrap;
+      row-gap: $sp-1;
+    }
+
+    &__avatar + &__principal { flex-basis: calc(100% - 42px); }
+
+    &__lado {
+      flex-basis: 100%;
+      justify-content: flex-start;
+    }
+
+    &__avatar ~ &__lado { padding-left: 42px; }
+  }
+}
+
+// --- medidor de consumo ------------------------------------------------------
+// Neutro (carvão) até 80%, alerta a partir de 80%, perigo no limite. A cor
+// nunca vai sozinha: a linha de estado repete em texto ("Perto do limite").
+.empresa-uso {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  padding: $sp-2 0 $sp-3;
+
+  & + & {
+    border-top: $stroke-w solid $stroke;
+    padding-top: $sp-3;
+  }
+
+  &__cabeca {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: $sp-2;
+  }
+
+  &__rotulo {
+    @include type($fs-body, $w-medium);
+    color: $text;
+  }
+
+  &__renova {
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
+    white-space: nowrap;
+  }
+
+  &__trilho {
+    position: relative;
+    height: 6px;
+    overflow: hidden;
+    border-radius: $radius-pill;
+    // Derivado do texto, não da linha estrutural: no escuro `$stroke` fica
+    // colado no tom do cartão e o trilho sumia — sobrava uma barra solta.
+    background-color: color-mix(in srgb, #{$text} 14%, transparent);
+  }
+
+  &__barra {
+    display: block;
+    height: 100%;
+    border-radius: $radius-pill;
+    background-color: $primary;
+    transition: width $dur $ease;
+  }
+
+  &--alerta &__barra { background-color: $away; }
+  &--perigo &__barra { background-color: $danger; }
+
+  &__texto {
+    margin: 0;
+    @include type($fs-meta, $w-regular);
+    color: $text-secondary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__estado {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-1;
+    margin: 0;
+    @include type($fs-meta, $w-medium);
+
+    i { font-size: 14px; }
+  }
+
+  &--alerta &__estado { color: $away; }
+  &--perigo &__estado { color: $danger; }
+}
+
+// --- aba Dados ----------------------------------------------------------------
+// O formulário que antes abria a página. O reset do fieldset continua em
+// clientes.scss (`.clientes-form`); aqui só a largura: a mesma do corpo de
+// cada seção (`.form-section__body`, 720px), para o "Salvar alterações"
+// alinhar com a borda dos campos e não flutuar solto à direita.
+.empresa-dados {
+  max-width: 720px;
+}
+
+// --- esqueleto da página inteira ----------------------------------------------
+.empresa-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+
+  &__titulo {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    max-width: 420px;
+  }
+
+  &__fatos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-6;
+
+    > * { width: 96px; }
+  }
+}

@@ -63,6 +63,11 @@ class PlanAdminViewSet(viewsets.ModelViewSet):
 class CompanyAdminSerializer(serializers.ModelSerializer):
     slug = slug_unico(Company, o_que="uma empresa")
     plan_name = serializers.CharField(source="plan.name", read_only=True)
+    # O cabeçalho da página da empresa (Cliente 360) mostra QUEM é o gerente
+    # de conta, não o id. Só leitura: a escrita continua por `account_manager`.
+    account_manager_name = serializers.CharField(
+        source="account_manager.full_name", read_only=True, default=None
+    )
     user_count = serializers.IntegerField(read_only=True)
     effective_limit = serializers.SerializerMethodField()
     effective_period = serializers.SerializerMethodField()
@@ -85,10 +90,13 @@ class CompanyAdminSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "legal_name", "tax_id", "slug", "plan", "plan_name",
             "is_active", "ticket_limit", "limit_period", "limit_scope",
-            "timezone", "business_calendar", "account_manager",
+            "timezone", "business_calendar", "account_manager", "account_manager_name",
             "contract_started_at", "contract_ended_at", "notes", "domains",
             "user_count", "effective_limit", "effective_period", "quota_usage",
             "maintenance_minutes", "effective_maintenance_minutes", "maintenance_usage",
+            # "Cliente desde" quando não há data de contrato — `auto_now_add`,
+            # então o DRF já o expõe só para leitura.
+            "created_at",
         ]
 
     def to_representation(self, instance):
@@ -171,7 +179,7 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
     # `queryset` só para o SCHEMA — em runtime quem manda é `get_queryset()`,
     # logo abaixo (o mesmo padrão de `apps.customers.views.CompanyViewSet`).
     queryset = (
-        Company.objects.select_related("plan")
+        Company.objects.select_related("plan", "account_manager")
         .annotate(user_count=Count("users"))
         .order_by("name")
     )
@@ -180,7 +188,7 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = (
-            Company.objects.select_related("plan")
+            Company.objects.select_related("plan", "account_manager")
             .annotate(user_count=Count("users"))
             .order_by("name")
         )

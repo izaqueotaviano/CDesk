@@ -121,6 +121,7 @@ class ChatViewSet(viewsets.GenericViewSet):
         )),
         OpenApiParameter("mine", str, description="'1' = só os chats do agente logado"),
         OpenApiParameter("client", int, description="id do cliente — as conversas dele"),
+        OpenApiParameter("company", int, description="id da empresa — as conversas dela"),
         OpenApiParameter("agent", int, description="finalizados: quem atendeu"),
         OpenApiParameter("reason", int, description="finalizados: id do motivo de encerramento"),
         OpenApiParameter("tag", int, description="finalizados: id da etiqueta"),
@@ -151,6 +152,14 @@ class ChatViewSet(viewsets.GenericViewSet):
             if not str(cliente).isdigit():
                 raise ValidationError({"client": "Informe o id do cliente."})
             qs = qs.filter(client_id=int(cliente))
+        # "as conversas desta empresa" — o bloco de conversas recentes da
+        # página da empresa (Cliente 360). Mesmo raciocínio do `client`: o
+        # filtro só estreita o que `visible_chats` já recortou, então o
+        # cliente que pede outra empresa recebe vazio, nunca o chat alheio.
+        if empresa := request.query_params.get("company"):
+            if not str(empresa).isdigit():
+                raise ValidationError({"company": "Informe o id da empresa."})
+            qs = qs.filter(company_id=int(empresa))
         if term := request.query_params.get("q"):
             filtro = (Q(client__full_name__icontains=term)
                       | Q(company__name__icontains=term)

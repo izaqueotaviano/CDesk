@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { Chat } from '@/api/chat'
 import { api, type Paginado } from '@/api/client'
+import type { TicketLinha } from '@/resolv/tickets/tipos'
 
 export type LimitPeriod = 'weekly' | 'monthly'
 export type LimitScope = 'company' | 'user'
@@ -35,6 +37,12 @@ export interface Empresa {
   timezone: string
   business_calendar: number | null
   account_manager: number | null
+  /** Nome do gerente de conta — só leitura, para o cabeçalho do Cliente 360.
+   *  Opcional no tipo porque um backend anterior a este campo não o manda, e
+   *  a tela trata ausente igual a nulo (sem gerente). */
+  account_manager_name?: string | null
+  /** Cadastro da empresa — "cliente desde" quando não há data de contrato. */
+  created_at?: string
   contract_started_at: string | null
   contract_ended_at: string | null
   notes: string
@@ -68,6 +76,30 @@ export type EmpresaEscrita = Partial<
     | 'contract_ended_at'
   >
 >
+
+/** Campos editáveis do formulário — espelha `EmpresaEscrita`, mas com
+ *  `domains` sempre presente (nunca undefined) pra simplificar o editor de chips. */
+export interface FormularioEmpresa extends EmpresaEscrita {
+  domains: string[]
+}
+
+export function formularioDe(e: Empresa): FormularioEmpresa {
+  return {
+    name: e.name,
+    legal_name: e.legal_name,
+    tax_id: e.tax_id ?? '',
+    slug: e.slug,
+    plan: e.plan,
+    is_active: e.is_active,
+    timezone: e.timezone,
+    ticket_limit: e.ticket_limit,
+    limit_period: e.limit_period ?? '',
+    notes: e.notes,
+    domains: e.domains,
+    contract_started_at: e.contract_started_at,
+    contract_ended_at: e.contract_ended_at,
+  }
+}
 
 export interface Plano {
   id: number
@@ -170,6 +202,50 @@ export function useUsuariosDaEmpresa(empresaId: number, habilitado: boolean) {
     queryKey: ['empresa', empresaId, 'usuarios'],
     queryFn: () => api.get<UsuarioCliente[]>(`/api/v1/settings/companies/${empresaId}/users/`),
     enabled: habilitado && Number.isFinite(empresaId),
+  })
+}
+
+// --------------------------------------------------------------------------
+// Cliente 360 — o que está acontecendo com a empresa agora. As duas listas
+// saem dos endpoints de listagem que o console já usa (tickets e chats), com
+// `?company=`: o filtro só estreita o que quem pergunta já enxerga.
+// --------------------------------------------------------------------------
+
+/** Quantas linhas cada bloco da visão geral mostra; o resto fica no "Ver todos". */
+export const LINHAS_POR_BLOCO = 5
+
+/** "Em aberto" = tudo que não foi resolvido — os três status vivos. */
+const STATUS_EM_ABERTO = 'new,open,pending_customer'
+
+/** Tickets em aberto da empresa, o prazo mais apertado primeiro (`ordering=sla`,
+ *  a mesma ordem de "Seus próximos" na Início). A chave começa em `tickets`
+ *  de propósito: a ponte de tempo real invalida esse prefixo a cada evento de
+ *  ticket (realtime/bridge.ts), e o bloco se atualiza sozinho. */
+export function useTicketsAbertosDaEmpresa(empresaId: number) {
+  return useQuery({
+    queryKey: ['tickets', 'empresa', empresaId, 'abertos'],
+    queryFn: () =>
+      api.get<Paginado<TicketLinha>>(
+        `/api/v1/tickets/?company=${empresaId}&status=${STATUS_EM_ABERTO}&ordering=sla&limit=${LINHAS_POR_BLOCO}`,
+      ),
+    enabled: Number.isFinite(empresaId),
+    staleTime: 15_000,
+  })
+}
+
+/** Conversas de chat da empresa, da mais recente para a mais antiga (a ordem
+ *  padrão da listagem, `-queued_at`). */
+export function useConversasDaEmpresa(empresaId: number) {
+  return useQuery({
+    queryKey: ['chat', 'empresa', empresaId],
+    queryFn: () =>
+      api.get<Paginado<Chat> | Chat[]>(`/api/v1/chat/chats/?company=${empresaId}&limit=${LINHAS_POR_BLOCO}`),
+    // Mesma tolerância de `useHistoricoDoCliente` (api/chat.ts): com `limit`
+    // a resposta vem paginada, mas a tela não quebra se vier a lista crua.
+    select: (d) => (Array.isArray(d) ? { count: d.length, results: d } : d),
+    enabled: Number.isFinite(empresaId),
+    staleTime: 30_000,
+    refetchOnWindowFocus: true,
   })
 }
 
