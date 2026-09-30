@@ -2,32 +2,52 @@ import {
   DndContext,
   DragOverlay,
   KeyboardSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCorners,
   useSensor,
   useSensors,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
-import { Cartao } from './Cartao'
+import { useMe } from '@/api/queries/useMe'
+import { useConsultaDeMidia } from '../shell/useConsultaDeMidia'
+import { BarraDeFiltros } from './BarraDeFiltros'
+import { ConteudoDoCartao } from './Cartao'
 import { Coluna } from './Coluna'
+import { EsqueletoQuadro } from './EsqueletoQuadro'
 import { ModalFecharTicket } from './ModalFecharTicket'
 import {
   useApagarLane,
   useCriarLane,
+  useCriarQuadro,
+  useDefinirLimite,
   useDefinirPrazo,
   useFecharTicket,
   usePlace,
   useQuadroMontado,
   useQuadros,
 } from './dados'
-import type { Cartao as CartaoTipo } from './tipos'
+import {
+  FILTROS_VAZIOS,
+  aplicarNaUrl,
+  empresasDoQuadro,
+  filtrarCartoes,
+  filtrosDaUrl,
+  responsaveisDoQuadro,
+  temFiltroAtivo,
+  type Filtros,
+} from './filtros'
+import { TECLAS_DO_QUADRO, coordenadasPorColuna } from './teclado'
+import type { Cartao as CartaoTipo, Coluna as ColunaTipo } from './tipos'
 import './kanban.scss'
 
 const AGRUPAR = 'status' as const // única lente hoje — ver nota no README da pasta
+
+const idDoTicket = (id: string | number) => Number(String(id).replace('ticket-', ''))
 
 /**
  * Anúncios em português para leitor de tela — o padrão do dnd-kit já
@@ -36,10 +56,9 @@ const AGRUPAR = 'status' as const // única lente hoje — ver nota no README da
  * leitor de tela de fato ouve a cada tecla.
  */
 function anuncios(nomeDoCartao: (id: number) => string, nomeDaColuna: (key: string) => string) {
-  const idDoTicket = (id: string | number) => Number(String(id).replace('ticket-', ''))
   return {
     onDragStart: ({ active }: { active: { id: string | number } }) =>
-      `Pegou o chamado ${nomeDoCartao(idDoTicket(active.id))}. Use as setas para mover entre colunas, espaço para soltar, Esc para cancelar.`,
+      `Pegou o chamado ${nomeDoCartao(idDoTicket(active.id))}. Setas para os lados mudam de coluna, espaço solta, Esc cancela.`,
     onDragOver: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
       over
         ? `Chamado ${nomeDoCartao(idDoTicket(active.id))} sobre a coluna ${nomeDaColuna(String(over.id))}.`
@@ -47,61 +66,126 @@ function anuncios(nomeDoCartao: (id: number) => string, nomeDaColuna: (key: stri
     onDragEnd: ({ active, over }: { active: { id: string | number }; over: { id: string | number } | null }) =>
       over
         ? `Chamado ${nomeDoCartao(idDoTicket(active.id))} solto na coluna ${nomeDaColuna(String(over.id))}.`
-        : `Movimento cancelado — o chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
+        : `Movimento cancelado. O chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
     onDragCancel: ({ active }: { active: { id: string | number } }) =>
-      `Movimento cancelado — o chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
+      `Movimento cancelado. O chamado ${nomeDoCartao(idDoTicket(active.id))} voltou ao lugar.`,
   }
+}
+
+/** O que o leitor de tela lê ao focar um cartão (o padrão do dnd-kit é em
+ *  inglês e fala de "space bar" e "draggable item"). */
+const INSTRUCOES = {
+  draggable:
+    'Enter abre o chamado. Para mover, aperte espaço, use as setas para os lados para escolher a coluna e espaço de novo para soltar. Esc cancela.',
+}
+
+function mensagemDoErro(err: unknown, padrao: string): string {
+  return err instanceof ApiError ? (err.detail ?? padrao) : padrao
 }
 
 export function PaginaKanban() {
   const navigate = useNavigate()
+  const { data: me } = useMe()
   const { data: quadros, isLoading: carregandoQuadros } = useQuadros()
   const [boardId, setBoardId] = useState<number | null>(null)
   const quadroAtivo = boardId ?? quadros?.[0]?.id ?? null
 
-  const { data: quadro, isLoading, isError, refetch } = useQuadroMontado(quadroAtivo, AGRUPAR)
+  const { data: quadro, isLoading, isError, refetch, dataUpdatedAt } = useQuadroMontado(quadroAtivo, AGRUPAR)
   const place = usePlace(AGRUPAR)
   const definirPrazo = useDefinirPrazo(AGRUPAR)
+  const definirLimite = useDefinirLimite(AGRUPAR)
   const criarLane = useCriarLane(quadroAtivo, AGRUPAR)
   const apagarLane = useApagarLane(quadroAtivo, AGRUPAR)
   const fecharTicket = useFecharTicket(quadroAtivo, AGRUPAR)
+  const criarQuadro = useCriarQuadro()
+  const semAnimacao = useConsultaDeMidia('(prefers-reduced-motion: reduce)')
 
   const [arrastandoId, setArrastandoId] = useState<number | null>(null)
   const [paraFechar, setParaFechar] = useState<CartaoTipo | null>(null)
   const [novaColuna, setNovaColuna] = useState(false)
   const [nomeNovaColuna, setNomeNovaColuna] = useState('')
+  const [nomeNovoQuadro, setNomeNovoQuadro] = useState('')
   // Este diretório não tem toast — um banner local e dispensável é o que as
-  // outras telas do resolv/ já usam para erro de mutação (ver kb-pagina--erro
-  // acima). Sem ele, mover/criar/apagar coluna ou definir prazo falhava em
-  // silêncio (só console.error) e o card/coluna só "voltava" sem explicação.
+  // outras telas do resolv/ já usam para erro de mutação. Sem ele, mover/
+  // criar/apagar coluna ou definir prazo falhava em silêncio e o card/coluna
+  // só "voltava" sem explicação.
   const [avisoErro, setAvisoErro] = useState<string | null>(null)
+  // arraste que começou pelo teclado: ao terminar, o foco volta para o
+  // cartão na coluna nova (ele remonta lá, e o foco cairia no <body>)
+  const arrastePorTeclado = useRef(false)
 
-  function mensagemDoErro(err: unknown, padrao: string): string {
-    return err instanceof ApiError ? (err.detail ?? padrao) : padrao
+  // ---- Filtros: na URL, como a fila de chamados (ver filtros.ts) ----
+  const [searchParams, setSearchParams] = useSearchParams()
+  const filtrosUrl = filtrosDaUrl(searchParams)
+  // A busca bruta (cada tecla) filtra na hora, mas só vai para a URL depois
+  // de uma pausa: escrever a URL a cada tecla re-renderiza o roteador inteiro
+  // à toa. As outras escolhas (um clique cada) vão direto.
+  const [busca, setBusca] = useState(filtrosUrl.busca)
+  const filtros: Filtros = { ...filtrosUrl, busca }
+  useEffect(() => {
+    if (busca.trim() === filtrosUrl.busca) return
+    const t = setTimeout(() => setSearchParams((atual) => aplicarNaUrl(atual, { busca }), { replace: true }), 250)
+    return () => clearTimeout(t)
+  }, [busca, filtrosUrl.busca, setSearchParams])
+
+  function mudarFiltros(mudancas: Partial<Filtros>) {
+    const { busca: novaBusca, ...resto } = mudancas
+    if (novaBusca !== undefined) setBusca(novaBusca)
+    // `replace`: cada escolha refina o mesmo recorte; "voltar" sai da tela
+    // em vez de desfazer filtro por filtro
+    if (Object.keys(resto).length) setSearchParams((atual) => aplicarNaUrl(atual, resto), { replace: true })
   }
 
+  function limparFiltros() {
+    setBusca('')
+    setSearchParams((atual) => aplicarNaUrl(atual, FILTROS_VAZIOS), { replace: true })
+  }
+
+  const filtrando = temFiltroAtivo(filtros)
+  const entradas = useMemo(() => quadro?.entries ?? [], [quadro])
+  const visiveis = useMemo(
+    () => (filtrando ? filtrarCartoes(entradas, filtros, me?.id ?? null) : entradas),
+    // `filtros` é recriado a cada render; as partes dele é que importam
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [entradas, filtrando, filtros.busca, filtros.responsavel, filtros.prioridade, filtros.empresa, filtros.atrasados, me?.id],
+  )
+  const responsaveis = useMemo(() => responsaveisDoQuadro(entradas), [entradas])
+  const empresas = useMemo(() => empresasDoQuadro(entradas), [entradas])
+
+  const { visiveisPorColuna, totalPorColuna } = useMemo(() => {
+    const porColuna = (lista: CartaoTipo[]) => {
+      const mapa = new Map<string, CartaoTipo[]>()
+      for (const c of lista) {
+        const doGrupo = mapa.get(c.column) ?? []
+        doGrupo.push(c)
+        mapa.set(c.column, doGrupo)
+      }
+      return mapa
+    }
+    const totais = new Map<string, number>()
+    for (const [chave, lista] of porColuna(entradas)) totais.set(chave, lista.length)
+    return { visiveisPorColuna: porColuna(visiveis), totalPorColuna: totais }
+  }, [entradas, visiveis])
+
+  // "Agora" do prazo: o instante do último fetch (determinístico, vem do
+  // cache), não Date.now() no render — mesma decisão da fila de chamados.
+  const agoraMs = dataUpdatedAt || 0
+
   const sensors = useSensors(
-    // distância mínima antes de virar arraste: sem isso, todo clique no
-    // card (inclusive o que abre o ticket) seria interpretado como um
-    // drag de zero pixels e nunca navegaria a lugar nenhum
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor),
+    // Mouse: distância mínima antes de virar arraste, senão todo clique no
+    // cartão (o que abre o chamado) seria um drag de zero pixels.
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    // Toque: segurar para pegar. Com o PointerSensor de antes o cartão
+    // precisava de `touch-action: none`, e no celular deslizar o dedo sobre
+    // um cartão não rolava nem a coluna nem o quadro.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } }),
+    useSensor(KeyboardSensor, { keyboardCodes: TECLAS_DO_QUADRO, coordinateGetter: coordenadasPorColuna }),
   )
 
-  const cartoesPorColuna = useMemo(() => {
-    const mapa = new Map<string, CartaoTipo[]>()
-    for (const c of quadro?.entries ?? []) {
-      const lista = mapa.get(c.column) ?? []
-      lista.push(c)
-      mapa.set(c.column, lista)
-    }
-    return mapa
-  }, [quadro])
-
-  const cartaoArrastando = quadro?.entries.find((c) => c.ticket === arrastandoId) ?? null
+  const cartaoArrastando = entradas.find((c) => c.ticket === arrastandoId) ?? null
 
   function nomeDoCartao(ticketId: number): string {
-    return quadro?.entries.find((c) => c.ticket === ticketId)?.ticket_reference ?? `#${ticketId}`
+    return entradas.find((c) => c.ticket === ticketId)?.ticket_reference ?? `#${ticketId}`
   }
 
   function nomeDaColuna(key: string): string {
@@ -109,16 +193,26 @@ export function PaginaKanban() {
   }
 
   function onDragStart(e: DragStartEvent) {
-    setArrastandoId(Number(String(e.active.id).replace('ticket-', '')))
+    arrastePorTeclado.current = e.activatorEvent instanceof KeyboardEvent
+    setArrastandoId(idDoTicket(e.active.id))
+  }
+
+  function focarCartao(ticketId: number) {
+    requestAnimationFrame(() => {
+      const el = document.querySelector<HTMLElement>(`[data-ticket="${ticketId}"]`)
+      if (el && (document.activeElement == null || document.activeElement === document.body)) el.focus()
+    })
   }
 
   async function onDragEnd(e: DragEndEvent) {
     setArrastandoId(null)
     const { active, over } = e
+    const porTeclado = arrastePorTeclado.current
+    arrastePorTeclado.current = false
     if (!over || quadroAtivo == null) return
 
-    const ticketId = Number(String(active.id).replace('ticket-', ''))
-    const cartao = quadro?.entries.find((c) => c.ticket === ticketId)
+    const ticketId = idDoTicket(active.id)
+    const cartao = entradas.find((c) => c.ticket === ticketId)
     if (!cartao || cartao.column === over.id) return // soltou na mesma coluna: nada a fazer
 
     const coluna = quadro?.columns.find((c) => c.key === over.id)
@@ -130,7 +224,11 @@ export function PaginaKanban() {
         boardId: quadroAtivo,
         ticket_id: ticketId,
         ...(coluna.kind === 'lane' ? { lane_id: coluna.lane! } : { stage_id: coluna.stage! }),
+        // a coluna de conclusão NÃO move otimista: ela sempre responde 409
+        // pedindo as datas, e o cartão iria e voltaria na frente da pessoa
+        colunaDestino: coluna.concludes ? undefined : coluna.key,
       })
+      if (porTeclado) focarCartao(ticketId)
     } catch (err) {
       // 409 + close_dialog_required: a coluna de destino fecha o chamado, e
       // fechar exige as datas de solução (D4) — o quadro nunca fecha
@@ -142,6 +240,7 @@ export function PaginaKanban() {
       // qualquer outra recusa (equipe interna, coluna de outro quadro etc.)
       // — o card volta pro lugar, e agora com o motivo à vista
       setAvisoErro(mensagemDoErro(err, 'Não foi possível mover o chamado.'))
+      if (porTeclado) focarCartao(ticketId)
     }
   }
 
@@ -163,30 +262,72 @@ export function PaginaKanban() {
     })
   }
 
+  async function salvarLimite(coluna: ColunaTipo, limite: number | null) {
+    if (quadroAtivo == null) return
+    setAvisoErro(null)
+    try {
+      await definirLimite.mutateAsync({ boardId: quadroAtivo, coluna: coluna.key, wip_limit: limite })
+    } catch (err) {
+      setAvisoErro(mensagemDoErro(err, 'Não foi possível salvar o limite da coluna.'))
+      throw err
+    }
+  }
+
   if (carregandoQuadros || (quadroAtivo != null && isLoading)) {
-    return (
-      <div className="kb-pagina kb-pagina--estado">
-        <i className="ti ti-loader-2 kb-spin" />
-        <p>Carregando quadro…</p>
-      </div>
-    )
+    return <EsqueletoQuadro />
   }
 
   if (!carregandoQuadros && quadros?.length === 0) {
     return (
       <div className="kb-pagina kb-pagina--estado">
-        <i className="ti ti-layout-grid" />
-        <p>Nenhum quadro cadastrado ainda.</p>
+        <i className="ti ti-layout-grid" aria-hidden="true" />
+        <h1 className="kb-estado__titulo">Nenhum quadro ainda</h1>
+        {me?.is_admin ? (
+          <>
+            <p>Crie o primeiro quadro. Ele mostra os chamados não resolvidos por status.</p>
+            <form
+              className="kb-estado__form"
+              onSubmit={(e) => {
+                e.preventDefault()
+                const nome = nomeNovoQuadro.trim()
+                if (!nome) return
+                criarQuadro.mutate(nome, {
+                  onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível criar o quadro.')),
+                })
+              }}
+            >
+              <input
+                type="text"
+                aria-label="Nome do quadro"
+                placeholder="Nome do quadro"
+                value={nomeNovoQuadro}
+                onChange={(e) => setNomeNovoQuadro(e.target.value)}
+              />
+              <button type="submit" className="kb-botao kb-botao--primario" disabled={criarQuadro.isPending || !nomeNovoQuadro.trim()}>
+                Criar quadro
+              </button>
+            </form>
+            {avisoErro && (
+              <p className="kb-estado__erro" role="alert">
+                {avisoErro}
+              </p>
+            )}
+          </>
+        ) : (
+          <p>Peça a um administrador para criar o primeiro quadro.</p>
+        )}
       </div>
     )
   }
 
   if (isError || !quadro) {
     return (
-      <div className="kb-pagina kb-pagina--estado kb-pagina--erro">
-        <i className="ti ti-alert-triangle" />
-        <p>Não foi possível carregar o quadro.</p>
-        <button type="button" onClick={() => refetch()}>
+      <div className="kb-pagina kb-pagina--estado" role="alert">
+        <i className="ti ti-alert-triangle" aria-hidden="true" />
+        <h1 className="kb-estado__titulo">Não foi possível carregar o quadro</h1>
+        <p>Verifique a conexão e tente de novo.</p>
+        <button type="button" className="kb-botao" onClick={() => refetch()}>
+          <i className="ti ti-refresh" aria-hidden="true" />
           Tentar de novo
         </button>
       </div>
@@ -196,28 +337,38 @@ export function PaginaKanban() {
   return (
     <div className="kb-pagina">
       <header className="kb-pagina__header">
-        <div>
+        <div className="kb-pagina__titulo-bloco">
           <h1 className="kb-pagina__titulo">Quadro</h1>
-          <p className="kb-pagina__subtitulo">
-            A mesma fila de chamados não resolvidos, organizada por coluna — arraste para mudar o
-            status, ou solte numa coluna de organização só para agrupar visualmente.
-          </p>
+          <p className="kb-pagina__subtitulo">Chamados não resolvidos por status. Arraste um cartão para mudar o status.</p>
         </div>
         {quadros && quadros.length > 1 && (
-          <select
-            className="kb-pagina__seletor-quadro"
-            value={quadroAtivo ?? ''}
-            onChange={(e) => setBoardId(Number(e.target.value))}
-            aria-label="Quadro"
-          >
-            {quadros.map((q) => (
-              <option key={q.id} value={q.id}>
-                {q.name}
-              </option>
-            ))}
-          </select>
+          <div className="kb-filtro kb-filtro--quadro">
+            <i className="ti ti-layout-grid" aria-hidden="true" />
+            <span className="kb-filtro__texto" aria-hidden="true">
+              {quadros.find((q) => q.id === quadroAtivo)?.name ?? 'Quadro'}
+            </span>
+            <i className="ti ti-chevron-down kb-filtro__seta" aria-hidden="true" />
+            <select value={quadroAtivo ?? ''} onChange={(e) => setBoardId(Number(e.target.value))} aria-label="Quadro">
+              {quadros.map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.name}
+                </option>
+              ))}
+            </select>
+          </div>
         )}
       </header>
+
+      <BarraDeFiltros
+        filtros={filtros}
+        onMudar={mudarFiltros}
+        onLimpar={limparFiltros}
+        responsaveis={responsaveis}
+        empresas={empresas}
+        ativo={filtrando}
+        visiveis={visiveis.length}
+        total={entradas.length}
+      />
 
       {avisoErro && (
         <div className="kb-aviso-erro" role="alert">
@@ -234,15 +385,24 @@ export function PaginaKanban() {
         collisionDetection={closestCorners}
         onDragStart={onDragStart}
         onDragEnd={onDragEnd}
-        onDragCancel={() => setArrastandoId(null)}
-        accessibility={{ announcements: anuncios(nomeDoCartao, nomeDaColuna) }}
+        onDragCancel={() => {
+          setArrastandoId(null)
+          arrastePorTeclado.current = false
+        }}
+        accessibility={{
+          announcements: anuncios(nomeDoCartao, nomeDaColuna),
+          screenReaderInstructions: INSTRUCOES,
+        }}
       >
         <div className="kb-pagina__colunas">
           {quadro.columns.map((coluna) => (
             <Coluna
               key={coluna.key}
               coluna={coluna}
-              cartoes={cartoesPorColuna.get(coluna.key) ?? []}
+              cartoes={visiveisPorColuna.get(coluna.key) ?? []}
+              total={totalPorColuna.get(coluna.key) ?? 0}
+              filtrando={filtrando}
+              agoraMs={agoraMs}
               onAbrirTicket={(id) => navigate(`/chamados/${id}`)}
               onDefinirPrazo={(ticketId, iso) =>
                 quadroAtivo != null &&
@@ -251,52 +411,66 @@ export function PaginaKanban() {
                   { onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível definir o prazo.')) },
                 )
               }
+              onDefinirLimite={salvarLimite}
+              salvandoLimite={definirLimite.isPending}
               onApagarLane={(laneId) => {
-                if (window.confirm('Apagar esta coluna? Os chamados fixados nela voltam para a coluna de status — nenhum é apagado.')) {
+                if (window.confirm('Apagar esta coluna? Os chamados fixados nela voltam para a coluna do status. Nenhum é apagado.')) {
                   apagarLane.mutate(laneId, {
                     onError: (err) => setAvisoErro(mensagemDoErro(err, 'Não foi possível apagar a coluna.')),
                   })
                 }
               }}
-              idArrastando={arrastandoId}
             />
           ))}
 
           <div className="kb-coluna kb-coluna--nova">
             {novaColuna ? (
-              <div className="kb-coluna__form-nova">
+              <form
+                className="kb-coluna__form-nova"
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  criarColuna()
+                }}
+              >
+                <label htmlFor="kb-nova-coluna">Nova coluna de organização</label>
                 <input
+                  id="kb-nova-coluna"
                   autoFocus
                   type="text"
-                  placeholder="Nome da coluna"
+                  placeholder="Ex.: Depende do gestor"
                   value={nomeNovaColuna}
                   onChange={(e) => setNomeNovaColuna(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') criarColuna()
                     if (e.key === 'Escape') setNovaColuna(false)
                   }}
+                  aria-describedby="kb-nova-coluna-ajuda"
                 />
+                <p id="kb-nova-coluna-ajuda" className="kb-coluna__form-ajuda">
+                  Só agrupa os cartões. O status do chamado não muda.
+                </p>
                 <div className="kb-coluna__form-nova-acoes">
-                  <button type="button" onClick={criarColuna} disabled={criarLane.isPending}>
-                    Criar
+                  <button type="submit" className="kb-botao kb-botao--primario" disabled={criarLane.isPending || !nomeNovaColuna.trim()}>
+                    Criar coluna
                   </button>
-                  <button type="button" onClick={() => setNovaColuna(false)}>
+                  <button type="button" className="kb-botao" onClick={() => setNovaColuna(false)}>
                     Cancelar
                   </button>
                 </div>
-              </div>
+              </form>
             ) : (
               <button type="button" className="kb-coluna__nova-botao" onClick={() => setNovaColuna(true)}>
-                <i className="ti ti-plus" />
-                Nova coluna de organização
+                <i className="ti ti-plus" aria-hidden="true" />
+                Nova coluna
               </button>
             )}
           </div>
         </div>
 
-        <DragOverlay>
+        <DragOverlay dropAnimation={semAnimacao ? null : undefined}>
           {cartaoArrastando && (
-            <Cartao cartao={cartaoArrastando} onAbrir={() => {}} onDefinirPrazo={() => {}} />
+            <div className="kb-cartao kb-cartao--flutuando">
+              <ConteudoDoCartao cartao={cartaoArrastando} agoraMs={agoraMs} />
+            </div>
           )}
         </DragOverlay>
       </DndContext>

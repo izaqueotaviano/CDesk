@@ -93,8 +93,8 @@ export function ModalFecharTicket({ cartao, enviando, onFechar, onCancelar }: Pr
       }
     >
       <p className="kb-modal-fechar__intro">
-        Soltar aqui conclui o chamado — o quadro pede as datas da solução antes, do mesmo jeito
-        que a tela do chamado pede.
+        Para fechar o chamado, informe quando a solução começou e terminou, como na tela do
+        chamado.
       </p>
 
       <div className="kb-modal-fechar__campo">

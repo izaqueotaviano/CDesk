@@ -1,114 +1,426 @@
 // ============================================================================
-// Quadro (Kanban) — design system Resolv. Mesma densidade/ruído da lista de
-// tickets: borda 1px, radius 2px, mono nos números, accent único #0275DE.
+// Quadro (Kanban) — linguagem "documento quente" do Resolv: um plano só
+// (`--surface-canvas`), fio de 1px onde precisa dividir, branco só no que é
+// superfície de verdade (cartão, campo), um acento só (carvão) e cor apenas
+// para estado (prazo vencido, SLA, prioridade alta, coluna acima do limite).
+// Sombra só no que flutua: o menu e o cartão sendo arrastado.
 // ============================================================================
 
+// Texto só para leitor de tela. Local de propósito (mesma técnica do
+// `.lista-tickets__sr`): o `.sr-only` do cvz não é carregado sob o NovoShell.
+.kb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ------------------------------------------------------------------ página
 .kb-pagina {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  padding: 24px;
+  padding: 24px 24px 16px;
   gap: 16px;
-
-  &--estado {
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 13px;
-
-    i {
-      font-size: 24px;
-    }
-  }
-  &--erro button {
-    border-radius: var(--raio);
-    background: none;
-    padding: 6px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-  }
 
   &__header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+  &__titulo-bloco {
+    flex: 1 1 240px;
+    min-width: 0;
   }
   &__titulo {
-    font-size: 18px;
+    font-size: 28px;
+    line-height: 1.2;
     font-weight: 600;
+    letter-spacing: -0.02em;
     color: var(--text-primary);
-    letter-spacing: -0.01em;
   }
   &__subtitulo {
     margin-top: 4px;
-    max-width: 64ch;
-    font-size: 12px;
-    color: var(--text-muted);
-  }
-  &__seletor-quadro {
-    border-radius: var(--raio);
-    background: var(--surface-card);
-    padding: 6px 10px;
-    font-size: 12px;
-    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.45;
+    // secondary e não muted: sobre o plano (#f6f5f3) o muted fica abaixo
+    // de 4,5:1 em texto deste tamanho
+    color: var(--text-secondary);
   }
 
+  // As colunas encostam nas bordas do painel ao rolar para o lado (margem
+  // negativa + padding igual): o quadro "continua" além da tela, em vez de
+  // ser cortado 24px antes da borda.
   &__colunas {
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
+    align-items: stretch;
+    gap: 16px;
     flex: 1;
-    min-height: 0;
+    min-height: 320px;
     overflow-x: auto;
-    padding-bottom: 8px;
+    overflow-y: hidden;
+    margin: 0 -24px;
+    padding: 0 24px 4px;
+    scroll-padding: 0 24px;
+  }
+
+  // Estados de página inteira (sem quadro, erro): centrados, com a ação logo
+  // abaixo da explicação.
+  &--estado {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+
+    > i {
+      font-size: 28px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .kb-botao {
+      margin-top: 8px;
+    }
   }
 }
 
-.kb-spin {
-  animation: kb-girar 0.8s linear infinite;
-}
-@keyframes kb-girar {
-  to {
-    transform: rotate(360deg);
+.kb-estado {
+  &__titulo {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+
+    input {
+      height: 32px;
+      width: 220px;
+      padding: 0 12px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font: inherit;
+      font-size: 14px;
+      color: var(--text-primary);
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+  }
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
   }
 }
 
+// ------------------------------------------------------------------ botões
+.kb-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--borda-campo);
+  border-radius: var(--raio);
+  background: transparent;
+  font-family: var(--f-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  i {
+    font-size: 16px;
+  }
+  &:hover:not(:disabled) {
+    background: var(--sidebar-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  // a ação da vez: carvão cheio (no escuro, o claro do tema)
+  &--primario {
+    border-color: var(--primario);
+    background: var(--primario);
+    color: var(--primario-sobre);
+
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ filtros
+.kb-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+
+  &__pilulas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__resumo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  &__limpar {
+    border: 0;
+    padding: 4px 0;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+}
+
+// Busca e pílulas são campos: brancos sobre o plano, com o fio de 1px que
+// diz "isto é controle" (o branco sozinho sobre #f6f5f3 não se distingue).
+.kb-busca {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 320px;
+  min-width: 200px;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  transition: border-color 0.12s ease;
+
+  i {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-primary);
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+    // o "x" nativo do type=search vem azul, fora da paleta: o nosso (abaixo)
+    // faz o mesmo e segue o tema
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+  &__limpar {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-right: -6px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    i {
+      font-size: 14px;
+      color: inherit;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &:hover {
+    border-color: var(--stroke-hover);
+  }
+  &:focus-within {
+    border-color: var(--borda-campo);
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+}
+
+.kb-filtro {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  font-family: var(--f-ui);
+  font-size: 14px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+
+  i {
+    font-size: 16px;
+  }
+  &__seta {
+    font-size: 14px !important;
+    margin-right: -2px;
+  }
+  &__texto {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // o <select> nativo cobre a pílula inteira, invisível: é ele quem recebe
+  // clique, toque e teclado (ver o Seletor em BarraDeFiltros.tsx)
+  select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+    // 16px: abaixo disso o Safari do iPhone dá zoom na página ao focar
+    font-size: 16px;
+  }
+
+  &:hover {
+    border-color: var(--stroke-hover);
+    color: var(--text-primary);
+  }
+  &:focus-within,
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  // Com valor escolhido: o fio vira o acento e o texto ganha peso — "isto
+  // está recortando o quadro" sem precisar de cor.
+  &--ativo,
+  &[aria-pressed='true'] {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+}
+
+// --------------------------------------------------------------- aviso erro
+// Mutação recusada (mover, criar/apagar coluna, prazo, limite): dispensável,
+// some na próxima ação que der certo. Tom de perigo no fundo, sem moldura.
+.kb-aviso-erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--raio);
+  padding: 8px 8px 8px 12px;
+  color: var(--danger);
+  font-size: 14px;
+  background: var(--tom-perigo);
+
+  span {
+    flex: 1;
+  }
+  button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// ------------------------------------------------------------------ coluna
+// A coluna não é caixa: é um trecho do plano com um cabeçalho e um fio
+// embaixo dele. O fundo só aparece quando ela é o alvo do arraste.
 .kb-coluna {
-  flex: 0 0 280px;
+  flex: 0 0 288px;
   display: flex;
   flex-direction: column;
-  max-height: 100%;
-  background: var(--surface-alt);
-  border-radius: var(--raio);
-  transition: border-color 0.1s ease, background 0.1s ease;
-
-  &--sobre {
-    border-color: var(--accent);
-    background: color-mix(in srgb, var(--accent) 6%, var(--surface-alt));
-  }
+  min-height: 0;
 
   &__cabecalho {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
     flex-shrink: 0;
+    min-height: 40px;
+    padding: 0 4px 8px 4px;
+    box-shadow: inset 0 -1px 0 var(--stroke);
   }
-  &__cor {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
+  // Acima do limite de WIP: o fio do cabeçalho engrossa e vira âmbar, e o
+  // contador também. Aviso, não bloqueio — o arraste continua aceito.
+  &--acima &__cabecalho {
+    box-shadow: inset 0 -2px 0 var(--away);
+  }
+
+  &__tipo {
+    font-size: 14px;
+    color: var(--text-muted);
     flex-shrink: 0;
   }
   &__nome {
-    flex: 1;
     min-width: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--text-primary);
     overflow: hidden;
@@ -116,227 +428,443 @@
     white-space: nowrap;
   }
   &__contador {
-    font-family: var(--f-mono);
-    font-size: 11px;
-    color: var(--text-muted);
-  }
-  &__apagar {
-    display: flex;
-    border: none;
-    background: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    padding: 2px;
+    flex-shrink: 0;
+    margin-right: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
 
-    &:hover {
-      color: var(--danger);
+    &--acima {
+      color: var(--away);
+      font-weight: 600;
     }
+  }
+  &__menu {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover,
+    &[aria-expanded='true'] {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  // Formulário do limite, logo abaixo do cabeçalho
+  &__limite {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 4px 4px;
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  }
+  &__limite-linha {
+    display: flex;
+    gap: 6px;
+
+    input {
+      width: 72px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+      &[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
+    }
+  }
+  &__limite-ajuda,
+  &__limite-erro {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+  &__limite-erro {
+    color: var(--danger);
   }
 
   &__corpo {
     flex: 1;
-    min-height: 80px;
+    min-height: 0;
     overflow-y: auto;
-    padding: 8px;
+    padding: 12px 4px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    border-radius: var(--raio-cartao);
+    transition: background 0.12s ease, box-shadow 0.12s ease;
   }
-  &__vazia {
-    text-align: center;
-    padding: 16px 8px;
-    font-size: 12px;
-    color: var(--text-muted);
+  // Soltar aqui: o trecho do plano ganha tom e um contorno — é o único
+  // momento em que a coluna "vira caixa", e é para dizer onde o cartão cai.
+  &--sobre &__corpo {
+    background: var(--sidebar-hover);
+    box-shadow: inset 0 0 0 1px var(--stroke-hover);
   }
 
+  &__vazia {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  // ---- "Nova coluna": a última, sem cabeçalho nem fio ----
   &--nova {
-    background: none;
-    border-style: dashed;
-    justify-content: flex-start;
+    flex-basis: 240px;
   }
   &__nova-botao {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     width: 100%;
-    padding: 10px 12px;
-    border: none;
+    height: 40px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--raio);
     background: none;
-    color: var(--text-muted);
-    font-size: 12px;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-secondary);
     cursor: pointer;
 
+    i {
+      font-size: 16px;
+    }
     &:hover {
+      background: var(--sidebar-hover);
       color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
     }
   }
   &__form-nova {
-    padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 4px;
 
-    input {
-      border-radius: var(--raio);
-      padding: 6px 8px;
+    label {
       font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
     }
+    input {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+  }
+  &__form-ajuda {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
   }
   &__form-nova-acoes {
     display: flex;
     gap: 6px;
-
-    button {
-      flex: 1;
-      border-radius: var(--raio);
-      background: var(--surface-card);
-      padding: 4px 8px;
-      font-size: 11px;
-      cursor: pointer;
-
-      &:first-child {
-        border-color: var(--accent);
-        color: var(--accent);
-      }
-    }
   }
 }
 
+// ------------------------------------------------------------------ cartão
 .kb-cartao {
-  background: var(--surface-card);
-  border-radius: var(--raio);
-  padding: 10px;
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 12px;
+  background: var(--surface-card);
+  border-radius: var(--raio-cartao);
   cursor: grab;
-  touch-action: none; // sem isto o navegador rouba o gesto de toque pra rolar a página
+  // `manipulation` e não `none`: o toque segura para pegar (TouchSensor com
+  // atraso), então o deslizar comum tem que continuar rolando a coluna
+  touch-action: manipulation;
+  transition: box-shadow 0.12s ease;
 
   &:hover {
-    border-color: var(--stroke-hover);
+    box-shadow: 0 0 0 1px var(--stroke-hover);
   }
   &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 1px;
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
   }
-  &--arrastando {
-    opacity: 0.4;
+
+  // O lugar de onde o cartão saiu, enquanto a cópia segue o ponteiro: um
+  // encaixe tracejado do mesmo tamanho, sem conteúdo.
+  &--origem {
+    background: transparent;
+    box-shadow: none;
+    outline: 1px dashed var(--stroke-hover);
+    outline-offset: -1px;
+
+    > * {
+      visibility: hidden;
+    }
+    &:hover {
+      box-shadow: none;
+    }
+    // pego pelo teclado: o encaixe continua mostrando o foco
+    &:focus-visible {
+      outline: 2px dashed var(--foco);
+    }
   }
-  &--vencido {
-    border-left: 2px solid var(--danger);
+
+  // A cópia no DragOverlay: a única peça do quadro com sombra, porque é a
+  // única que de fato flutua sobre as outras.
+  &--flutuando {
+    cursor: grabbing;
+    box-shadow: var(--sombra-flutuante);
   }
 
   &__topo {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    min-height: 18px;
   }
   &__ref {
-    font-family: var(--f-mono);
-    font-size: 11px;
+    font-size: 12px;
     color: var(--text-muted);
   }
+  // Só Alta e Urgente chegam aqui (ver Cartao.tsx). Ícone + palavra: a cor
+  // nunca é o único sinal.
   &__prioridade {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 500;
+
+    i {
+      font-size: 14px;
+    }
+    &--high {
+      color: var(--away);
+    }
+    &--urgent {
+      color: var(--danger);
+    }
   }
 
   &__assunto {
-    font-size: 13px;
-    line-height: 1.35;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
     color: var(--text-primary);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    overflow-wrap: anywhere;
   }
-
-  &__meta {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-    font-size: 11px;
+  &__cliente {
+    font-size: 12px;
     color: var(--text-secondary);
-  }
-  &__empresa {
-    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__rodape {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 6px;
-    margin-top: 2px;
+    gap: 8px;
+    margin-top: 6px;
+    min-height: 24px;
   }
-  &__badges {
+  &__sinais {
     display: flex;
     align-items: center;
-    gap: 6px;
     flex-wrap: wrap;
-  }
-
-  // Prazo interno do quadro — deliberadamente um selo NEUTRO (cinza), nunca
-  // as mesmas cores do SLA abaixo: são dois relógios diferentes, e usar a
-  // mesma paleta faria parecer o mesmo relógio com dois nomes.
-  &__prazo,
-  &__prazo-input {
-    display: inline-flex;
-    align-items: center;
     gap: 4px;
-    font-size: 11px;
-    color: var(--text-muted);
-    border-radius: var(--raio);
-    padding: 2px 6px;
-    background: none;
-    cursor: pointer;
-    font-family: var(--f-ui);
-  }
-  &__prazo--vencido {
-    color: var(--danger);
-    border-color: var(--danger);
-  }
-  &__prazo-input {
-    cursor: text;
-    border-color: var(--accent);
+    min-width: 0;
   }
 
+  // Prazo interno e SLA: o mesmo formato de selo (pílula de 24px), cores
+  // SÓ quando pedem ação. Neutro é cinza; vencido é perigo; hoje/amanhã é
+  // alerta.
+  &__prazo,
   &__sla {
     display: inline-flex;
     align-items: center;
-    gap: 3px;
-    font-family: var(--f-mono);
-    font-size: 11px;
-    padding: 2px 6px;
-    border-radius: var(--raio);
+    gap: 4px;
+    height: 24px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: 999px;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 
-    &--ok,
-    &--met {
-      color: var(--ok);
-      background: color-mix(in srgb, var(--ok) 12%, transparent);
+    i {
+      font-size: 14px;
     }
-    &--at_risk {
+  }
+  &__prazo {
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: opacity 0.12s ease, background 0.12s ease;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &--proximo {
+      background: var(--tom-alerta);
       color: var(--away);
-      background: color-mix(in srgb, var(--away) 14%, transparent);
     }
-    &--breached {
+    &--vencido {
+      background: var(--tom-perigo);
       color: var(--danger);
-      background: color-mix(in srgb, var(--danger) 12%, transparent);
+    }
+    // Sem prazo: só aparece no hover/foco do cartão. Continua ocupando o
+    // lugar (opacidade, não display) para o cartão não mudar de altura, e
+    // vai para o FIM da fila (`order`): invisível na frente, empurraria o
+    // selo de SLA para o meio do rodapé.
+    &--definir {
+      order: 1;
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 400;
+      opacity: 0;
+
+      &:hover {
+        background: var(--surface-alt);
+        color: var(--text-primary);
+      }
+    }
+  }
+  &:hover &__prazo--definir,
+  &:focus-within &__prazo--definir,
+  &__prazo--definir:focus-visible {
+    opacity: 1;
+  }
+
+  &__prazo-edicao {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  &__prazo-input {
+    height: 28px;
+    padding: 0 6px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    color: var(--text-primary);
+    color-scheme: inherit;
+    cursor: text;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &__prazo-remover {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--danger);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
     }
   }
 
-  &__contadores {
-    display: flex;
-    gap: 8px;
-    font-size: 11px;
-    color: var(--text-muted);
+  &__sla {
+    cursor: help;
 
-    span {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
+    &--ok {
+      background: var(--surface-alt);
+      color: var(--text-secondary);
+    }
+    &--at_risk {
+      background: var(--tom-alerta);
+      color: var(--away);
+    }
+    &--breached {
+      background: var(--tom-perigo);
+      color: var(--danger);
+    }
+  }
+
+  &__fim {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  &__contador {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+
+    i {
+      font-size: 14px;
     }
   }
 
@@ -346,8 +874,8 @@
     img,
     .kb-cartao__avatar-fallback {
       display: block;
-      width: 20px;
-      height: 20px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       object-fit: cover;
     }
@@ -355,21 +883,78 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--surface-alt);
-      color: var(--text-secondary);
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 600;
     }
   }
 }
 
+// ------------------------------------------------------------------ esqueleto
+// Mesmas medidas do quadro de verdade, para a troca não pular.
+.kb-esq {
+  &--cabecalho {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  &__titulo {
+    width: 140px;
+    font-size: 28px;
+  }
+  &__linha {
+    font-size: 12px;
+
+    &--longa {
+      width: min(420px, 80%);
+      font-size: 14px;
+    }
+    &--nome {
+      width: 96px;
+      font-size: 14px;
+    }
+    &--ref {
+      width: 64px;
+    }
+    &--assunto {
+      width: 85%;
+      font-size: 14px;
+    }
+    &--cliente {
+      width: 55%;
+    }
+  }
+  &__busca {
+    width: 320px;
+    max-width: 100%;
+    height: 32px !important;
+    border-radius: 999px !important;
+  }
+  &__pilula {
+    width: 112px;
+    height: 32px !important;
+    border-radius: 999px !important;
+  }
+}
+.kb-coluna--esqueleto .kb-coluna__cabecalho {
+  align-items: center;
+}
+.kb-cartao--esqueleto {
+  gap: 10px;
+  cursor: default;
+
+  &:hover {
+    box-shadow: none;
+  }
+}
+
 // -------------------------------------------------------------------- modal
 .kb-modal-fechar__intro {
-  font-size: 12px;
+  font-size: 14px;
   // Sem fallback literal: o fallback era um cinza que nem pertence à paleta e,
   // fora do .resolv-scope, devolveria a cor do tema claro no escuro.
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .kb-modal-fechar__campo {
   display: flex;
@@ -382,9 +967,11 @@
     font-weight: 500;
   }
   input {
+    height: 32px;
+    border: 1px solid var(--borda-campo);
     border-radius: var(--raio);
-    padding: 6px 8px;
-    font-size: 13px;
+    padding: 0 8px;
+    font-size: 14px;
   }
 }
 .kb-modal-fechar__erro {
@@ -393,30 +980,80 @@
   margin-top: 2px;
 }
 
-// Aviso de erro de mutação (mover/criar/apagar coluna, definir prazo) —
-// dispensável, some sozinho na próxima ação que der certo.
-.kb-aviso-erro {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--danger);
-  border-radius: var(--raio);
-  padding: 8px 12px;
-  color: var(--danger);
-  font-size: 13px;
-  background: color-mix(in srgb, var(--danger) 8%, transparent);
+// ------------------------------------------------------------------ celular
+// Abaixo de 768px (o mesmo corte do shell): margem de 16px, busca na linha
+// inteira, pílulas numa faixa que rola para o lado, e uma coluna por vez
+// (~85% da largura, com encaixe) — a vizinha aparece na borda, dizendo que
+// há mais quadro para o lado.
+@media (max-width: 767px) {
+  .kb-pagina {
+    padding: 16px 16px 12px;
+    gap: 12px;
 
-  span {
-    flex: 1;
+    &__colunas {
+      gap: 12px;
+      margin: 0 -16px;
+      padding: 0 16px 4px;
+      scroll-padding: 0 16px;
+      scroll-snap-type: x mandatory;
+    }
   }
 
-  button {
-    display: grid;
-    place-items: center;
-    border: 0;
-    background: none;
-    color: inherit;
-    cursor: pointer;
-    padding: 2px;
+  .kb-busca {
+    flex: 1 1 100%;
+  }
+  .kb-filtros__pilulas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: calc(100% + 32px);
+    margin: 0 -16px;
+    // folga para o anel de foco (2px + 2px de afastamento) não ser cortado
+    padding: 4px 16px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  .kb-filtros__resumo {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .kb-coluna {
+    flex-basis: 85vw;
+    scroll-snap-align: start;
+
+    &--nova {
+      flex-basis: 70vw;
+    }
+  }
+}
+
+// Sem hover (toque): o "Definir prazo" não tem como surgir no hover, então
+// fica sempre visível, só o ícone, para não repetir a palavra em todo cartão.
+@media (hover: none) {
+  .kb-cartao__prazo--definir {
+    opacity: 1;
+    padding: 0 6px;
+
+    .kb-cartao__prazo-texto {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-cartao,
+  .kb-cartao__prazo,
+  .kb-coluna__corpo,
+  .kb-coluna__menu,
+  .kb-botao,
+  .kb-busca,
+  .kb-filtro {
+    transition: none;
+  }
+  .kb-pagina .animate-pulse {
+    animation: none;
   }
 }

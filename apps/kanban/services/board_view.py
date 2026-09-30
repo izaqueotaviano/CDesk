@@ -103,12 +103,16 @@ def _colunas_por_status(board):
     em vez de deixá-la parecendo quebrada.
     """
     stages = TicketStage.objects.filter(is_active=True).order_by("order", "id")
+    # limite de WIP: o do status é deste quadro (BoardStageLimit), o da lane
+    # mora nela. A tela só lê `wip_limit`, sem saber de onde veio.
+    limites = dict(board.stage_limits.values_list("stage_id", "wip_limit"))
     colunas = [
         {
             "key": str(s.pk), "name": s.name, "color": s.color,
             "category": s.category, "kind": "stage",
             "stage": s.pk, "lane": None,
             "concludes": s.category == TicketStatus.CLOSED,
+            "wip_limit": limites.get(s.pk),
         }
         for s in stages
     ]
@@ -117,6 +121,7 @@ def _colunas_por_status(board):
             "key": f"{LANE}{lane.pk}", "name": lane.name, "color": "#8A8A85",
             "category": None, "kind": "lane",
             "stage": None, "lane": lane.pk, "concludes": False,
+            "wip_limit": lane.wip_limit,
         }
         for lane in board.lanes.all()
     ]
@@ -131,7 +136,7 @@ def _colunas_por_prioridade():
     return [
         {"key": valor, "name": rotulo, "color": cores.get(valor, "#8A8A85"),
          "category": None, "kind": "priority", "stage": None, "lane": None,
-         "concludes": False}
+         "concludes": False, "wip_limit": None}
         for valor, rotulo in TicketPriority.choices
     ]
 
@@ -147,13 +152,13 @@ def _colunas_por_responsavel(scope):
     colunas = [
         {"key": str(a.pk), "name": a.full_name, "color": "#5A87B8",
          "category": None, "kind": "assignee", "stage": None, "lane": None,
-         "concludes": False}
+         "concludes": False, "wip_limit": None}
         for a in agentes
     ]
     colunas.append({
         "key": "none", "name": "Sem responsável", "color": "#8A8A85",
         "category": None, "kind": "assignee", "stage": None, "lane": None,
-        "concludes": False,
+        "concludes": False, "wip_limit": None,
     })
     return colunas
 

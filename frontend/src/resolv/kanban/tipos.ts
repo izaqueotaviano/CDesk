@@ -30,6 +30,9 @@ export interface Coluna {
   lane: number | null
   /** Soltar aqui fecha o chamado — exige o fluxo formal (D4), nunca fecha direto. */
   concludes: boolean
+  /** Limite de WIP combinado pela equipe. Só AVISA (o cabeçalho muda de
+   *  cor acima dele), nunca bloqueia arraste. `null` = sem limite. */
+  wip_limit: number | null
 }
 
 export interface Cartao {
