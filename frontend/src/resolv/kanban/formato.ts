@@ -159,3 +159,77 @@ export function contagemDaColuna(visiveis: number, total: number, limite: number
   if (acima) descricao += '. Acima do limite'
   return { texto, descricao, acima }
 }
+
+// ---------------------------------------------------------------------------
+// Cor do status: a cor é dado (o admin escolhe em Configurações > Status), então
+// o texto por cima dela não pode ser fixo. Branco em âmbar dá 2:1; escuro em
+// roxo some. `coresDaBarra` escolhe a tinta pelo contraste e, quando o branco
+// quase chega (um azul médio), escurece o fundo o pouco que falta em vez de
+// trocar a tinta.
+// ---------------------------------------------------------------------------
+
+const TINTA_CLARA = '#ffffff'
+const TINTA_ESCURA = '#1f1f1f'
+/** Cor de um status sem cor válida cadastrada (ou de um ticket cujo status a
+ *  coluna não conhece). Cinza quente: não afirma nada. */
+export const COR_SEM_STATUS = '#8a8a85'
+
+function rgbDe(hex: string): [number, number, number] | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim())
+  if (!m) return null
+  const n = parseInt(m[1]!, 16)
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+}
+
+function luminancia([r, g, b]: [number, number, number]): number {
+  const canal = (v: number) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * canal(r) + 0.7152 * canal(g) + 0.0722 * canal(b)
+}
+
+/** Razão de contraste WCAG entre duas cores `#rrggbb` (1 a 21). */
+export function contraste(a: string, b: string): number {
+  const ra = rgbDe(a)
+  const rb = rgbDe(b)
+  if (!ra || !rb) return 1
+  const [claro, escuro] = [luminancia(ra), luminancia(rb)].sort((x, y) => y - x)
+  return (claro! + 0.05) / (escuro! + 0.05)
+}
+
+function escurecer(hex: string, fracao: number): string {
+  const rgb = rgbDe(hex)
+  if (!rgb) return hex
+  const [r, g, b] = rgb.map((v) => Math.round(v * (1 - fracao)))
+  return `#${[r, g, b].map((v) => v!.toString(16).padStart(2, '0')).join('')}`
+}
+
+export interface CoresDaBarra {
+  fundo: string
+  texto: string
+}
+
+/** Fundo e tinta do cabeçalho de uma coluna, com contraste AA (4,5:1) garantido. */
+export function coresDaBarra(cor: string): CoresDaBarra {
+  const base = rgbDe(cor) ? cor.toLowerCase().replace(/^([^#])/, '#$1') : COR_SEM_STATUS
+  for (const passo of [0, 0.08, 0.16, 0.24]) {
+    const fundo = escurecer(base, passo)
+    if (contraste(TINTA_CLARA, fundo) >= 4.5) return { fundo, texto: TINTA_CLARA }
+  }
+  if (contraste(TINTA_ESCURA, base) >= 4.5) return { fundo: base, texto: TINTA_ESCURA }
+  return { fundo: escurecer(base, 0.4), texto: TINTA_CLARA }
+}
+
+/** Cor de reserva por status do ticket, as mesmas dos status de fábrica. */
+export const COR_DO_STATUS: Record<Cartao['ticket_status'], string> = {
+  new: '#6c4e9c',
+  open: '#5a87b8',
+  pending_customer: '#e9a23b',
+  closed: COR_SEM_STATUS,
+}
+
+export interface StatusDoCartao {
+  nome: string
+  cor: string
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contagemDaColuna, descreverPrazo, descreverSla, duracaoPorExtenso } from './formato'
+import { COR_DO_STATUS, contagemDaColuna, contraste, coresDaBarra, descreverPrazo, descreverSla, duracaoPorExtenso } from './formato'
 
 // Datas LOCAIS (sem Z): o prazo é classificado pelo dia do relógio de quem
 // olha, então o teste não pode depender do fuso da máquina que roda.
@@ -78,5 +78,36 @@ describe('contagemDaColuna', () => {
     expect(contagemDaColuna(1, 1, null, true).texto).toBe('1')
     expect(contagemDaColuna(0, 0, null, true).texto).toBe('0')
     expect(contagemDaColuna(2, 2, 1, true).texto).toBe('2/1')
+  })
+})
+
+describe('coresDaBarra', () => {
+  it('as cores de fábrica dos status sempre saem com contraste AA (4,5:1) entre fundo e tinta', () => {
+    for (const cor of Object.values(COR_DO_STATUS)) {
+      const { fundo, texto } = coresDaBarra(cor)
+      expect(contraste(fundo, texto), cor).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('cor clara (âmbar) ganha tinta escura em vez de fundo escurecido', () => {
+    expect(coresDaBarra('#E9A23B')).toEqual({ fundo: '#e9a23b', texto: '#1f1f1f' })
+  })
+
+  it('cor escura mantém o fundo e ganha tinta branca', () => {
+    expect(coresDaBarra('#6c4e9c')).toEqual({ fundo: '#6c4e9c', texto: '#ffffff' })
+  })
+
+  it('azul médio escurece só o que falta para o branco chegar a 4,5:1', () => {
+    const { fundo, texto } = coresDaBarra('#5A87B8')
+    expect(texto).toBe('#ffffff')
+    expect(fundo).not.toBe('#5a87b8')
+    expect(contraste(fundo, texto)).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('cor inválida ou vazia cai no cinza neutro, também legível', () => {
+    for (const ruim of ['', 'azul', '#12', 'rgb(0,0,0)']) {
+      const { fundo, texto } = coresDaBarra(ruim)
+      expect(contraste(fundo, texto), ruim).toBeGreaterThanOrEqual(4.5)
+    }
   })
 })

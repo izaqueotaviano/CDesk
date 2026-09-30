@@ -60,6 +60,10 @@
   // negativa + padding igual): o quadro "continua" além da tela, em vez de
   // ser cortado 24px antes da borda.
   &__colunas {
+    // Contêiner de referência dos textos só-de-leitor-de-tela (`.kb-sr`, que
+    // são `absolute`): sem ele, o de uma coluna lá na direita escapava da
+    // área que rola e alargava a PÁGINA inteira no celular (rolagem lateral).
+    position: relative;
     display: flex;
     align-items: stretch;
     gap: 16px;
@@ -402,45 +406,55 @@
   flex-direction: column;
   min-height: 0;
 
+  // O status é COR: o cabeçalho é uma barra cheia na cor do status (a tinta
+  // por cima é escolhida pelo contraste em Coluna.tsx, porque a cor é
+  // configurável), a coluna inteira ganha um tom leve da mesma cor, e cada
+  // cartão leva uma faixa dela. De longe se lê "roxo = novo, azul = aberto".
   &__cabecalho {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    min-height: 40px;
-    padding: 0 4px 8px 4px;
-    box-shadow: inset 0 -1px 0 var(--stroke);
-  }
-  // Acima do limite de WIP: o fio do cabeçalho engrossa e vira âmbar, e o
-  // contador também. Aviso, não bloqueio — o arraste continua aceito.
-  &--acima &__cabecalho {
-    box-shadow: inset 0 -2px 0 var(--away);
+    min-height: 44px;
+    padding: 0 6px 0 14px;
+    border-radius: 12px 12px 0 0;
+    background: var(--kb-barra, var(--stroke));
+    color: var(--kb-barra-texto, var(--text-primary));
   }
 
   &__tipo {
     font-size: 14px;
-    color: var(--text-muted);
     flex-shrink: 0;
+    opacity: 0.85;
   }
   &__nome {
+    flex: 1;
     min-width: 0;
     font-size: 14px;
     font-weight: 600;
-    color: var(--text-primary);
+    color: inherit;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  // A contagem é uma pílula translúcida na própria tinta da barra. Acima do
+  // limite de WIP vira vermelho cheio, em qualquer cor de barra: aviso, não
+  // bloqueio (o arraste continua aceito).
   &__contador {
     flex-shrink: 0;
-    margin-right: auto;
+    min-width: 26px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: color-mix(in srgb, currentColor 20%, transparent);
     font-size: 12px;
-    color: var(--text-secondary);
+    font-weight: 600;
+    text-align: center;
+    color: inherit;
     font-variant-numeric: tabular-nums;
 
     &--acima {
-      color: var(--away);
-      font-weight: 600;
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
     }
   }
   &__menu {
@@ -452,21 +466,20 @@
     border: 0;
     border-radius: var(--raio);
     background: transparent;
-    color: var(--text-secondary);
+    color: inherit;
     cursor: pointer;
-    transition: background 0.12s ease, color 0.12s ease;
+    transition: background 0.12s ease;
 
     i {
       font-size: 16px;
     }
     &:hover,
     &[aria-expanded='true'] {
-      background: var(--sidebar-hover);
-      color: var(--text-primary);
+      background: color-mix(in srgb, currentColor 20%, transparent);
     }
     &:focus-visible {
-      outline: 2px solid var(--foco);
-      outline-offset: 1px;
+      outline: 2px solid currentColor;
+      outline-offset: -2px;
     }
   }
 
@@ -475,7 +488,8 @@
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 12px 4px 4px;
+    padding: 12px 10px 4px;
+    background: color-mix(in srgb, var(--kb-cor, var(--text-muted)) 9%, var(--surface-canvas));
 
     label {
       font-size: 12px;
@@ -522,18 +536,19 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding: 12px 4px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     gap: 8px;
-    border-radius: var(--raio-cartao);
+    border-radius: 0 0 12px 12px;
+    background: color-mix(in srgb, var(--kb-cor, var(--text-muted)) 9%, var(--surface-canvas));
     transition: background 0.12s ease, box-shadow 0.12s ease;
   }
-  // Soltar aqui: o trecho do plano ganha tom e um contorno — é o único
-  // momento em que a coluna "vira caixa", e é para dizer onde o cartão cai.
+  // Soltar aqui: o tom da coluna dobra e ela ganha contorno na própria cor,
+  // para dizer onde o cartão cai.
   &--sobre &__corpo {
-    background: var(--sidebar-hover);
-    box-shadow: inset 0 0 0 1px var(--stroke-hover);
+    background: color-mix(in srgb, var(--kb-cor, var(--text-muted)) 20%, var(--surface-canvas));
+    box-shadow: inset 0 0 0 2px var(--kb-cor, var(--stroke-hover));
   }
 
   &__vazia {
@@ -625,17 +640,31 @@
   flex-direction: column;
   gap: 4px;
   flex-shrink: 0;
-  padding: 12px;
+  // 16px à esquerda: os 5px da faixa de status + o respiro de sempre
+  padding: 12px 12px 12px 17px;
   background: var(--surface-card);
-  border-radius: var(--raio-cartao);
+  border-radius: 10px;
+  // fio de 1px no lugar de sombra: o cartão branco já se destaca do tom da coluna
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--stroke) 70%, transparent);
   cursor: grab;
   // `manipulation` e não `none`: o toque segura para pegar (TouchSensor com
   // atraso), então o deslizar comum tem que continuar rolando a coluna
   touch-action: manipulation;
   transition: box-shadow 0.12s ease;
 
+  // A faixa de status: a cor do status DO TICKET (ver PaginaKanban.statusDe),
+  // que numa coluna de organização difere da coluna.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    border-radius: 10px 0 0 10px;
+    background: var(--kb-cor, var(--stroke-hover));
+  }
+
   &:hover {
-    box-shadow: 0 0 0 1px var(--stroke-hover);
+    box-shadow: 0 0 0 2px var(--kb-cor, var(--stroke-hover));
   }
   &:focus-visible {
     outline: 2px solid var(--foco);
@@ -678,31 +707,53 @@
   }
   &__ref {
     font-size: 12px;
-    color: var(--text-muted);
+    font-weight: 500;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
   }
-  // Só Alta e Urgente chegam aqui (ver Cartao.tsx). Ícone + palavra: a cor
-  // nunca é o único sinal.
+  // Numa coluna de organização (lane) a coluna não diz o status; este selo diz,
+  // na cor do status. Tinta e fundo vêm de coresDaBarra (contraste garantido).
+  &__status {
+    margin-right: auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+  &__ref + &__prioridade {
+    margin-left: auto;
+  }
+  // Só Alta e Urgente chegam aqui (ver Cartao.tsx). Selo CHEIO, com ícone e
+  // palavra: a cor nunca é o único sinal, mas é ela que faz o cartão urgente
+  // saltar numa coluna de vinte.
   &__prioridade {
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 16px;
 
     i {
-      font-size: 14px;
+      font-size: 13px;
     }
     &--high {
-      color: var(--away);
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
     }
     &--urgent {
-      color: var(--danger);
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
     }
   }
 
   &__assunto {
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 1.4;
     color: var(--text-primary);
     display: -webkit-box;
@@ -711,19 +762,43 @@
     overflow: hidden;
     overflow-wrap: anywhere;
   }
+  // Empresa » contato, como nas mesas de atendimento: quem paga primeiro, quem
+  // escreveu depois. A empresa em tinta cheia; o contato, um degrau abaixo.
   &__cliente {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
     font-size: 12px;
     color: var(--text-secondary);
+    white-space: nowrap;
+
+    i {
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  }
+  &__empresa {
+    min-width: 0;
+    flex-shrink: 1;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__contato {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__rodape {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
+    flex-wrap: wrap;
+    gap: 6px 8px;
     margin-top: 6px;
     min-height: 24px;
   }
@@ -767,13 +842,14 @@
       outline: 2px solid var(--foco);
       outline-offset: 1px;
     }
+    // Pede ação: selo CHEIO. Vencido é vermelho, hoje/amanhã é âmbar.
     &--proximo {
-      background: var(--tom-alerta);
-      color: var(--away);
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
     }
     &--vencido {
-      background: var(--tom-perigo);
-      color: var(--danger);
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
     }
     // Sem prazo: só aparece no hover/foco do cartão. Continua ocupando o
     // lugar (opacidade, não display) para o cartão não mudar de altura, e
@@ -845,16 +921,16 @@
     cursor: help;
 
     &--ok {
-      background: var(--surface-alt);
-      color: var(--text-secondary);
+      background: var(--tom-ok);
+      color: var(--ok);
     }
     &--at_risk {
-      background: var(--tom-alerta);
-      color: var(--away);
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
     }
     &--breached {
-      background: var(--tom-perigo);
-      color: var(--danger);
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
     }
   }
 
@@ -862,7 +938,8 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    flex-shrink: 0;
+    min-width: 0;
+    margin-left: auto;
   }
   &__contador {
     display: inline-flex;
@@ -878,7 +955,10 @@
   }
 
   &__responsavel {
-    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
 
     img,
     .kb-cartao__avatar-fallback {
@@ -888,6 +968,10 @@
       border-radius: 50%;
       object-fit: cover;
     }
+    img,
+    .kb-cartao__avatar-fallback {
+      flex-shrink: 0;
+    }
     .kb-cartao__avatar-fallback {
       display: flex;
       align-items: center;
@@ -895,6 +979,15 @@
       font-size: 12px;
       font-weight: 600;
     }
+  }
+  &__responsavel-nome {
+    max-width: 104px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
   }
 }
 
@@ -947,6 +1040,7 @@
 }
 .kb-coluna--esqueleto .kb-coluna__cabecalho {
   align-items: center;
+  background: var(--stroke);
 }
 .kb-cartao--esqueleto {
   gap: 10px;

@@ -156,10 +156,57 @@ describe('PaginaKanban — carregamento e estados', () => {
   it('subtítulo e coluna de conclusão vazia sem travessão, convidando à ação', async () => {
     montar()
     await screen.findByRole('heading', { name: 'Quadro' })
-    expect(screen.getByText('Tickets não resolvidos por status. Arraste um cartão para mudar o status.')).toBeInTheDocument()
+    expect(screen.getByText('3 tickets no quadro. Arraste um cartão para mudar o status.')).toBeInTheDocument()
     const fechado = colunaChamada('Fechado')
     expect(within(fechado).getByText('Solte um ticket aqui para fechá-lo. Tickets fechados saem do quadro.')).toBeInTheDocument()
     expect(document.body.textContent).not.toContain('—')
+  })
+})
+
+describe('PaginaKanban — cor do status', () => {
+  function quadroComOrganizacao(): QuadroMontado {
+    return {
+      columns: [
+        coluna({ key: 'open', name: 'Aberto', color: '#5A87B8', stage: 2, category: 'open' }),
+        coluna({ key: 'lane-9', name: 'Depende do gestor', category: null, kind: 'lane', stage: null, lane: 9, color: '#999999' }),
+      ],
+      entries: [
+        cartao({ ticket: 1, ticket_reference: 'TD-00001', subject: 'Na coluna de status', stage: 2, column: 'open' }),
+        cartao({ ticket: 2, ticket_reference: 'TD-00002', subject: 'Na coluna de organização', stage: 2, column: 'lane-9' }),
+      ],
+    }
+  }
+
+  it('a cor do status vira a faixa do cartão, e a barra e o tom da coluna', async () => {
+    quadro = quadroComOrganizacao()
+    montar()
+    const cartaoAberto = await screen.findByRole('button', { name: /^TD-00001/ })
+    expect(cartaoAberto.getAttribute('style')).toContain('--kb-cor: #5A87B8')
+    const coluna = colunaChamada('Aberto')
+    expect(coluna.getAttribute('style')).toContain('--kb-cor: #5A87B8')
+    // a barra escurece o azul médio só o suficiente para a tinta branca ler (AA)
+    expect(coluna.getAttribute('style')).toContain('--kb-barra-texto: #ffffff')
+  })
+
+  it('só numa coluna de organização o cartão diz o próprio status, na cor dele', async () => {
+    quadro = quadroComOrganizacao()
+    montar()
+    const naStatus = await screen.findByRole('button', { name: /^TD-00001/ })
+    expect(within(naStatus).queryByText('Aberto')).not.toBeInTheDocument()
+    const naOrganizacao = screen.getByRole('button', { name: /^TD-00002/ })
+    expect(within(naOrganizacao).getByText('Aberto')).toBeInTheDocument()
+    // a faixa é a do STATUS do ticket, não a (cinza) da coluna onde foi fixado
+    expect(naOrganizacao.getAttribute('style')).toContain('--kb-cor: #5A87B8')
+  })
+
+  it('mostra empresa » contato, e o nome de quem responde', async () => {
+    quadro = quadroPadrao()
+    montar()
+    const comResponsavel = await screen.findByRole('button', { name: /^TD-00001/ })
+    expect(within(comResponsavel).getByText('Acme')).toBeInTheDocument()
+    expect(within(comResponsavel).getByText('Ana Almeida')).toBeInTheDocument()
+    expect(comResponsavel.querySelector('.kb-cartao__cliente')).toHaveAttribute('title', 'Acme » Ana Almeida')
+    expect(within(comResponsavel).getByText('Alice Admin')).toBeInTheDocument()
   })
 })
 

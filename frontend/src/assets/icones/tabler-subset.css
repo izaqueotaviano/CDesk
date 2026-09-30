@@ -1,6 +1,6 @@
 /* GERADO por scripts/gerar_subset_icones.py — não edite à mão.
  *
- * Subset da fonte Tabler Icons (114 ícones, os que o produto usa)
+ * Subset da fonte Tabler Icons (115 ícones, os que o produto usa)
  * com o CSS de cada um. Antes isto vinha de CDN, que a CSP de produção não
  * libera — ver o cabeçalho do script.
  *
@@ -60,6 +60,7 @@
 .ti-chevron-left::before { content: "\ea60"; }
 .ti-chevron-right::before { content: "\ea61"; }
 .ti-chevron-up::before { content: "\ea62"; }
+.ti-chevrons-right::before { content: "\ea65"; }
 .ti-circle-check::before { content: "\ea67"; }
 .ti-circle-minus::before { content: "\ea68"; }
 .ti-circle-x::before { content: "\ea6a"; }

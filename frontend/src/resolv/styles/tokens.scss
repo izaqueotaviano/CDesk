@@ -222,6 +222,15 @@
   // escuro —, então a tinta em cima dele tem que virar junto: branco fixo
   // dava 6,15:1 no claro e 1,70:1 no escuro.
   --texto-sobre-away: #ffffff;
+  // Selos de sinal PREENCHIDOS (o quadro: prazo vencido, SLA em risco, urgente).
+  // Cada fundo tem a tinta certa por cima, e as duas viram juntas com o tema:
+  // o --danger do escuro é claro, então a tinta ali escurece. Ver kanban.scss.
+  --vivo-perigo: var(--danger);
+  --vivo-perigo-texto: #ffffff;
+  --vivo-alerta: #f0b429;
+  --vivo-alerta-texto: #3a2900;
+  --vivo-ok: var(--ok);
+  --vivo-ok-texto: #ffffff;
 
   // ── Tons (washes de fundo e de borda) ──
   // Derivados por color-mix do próprio token semântico: cada um é a semântica
@@ -351,6 +360,8 @@
   --away: #e3b682;
   // 10,28:1 — no escuro o --away é claro, e quem escreve em cima dele escurece
   --texto-sobre-away: #1c1917;
+  --vivo-perigo-texto: #2b0f08;
+  --vivo-ok-texto: #10261a;
 
   // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e
   // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, retonado

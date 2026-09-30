@@ -10,10 +10,11 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '@/api/client'
 import { useMe } from '@/api/queries/useMe'
+import { ROTULO_STATUS } from '../tickets/format'
 import { useConsultaDeMidia } from '../shell/useConsultaDeMidia'
 import { BarraDeFiltros } from './BarraDeFiltros'
 import { ConteudoDoCartao } from './Cartao'
@@ -41,6 +42,7 @@ import {
   temFiltroAtivo,
   type Filtros,
 } from './filtros'
+import { COR_DO_STATUS, type StatusDoCartao } from './formato'
 import { TECLAS_DO_QUADRO, coordenadasPorColuna } from './teclado'
 import type { Cartao as CartaoTipo, Coluna as ColunaTipo } from './tipos'
 import './kanban.scss'
@@ -143,6 +145,21 @@ export function PaginaKanban() {
 
   const filtrando = temFiltroAtivo(filtros)
   const entradas = useMemo(() => quadro?.entries ?? [], [quadro])
+  // O status DE VERDADE de cada cartão (nome e cor). Numa coluna de status é a
+  // própria coluna; numa coluna de organização (lane) a coluna não diz nada
+  // sobre o status, então a faixa e o selo do cartão vêm daqui.
+  const statusPorStage = useMemo(() => {
+    const m = new Map<number, StatusDoCartao>()
+    for (const c of quadro?.columns ?? []) {
+      if (c.kind === 'stage' && c.stage != null) m.set(c.stage, { nome: c.name, cor: c.color })
+    }
+    return m
+  }, [quadro])
+  const statusDe = (c: CartaoTipo): StatusDoCartao =>
+    (c.stage != null ? statusPorStage.get(c.stage) : undefined) ?? {
+      nome: ROTULO_STATUS[c.ticket_status],
+      cor: COR_DO_STATUS[c.ticket_status],
+    }
   const visiveis = useMemo(
     () => (filtrando ? filtrarCartoes(entradas, filtros, me?.id ?? null) : entradas),
     // `filtros` é recriado a cada render; as partes dele é que importam
@@ -339,7 +356,9 @@ export function PaginaKanban() {
       <header className="kb-pagina__header">
         <div className="kb-pagina__titulo-bloco">
           <h1 className="kb-pagina__titulo">Quadro</h1>
-          <p className="kb-pagina__subtitulo">Tickets não resolvidos por status. Arraste um cartão para mudar o status.</p>
+          <p className="kb-pagina__subtitulo">
+            {entradas.length === 1 ? '1 ticket' : `${entradas.length} tickets`} no quadro. Arraste um cartão para mudar o status.
+          </p>
         </div>
         {quadros && quadros.length > 1 && (
           <div className="kb-filtro kb-filtro--quadro">
@@ -403,6 +422,7 @@ export function PaginaKanban() {
               total={totalPorColuna.get(coluna.key) ?? 0}
               filtrando={filtrando}
               agoraMs={agoraMs}
+              statusDe={statusDe}
               onAbrirTicket={(id) => navigate(`/tickets/${id}`)}
               onDefinirPrazo={(ticketId, iso) =>
                 quadroAtivo != null &&
@@ -468,8 +488,11 @@ export function PaginaKanban() {
 
         <DragOverlay dropAnimation={semAnimacao ? null : undefined}>
           {cartaoArrastando && (
-            <div className="kb-cartao kb-cartao--flutuando">
-              <ConteudoDoCartao cartao={cartaoArrastando} agoraMs={agoraMs} />
+            <div
+              className="kb-cartao kb-cartao--flutuando"
+              style={{ '--kb-cor': statusDe(cartaoArrastando).cor } as CSSProperties}
+            >
+              <ConteudoDoCartao cartao={cartaoArrastando} agoraMs={agoraMs} status={statusDe(cartaoArrastando)} />
             </div>
           )}
         </DragOverlay>

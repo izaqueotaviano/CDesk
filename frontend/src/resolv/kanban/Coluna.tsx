@@ -1,8 +1,8 @@
 import { useDroppable } from '@dnd-kit/core'
-import { useId, useRef, useState, type FormEvent } from 'react'
+import { useId, useRef, useState, type CSSProperties, type FormEvent } from 'react'
 import { MenuFlutuante, type ItemDoMenu } from '../shell/MenuFlutuante'
 import { Cartao } from './Cartao'
-import { contagemDaColuna } from './formato'
+import { contagemDaColuna, coresDaBarra, type StatusDoCartao } from './formato'
 import type { Cartao as CartaoTipo, Coluna as ColunaTipo } from './tipos'
 
 interface Props {
@@ -14,6 +14,8 @@ interface Props {
   total: number
   filtrando: boolean
   agoraMs: number
+  /** Nome e cor do status de verdade de cada cartão (ver PaginaKanban). */
+  statusDe: (cartao: CartaoTipo) => StatusDoCartao
   onAbrirTicket: (ticketId: number) => void
   onDefinirPrazo: (ticketId: number, iso: string | null) => void
   onApagarLane?: (laneId: number) => void
@@ -35,6 +37,7 @@ export function Coluna({
   total,
   filtrando,
   agoraMs,
+  statusDe,
   onAbrirTicket,
   onDefinirPrazo,
   onApagarLane,
@@ -113,6 +116,16 @@ export function Coluna({
     }
   }
 
+  // Colunas de organização não têm status: ficam num cinza neutro e cada
+  // cartão traz a cor do SEU status. As de status usam a cor configurada.
+  const cor = coluna.kind === 'lane' ? undefined : coluna.color
+  const barra = coresDaBarra(cor ?? '')
+  const estilo = {
+    '--kb-cor': cor ?? 'var(--text-muted)',
+    '--kb-barra': barra.fundo,
+    '--kb-barra-texto': barra.texto,
+  } as CSSProperties
+
   return (
     <section
       ref={setNodeRef}
@@ -123,12 +136,13 @@ export function Coluna({
         (contagem.acima ? ' kb-coluna--acima' : '')
       }
       aria-labelledby={idTitulo}
+      style={estilo}
     >
       <header className="kb-coluna__cabecalho">
-        {/* Sem a bolinha colorida do status: o nome já diz qual é, e a cor
-            (configurada em Status, inclusive laranja) era só decoração
-            repetida em toda coluna. O que muda o CONTRATO da coluna é ela
-            ser de organização, e isso sim ganha um sinal. */}
+        {/* A cor do status é o cabeçalho inteiro (barra cheia) e tinge a coluna
+            e a faixa de cada cartão: o status se lê de longe, sem ler o nome.
+            O que muda o CONTRATO da coluna é ela ser de organização, e isso
+            ganha um sinal à parte. */}
         {coluna.kind === 'lane' && (
           <i
             className="ti ti-pin kb-coluna__tipo"
@@ -218,6 +232,8 @@ export function Coluna({
             <Cartao
               key={c.ticket}
               cartao={c}
+              status={statusDe(c)}
+              mostrarStatus={coluna.kind === 'lane'}
               agoraMs={agoraMs}
               onAbrir={onAbrirTicket}
               onDefinirPrazo={onDefinirPrazo}

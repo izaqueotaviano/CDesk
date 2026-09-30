@@ -1,16 +1,18 @@
 import { useDraggable } from '@dnd-kit/core'
-import { useState, type SyntheticEvent } from 'react'
+import { useState, type CSSProperties, type SyntheticEvent } from 'react'
 import { API_BASE_URL } from '@/api/client'
 import { identidadeDe } from '@/ui/identidade'
 import { ROTULO_PRIORIDADE } from '../tickets/format'
 import { tempoSla } from '../tickets/detalhe/linhaDoTempo'
 import {
   MARCADOR_PRIORIDADE,
+  coresDaBarra,
   descreverPrazo,
   descreverSla,
   paraDatetimeLocal,
   rotuloDoCartao,
   slaDoCartao,
+  type StatusDoCartao,
 } from './formato'
 import type { Cartao as CartaoTipo } from './tipos'
 
@@ -143,6 +145,10 @@ function Prazo({ cartao, agoraMs, editavel, onDefinirPrazo }: PrazoProps) {
 
 interface ConteudoProps {
   cartao: CartaoTipo
+  /** Nome e cor do status DE VERDADE do ticket (a faixa do cartão vem daqui). */
+  status: StatusDoCartao
+  /** Numa coluna de organização a coluna não diz o status: o cartão diz. */
+  mostrarStatus?: boolean
   agoraMs: number
   /** Falso na cópia que segue o ponteiro (DragOverlay): nada clicável nela. */
   editavel?: boolean
@@ -152,19 +158,32 @@ interface ConteudoProps {
 /** O desenho do cartão, sem o comportamento de arraste — usado pelo cartão
  *  na coluna e pela cópia no DragOverlay (que não pode registrar um segundo
  *  `useDraggable` com o mesmo id). */
-export function ConteudoDoCartao({ cartao, agoraMs, editavel = false, onDefinirPrazo = () => {} }: ConteudoProps) {
+export function ConteudoDoCartao({
+  cartao,
+  status,
+  mostrarStatus = false,
+  agoraMs,
+  editavel = false,
+  onDefinirPrazo = () => {},
+}: ConteudoProps) {
   const [avatarFalhou, setAvatarFalhou] = useState(false)
   const { relogio, qual } = slaDoCartao(cartao)
   // "cumprido" não pede nada de quem olha o quadro: só o relógio que ainda
   // corre (ou já estourou) ganha selo
   const mostrarSla = relogio.state !== 'none' && relogio.state !== 'met' && relogio.minutes_left != null
   const marcador = MARCADOR_PRIORIDADE[cartao.priority]
-  const cliente = [cartao.requester_display, cartao.company_name].filter(Boolean).join(' · ')
+  const cliente = [cartao.company_name, cartao.requester_display].filter(Boolean).join(' » ')
+  const selo = coresDaBarra(status.cor)
 
   return (
     <>
       <div className="kb-cartao__topo">
         <span className="kb-cartao__ref">{cartao.ticket_reference}</span>
+        {mostrarStatus && (
+          <span className="kb-cartao__status" style={{ background: selo.fundo, color: selo.texto }}>
+            {status.nome}
+          </span>
+        )}
         {marcador && (
           <span className={`kb-cartao__prioridade kb-cartao__prioridade--${cartao.priority}`}>
             <i className={marcador} aria-hidden="true" />
@@ -179,7 +198,11 @@ export function ConteudoDoCartao({ cartao, agoraMs, editavel = false, onDefinirP
 
       {cliente && (
         <p className="kb-cartao__cliente" title={cliente}>
-          {cliente}
+          {cartao.company_name && <span className="kb-cartao__empresa">{cartao.company_name}</span>}
+          {cartao.company_name && cartao.requester_display && (
+            <i className="ti ti-chevrons-right" aria-hidden="true" />
+          )}
+          {cartao.requester_display && <span className="kb-cartao__contato">{cartao.requester_display}</span>}
         </p>
       )}
 
@@ -229,6 +252,7 @@ export function ConteudoDoCartao({ cartao, agoraMs, editavel = false, onDefinirP
                   {cartao.assignee_name.charAt(0).toUpperCase()}
                 </span>
               )}
+              <span className="kb-cartao__responsavel-nome">{cartao.assignee_name}</span>
             </span>
           )}
         </div>
@@ -239,12 +263,14 @@ export function ConteudoDoCartao({ cartao, agoraMs, editavel = false, onDefinirP
 
 interface Props {
   cartao: CartaoTipo
+  status: StatusDoCartao
+  mostrarStatus?: boolean
   agoraMs: number
   onAbrir: (ticketId: number) => void
   onDefinirPrazo: (ticketId: number, iso: string | null) => void
 }
 
-export function Cartao({ cartao, agoraMs, onAbrir, onDefinirPrazo }: Props) {
+export function Cartao({ cartao, status, mostrarStatus, agoraMs, onAbrir, onDefinirPrazo }: Props) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `ticket-${cartao.ticket}`,
     data: { ticketId: cartao.ticket },
@@ -258,6 +284,7 @@ export function Cartao({ cartao, agoraMs, onAbrir, onDefinirPrazo }: Props) {
       ref={setNodeRef}
       data-ticket={cartao.ticket}
       className={'kb-cartao' + (isDragging ? ' kb-cartao--origem' : '')}
+      style={{ '--kb-cor': status.cor } as CSSProperties}
       {...attributes}
       {...listeners}
       aria-label={rotuloDoCartao(cartao, agoraMs)}
@@ -277,7 +304,14 @@ export function Cartao({ cartao, agoraMs, onAbrir, onDefinirPrazo }: Props) {
         listeners?.onKeyDown?.(e)
       }}
     >
-      <ConteudoDoCartao cartao={cartao} agoraMs={agoraMs} editavel onDefinirPrazo={onDefinirPrazo} />
+      <ConteudoDoCartao
+        cartao={cartao}
+        status={status}
+        mostrarStatus={mostrarStatus}
+        agoraMs={agoraMs}
+        editavel
+        onDefinirPrazo={onDefinirPrazo}
+      />
     </div>
   )
 }
