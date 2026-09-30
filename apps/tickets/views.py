@@ -678,6 +678,64 @@ class TicketViewSet(viewsets.GenericViewSet):
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
 
+    @extend_schema(request=None, responses=TicketDetailSerializer)
+    @action(detail=False, methods=["post"], url_path="take-next")
+    def take_next(self, request):
+        """"Pegar o próximo" do Início: escolhe E atribui numa transação só.
+
+        Antes a tela escolhia pela listagem e atribuía com `assign/` em dois
+        pedidos — dois agentes clicando no mesmo segundo pegavam o MESMO
+        chamado, e o segundo passava por cima do primeiro. Aqui a linha
+        escolhida fica travada (`select_for_update`) até a atribuição gravar,
+        e `skip_locked` faz o segundo clique pular para o próximo da fila em
+        vez de esperar pelo mesmo.
+
+        A ordem é a da tela (resolv/inicio/pegarProximo.ts): o prazo de SLA de
+        resolução que vence primeiro (sem prazo por último), depois a
+        prioridade mais alta, depois o mais antigo. "Aguardando o cliente"
+        fica de fora — ali a bola está com o cliente.
+        """
+        user = request.user
+        if not user.is_internal:
+            raise PermissionDenied("Apenas usuários internos pegam chamados.")
+        if not user.can(Perm.TICKET_BE_ASSIGNED):
+            raise PermissionDenied("Seu papel não pode ser responsável por chamados.")
+
+        from django.db import transaction
+        from django.db.models import F
+
+        # O recorte de visibilidade vira uma subconsulta de ids: `FOR UPDATE`
+        # não convive com o DISTINCT e os joins opcionais que o escopo pode
+        # trazer, e a trava só precisa da linha do chamado.
+        visiveis = selectors.visible_tickets(user).filter(
+            assignee__isnull=True,
+            status__in=[TicketStatus.NEW, TicketStatus.OPEN],
+        ).values("pk")
+        with transaction.atomic():
+            candidato = (
+                Ticket.objects.filter(pk__in=visiveis, assignee__isnull=True)
+                .annotate(priority_rank=_PRIORITY_RANK)
+                .order_by(
+                    F("sla_resolution_due_at").asc(nulls_last=True),
+                    "-priority_rank",
+                    "created_at",
+                    "pk",
+                )
+                .select_for_update(skip_locked=True)
+                .first()
+            )
+            if candidato is None:
+                return Response(
+                    {"code": "nada_para_pegar", "detail": "Nenhum chamado sem responsável agora."},
+                    status=http.HTTP_409_CONFLICT,
+                )
+            try:
+                ticket = ticket_service.assign(ticket=candidato, assignee=user, actor=user)
+            except TicketRuleViolation as exc:
+                raise PermissionDenied(str(exc)) from exc
+        out = TicketDetailSerializer(ticket, context={"request": request})
+        return Response(out.data)
+
     @action(detail=True, methods=["post"], url_path="set-owner")
     def set_owner(self, request, pk=None):
         """"Dono técnico" — campo separado de `assignee` (ver

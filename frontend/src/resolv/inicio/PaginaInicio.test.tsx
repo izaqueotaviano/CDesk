@@ -36,10 +36,14 @@ beforeEach(() => {
     'fetch',
     vi.fn((url: string, init?: RequestInit) => {
       const u = new URL(String(url), 'http://x')
-      const atribuir = u.pathname.match(/^\/api\/v1\/tickets\/(\d+)\/assign\/$/)
-      if (atribuir && init?.method === 'POST') {
-        atribuicoes.push({ id: atribuir[1], corpo: JSON.parse(String(init.body)) })
-        return Promise.resolve(jsonDe(linhaTicket(Number(atribuir[1]))))
+      // "Pegar o próximo": escolha e atribuição numa ação só do servidor
+      if (u.pathname === '/api/v1/tickets/take-next/' && init?.method === 'POST') {
+        const proximo = semDono[0]
+        if (!proximo) {
+          return Promise.resolve(jsonDe({ code: 'nada_para_pegar', detail: 'Nenhum chamado sem responsável agora.' }, 409))
+        }
+        atribuicoes.push({ id: String(proximo.id), corpo: null })
+        return Promise.resolve(jsonDe(proximo))
       }
       if (u.pathname === '/api/v1/tickets/' && u.searchParams.get('assignee') === 'unassigned') {
         return Promise.resolve(jsonDe(pagina(semDono)))
@@ -109,7 +113,7 @@ describe('PaginaInicio', () => {
     fireEvent.click(botao)
 
     expect(await screen.findByText('detalhe do chamado')).toBeInTheDocument()
-    expect(atribuicoes).toEqual([{ id: '7', corpo: { assignee_id: 2 } }])
+    expect(atribuicoes).toEqual([{ id: '7', corpo: null }])
   })
 
   it('sem nada para pegar, o botão diz por quê e não faz nada', async () => {
