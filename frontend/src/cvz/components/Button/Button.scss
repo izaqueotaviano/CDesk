@@ -25,19 +25,25 @@
   &--block { width: 100%; }
 
   // --- variantes ---
+  // A ação é CARVÃO (`cz-btn` do v2), não o laranja: o laranja lá marca
+  // foco, seleção e marca, e se tudo for laranja nada chama atenção.
   &--primary {
-    background-color: $blue;
-    color: $text-on-accent;
+    background-color: $primary;
+    color: $on-primary;
 
-    &:hover { background-color: $blue-hover; }
-    &:active { background-color: $blue-active; }
+    &:hover { background-color: $primary-hover; }
+    &:active { background-color: $primary-hover; }
   }
 
+  // Com o primário em carvão, o secundário não pode mais ser tinta cheia —
+  // os dois ficariam iguais. Vira o `cz-btn--secondary` do kit: transparente
+  // com a linha de controle, que é o degrau de hierarquia logo abaixo.
   &--secondary {
-    background-color: $text;
-    color: $text-on-dark;
+    background-color: transparent;
+    border-color: $field-border;
+    color: $text;
 
-    &:hover { background-color: $text-hover; }
+    &:hover { background-color: $chrome; border-color: $text-muted; }
   }
 
   &--tertiary {

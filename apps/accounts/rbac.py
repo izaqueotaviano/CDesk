@@ -103,6 +103,7 @@ class Perm(models.TextChoices):
     PORTAL_TICKET_CREATE = "portal.ticket_create", "Abrir tickets pelo portal"
     PORTAL_TICKET_REPLY = "portal.ticket_reply", "Responder os próprios tickets"
     PORTAL_COMPANY_USERS = "portal.company_users", "Gerenciar os usuários da própria empresa"
+    PORTAL_COMPANY_EDIT = "portal.company_edit", "Editar os dados da própria empresa"
 
 
 class TicketScope(models.TextChoices):
@@ -190,8 +191,11 @@ _CLIENT_MEMBER_PERMS = frozenset({
 })
 
 #: Responsável da empresa cliente: o mesmo do membro + gerenciar quem da
-#: empresa tem acesso.
-_CLIENT_OWNER_PERMS = _CLIENT_MEMBER_PERMS | {Perm.PORTAL_COMPANY_USERS}
+#: empresa tem acesso e os dados cadastrais dela (razão social, CNPJ).
+_CLIENT_OWNER_PERMS = _CLIENT_MEMBER_PERMS | {
+    Perm.PORTAL_COMPANY_USERS,
+    Perm.PORTAL_COMPANY_EDIT,
+}
 
 
 ROLE_PERMISSIONS: dict[str, frozenset[str]] = {
@@ -292,7 +296,7 @@ def validate_scope_for_role(scope: str, permissions) -> str | None:
     if scope == TicketScope.ASSIGNED and Perm.TICKET_BE_ASSIGNED not in set(permissions):
         return (
             'Escopo "apenas atribuídos a ele" exige a permissão '
-            '"Ser responsável por tickets" — sem ela a fila fica sempre vazia.'
+            '"Ser responsável por tickets". Sem ela, a fila fica sempre vazia.'
         )
     return None
 

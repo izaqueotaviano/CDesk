@@ -110,6 +110,67 @@ def _purge_origin_chat(ticket) -> None:
         ).update(body=PURGED_MARKER)
 
 
+def purge_chat_content(*, dry_run: bool) -> dict:
+    """Chat encerrado há mais que o prazo perde o conteúdo, não a linha.
+
+    Existia um buraco aqui: o chat só era expurgado quando VIRAVA ticket
+    (`_purge_origin_chat`, chamado de dentro da política de ticket). A
+    conversa que se resolveu no próprio chat — a maioria delas — nunca
+    expirava, e ficava guardada para sempre num sistema que promete o
+    contrário. Agora tem política própria.
+
+    Mesma forma da política de ticket, de propósito: o conteúdo sai (corpo
+    das mensagens, anexos, observação de encerramento e a justificativa da
+    avaliação, que é texto livre do cliente), e o que sustenta as métricas
+    fica — datas, status, motivo, notas, quem atendeu. Anonimizar a PESSOA
+    continua sendo ato de pedido LGPD, nunca efeito do calendário.
+
+    O gatilho é `closed_at`, reescrito a cada encerramento: um chat reaberto
+    em 2030 não pode expirar pelo encerramento de 2026.
+    """
+    from apps.chat.models import Chat, ChatFile, ChatMessage, ChatStatus
+    from apps.tickets.services.attachments import purge_blob
+
+    queryset = Chat.objects.filter(
+        status=ChatStatus.CLOSED,
+        closed_at__lt=_cutoff("chat_after_close"),
+        retention_purged_at__isnull=True,
+    ).order_by("pk")
+
+    matched = queryset.count()
+    sample = list(queryset.values_list("pk", flat=True)[:SAMPLE_SIZE])
+    if dry_run or not matched:
+        return _result(matched, 0, sample)
+
+    applied = 0
+    while True:
+        batch = list(queryset[:BATCH_SIZE])
+        if not batch:
+            break
+        for chat in batch:
+            with transaction.atomic():
+                # a mensagem de sistema fica: "encerrado em", "fulano entrou"
+                # são a linha do tempo do atendimento, não conteúdo do titular
+                ChatMessage.objects.filter(chat=chat, is_system=False).exclude(
+                    body=PURGED_MARKER
+                ).update(body=PURGED_MARKER)
+                for arquivo in ChatFile.objects.filter(
+                    message__chat=chat, purged_at__isnull=True
+                ):
+                    purge_blob(arquivo)
+                chat.close_note = ""
+                chat.retention_purged_at = timezone.now()
+                chat.save(update_fields=["close_note", "retention_purged_at"])
+                # a NOTA é métrica e fica; a justificativa é texto livre do
+                # cliente e é o que a retenção existe para não guardar
+                if hasattr(chat, "rating") and chat.rating.justification:
+                    chat.rating.justification = PURGED_MARKER
+                    chat.rating.save(update_fields=["justification"])
+            applied += 1
+
+    return _result(matched, applied, sample)
+
+
 def purge_audit_log(*, dry_run: bool) -> dict:
     """Expurgo do log de auditoria — **exceto** as entradas de LGPD.
 
@@ -196,6 +257,7 @@ def _delete(queryset, *, dry_run: bool, label: str) -> dict:
 # enxergar as entradas geradas pelo próprio ciclo anterior
 POLICIES = {
     "ticket_content": purge_ticket_content,
+    "chat_content": purge_chat_content,
     "audit_log": purge_audit_log,
     "ticket_access_log": purge_ticket_access_log,
     "notification_read": purge_read_notifications,

@@ -35,3 +35,45 @@ def announcements_for(user, *, include_expired=False):
         audience |= Q(audience_kind=AudienceKind.PLANS, target_plans=user.company.plan)
 
     return qs.filter(audience).distinct().order_by("-is_pinned", "-starts_at")
+
+
+def users_for(announcement):
+    """A audiência de UM aviso — o inverso de `announcements_for`: lá, dado
+    um usuário, quais avisos ele vê; aqui, dado o aviso, quem é o público.
+    Mesma disciplina de Q por `audience_kind`, direção oposta. Usado por
+    `apps.announcements.tasks` para notificar quem ainda não sabe — não
+    reaproveita a query de leitura porque ela filtra "avisos que batem com
+    ESTE usuário" e não dá para virar "usuários que batem com ESTE aviso"
+    sem reescrever a condição.
+
+    `is_active=True`: conta desativada não recebe notificação — não tem
+    como logar para ler mesmo.
+    """
+    from apps.accounts.models import User, UserKind
+
+    qs = User.objects.filter(is_active=True)
+    kind = announcement.audience_kind
+
+    if kind == AudienceKind.ALL:
+        return qs
+    if kind == AudienceKind.ALL_INTERNAL:
+        return qs.filter(kind=UserKind.INTERNAL)
+    if kind == AudienceKind.ALL_CLIENTS:
+        return qs.filter(kind=UserKind.CLIENT)
+    if kind == AudienceKind.TEAMS:
+        return qs.filter(
+            kind=UserKind.INTERNAL, teams__in=announcement.target_teams.all()
+        ).distinct()
+    if kind == AudienceKind.ROLES:
+        return qs.filter(
+            kind=UserKind.INTERNAL, internal_role__in=announcement.target_roles
+        )
+    if kind == AudienceKind.COMPANIES:
+        return qs.filter(
+            kind=UserKind.CLIENT, company__in=announcement.target_companies.all()
+        )
+    if kind == AudienceKind.PLANS:
+        return qs.filter(
+            kind=UserKind.CLIENT, company__plan__in=announcement.target_plans.all()
+        )
+    return qs.none()

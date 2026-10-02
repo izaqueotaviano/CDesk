@@ -8,7 +8,12 @@ essa é a que, se quebrar, vaza conversa interna para fora.
 import pytest
 
 from apps.accounts.models import AgentTeam, InternalRole, Team, User, UserKind
-from apps.notifications.models import Notification, NotificationKind
+from apps.notifications.models import (
+    Notification,
+    NotificationKind,
+    NotificationPreference,
+    OutboundEmail,
+)
 from apps.tickets.models import TicketMention, TicketStatusEvent, TicketWatcher
 from apps.tickets.services import ticket_service
 from apps.tickets.services.mentions import alvos_de_mencao, mencoes_de
@@ -102,7 +107,7 @@ class TestEfeitoDaMencao:
 
         aviso = Notification.objects.get(recipient=izaque)
         assert aviso.kind == NotificationKind.MENTION
-        assert aviso.url == f"/tickets/{ticket.pk}#mensagem-{msg.pk}"
+        assert aviso.url == f"/tickets/{ticket.pk}#mensagem-{msg.pk}"  # menção é sempre interna
         # o sino mostra o nome, não a marcação crua
         assert "@Izaque Sá" in aviso.body
 
@@ -135,6 +140,70 @@ class TestEfeitoDaMencao:
         assert "Izaque Sá" in evento.note
         # menção não mexe no status do ticket
         assert evento.from_status == evento.to_status
+
+
+class TestEmailDaMencao:
+    """MENTION só avisava in-app — o toggle de e-mail existia na tela e não
+    tinha efeito nenhum, porque nada consultava `quer_email` para este tipo."""
+
+    def test_mencao_envia_email_ao_mencionado(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        ticket = make_ticket(ana, suporte)
+        _nota(ticket, agente_suporte, f"@[user:{izaque.pk}] pode olhar?")
+
+        email = OutboundEmail.objects.get(to_email=izaque.email, template="mention")
+        assert email.ticket_id == ticket.pk
+        assert ticket.reference in email.subject
+
+    def test_email_desligado_nao_envia(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        NotificationPreference.objects.create(user=izaque, email={"mention": False})
+        ticket = make_ticket(ana, suporte)
+        _nota(ticket, agente_suporte, f"@[user:{izaque.pk}] pode olhar?")
+
+        # o sino continua ligado (default) — só o e-mail foi desligado
+        assert Notification.objects.filter(recipient=izaque, kind=NotificationKind.MENTION).exists()
+        assert not OutboundEmail.objects.filter(template="mention").exists()
+
+    def test_nota_formatada_chega_ao_email_em_texto_puro_e_em_html(
+        self, make_ticket, ana, suporte, agente_suporte, izaque,
+        django_capture_on_commit_callbacks,
+    ):
+        """A nota escrita com a formatação leve (`**`, lista) não chega crua:
+        a parte de texto vai sem marcador e a parte HTML vai formatada."""
+        from django.core import mail
+
+        ticket = make_ticket(ana, suporte)
+        mail.outbox.clear()
+        with django_capture_on_commit_callbacks(execute=True):
+            _nota(
+                ticket, agente_suporte,
+                f"@[user:{izaque.pk}] **urgente**: conferir\n- nota fiscal\n- boleto",
+            )
+
+        enviado = next(m for m in mail.outbox if m.to == [izaque.email])
+        assert "**" not in enviado.body
+        assert "urgente: conferir" in enviado.body
+        assert "• nota fiscal" in enviado.body
+        assert "@Izaque Sá" in enviado.body
+        html = enviado.alternatives[0][0]
+        assert "<strong>urgente</strong>" in html
+        assert "<li>nota fiscal</li>" in html
+
+        # o sino recebe a mesma nota, sem marcador
+        aviso = Notification.objects.get(recipient=izaque, kind=NotificationKind.MENTION)
+        assert "**" not in aviso.body
+
+    def test_mencao_repetida_gera_um_email_so(
+        self, make_ticket, ana, suporte, agente_suporte, izaque
+    ):
+        ticket = make_ticket(ana, suporte)
+        marca = f"@[user:{izaque.pk}]"
+        _nota(ticket, agente_suporte, f"{marca} e de novo {marca} e {marca}")
+
+        assert OutboundEmail.objects.filter(to_email=izaque.email, template="mention").count() == 1
 
     def test_mencao_repetida_gera_uma_notificacao_so(
         self, make_ticket, ana, suporte, agente_suporte, izaque

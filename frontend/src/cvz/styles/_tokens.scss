@@ -2,20 +2,31 @@
 // cvzdesk · design tokens
 // Fonte única de verdade. Nenhum componente declara hex ou px de raio direto.
 //
-// Copiado VERBATIM do MCP cvzdesk (get_tokens) em 2026-09-04. Não editar à
-// mão — se um valor precisar mudar, muda na fonte (cvzdesk) e recopia aqui.
+// A estrutura veio do MCP cvzdesk (get_tokens, 2026-09-04); os VALORES de cor
+// já são os do Resolv (ver _theme.scss). Mudança de valor se faz aqui/no tema,
+// não recopiando do cvzdesk — recopiar desfaria a identidade do produto.
 // =============================================================================
 
 // --- cor: marca --------------------------------------------------------------
+// A AÇÃO (`cz-btn`): carvão no claro, claro no escuro.
+$primary:         var(--cvz-primary);
+$primary-hover:   var(--cvz-primary-hover);
+$on-primary:      var(--cvz-on-primary);
+// Legado: era o laranja cheio. Hoje vale o acento — não use em código novo.
+$brand:           var(--cvz-brand);
+// `$blue` (o nome ficou) é o ACENTO único do produto — carvão no claro,
+// quase-branco no escuro: link, item ativo, aba, série de gráfico, foco.
 $blue:            var(--cvz-blue);
 $blue-hover:      var(--cvz-blue-hover);
 $blue-active:     var(--cvz-blue-active);
 
 // --- cor: superfícies --------------------------------------------------------
-$surface:         var(--cvz-surface);      // fundo do conteúdo
+$surface:         var(--cvz-surface);      // fundo do conteúdo (cards, tabelas, modais)
+$canvas:          var(--cvz-canvas);       // fundo geral atrás do conteúdo (SuperficieCvz)
 $chrome:          var(--cvz-chrome);       // sidebar e topbar
 $raised:          var(--cvz-raised);       // cards, campos, popovers
-$stroke:          var(--cvz-stroke);
+$stroke:          var(--cvz-stroke);       // linha estrutural: tabela, card, cromo
+$field-border:    var(--cvz-field-border); // linha de CAMPO (só input/select/etc.)
 $hover:           var(--cvz-hover);        // item em hover/ativo no chrome
 $hover-soft:      var(--cvz-hover-soft);
 
@@ -26,6 +37,8 @@ $text-secondary:  var(--cvz-text-secondary);
 $text-muted:      var(--cvz-text-muted);
 $text-on-dark:    var(--cvz-text-on-color);
 $text-on-accent:  var(--cvz-text-on-accent);  // sobre $blue — muda no escuro
+// Halo do campo em foco — a borda é que leva o contraste (ver mixin field).
+$focus-ring:      var(--cvz-focus-ring);
 
 // --- cor: semântica ----------------------------------------------------------
 $danger:          var(--cvz-danger);
@@ -37,22 +50,51 @@ $overlay:         var(--cvz-overlay);
 $chrome-glass:    var(--cvz-chrome-glass);
 $on-accent-soft:  var(--cvz-on-accent-soft);
 
-// --- cor: avatar -------------------------------------------------------------
-$avatar-bg:       var(--cvz-avatar-bg);
+// --- cor: identidade ---------------------------------------------------------
+// Mapas (e não seis variáveis soltas) para os componentes iterarem:
+// `@each $i, $cor in $identity-fill`. `fill` é o avatar; `text` é o rótulo
+// sobre tint (Tag), que clareia no escuro (ver _theme.scss).
+$identity-fill: (
+  1: var(--cvz-identity-1), 2: var(--cvz-identity-2), 3: var(--cvz-identity-3),
+  4: var(--cvz-identity-4), 5: var(--cvz-identity-5), 6: var(--cvz-identity-6),
+);
+$identity-text: (
+  1: var(--cvz-identity-1-text), 2: var(--cvz-identity-2-text), 3: var(--cvz-identity-3-text),
+  4: var(--cvz-identity-4-text), 5: var(--cvz-identity-5-text), 6: var(--cvz-identity-6-text),
+);
 
 // --- stroke ------------------------------------------------------------------
-$stroke-w:        0.7px;
-$border:          $stroke-w solid $stroke;
+$stroke-w:        1px;
+// Sem moldura. As 44 caixas e divisórias do admin desenhavam com esta
+// variável; agora o que separa um bloco do fundo é o TOM e o espaço.
+// `$border-field` (campo de entrada) continua intacto — é a única
+// borda que o briefing mantém.
+$border:          none;
+
+// Campo de entrada tem linha PRÓPRIA, mais escura: input precisa se anunciar
+// como editável, e com a cor da linha estrutural (mais clara) o formulário
+// desaparecia dentro da página. A espessura hoje é a mesma de `$stroke-w`
+// (as duas em 1px) — a distinção é só de cor. Só input/select/textarea/
+// combobox usam isto — tabela, card, sidebar e aba continuam em `$border`.
+$field-border-w:  1px;
+$border-field:    $field-border-w solid $field-border;
 
 // Marcador de estado — aba ativa, linha selecionada, item de menu ativo, borda
-// esquerda de notificação. Não é borda: a 0.7px o indicador desaparece.
+// esquerda de notificação. Mais grosso que `$stroke-w` de propósito: um
+// indicador do mesmo traço da borda estrutural se perde ao lado dela.
 $marker-w:        2px;
 $focus-w:         2px;   // espessura do anel de foco
 $tooltip-arrow:   4px;   // metade da base do triângulo do tooltip
 
 // --- raio --------------------------------------------------------------------
-$radius:          2px;   // padrão em tudo
-$radius-pill:     7px;   // badges
+// Três raios, os mesmos do console: 8 no que é controle (botão, campo, chip),
+// 12 no que é superfície (cartão, tabela, modal, popover) e cápsula no que é
+// pílula (Toggle, Tag, Progress, busca). Pílula é forma, não estilo: um
+// interruptor com trilho quase reto e bolinha redonda lia como quebrado. Só
+// forma circular de verdade (avatar, ponto de status) segue em 50%.
+$radius:          8px;   // controle — botão, campo, chip
+$radius-card:     12px;  // superfície — cartão, tabela, popover, modal
+$radius-pill:     999px;
 $radius-circle:   50%;
 
 // --- métricas do shell ------------------------------------------------------
@@ -92,8 +134,9 @@ $sp-4: 16px; $sp-5: 24px; $sp-6: 32px;
 $sp-7: 48px; $sp-8: 64px;
 
 // --- tipografia --------------------------------------------------------------
-$f-ui:   var(--f-ui, 'Inter', -apple-system, system-ui, sans-serif);
-$f-mono: var(--f-mono, 'JetBrains Mono', ui-monospace, monospace);
+$f-ui: Inter, sans-serif;
+$f-mono: Inter, sans-serif;
+$f-display: Inter, sans-serif;
 
 $w-light:    300; // texto corrido
 $w-regular:  400;
@@ -135,17 +178,23 @@ $bp-xl: 1280px;  // desktop
 // TIPOGRAFIA — escala fechada
 // Nenhum componente declara font-size ou line-height literal. Se um tamanho não
 // está aqui, ele não existe no produto.
+//
+// QUATRO tamanhos, os mesmos do console e do portal (styles/tokens.css):
+// 12 rótulo, 14 interface, 16 título de seção, 28 título de página. Os dez
+// nomes continuam para não reescrever tela nenhuma, mas caem nesses quatro —
+// a hierarquia vem do peso e do espaço, não de mais um degrau de tamanho (os
+// 9/10/11/13/15/17/20/26px de antes faziam o admin parecer outro produto).
 // =============================================================================
-$fs-micro:    9px;   // contador dentro de badge (sempre mono)
-$fs-caption: 10px;   // overline, timestamp, legenda de coluna
-$fs-label:   11px;   // rótulo de campo, header de tabela, tag, atalho
+$fs-micro:   12px;   // contador dentro de badge
+$fs-caption: 12px;   // overline, timestamp, legenda de coluna
+$fs-label:   12px;   // rótulo de campo, header de tabela, tag, atalho
 $fs-meta:    12px;   // texto de apoio, metadado, célula secundária
-$fs-ui:      13px;   // padrão da interface: botão, célula, item de lista
+$fs-ui:      14px;   // padrão da interface: botão, célula, item de lista
 $fs-body:    14px;   // texto corrido, item de resultado de busca
-$fs-title:   15px;   // título de painel, assunto de ticket em lista
-$fs-subhead: 17px;   // título de seção, assunto no detalhe do ticket
-$fs-heading: 20px;   // título de página
-$fs-display: 26px;   // número de KPI, título de tela vazia
+$fs-title:   16px;   // título de painel, título de seção
+$fs-subhead: 16px;   // título de seção, assunto no detalhe do ticket
+$fs-heading: 28px;   // título de página
+$fs-display: 28px;   // número de KPI, título de tela vazia
 
 $lh-none:   1;       // só para texto de uma linha com altura controlada
 $lh-tight:  1.2;     // títulos

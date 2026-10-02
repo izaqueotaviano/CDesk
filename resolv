@@ -3,12 +3,13 @@
 # resolv — sobe o sistema inteiro (backend + frontend) com um comando.
 #
 #   ./resolv              atualiza, sobe API e frontend, migra e semeia
-#   ./resolv compartilhar como acima, e diz como outra máquina alcança a API
+#   ./resolv compartilhar como acima, e libera sozinho o acesso pela rede local
 #   ./resolv parar        derruba tudo (containers e frontend)
 #   ./resolv logs         acompanha o log da API
 #   ./resolv logs front   acompanha o log do frontend (Vite)
 #   ./resolv logs worker  acompanha o log das tarefas de fundo (Celery)
 #   ./resolv estado       mostra o que está no ar
+#   ./resolv diagnostico  junta tudo que importa quando "não entra"
 #   ./resolv antivirus    sobe também o ClamAV (opcional, pesado)
 #   ./resolv ajuda
 #
@@ -141,10 +142,22 @@ atualizar_codigo() {
 }
 
 preparar_env() {
-  [ -f .env ] && return 0
-  passo "Criando .env a partir do exemplo"
-  cp .env.example .env
-  ok ".env criado."
+  if [ ! -f .env ]; then
+    passo "Criando .env a partir do exemplo"
+    cp .env.example .env
+    ok ".env criado."
+  fi
+
+  # DATABASE_URL/REDIS_URL do .env.example apontam para os nomes de serviço
+  # do Docker Compose ("db", "redis") — só resolvem dentro da rede que o
+  # próprio Compose cria. No modo nativo não existe essa rede: a API cairia
+  # em "failed to resolve host" na primeira migração. Reescreve para
+  # 127.0.0.1 sempre que ainda apontar para lá — inclusive num .env que já
+  # existia (self-heal de uma subida nativa anterior que rodou sem isto).
+  if [ "$MODO" = "nativo" ]; then
+    sed -i -E 's#^(DATABASE_URL=postgres://[^@]+@)db(:)#\1127.0.0.1\2#' .env
+    sed -i -E 's#^(REDIS_URL=redis://)redis(:)#\1127.0.0.1\2#' .env
+  fi
 }
 
 # Roda um comando do manage.py onde ele mora em cada modo: dentro do container
@@ -210,13 +223,26 @@ preparar_venv() {
     passo "Criando o ambiente virtual do Python (só na primeira vez)"
     python3 -m venv "$VENV" || morrer "Falhou criar o virtualenv."
   fi
-  # Confere uma dependência de verdade em vez de um marcador: um venv criado
-  # pela metade (instalação interrompida) passaria por qualquer teste de
-  # "a pasta existe" e só quebraria no primeiro import.
-  if ! "$VENV/bin/python" -c "import django" >/dev/null 2>&1; then
+  # Duas perguntas diferentes, e as duas precisam de resposta:
+  #
+  # 1. O venv está INTEIRO? Confere um import de verdade em vez de um
+  #    marcador — um venv criado pela metade (instalação interrompida)
+  #    passaria por qualquer teste de "a pasta existe" e só quebraria no
+  #    primeiro import.
+  # 2. O venv está ATUAL? Um venv completo do mês passado passa no teste 1 e
+  #    mesmo assim não tem a dependência que entrou ontem. Era esse o buraco:
+  #    quem já tinha o projeto rodando nunca reinstalava, e o erro só
+  #    aparecia longe da causa ("No module named 'nh3'") na primeira tela que
+  #    usasse a biblioteca nova. Mesma ideia que `preparar_frontend` usa para
+  #    o `package-lock.json`: se o `pyproject.toml` mudou depois da última
+  #    instalação, o que está instalado está velho.
+  local carimbo="$VENV/.dependencias-instaladas"
+  if ! "$VENV/bin/python" -c "import django" >/dev/null 2>&1 \
+     || [ ! -f "$carimbo" ] || [ pyproject.toml -nt "$carimbo" ]; then
     passo "Instalando as dependências do backend (demora um pouco)"
     "$VENV/bin/pip" install -q --upgrade pip >/dev/null 2>&1 || true
     "$VENV/bin/pip" install -q -e ".[dev]" || morrer "pip install falhou — veja a mensagem acima."
+    touch "$carimbo"
     ok "Dependências instaladas."
   fi
 }
@@ -237,6 +263,42 @@ api_no_ar() {
   [ -n "$code" ] && [ "$code" != "000" ]
 }
 
+# ClamAV só existe como serviço do compose ("clamav" no CLAMAV_HOST). No modo
+# nativo esse nome não resolve, e o efeito é silencioso e total: o anexo SOBE
+# (201), fica em quarentena esperando uma varredura que nunca vem, tenta cinco
+# vezes, vira `error` — e o fail-closed do D19 o mantém bloqueado para sempre.
+# Da tela, isso se lê como "não dá para enviar anexo nenhum".
+#
+# A saída honesta é desligar a varredura nesta execução: o anexo nasce
+# `skipped` ("não verificado"), que é exatamente o que o modelo já documenta
+# para este caso — e nunca `clean`, que seria mentir. Só vale para o processo
+# que este script sobe; nada é escrito no .env, e produção segue fail-closed.
+CLAMAV_ARGS=""
+avaliar_clamav() {
+  local host porta
+  host=$(sed -n 's/^CLAMAV_HOST=//p' .env 2>/dev/null | tail -1)
+  porta=$(sed -n 's/^CLAMAV_PORT=//p' .env 2>/dev/null | tail -1)
+  host=${host:-clamav}
+  porta=${porta:-3310}
+  # a varredura já está desligada no .env: nada a fazer
+  case "$(sed -n 's/^CLAMAV_ENABLED=//p' .env 2>/dev/null | tail -1)" in
+    0|false|False|no) return 0 ;;
+  esac
+  # No Docker o daemon é um profile opcional: só existe se alguém pediu.
+  if [ "$MODO" = "docker" ]; then
+    docker compose ps --services --status running 2>/dev/null | grep -qx clamav && return 0
+  elif (exec 3<>"/dev/tcp/$host/$porta") 2>/dev/null; then
+    exec 3<&- 2>/dev/null || true
+    return 0
+  fi
+  CLAMAV_ARGS="0"
+  # Persiste no .env também: quem sobe a API por fora deste script (IDE,
+  # `manage.py runserver`) herdaria o 1 e cairia na mesma quarentena eterna.
+  sed -i -E 's#^CLAMAV_ENABLED=.*#CLAMAV_ENABLED=0#' .env
+  aviso "ClamAV não responde em $host:$porta — anexos entram como “não verificados”."
+  aviso "Gravei CLAMAV_ENABLED=0 no .env. Em produção a varredura continua obrigatória."
+}
+
 subir_api_nativa() {
   if api_no_ar; then
     ok "API já no ar."
@@ -251,6 +313,7 @@ subir_api_nativa() {
   # pasta inteira do projeto — sem o recorte ele vigiaria .venv e
   # node_modules, dezenas de milhares de arquivos que nunca mudam.
   ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+    [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
     nohup "$VENV/bin/uvicorn" config.asgi:application --host 0.0.0.0 --port 8000 \
       --reload --reload-dir apps --reload-dir config \
       >"$API_LOG" 2>&1 & )
@@ -271,6 +334,7 @@ subir_jobs_nativos() {
     ok "Worker já no ar."
   else
     ( export DJANGO_SETTINGS_MODULE=config.settings.dev
+      [ -n "$CLAMAV_ARGS" ] && export CLAMAV_ENABLED="$CLAMAV_ARGS"
       nohup "$VENV/bin/celery" -A config worker -Q default,reports -l info \
         >"$WORKER_LOG" 2>&1 & )
     ok "Worker no ar."
@@ -303,6 +367,7 @@ parar_backend_nativo() {
 
 subir_backend_nativo() {
   passo "Subindo backend nativo (PostgreSQL, Redis, API)"
+  avaliar_clamav
   subir_postgres
   preparar_banco
   subir_redis
@@ -326,6 +391,20 @@ esperar_backend_nativo() {
 
 subir_backend_docker() {
   passo "Subindo backend (banco, Redis, API, worker)"
+  # antes do `up`: o .env corrigido é o que os containers vão ler
+  avaliar_clamav
+  # O mesmo problema do venv, na versão container: a imagem instala as
+  # dependências no build, então `up -d` sozinho sobe felizmente uma imagem
+  # velha, sem a biblioteca que entrou depois. `--build` em TODA execução
+  # custaria o contexto inteiro por nada; aqui ele só entra quando o que
+  # define a imagem mudou depois do último build.
+  local carimbo=".docker-imagem-construida"
+  if [ ! -f "$carimbo" ] || [ pyproject.toml -nt "$carimbo" ] \
+     || [ Dockerfile -nt "$carimbo" ] || [ docker-compose.yml -nt "$carimbo" ]; then
+    passo "Reconstruindo a imagem do backend (uma dependência mudou)"
+    docker compose build web || morrer "docker compose build falhou — veja a mensagem acima."
+    touch "$carimbo"
+  fi
   docker compose up -d
   ok "Containers no ar."
 }
@@ -358,6 +437,10 @@ migrar() {
   passo "Aplicando migrações do banco"
   manage migrate --no-input >/dev/null
   ok "Banco em dia."
+  # Anexos que ficaram presos numa subida anterior (esperando um ClamAV que
+  # não existia) — com a varredura desligada, viram "não verificado". Sem
+  # isto o anexo antigo continuaria bloqueado mesmo depois da correção.
+  manage liberar_quarentena >/dev/null 2>&1 || true
 }
 
 # semeia só quando o banco está vazio: rodar de novo por cima não estraga nada,
@@ -378,6 +461,17 @@ semear_se_vazio() {
         >/dev/null 2>&1; then
       passo "Sem conversas de chat — criando as de demonstração"
       manage seed_demo >/dev/null 2>&1 || true
+    fi
+    # Mesmo raciocínio para os CADASTROS que o seed cria e que nasceram depois
+    # deste banco: `seed_defaults` só rodava em banco vazio, então quem já
+    # tinha o sistema instalado ficava sem os motivos de encerramento e abria
+    # "Encerrar" com um seletor vazio. O comando é idempotente
+    # (`update_or_create`) — rodar de novo só preenche o que falta.
+    if ! manage shell -c \
+        "import sys; from apps.chat.models import ChatCloseReason; sys.exit(0 if ChatCloseReason.objects.exists() else 1)" \
+        >/dev/null 2>&1; then
+      passo "Cadastros novos desde a última versão — atualizando"
+      manage seed_defaults >/dev/null 2>&1 || true
     fi
     return 0
   fi
@@ -436,11 +530,57 @@ pasta_do_frontend_alheio() {
   return 1
 }
 
+# As dependências instaladas são mais velhas que o `package-lock.json`?
+# `-nt` (newer than) é a mesma ideia do carimbo do venv: se o lockfile mudou
+# depois da última instalação, o que está em node_modules está velho.
+frontend_desatualizado() {
+  [ ! -d "$FRONT_DIR/node_modules" ] \
+    || [ "$FRONT_DIR/package-lock.json" -nt "$FRONT_DIR/node_modules" ]
+}
+
+# `frontend/.env` GANHA do proxy do Vite: o que estiver ali é para onde a tela
+# vai falar, ponto. Isso é proposital (é assim que `./resolv compartilhar`
+# publica a API na rede), mas vira armadilha depois: o arquivo fica para trás,
+# o IP da rede muda ou você sai daquela rede, e a tela passa a chamar um
+# endereço que ninguém atende. O pedido não é recusado — fica pendurado. E
+# como `localhost:8000` continua respondendo a qualquer teste de terminal, o
+# sistema parece sadio enquanto a tela não entra.
+#
+# Custou uma tarde descobrir isso uma vez. Agora o script fala antes.
+conferir_destino_do_front() {
+  [ "$COMPARTILHANDO" = "1" ] && return 0
+  tem_frontend || return 0
+  [ -f "$FRONT_DIR/.env" ] || return 0
+
+  local destino
+  destino="$(grep -E '^VITE_API_BASE_URL=' "$FRONT_DIR/.env" 2>/dev/null | tail -1 | cut -d= -f2-)"
+  # tira aspas e espaços que alguém possa ter digitado à mão
+  destino="${destino//\"/}"; destino="${destino//\'/}"; destino="${destino// /}"
+  [ -z "$destino" ] && return 0
+  case "$destino" in *localhost*|*127.0.0.1*) return 0 ;; esac
+
+  # Não responde? Então é resto de outra rede, e a tela vai travar.
+  if curl -s -o /dev/null -m 4 "$destino/health/" 2>/dev/null; then
+    aviso "A tela vai falar com $destino (definido em $FRONT_DIR/.env), não com esta máquina."
+    aviso "Se não é o que você quer: rm $FRONT_DIR/.env"
+  else
+    erro "$FRONT_DIR/.env manda a tela falar com $destino — e esse endereço NÃO responde."
+    aviso "É o que sobra de um './resolv compartilhar' antigo, de quando seu IP era outro."
+    aviso "A tela vai abrir normalmente e o login vai ficar girando para sempre,"
+    aviso "porque o pedido sai para um endereço que ninguém atende."
+    aviso ""
+    aviso "  Para usar nesta máquina:   rm $FRONT_DIR/.env"
+    aviso "  Para publicar na rede:     ./resolv compartilhar"
+    aviso ""
+  fi
+}
+
 subir_frontend() {
   if ! tem_frontend; then
     aviso "Sem a pasta $FRONT_DIR/ — subindo só o backend."
     return 0
   fi
+  conferir_destino_do_front
   passo "Subindo frontend (Vite, porta 5174)"
   if front_no_ar; then
     # "a porta responde" NÃO é "o meu frontend está no ar". Um Vite de outro
@@ -448,22 +588,45 @@ subir_frontend() {
     # isso calado servia a versão errada com um "já estava no ar" verde na
     # tela — o pior tipo de erro, o que parece sucesso.
     if frontend_e_daqui; then
-      ok "Já estava no ar."
-      return 0
+      # "É o meu Vite" ainda não é "é o meu Vite ATUALIZADO". O processo que
+      # está no ar guarda em memória o grafo de módulos e o pré-bundle de
+      # `node_modules/.vite/deps` de quando SUBIU. Depois de um `git pull` que
+      # mexe no `package-lock.json`, esse pré-bundle aponta para dependências
+      # que mudaram ou sumiram — e o navegador pede um módulo que não existe
+      # mais. Isso não dá erro na porta (ela responde 200, é o index.html):
+      # dá TELA EM BRANCO, porque quem falha é o import, depois do HTML.
+      # Sair daqui com "já estava no ar" era servir a versão errada com um
+      # visto verde — de novo o pior tipo de erro, o que parece sucesso.
+      if ! frontend_desatualizado; then
+        ok "Já estava no ar."
+        return 0
+      fi
+      aviso "O Vite no ar subiu com dependências antigas (o lockfile mudou)."
+      aviso "Reiniciando para não servir uma versão que o navegador não consegue carregar."
+      parar_frontend >/dev/null 2>&1 || true
+      sleep 1
+    else
+      local outra
+      outra="$(pasta_do_frontend_alheio || true)"
+      aviso "A porta 5174 já respondia, mas de OUTRA pasta:"
+      [ -n "$outra" ] && aviso "  $outra"
+      aviso "Derrubando esse para subir o desta aqui ($RAIZ)."
+      parar_frontend >/dev/null 2>&1 || true
+      sleep 1
     fi
-    local outra
-    outra="$(pasta_do_frontend_alheio || true)"
-    aviso "A porta 5174 já respondia, mas de OUTRA pasta:"
-    [ -n "$outra" ] && aviso "  $outra"
-    aviso "Derrubando esse para subir o desta aqui ($RAIZ)."
-    parar_frontend >/dev/null 2>&1 || true
-    sleep 1
     if front_no_ar; then
       morrer "A porta 5174 continua ocupada por outro processo. Feche-o e rode de novo."
     fi
   fi
-  if [ ! -d "$FRONT_DIR/node_modules" ]; then
-    passo "Instalando dependências do frontend (só na primeira vez — demora um pouco)"
+  # A pasta existir não basta: "atualizar_codigo" já rodou o `git pull` antes
+  # daqui, e um `package.json` com dependência nova (ex.: a rodada que trouxe
+  # o CKEditor) deixa `node_modules` presente mas incompleto — o Vite só
+  # avisa disso na cara de quem abre a tela, com "Failed to resolve import".
+  # `-nt` (newer than) é a mesma ideia do `preparar_venv` (que confere um
+  # import de verdade em vez de só a pasta existir): se o lockfile mudou
+  # depois da última instalação, node_modules está desatualizado.
+  if frontend_desatualizado; then
+    passo "Instalando dependências do frontend (pode demorar um pouco)"
     ( cd "$FRONT_DIR" && npm install --no-audit --no-fund ) \
       || morrer "npm install falhou — veja a mensagem acima."
     ok "Dependências instaladas."
@@ -546,6 +709,74 @@ ip_local() {
   fi
 }
 
+# env_definir ARQUIVO CHAVE VALOR — troca o valor de CHAVE em ARQUIVO, ou
+# acrescenta a linha se a chave ainda não existir (self-heal de um .env
+# antigo, de antes desta variável existir).
+env_definir() {
+  local arquivo="$1" chave="$2" valor="$3"
+  if grep -q "^${chave}=" "$arquivo" 2>/dev/null; then
+    sed -i -E "s#^${chave}=.*#${chave}=${valor}#" "$arquivo"
+  else
+    echo "${chave}=${valor}" >> "$arquivo"
+  fi
+}
+
+# env_incluir_origem ARQUIVO CHAVE ORIGEM — garante que ORIGEM apareça na
+# lista separada por vírgula de CHAVE, sem duplicar e sem apagar o que já
+# tinha (o localhost continua liberado, senão quem desenvolve nesta máquina
+# para de conseguir logar).
+env_incluir_origem() {
+  local arquivo="$1" chave="$2" origem="$3" atual
+  atual="$(sed -n -E "s#^${chave}=(.*)#\1#p" "$arquivo" 2>/dev/null | head -1)"
+  case ",$atual," in
+    *",$origem,"*) return 0 ;;
+  esac
+  env_definir "$arquivo" "$chave" "${atual:+$atual,}$origem"
+}
+
+# Só entra em jogo pelo `./resolv compartilhar`: descobre o IP da rede local
+# e grava sozinho o que antes era um passo manual — DJANGO_ALLOWED_HOSTS_EXTRA/
+# CORS_ALLOWED_ORIGINS/CSRF_TRUSTED_ORIGINS no .env da raiz, e
+# VITE_API_BASE_URL/VITE_WS_BASE_URL no frontend/.env (criado a partir do
+# .env.example se ainda não existir). Imprime o IP encontrado (vazio se não
+# achou) e marca REDE_MUDOU=1 quando algo nos arquivos mudou de verdade, para
+# quem chamar decidir se vale reiniciar o que já estava no ar.
+REDE_MUDOU=0
+# 1 só durante './resolv compartilhar': lá o frontend/.env apontar para um
+# IP da rede é a intenção, não um resto esquecido.
+COMPARTILHANDO=0
+configurar_rede_local() {
+  local ip; ip="$(ip_local)"
+  if [ -z "$ip" ]; then
+    aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
+    aviso "Depois preencha \$ip à mão no .env (DJANGO_ALLOWED_HOSTS_EXTRA/CORS_ALLOWED_ORIGINS/CSRF_TRUSTED_ORIGINS)."
+    return 0
+  fi
+
+  # "|| true" nos dois cksum: no primeiro compartilhamento o frontend/.env
+  # ainda não existe, e cksum num arquivo que não existe sai com erro — sem
+  # isto o set -e do topo do script derrubava o resolv inteiro bem aqui,
+  # antes mesmo de gravar a configuração.
+  local origem="http://$ip:5174" antes depois
+  antes="$(cksum .env 2>/dev/null || true)"
+  tem_frontend && antes="$antes$(cksum "$FRONT_DIR/.env" 2>/dev/null || true)"
+
+  env_definir .env DJANGO_ALLOWED_HOSTS_EXTRA "$ip"
+  env_incluir_origem .env CORS_ALLOWED_ORIGINS "$origem"
+  env_incluir_origem .env CSRF_TRUSTED_ORIGINS "$origem"
+
+  if tem_frontend; then
+    [ -f "$FRONT_DIR/.env" ] || cp "$FRONT_DIR/.env.example" "$FRONT_DIR/.env"
+    env_definir "$FRONT_DIR/.env" VITE_API_BASE_URL "http://$ip:8000"
+    env_definir "$FRONT_DIR/.env" VITE_WS_BASE_URL "ws://$ip:8000"
+  fi
+
+  depois="$(cksum .env 2>/dev/null || true)"
+  tem_frontend && depois="$depois$(cksum "$FRONT_DIR/.env" 2>/dev/null || true)"
+  [ "$antes" = "$depois" ] || REDE_MUDOU=1
+  printf '%s' "$ip"
+}
+
 pronto() {
   local compartilhar="${1:-}"
 
@@ -566,13 +797,19 @@ pronto() {
     local ip; ip="$(ip_local)"
     echo
     if [ -n "$ip" ]; then
-      echo "  Da sua rede:   ${B}http://$ip:8000/api/v1/${N}"
+      if tem_frontend; then
+        # O Vite (vite.config.ts) já escuta em todas as interfaces
+        # (host: true), e configurar_rede_local já apontou o bundle pro
+        # backend certo — sem isso quem acessasse de outro aparelho batia
+        # em "localhost:8000" DO APARELHO DELE, que não tem nada rodando.
+        echo "  Da sua rede:   ${B}http://$ip:5174${N}  ← passe este link pra quem for testar"
+        echo "  API:           http://$ip:8000/api/v1/"
+      else
+        echo "  Da sua rede:   ${B}http://$ip:8000/api/v1/${N}"
+      fi
     else
       aviso "Não consegui descobrir seu IP de rede — veja em Preferências de Rede/Sistema."
     fi
-    echo "  Para o front alcançar a API de outra origem, preencha no .env:"
-    echo "    DJANGO_ALLOWED_HOSTS_EXTRA, CORS_ALLOWED_ORIGINS e CSRF_TRUSTED_ORIGINS"
-    echo "  e rode este comando de novo."
   fi
 
   echo
@@ -612,10 +849,26 @@ subir() {
 }
 
 compartilhar() {
+  COMPARTILHANDO=1
   detectar_modo
   conferir_ferramentas
   atualizar_codigo
   preparar_env
+  configurar_rede_local >/dev/null
+  # Backend/frontend podem já estar no ar de um './resolv' anterior, sem
+  # compartilhamento — nesse caso 'subir_backend'/'subir_frontend' só veem
+  # "já no ar" e pulam o restart, e o navegador de quem testar bate contra
+  # um CORS/CSRF configurado ainda pra localhost. Derrubar aqui garante que
+  # os dois sobem de novo já com o .env/.env do frontend atualizados.
+  if [ "$REDE_MUDOU" = "1" ]; then
+    passo "Configuração de rede mudou — reiniciando o que já estava no ar"
+    if [ "$MODO" = "docker" ]; then
+      docker compose rm -sf web worker beat >/dev/null 2>&1 || true
+    else
+      parar_backend_nativo >/dev/null 2>&1 || true
+    fi
+    parar_frontend >/dev/null 2>&1 || true
+  fi
   subir_backend
   subir_frontend
   esperar_backend
@@ -698,6 +951,125 @@ antivirus() {
   ok "Antivírus no ar."
 }
 
+# --------------------------------------------------------------------------- #
+# Diagnóstico
+# --------------------------------------------------------------------------- #
+#
+# Existe porque depurar "não entra" por mensagem de chat é lento e impreciso:
+# cada pergunta custa uma ida e volta, e "não funciona" cabe em três problemas
+# diferentes. Aqui sai tudo de uma vez, numa saída só, pronta para colar.
+#
+# Não muda nada no sistema — só olha e conta.
+
+# Uma chamada HTTP com teto de tempo, traduzida para linguagem humana. O
+# código de saída do curl diz tanto quanto o status HTTP: 7 é "ninguém
+# escutando" e 28 é "aceitou o pedido e não respondeu". São problemas
+# opostos, e confundir os dois manda a investigação para o lado errado.
+sonda() {
+  local rotulo="$1" metodo="$2" url="$3"; shift 3
+  local cod="" saida=0
+  cod="$(curl -s -o /dev/null -m 10 -w '%{http_code}' -X "$metodo" "$url" "$@" 2>/dev/null)" || saida=$?
+  case "$saida" in
+    0)  printf '  %-30s HTTP %s\n' "$rotulo" "$cod" ;;
+    7)  printf '  %-30s recusado (ninguém escutando)\n' "$rotulo" ;;
+    28) printf '  %-30s TRAVOU (aceitou e não respondeu)\n' "$rotulo" ;;
+    *)  printf '  %-30s falhou (curl %s)\n' "$rotulo" "$saida" ;;
+  esac
+}
+
+diagnostico() {
+  local relatorio="${TMPDIR:-/tmp}/resolv-diagnostico.txt"
+  {
+    echo "===== diagnóstico do Resolv ====="
+    date
+    echo
+
+    echo "-- código --"
+    echo "  commit:  $(git log -1 --oneline 2>/dev/null || echo '(fora de um repositório)')"
+    echo "  branch:  $(git branch --show-current 2>/dev/null || echo '?')"
+    echo "  pendente: $(git status --porcelain 2>/dev/null | wc -l | tr -d ' ') arquivo(s) alterado(s)"
+    echo
+
+    echo "-- ambiente --"
+    detectar_modo 2>/dev/null || true
+    echo "  modo:    ${MODO:-?}"
+    echo "  settings: $(grep -E '^DJANGO_SETTINGS_MODULE=' .env 2>/dev/null || echo '(não definido no .env)')"
+    # Este arquivo GANHA do proxy do Vite: se ele apontar para a porta 8000,
+    # o navegador volta a falar com duas origens e o proxy não serve de nada.
+    if [ -f "$FRONT_DIR/.env" ]; then
+      echo "  $FRONT_DIR/.env EXISTE — e ele ganha do proxy:"
+      sed 's/^/    /' "$FRONT_DIR/.env" | grep -v '^\s*#' | grep -v '^\s*$' || true
+    else
+      echo "  $FRONT_DIR/.env: não existe (certo — o proxy assume)"
+    fi
+    echo
+
+    echo "-- quem está nas portas --"
+    local p dir
+    for porta in 5174 8000; do
+      local achou=0
+      for p in $(lsof -ti ":$porta" 2>/dev/null || true); do
+        dir="$(cwd_do_pid "$p" 2>/dev/null || echo '?')"
+        echo "  $porta  pid $p  <- $dir"
+        achou=1
+      done
+      [ "$achou" = 0 ] && echo "  $porta  (ninguém)"
+    done
+    echo
+
+    echo "-- o backend, direto na 8000 --"
+    sonda "health (sem banco/redis)" GET "$URL/health/"
+    sonda "auth/me (espera 401)"     GET "$URL/api/v1/auth/me/"
+    echo
+
+    echo "-- o backend PELO PROXY do Vite (5174) --"
+    echo "   é por aqui que o navegador fala; se diferir do bloco acima,"
+    echo "   o problema está no proxy, não no Django."
+    sonda "health pelo proxy"    GET "$FRONT_URL/health/"
+    sonda "auth/me (espera 401)" GET "$FRONT_URL/api/v1/auth/me/"
+    echo
+
+    echo "-- o preflight (só o navegador manda isto; o curl comum, não) --"
+    sonda "OPTIONS login (espera 200)" OPTIONS "$URL/api/v1/auth/login/" \
+      -H "Origin: $FRONT_URL" \
+      -H 'Access-Control-Request-Method: POST' \
+      -H 'Access-Control-Request-Headers: content-type'
+    echo
+
+    echo "-- login de ponta a ponta, com cookie, pelo proxy --"
+    local pote="${TMPDIR:-/tmp}/resolv-diag-cookies.txt"
+    rm -f "$pote"
+    sonda "POST login (espera 200)" POST "$FRONT_URL/api/v1/auth/login/" \
+      -H 'Content-Type: application/json' \
+      -d '{"email":"admin@demo.resolv.test","password":"resolv123"}' \
+      -c "$pote"
+    if [ -s "$pote" ] && grep -q sessionid "$pote" 2>/dev/null; then
+      echo "  sessionid recebido            sim"
+      # A pergunta que decide tudo: a sessão que o login acabou de criar é
+      # aceita na chamada seguinte? 200 = sadio; 401 = a sessão não gruda,
+      # que é o que produz a tela de "sua sessão expirou".
+      sonda "auth/me COM a sessão (200)" GET "$FRONT_URL/api/v1/auth/me/" -b "$pote"
+    else
+      echo "  sessionid recebido            NÃO — o login não criou sessão"
+    fi
+    rm -f "$pote"
+    echo
+
+    echo "-- o Vite está servindo o código atual? --"
+    local n
+    n="$(curl -s -m 10 "$FRONT_URL/src/api/client.ts" 2>/dev/null | grep -c 'TEMPO_LIMITE_MS' || true)"
+    echo "  teto de tempo no client.ts:   ${n:-0}  (0 = está servindo código velho)"
+    echo
+
+    echo "-- últimas linhas do log do Vite --"
+    tail -12 "$VITE_LOG" 2>/dev/null | sed 's/^/  /' || echo "  (sem $VITE_LOG)"
+    echo
+    echo "===== fim ====="
+  } 2>&1 | tee "$relatorio"
+  echo
+  ok "Salvo também em $relatorio"
+}
+
 ajuda() {
   sed -n '3,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
 }
@@ -708,6 +1080,7 @@ case "${1:-subir}" in
   parar|stop)                  parar ;;
   logs)                        logs "${2:-}" ;;
   estado|status|ps)            estado ;;
+  diagnostico|diagnóstico|doctor) diagnostico ;;
   antivirus|antivírus)         antivirus ;;
   ajuda|help|-h|--help)        ajuda ;;
   *) erro "Comando desconhecido: $1"; echo; ajuda; exit 1 ;;

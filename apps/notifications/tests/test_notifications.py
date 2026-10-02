@@ -1,12 +1,19 @@
 """Notificações: outbox de e-mail, in-app (atribuição/menção/reabertura) e SLA."""
 
 import datetime as dt
+from types import SimpleNamespace
 
 import pytest
 from django.core import mail
 from django.utils import timezone
 
-from apps.notifications.models import Notification, NotificationKind, OutboundEmail
+from apps.notifications.models import (
+    Notification,
+    NotificationKind,
+    NotificationPreference,
+    OutboundEmail,
+)
+from apps.notifications.services import quer_email, quer_in_app, ticket_url
 from apps.notifications.tasks import sla_scan
 from apps.tickets.models import Ticket, TicketStatus
 from apps.tickets.services import ticket_service
@@ -19,21 +26,39 @@ def _ticket(ana, suporte, **kw):
     )
 
 
+class TestTicketUrl:
+    """A rota do sino depende de quem clica: painel interno em `/tickets/<id>`,
+    portal em `/portal/tickets/<id>` (ver docstring de `ticket_url`)."""
+
+    def test_interno_cai_no_painel(self):
+        assert ticket_url(SimpleNamespace(pk=7), SimpleNamespace(is_internal=True)) == "/tickets/7"
+
+    def test_cliente_cai_no_portal(self):
+        cliente = SimpleNamespace(is_internal=False)
+        assert ticket_url(SimpleNamespace(pk=7), cliente) == "/portal/tickets/7"
+
+    def test_ancora_e_anexada(self):
+        agente = SimpleNamespace(is_internal=True)
+        url = ticket_url(SimpleNamespace(pk=7), agente, anchor="#mensagem-9")
+        assert url == "/tickets/7#mensagem-9"
+
+
 @pytest.mark.django_db(transaction=True)
 class TestNewTicketEmail:
     def test_email_queued_and_sent(self, ana, suporte, settings):
         settings.SUPPORT_NOTIFICATION_EMAIL = "suporte@empresa.test"
         ticket = _ticket(ana, suporte, subject="Site caiu")
 
-        row = OutboundEmail.objects.get(ticket=ticket)
+        # dois e-mails por abertura: o aviso ao suporte (este) e a
+        # confirmação ao cliente (`test_ciclo_de_vida_cliente`)
+        row = OutboundEmail.objects.get(ticket=ticket, template="new_ticket")
         assert row.status == OutboundEmail.Status.SENT  # task eager pós-commit
         assert row.dedupe_key == f"new-ticket-{ticket.pk}"
 
-        assert len(mail.outbox) == 1
-        sent = mail.outbox[0]
+        assert len(mail.outbox) == 2
+        sent = next(m for m in mail.outbox if m.to == ["suporte@empresa.test"])
         assert ticket.reference in sent.subject
         assert "Site caiu" in sent.subject
-        assert sent.to == ["suporte@empresa.test"]
         assert "não recebe respostas" in sent.body  # e-mail é só aviso, de propósito
 
     def test_team_email_overrides_global(self, ana, suporte, settings):
@@ -41,13 +66,15 @@ class TestNewTicketEmail:
         suporte.notification_email = "fila.suporte@empresa.test"
         suporte.save(update_fields=["notification_email"])
         _ticket(ana, suporte)
-        assert mail.outbox[0].to == ["fila.suporte@empresa.test"]
+        destinos = [m.to for m in mail.outbox]
+        assert ["fila.suporte@empresa.test"] in destinos
+        assert ["suporte@empresa.test"] not in destinos
 
     def test_no_email_configured_no_crash(self, ana, suporte, settings):
         settings.SUPPORT_NOTIFICATION_EMAIL = ""
         ticket = _ticket(ana, suporte)
         assert ticket.pk  # criação segue normal
-        assert OutboundEmail.objects.count() == 0
+        assert not OutboundEmail.objects.filter(template="new_ticket").exists()
 
 
 @pytest.mark.django_db
@@ -99,6 +126,61 @@ class TestInAppNotifications:
 
 
 @pytest.mark.django_db
+class TestAgentEmails:
+    """TICKET_ASSIGNED e TICKET_REOPENED só avisavam in-app — o toggle de
+    e-mail em Minha conta > Notificações existia, mas nada consultava
+    `quer_email` para estes tipos (mesmo gap do SLA em `TestSLA` abaixo)."""
+
+    def test_assignment_emails_the_assignee(self, ana, suporte, agente, colega):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
+        email = OutboundEmail.objects.get(to_email=colega.email, template="ticket_assigned")
+        assert email.ticket_id == ticket.pk
+        assert ticket.reference in email.subject
+
+    def test_assignment_email_desligado_nao_envia(self, ana, suporte, agente, colega):
+        NotificationPreference.objects.create(user=colega, email={"ticket_assigned": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
+        # o sino continua ligado (in_app não foi mexido) — só o e-mail sai
+        assert Notification.objects.filter(recipient=colega).exists()
+        assert not OutboundEmail.objects.filter(template="ticket_assigned").exists()
+
+    def test_self_assignment_nao_envia_email(self, ana, suporte, agente):
+        """Mesma regra do in-app: atribuir a si mesmo não gera aviso nenhum."""
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        assert not OutboundEmail.objects.filter(template="ticket_assigned").exists()
+
+    def test_reopen_emails_the_assignee(self, ana, suporte, agente):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        ticket_service.close_ticket(
+            ticket=ticket, actor=agente,
+            resolution_started_at=ticket.created_at,
+            resolution_ended_at=timezone.now(),
+        )
+        ticket.refresh_from_db()
+        ticket_service.add_reply(ticket=ticket, author=ana, body="voltou!")
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="ticket_reopened", ticket=ticket
+        ).exists()
+
+    def test_reopen_email_desligado_nao_envia(self, ana, suporte, agente):
+        NotificationPreference.objects.create(user=agente, email={"ticket_reopened": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        ticket_service.close_ticket(
+            ticket=ticket, actor=agente,
+            resolution_started_at=ticket.created_at,
+            resolution_ended_at=timezone.now(),
+        )
+        ticket.refresh_from_db()
+        ticket_service.add_reply(ticket=ticket, author=ana, body="voltou!")
+        assert not OutboundEmail.objects.filter(template="ticket_reopened").exists()
+
+
+@pytest.mark.django_db
 class TestSLA:
     def test_sla_applied_on_creation(self, ana, suporte, sla_policy):
         ticket = _ticket(ana, suporte)
@@ -121,6 +203,33 @@ class TestSLA:
             recipient=agente, kind=NotificationKind.SLA_WARNING
         ).exists()
 
+    def test_scan_warns_assignee_by_email(self, ana, suporte, agente, sla_policy):
+        """SLA_WARNING só existia in-app — o toggle de e-mail não tinha efeito."""
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() + dt.timedelta(minutes=10)
+        )
+        sla_scan()
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="sla_warning", ticket=ticket
+        ).exists()
+
+    def test_scan_warns_assignee_by_email_desligado_nao_envia(
+        self, ana, suporte, agente, sla_policy
+    ):
+        NotificationPreference.objects.create(user=agente, email={"sla_warning": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() + dt.timedelta(minutes=10)
+        )
+        sla_scan()
+        assert Notification.objects.filter(
+            recipient=agente, kind=NotificationKind.SLA_WARNING
+        ).exists()  # sino continua ligado
+        assert not OutboundEmail.objects.filter(template="sla_warning").exists()
+
     def test_scan_marks_breach_once(self, ana, suporte, agente, sla_policy):
         ticket = _ticket(ana, suporte)
         ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
@@ -137,6 +246,27 @@ class TestSLA:
         assert Notification.objects.filter(
             kind=NotificationKind.SLA_BREACHED
         ).count() == count
+
+    def test_scan_breach_emails_the_assignee(self, ana, suporte, agente, sla_policy):
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() - dt.timedelta(minutes=5)
+        )
+        sla_scan()
+        assert OutboundEmail.objects.filter(
+            to_email=agente.email, template="sla_breached", ticket=ticket
+        ).exists()
+
+    def test_scan_breach_email_desligado_nao_envia(self, ana, suporte, agente, sla_policy):
+        NotificationPreference.objects.create(user=agente, email={"sla_breached": False})
+        ticket = _ticket(ana, suporte)
+        ticket_service.assign(ticket=ticket, assignee=agente, actor=agente)
+        Ticket.objects.filter(pk=ticket.pk).update(
+            sla_first_response_due_at=timezone.now() - dt.timedelta(minutes=5)
+        )
+        sla_scan()
+        assert not OutboundEmail.objects.filter(template="sla_breached").exists()
 
     def test_breach_mark_is_idempotent_conditional_update(self, ana, suporte, agente, sla_policy):
         """A marcação de estouro é um UPDATE condicional (guarda no WHERE): rodar
@@ -191,3 +321,41 @@ class TestNotificationApi:
         ticket = _ticket(ana, suporte)
         ticket_service.assign(ticket=ticket, assignee=colega, actor=agente)
         assert api(agente).get("/api/v1/notifications/").json()["count"] == 0
+
+
+@pytest.mark.django_db
+class TestPreferenciaPadrao:
+    """O default exibido em GET /notification-preferences/ precisa bater com
+    o default que `quer_in_app`/`quer_email` realmente aplicam para quem
+    nunca configurou nada — já divergiu uma vez (a tela mostrava e-mail
+    desligado, o serviço mandava o e-mail do mesmo jeito), sem nenhum teste
+    flagrando. Isto trava a paridade para os dois canais e todos os tipos."""
+
+    def test_get_bate_com_o_que_o_servico_realmente_aplica(self, agente, api):
+        assert not NotificationPreference.objects.filter(user=agente).exists()
+
+        resp = api(agente).get("/api/v1/notification-preferences/")
+        assert resp.status_code == 200
+        dados = resp.json()
+
+        for kind, _ in NotificationKind.choices:
+            assert dados["in_app"][kind] == quer_in_app(agente, kind), kind
+            assert dados["email"][kind] == quer_email(agente, kind), kind
+
+    def test_email_ligado_por_padrao(self, agente, api):
+        # Regressão específica do bug: a view chegou a devolver False aqui
+        # enquanto o serviço já mandava e-mail mesmo assim (default `True`).
+        resp = api(agente).get("/api/v1/notification-preferences/")
+        assert resp.json()["email"][NotificationKind.TICKET_REPLIED] is True
+        assert quer_email(agente, NotificationKind.TICKET_REPLIED) is True
+
+    def test_desligar_um_tipo_e_respeitado_e_nao_mexe_nos_outros(self, agente, api):
+        client = api(agente)
+        client.put(
+            "/api/v1/notification-preferences/",
+            {"email": {NotificationKind.TICKET_REPLIED: False}},
+            format="json",
+        )
+        assert quer_email(agente, NotificationKind.TICKET_REPLIED) is False
+        assert quer_email(agente, NotificationKind.SLA_BREACHED) is True
+        assert quer_in_app(agente, NotificationKind.TICKET_REPLIED) is True

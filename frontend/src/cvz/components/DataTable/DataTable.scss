@@ -1,22 +1,28 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// A tabela é uma SUPERFÍCIE: branca sobre o plano, raio de superfície e
+// nenhuma moldura — o que separa uma linha da outra é o fio de 1px, e só
+// ENTRE linhas (nem em volta, nem depois da última).
 .data-table {
   border: $border;
-  border-radius: $radius;
+  border-radius: $radius-card;
   background-color: $raised;
   overflow: hidden;
 
+  // Só existe quando a página manda conteúdo (`toolbar`). A faixa que
+  // morava aqui só para o alternador de densidade saiu: era uma barra branca
+  // vazia em cima de toda tabela — ver `DensityToggle`.
   &__toolbar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: $sp-3;
     padding: $sp-2 $sp-3;
-    border-bottom: $border;
+    border-bottom: $stroke-w solid $stroke;
   }
 
-  // Barra de lote substitui a toolbar — mesma altura, sem salto de layout.
+  // Barra de lote no lugar do cabeçalho de lote — o acento cheio diz "você
+  // está agindo sobre várias linhas".
   &__batch {
     display: flex;
     align-items: center;
@@ -29,7 +35,7 @@
 
   &__batch-count {
     font-size: $fs-ui;
-    font-weight: $w-light;
+    font-weight: $w-regular;
 
     b { font-weight: $w-semibold; }
   }
@@ -58,14 +64,16 @@
     font-weight: $w-regular;
   }
 
+  // Cabeçalho no mesmo branco das linhas: um fio embaixo e o rótulo em
+  // cinza é o bastante para ele se separar dos dados.
   thead th {
     height: $row-h-compact;
     padding: 0 $cell-px;
-    background-color: $chrome;
+    background-color: transparent;
     border-bottom: $stroke-w solid $stroke;
     text-align: left;
     font-size: $fs-label;
-    font-weight: $w-semibold;
+    font-weight: $w-medium;
     color: $text-secondary;
     white-space: nowrap;
   }
@@ -93,21 +101,81 @@
     td { border-bottom-color: $stroke; }
   }
 
+  // --- linha clicável --------------------------------------------------------
+  &__row--clicavel { cursor: pointer; }
+
+  // O link da célula principal não se veste de link: a linha inteira é o
+  // alvo, e sublinhar só um pedaço dela diria o contrário. Ele existe para o
+  // teclado (Tab chega nele, Enter abre) e para o leitor de tela.
+  &__row-link {
+    @include button-reset;
+    display: block;
+    width: 100%;
+    text-align: inherit;
+    color: inherit;
+    text-decoration: none;
+    font-weight: inherit;
+
+    &:focus-visible { outline: none; }
+  }
+
+  // O foco aparece na LINHA, não num retângulo em volta do nome.
+  &__row--clicavel:has(.data-table__row-link:focus-visible) {
+    background-color: $chrome;
+    outline: $focus-w solid $blue;
+    outline-offset: -$focus-w;
+  }
+
+  // Sem `:has` (navegador antigo), o anel volta para o próprio link.
+  @supports not selector(:has(*)) {
+    &__row-link:focus-visible {
+      outline: $focus-w solid $blue;
+      outline-offset: 2px;
+    }
+  }
+
   &__check {
     width: 40px;
     padding-right: 0 !important;
   }
 
-  &__num {
+  // Número alinhado à direita nos DOIS: cabeçalho e valor. O cabeçalho
+  // precisa do seletor mais forte porque `thead th` (acima) fixa `left`.
+  &__num,
+  thead th.data-table__num {
     text-align: right;
-    font-family: $f-mono;
-    font-size: $fs-meta;
+    font-variant-numeric: tabular-nums;
   }
 
   &__empty {
     padding: $sp-6 $sp-3 !important;
     text-align: center;
     color: $text-muted;
+  }
+}
+
+// Alternador de densidade, fora da tabela — mora na barra de filtros da
+// página que quiser oferecê-lo (ver `DensityToggle`).
+.data-table-densidade {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+
+  // `.icon-btn` (a classe compartilhada) também fixa `color`; o composto
+  // (duas classes, sem espaço) garante que esta cor vence a dele
+  // independentemente da ordem de import dos dois `.scss` no bundle.
+  &__btn.icon-btn {
+    color: $text-muted;
+
+    &:hover { color: $text; }
+
+    // Marcado: cor E fundo — não é cor sozinha (WCAG 1.4.1), e o ícone troca
+    // de desenho (junto/espaçado) junto com o estado.
+    &.data-table-densidade__btn--ativo {
+      color: $text;
+      background-color: $blue-tint;
+    }
   }
 }
 
@@ -159,7 +227,7 @@
     &__batch {
       flex-wrap: wrap;
       border: $border;
-      border-radius: $radius;
+      border-radius: $radius-card;
       margin-bottom: $sp-3;
     }
 
@@ -178,11 +246,19 @@
       margin-bottom: $sp-2;
       padding: $sp-3;
       border: $border;
-      border-radius: $radius;
+      border-radius: $radius-card;
       background-color: $raised;
     }
 
-    &__table td {
+    // No cartão o foco da linha contorna o cartão inteiro.
+    &__row--clicavel:has(.data-table__row-link:focus-visible) {
+      outline-offset: 0;
+    }
+
+    // `tbody td`, não só `td`: o seletor de desktop (`.data-table tbody td`)
+    // é mais forte que `.data-table__table td`, e a altura, o respiro e o
+    // fio de 1px de cada célula vazavam para dentro do cartão.
+    &__table tbody td {
       height: auto;
       padding: 0;
       border: 0;
@@ -208,7 +284,7 @@
 
     &__table td[data-mobile='title'] {
       @include type($fs-title, $w-semibold);
-      margin-bottom: 2px;
+      margin-bottom: $sp-2;
       padding-right: $sp-6;   // espaço para o checkbox no canto
     }
 
@@ -234,7 +310,7 @@
       &::before { content: none !important; }
     }
 
-    &__num { text-align: left; }
+    &__num { text-align: left; font-variant-numeric: tabular-nums; }
 
     &__row--selected {
       box-shadow: inset 0 0 0 $marker-w $blue;

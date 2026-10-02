@@ -81,9 +81,9 @@ de carregamento exatamente para quem entra e sai várias vezes por dia.
 |---|---|---|
 | arquivo | `public/manifest-equipe.webmanifest` | `public/manifest-cliente.webmanifest` |
 | nome | resolv — Equipe | resolv — Suporte |
-| `start_url` | `/app` | `/portal` |
-| ícone | fundo terracota, marca creme | fundo creme, marca terracota |
-| atalhos | Minha fila, Kanban | Abrir chamado, Meus chamados |
+| `start_url` | `/inicio` | `/portal` |
+| ícone | fundo `--accent` (#0275de), monograma "R" branco | mesmo desenho — mesma marca nos dois PWAs |
+| atalhos | Tickets, Quadro | Abrir chamado, Meus chamados |
 
 Um manifesto tem exatamente **um** `start_url`, um nome e um jogo de ícones. Com
 arquivo único, metade das pessoas instalaria um atalho que abre no painel da

@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Button,
   DataTable,
+  DensityToggle,
+  EmptyState,
   ErrorState,
   FilterBar,
+  IconClients,
   IconPlus,
   PageHeader,
   Pagination,
@@ -14,49 +17,45 @@ import {
   type Column,
 } from '@/cvz/components'
 import { ApiError } from '@/api/client'
-import { ModalNovaEmpresa } from './ModalNovaEmpresa'
+import { useMe } from '@/api/queries/useMe'
+import { ModalEmpresa } from './ModalEmpresa'
 import { useEmpresas, type Empresa } from './dados'
+import { toneDoPlano } from './planos'
 import './clientes.scss'
 
 const TAMANHO_PAGINA = 20
-// A API de admin não expõe busca textual (só is_active + paginação) — busca
-// aqui é sobre um lote real de até 100 registros, filtrado no cliente. Além
-// disso o resultado passa a ser parcial; para uma base maior o backend
-// precisaria ganhar `?q=` de verdade.
-const LOTE_SERVIDOR = 100
 
 export function PaginaListaEmpresas() {
   const navigate = useNavigate()
+  const { data: me } = useMe()
+  // Escrita em `settings/*` é de admin (`IsInternalReadAdminWrite`) — o agente
+  // lê a lista e não altera nada. Esconder é melhor que deixar clicar e
+  // colher 403.
+  const podeEditar = (me?.permissions ?? []).includes('settings.manage')
   const [busca, setBusca] = useState('')
+  const [buscaDebounced, setBuscaDebounced] = useState('')
   const [statusFiltro, setStatusFiltro] = useState<'' | 'true' | 'false'>('')
   const [pagina, setPagina] = useState(1)
   const [modalAberto, setModalAberto] = useState(false)
+  const [empresaEmEdicao, setEmpresaEmEdicao] = useState<Empresa | null>(null)
+
+  // 300ms parado de digitar antes de bater no servidor — sem isso cada tecla
+  // vira uma requisição (e a resposta de uma tecla anterior podia chegar
+  // depois e "desfazer" a busca mais recente na tela).
+  useEffect(() => {
+    const t = setTimeout(() => setBuscaDebounced(busca.trim()), 300)
+    return () => clearTimeout(t)
+  }, [busca])
 
   const { data, isLoading, isError, error, refetch } = useEmpresas({
+    q: buscaDebounced || undefined,
     is_active: statusFiltro === '' ? undefined : statusFiltro === 'true',
-    limit: LOTE_SERVIDOR,
-    offset: 0,
+    limit: TAMANHO_PAGINA,
+    offset: (pagina - 1) * TAMANHO_PAGINA,
   })
 
-  const todas = data?.results ?? []
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase()
-    if (!termo) return todas
-    return todas.filter(
-      (e) =>
-        e.name.toLowerCase().includes(termo) ||
-        e.legal_name.toLowerCase().includes(termo) ||
-        e.slug.toLowerCase().includes(termo) ||
-        e.domains.some((d) => d.includes(termo)),
-    )
-    // `data?.results` (não `todas`) é a dependência real — o `?? []` de fallback
-    // cria um array novo a cada render e faria o memo recalcular sempre.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.results, busca])
-
-  const totalFiltrado = filtradas.length
-  const pagina1 = (pagina - 1) * TAMANHO_PAGINA
-  const paginaAtual = filtradas.slice(pagina1, pagina1 + TAMANHO_PAGINA)
+  const paginaAtual = data?.results ?? []
+  const totalFiltrado = data?.count ?? 0
 
   const colunas: Column<Empresa>[] = [
     {
@@ -78,7 +77,9 @@ export function PaginaListaEmpresas() {
       header: 'Plano',
       mobile: 'meta',
       sortBy: (e) => e.plan_name,
-      render: (e) => <Tag tone="blue">{e.plan_name}</Tag>,
+      // Um tom por plano (planos.ts) — antes era "blue" fixo e Black, Gold e
+      // Platinum eram o mesmo selo.
+      render: (e) => <Tag tone={toneDoPlano(e.plan_name)}>{e.plan_name}</Tag>,
     },
     {
       key: 'users',
@@ -94,10 +95,16 @@ export function PaginaListaEmpresas() {
       numeric: true,
       mobile: 'meta',
       sortBy: (e) => e.quota_usage.used,
+      // "sem limite" em cinza, depois do número: é contexto, não valor — e
+      // entre parênteses na mesma cor ele disputava com o número.
       render: (e) => (
         <span>
           {e.quota_usage.used}
-          {e.quota_usage.limit != null ? ` / ${e.quota_usage.limit}` : ' (sem limite)'}
+          {e.quota_usage.limit != null ? (
+            ` / ${e.quota_usage.limit}`
+          ) : (
+            <span className="clientes-meta"> sem limite</span>
+          )}
         </span>
       ),
     },
@@ -112,21 +119,51 @@ export function PaginaListaEmpresas() {
         </Tag>
       ),
     },
+    // Abrir é a LINHA: ela inteira é clicável e o nome da empresa é um link
+    // de verdade (Tab chega nele, Enter abre, Ctrl+clique abre em outra aba)
+    // — o botão "Abrir" repetia isso em toda linha. Fica só o que a linha não
+    // faz sozinha: editar sem sair da lista.
+    ...(podeEditar
+      ? [
+          {
+            key: 'acoes',
+            header: '',
+            mobile: 'meta' as const,
+            width: '1%',
+            render: (e: Empresa) => (
+              <div className="clientes-acoes">
+                <Button variant="ghost" size="sm" onClick={() => setEmpresaEmEdicao(e)}>
+                  Editar
+                </Button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ]
+
+  const filtrando = busca !== '' || statusFiltro !== ''
+  const limparFiltros = () => {
+    setBusca('')
+    setStatusFiltro('')
+    setPagina(1)
+  }
 
   return (
     <>
       <PageHeader
         title="Clientes"
-        description="Empresas atendidas — plano, cota do mês e usuários."
+        description="Empresas atendidas, com plano, cota do mês e usuários."
         actions={
-          <Button Icon={IconPlus} onClick={() => setModalAberto(true)}>
-            Nova empresa
-          </Button>
+          podeEditar && (
+            <Button Icon={IconPlus} onClick={() => setModalAberto(true)}>
+              Nova empresa
+            </Button>
+          )
         }
       />
 
-      <FilterBar>
+      <FilterBar end={<DensityToggle />}>
         <SearchInput
           placeholder="Buscar por nome, razão social ou domínio…"
           value={busca}
@@ -150,7 +187,7 @@ export function PaginaListaEmpresas() {
         />
       </FilterBar>
 
-      <div style={{ marginTop: 16 }}>
+      <div className="clientes-lista">
         {isError ? (
           <ErrorState
             description={error instanceof ApiError ? error.detail : undefined}
@@ -162,13 +199,38 @@ export function PaginaListaEmpresas() {
             columns={colunas}
             rowKey={(e) => String(e.id)}
             onRowClick={(e) => navigate(`/clientes/${e.id}`)}
+            rowHref={(e) => `/clientes/${e.id}`}
             loading={isLoading}
+            loadingRows={8}
             empty={
-              <div className="clientes-vazio">
-                {busca || statusFiltro
-                  ? 'Nenhuma empresa bate com esse filtro.'
-                  : 'Nenhuma empresa cadastrada ainda.'}
-              </div>
+              filtrando ? (
+                <EmptyState
+                  title="Nenhuma empresa com esse filtro"
+                  description="Tente outro nome ou domínio, ou veja todas as empresas."
+                  action={
+                    <Button variant="secondary" size="sm" onClick={limparFiltros}>
+                      Limpar filtros
+                    </Button>
+                  }
+                />
+              ) : (
+                <EmptyState
+                  Icon={IconClients}
+                  title="Nenhuma empresa cadastrada"
+                  description={
+                    podeEditar
+                      ? 'Cadastre a primeira empresa para abrir tickets em nome dela.'
+                      : 'Quando um administrador cadastrar empresas, elas aparecem aqui.'
+                  }
+                  action={
+                    podeEditar && (
+                      <Button Icon={IconPlus} size="sm" onClick={() => setModalAberto(true)}>
+                        Nova empresa
+                      </Button>
+                    )
+                  }
+                />
+              )
             }
           />
         )}
@@ -183,10 +245,16 @@ export function PaginaListaEmpresas() {
         )}
       </div>
 
-      <ModalNovaEmpresa
+      <ModalEmpresa
         open={modalAberto}
         onClose={() => setModalAberto(false)}
         onCriada={(id) => navigate(`/clientes/${id}`)}
+      />
+
+      <ModalEmpresa
+        empresa={empresaEmEdicao}
+        open={empresaEmEdicao !== null}
+        onClose={() => setEmpresaEmEdicao(null)}
       />
     </>
   )

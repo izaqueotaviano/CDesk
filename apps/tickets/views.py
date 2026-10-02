@@ -32,6 +32,7 @@ from apps.customers.services.quota import QuotaExceeded
 from apps.tickets import selectors
 from apps.tickets.models import (
     ScanStatus,
+    ScheduledReply,
     Service,
     Ticket,
     TicketAttachment,
@@ -40,6 +41,7 @@ from apps.tickets.models import (
     TicketMessage,
     TicketPriority,
     TicketSource,
+    TicketStage,
     TicketStatus,
     TicketStatusEvent,
     TicketWatcher,
@@ -47,14 +49,20 @@ from apps.tickets.models import (
 )
 from apps.tickets.serializers import (
     SLA_AT_RISK_MINUTES,
+    AssignableAgentSerializer,
     BulkAssignSerializer,
     BulkCloseSerializer,
     BulkPrioritySerializer,
+    BulkStatusSerializer,
     MentionTargetSerializer,
+    PresencaBatimentoSerializer,
+    PresencaSerializer,
+    ScheduledReplySerializer,
     ServiceSerializer,
     TabsSerializer,
     TeamSerializer,
     TicketCategorySerializer,
+    TicketCloseByRequesterSerializer,
     TicketCloseSerializer,
     TicketCreateSerializer,
     TicketDetailSerializer,
@@ -64,15 +72,24 @@ from apps.tickets.serializers import (
     TicketRatingAnswerSerializer,
     TicketReclassifySerializer,
     TicketReplySerializer,
+    TicketScheduleReplySerializer,
 )
 from apps.tickets.services import (
+    atribuicao,
     mentions,
     response_estimate,
     satisfaction,
     ticket_service,
     transcript,
 )
-from apps.tickets.services.attachments import AttachmentRejected, attach_to_message
+
+# alias: a ação da view também se chama `presenca` (é o nome da rota)
+from apps.tickets.services import presenca as presenca_service
+from apps.tickets.services.attachments import (
+    AttachmentRejected,
+    attach_to_message,
+    validar_uploads,
+)
 from apps.tickets.services.satisfaction import SurveyClosed
 from apps.tickets.services.ticket_service import TicketRuleViolation
 
@@ -178,6 +195,11 @@ SAVED_VIEWS = (
     "mencionam-voce", "aguardando-voce",
 )
 
+# `?periodo=` da fila: quantos dias de calendário (hoje incluso) cada opção
+# cobre. Só valores fechados — um `?periodo=` livre viraria um segundo
+# `desde` com outra sintaxe.
+PERIODOS_RELATIVOS = {"hoje": 1, "7d": 7, "30d": 30, "90d": 90}
+
 # Ordenação por coluna da fila (allowlist — nunca o nome do campo cru vindo
 # da URL): cada chave pública aponta pro campo (ou anotação) real que o
 # `order_by` usa. `criado` e `espera` apontam para o MESMO campo — "aberto
@@ -266,7 +288,11 @@ class TicketViewSet(viewsets.GenericViewSet):
             "assignee", str,
             description="'me' (minha fila), 'unassigned' (sem responsável) ou o id do agente",
         ),
-        OpenApiParameter("priority", str, description="low | normal | high | urgent"),
+        OpenApiParameter(
+            "priority", str,
+            description="low | normal | high | urgent — ou uma LISTA separada por vírgula.",
+        ),
+        OpenApiParameter("requester", int, description="id do solicitante"),
         OpenApiParameter("q", str, description="busca por assunto ou referência"),
         OpenApiParameter(
             "sla", str,
@@ -300,6 +326,13 @@ class TicketViewSet(viewsets.GenericViewSet):
         OpenApiParameter(
             "ate", str,
             description="data de ABERTURA máxima (YYYY-MM-DD), inclusive.",
+        ),
+        OpenApiParameter(
+            "periodo", str,
+            description=(
+                "abertura relativa a hoje: " + " | ".join(PERIODOS_RELATIVOS)
+                + " (dias de calendário, hoje incluso)."
+            ),
         ),
         OpenApiParameter(
             "avaliacao", str,
@@ -379,6 +412,18 @@ class TicketViewSet(viewsets.GenericViewSet):
             if requester is None:
                 raise ValidationError({"requester_id": "Cliente não encontrado."})
 
+        # O anexo é conferido ANTES de criar o chamado. `create_ticket` abre e
+        # fecha a própria transação (ATOMIC_REQUESTS=False,
+        # config/settings/base.py): recusar o arquivo só na hora de gravá-lo
+        # deixava o chamado nascido e devolvia 400 — a tela lia "não criou", o
+        # agente reenviava e o chamado saía duplicado.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             ticket = ticket_service.create_ticket(
                 requester=requester,
@@ -389,6 +434,7 @@ class TicketViewSet(viewsets.GenericViewSet):
                 category=data.get("category"),
                 order_number=data.get("order_number", ""),
                 actor=request.user,
+                with_signature=data.get("with_signature", False),
             )
         except QuotaExceeded as exc:
             # 422 com dados para a mensagem clara exigida pelo requisito
@@ -408,8 +454,12 @@ class TicketViewSet(viewsets.GenericViewSet):
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
-        # anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado
-        if uploads := request.FILES.getlist("files"):
+        # Anexo enviado junto na abertura entra na PRIMEIRA mensagem do chamado.
+        # A conferência acontece de novo aqui dentro: `attach_to_message`
+        # (apps/tickets/services/attachments.py) é a dona da regra e a única
+        # porta de gravação — a chamada lá em cima é só antecipação, barata e
+        # sem efeito colateral.
+        if uploads:
             primeira = ticket.messages.order_by("id").first()
             try:
                 attach_to_message(
@@ -496,7 +546,7 @@ class TicketViewSet(viewsets.GenericViewSet):
         ticket = self.get_object()
         if not ticket.is_content_visible_to(request.user):
             raise PermissionDenied(
-                "Este chamado é restrito ao solicitante; a conversa não pode ser exportada."
+                "Este ticket é restrito ao solicitante; a conversa não pode ser exportada."
             )
         if ticket.is_restricted():
             record_ticket_access(
@@ -507,7 +557,7 @@ class TicketViewSet(viewsets.GenericViewSet):
             pdf, nome = transcript.ticket_pdf(ticket, para=request.user)
         except RuntimeError as exc:
             # extra ausente: falha explícita, nunca um PDF vazio
-            return Response({"detail": str(exc)}, status=status.HTTP_501_NOT_IMPLEMENTED)
+            return Response({"detail": str(exc)}, status=http.HTTP_501_NOT_IMPLEMENTED)
         resp = HttpResponse(pdf, content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{nome}"'
         return resp
@@ -528,6 +578,26 @@ class TicketViewSet(viewsets.GenericViewSet):
         alvos = mentions.alvos_de_mencao(ticket=ticket, requester=request.user)
         return Response(MentionTargetSerializer(alvos, many=True).data)
 
+    @action(detail=True, methods=["get"], url_path="assignable-agents",
+            pagination_class=None)
+    def assignable_agents(self, request, pk=None):
+        """Quem os seletores de Responsável e Dono técnico podem oferecer.
+
+        Pergunta DIFERENTE da de `mention_targets` — ver o porquê completo em
+        `services/atribuicao.py`. Resumo: aqui o requester PRECISA aparecer
+        (é o "Assumir" pelo seletor) e agente leve NÃO aparece (não passa em
+        `assign()`/`set_owner()`, que exigem `Perm.TICKET_BE_ASSIGNED`).
+
+        `self.get_object()` só para 404 fora do escopo — igual a
+        `mention_targets`, a lista em si não depende do ticket (nem tem
+        recorte por equipe: `services/atribuicao.agentes_atribuiveis`).
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Atribuição é recurso interno.")
+        self.get_object()
+        agentes = atribuicao.agentes_atribuiveis()
+        return Response(AssignableAgentSerializer(agentes, many=True).data)
+
     @action(detail=True, methods=["post"],
             parser_classes=[JSONParser, MultiPartParser, FormParser])
     def reply(self, request, pk=None):
@@ -539,6 +609,18 @@ class TicketViewSet(viewsets.GenericViewSet):
         if not request.user.is_internal and data.get("new_status"):
             raise ValidationError({"new_status": "Cliente não escolhe status."})
 
+        # Mesmo motivo do `create`: o anexo é conferido antes de gravar a
+        # mensagem. `add_reply` já muda o status, notifica e conta SLA em
+        # transação própria; recusar o arquivo depois disso deixava a resposta
+        # publicada e pedia "tente de novo" — cada retentativa gravava outra
+        # mensagem na thread.
+        uploads = request.FILES.getlist("files")
+        if uploads:
+            try:
+                validar_uploads(uploads)
+            except AttachmentRejected as exc:
+                raise ValidationError({"files": str(exc)}) from exc
+
         try:
             message = ticket_service.add_reply(
                 ticket=ticket,
@@ -549,12 +631,14 @@ class TicketViewSet(viewsets.GenericViewSet):
                 resolution_started_at=data.get("resolution_started_at"),
                 resolution_ended_at=data.get("resolution_ended_at"),
                 close_note=data.get("close_note", ""),
+                with_signature=data.get("with_signature", False),
             )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
 
         # anexos entram na mesma requisição: validação em lote antes de gravar
-        if uploads := request.FILES.getlist("files"):
+        # (repetida de propósito — ver o comentário na conferência acima)
+        if uploads:
             try:
                 attach_to_message(
                     message=message, uploads=uploads, uploaded_by=request.user
@@ -591,6 +675,42 @@ class TicketViewSet(viewsets.GenericViewSet):
             )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
+        out = TicketDetailSerializer(ticket, context={"request": request})
+        return Response(out.data)
+
+    @extend_schema(request=None, responses=TicketDetailSerializer)
+    @action(detail=False, methods=["post"], url_path="take-next")
+    def take_next(self, request):
+        """"Pegar o próximo" do Início: escolhe E atribui numa transação só.
+
+        Antes a tela escolhia pela listagem e atribuía com `assign/` em dois
+        pedidos — dois agentes clicando no mesmo segundo pegavam o MESMO
+        chamado, e o segundo passava por cima do primeiro. Aqui a linha
+        escolhida fica travada (`select_for_update`) até a atribuição gravar,
+        e `skip_locked` faz o segundo clique pular para o próximo da fila em
+        vez de esperar pelo mesmo.
+
+        A ordem é a da tela (resolv/inicio/usePegarProximo.ts): o prazo de SLA de
+        resolução que vence primeiro (sem prazo por último), depois a
+        prioridade mais alta, depois o mais antigo. "Aguardando o cliente"
+        fica de fora — ali a bola está com o cliente.
+        """
+        user = request.user
+        if not user.is_internal:
+            raise PermissionDenied("Apenas usuários internos pegam tickets.")
+        if not user.can(Perm.TICKET_BE_ASSIGNED):
+            raise PermissionDenied("Seu papel não pode ser responsável por tickets.")
+        try:
+            ticket = ticket_service.take_next(
+                actor=user, candidatos=selectors.visible_tickets(user),
+            )
+        except ticket_service.NadaParaPegar:
+            return Response(
+                {"code": "nada_para_pegar", "detail": "Nenhum ticket sem responsável agora."},
+                status=http.HTTP_409_CONFLICT,
+            )
+        except TicketRuleViolation as exc:
+            raise PermissionDenied(str(exc)) from exc
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
 
@@ -645,7 +765,7 @@ class TicketViewSet(viewsets.GenericViewSet):
         efeito colateral de virar seguidor por @menção, `mentions.py:108`,
         nenhuma porta para fazer isso de propósito)."""
         if not request.user.is_internal:
-            raise PermissionDenied("Seguir chamado é ação interna.")
+            raise PermissionDenied("Seguir ticket é ação interna.")
         ticket = self.get_object()
         if not ticket.is_content_visible_to(request.user):
             raise PermissionDenied("Sem acesso ao conteúdo deste ticket.")
@@ -659,6 +779,37 @@ class TicketViewSet(viewsets.GenericViewSet):
         TicketWatcher.objects.filter(ticket=ticket, user=request.user).delete()
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
+
+    @extend_schema(request=PresencaBatimentoSerializer, responses=PresencaSerializer)
+    @action(detail=True, methods=["post", "delete"], url_path="presenca")
+    def presenca(self, request, pk=None):
+        """Quem mais está com este ticket aberto — detecção de colisão.
+
+        POST é o batimento (ao abrir, a cada `BATIMENTO_S` e quando começa ou
+        para de digitar); DELETE é "fechei a tela". Os dois devolvem a lista
+        atual. Estado só em cache, com TTL: ver apps/tickets/services/presenca.py.
+
+        Só interno, e o 403 sai ANTES de olhar o ticket: para cliente a
+        resposta é a mesma exista o ticket ou não. Para interno, `get_object`
+        aplica o escopo de sempre (`visible_tickets`) — fora dele, 404 — então
+        só entra na lista, e só recebe a lista, quem enxerga o chamado.
+        """
+        if not request.user.is_internal:
+            raise PermissionDenied("Presença no ticket é recurso interno.")
+        ticket = self.get_object()
+        if request.method == "DELETE":
+            presentes = presenca_service.sair(ticket=ticket, user=request.user)
+        else:
+            ser = PresencaBatimentoSerializer(data=request.data)
+            ser.is_valid(raise_exception=True)
+            presentes = presenca_service.registrar(
+                ticket=ticket, user=request.user,
+                digitando=ser.validated_data.get("digitando"),
+            )
+        return Response({
+            "presentes": presentes,
+            "batimento_segundos": presenca_service.BATIMENTO_S,
+        })
 
     @action(detail=True, methods=["patch", "delete"],
             url_path=r"messages/(?P<message_id>\d+)")
@@ -695,23 +846,72 @@ class TicketViewSet(viewsets.GenericViewSet):
 
     @action(detail=True, methods=["post"])
     def close(self, request, pk=None):
-        if not request.user.is_internal:
-            raise PermissionDenied("Apenas usuários internos fecham tickets.")
+        """Fecha o ticket — o agente com o registro de trabalho técnico
+        (D4), o cliente sem ele (`close_ticket_by_requester`). É a MESMA
+        rota pros dois lados; quem decide qual caminho seguir é
+        `request.user.is_internal`, não um endpoint separado por papel —
+        mesma forma da rota de chat (`ChatViewSet.close`)."""
         ticket = self.get_object()
-        ser = TicketCloseSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
         try:
-            ticket = ticket_service.close_ticket(
-                ticket=ticket,
-                actor=request.user,
-                resolution_started_at=ser.validated_data["resolution_started_at"],
-                resolution_ended_at=ser.validated_data["resolution_ended_at"],
-                note=ser.validated_data.get("note", ""),
-            )
+            if request.user.is_internal:
+                ser = TicketCloseSerializer(data=request.data)
+                ser.is_valid(raise_exception=True)
+                ticket = ticket_service.close_ticket(
+                    ticket=ticket,
+                    actor=request.user,
+                    resolution_started_at=ser.validated_data["resolution_started_at"],
+                    resolution_ended_at=ser.validated_data["resolution_ended_at"],
+                    note=ser.validated_data.get("note", ""),
+                )
+            else:
+                ser = TicketCloseByRequesterSerializer(data=request.data)
+                ser.is_valid(raise_exception=True)
+                ticket = ticket_service.close_ticket_by_requester(
+                    ticket=ticket,
+                    actor=request.user,
+                    note=ser.validated_data.get("note", ""),
+                )
         except TicketRuleViolation as exc:
             raise ValidationError({"detail": str(exc)}) from exc
         out = TicketDetailSerializer(ticket, context={"request": request})
         return Response(out.data)
+
+    # ------------------------------------------------------------------ #
+    # Resposta agendada — escrita agora, disparada sozinha na hora marcada
+    # (`ticket_service.schedule_reply`/`dispatch_scheduled_replies`).
+    # ------------------------------------------------------------------ #
+
+    @action(detail=True, methods=["post"], url_path="schedule-reply")
+    def schedule_reply(self, request, pk=None):
+        ticket = self.get_object()
+        ser = TicketScheduleReplySerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            agendada = ticket_service.schedule_reply(
+                ticket=ticket, actor=request.user, **ser.validated_data,
+            )
+        except TicketRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(
+            ScheduledReplySerializer(agendada).data, status=http.HTTP_201_CREATED
+        )
+
+    @action(
+        detail=True, methods=["post"],
+        url_path=r"schedule-reply/(?P<schedule_id>\d+)/cancel",
+    )
+    def cancel_scheduled_reply(self, request, pk=None, schedule_id=None):
+        ticket = self.get_object()
+        agendada = ScheduledReply.objects.filter(pk=schedule_id, ticket=ticket).first()
+        if agendada is None:
+            raise NotFound("Agendamento não encontrado neste ticket.")
+        try:
+            agendada = ticket_service.cancel_scheduled_reply(
+                scheduled=agendada, actor=request.user,
+            )
+        except TicketRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
+        return Response(ScheduledReplySerializer(agendada).data)
 
     # ------------------------------------------------------------------ #
     # Avaliação (CSAT) — sempre logado, sempre por aqui. Não existe mais
@@ -731,10 +931,10 @@ class TicketViewSet(viewsets.GenericViewSet):
     def rate(self, request, pk=None):
         ticket = self.get_object()
         if ticket.requester_id != request.user.id:
-            raise PermissionDenied("Só quem abriu o chamado avalia o atendimento.")
+            raise PermissionDenied("Só quem abriu o ticket avalia o atendimento.")
         survey = getattr(ticket, "survey", None)
         if survey is None:
-            raise NotFound("Este chamado não tem pesquisa de satisfação.")
+            raise NotFound("Este ticket não tem pesquisa de satisfação.")
         ser = TicketRatingAnswerSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         try:
@@ -848,8 +1048,10 @@ class TicketViewSet(viewsets.GenericViewSet):
             .order_by("-company__plan__rank", "company__plan__name")
         )
         sem_dominio = contar({"sem_dominio"}).filter(company__domains__isnull=True).count()
+        extras = _facetas_da_fila(contar)
 
         return Response({
+            **extras,
             "status": [
                 {"value": value, "label": label, "count": status_counts.get(value, 0)}
                 for value, label in TicketStatus.choices
@@ -1137,6 +1339,95 @@ class TicketViewSet(viewsets.GenericViewSet):
                 failed.append({"id": ticket.pk, "detail": str(exc)})
         return Response({"updated": updated, "failed": failed})
 
+    @action(detail=False, methods=["post"], url_path="bulk-status")
+    def bulk_status(self, request):
+        """Muda o status (coluna) de vários chamados — mesma porta e mesma
+        forma de resposta das outras três ações em lote. O stage é o mesmo
+        para o lote inteiro, então um stage inválido é 400 no pedido todo
+        (não uma falha repetida em cada linha de `failed`)."""
+        _exige(request.user, Perm.TICKET_BULK_ACTIONS)
+        ser = BulkStatusSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        stage = TicketStage.objects.filter(
+            pk=ser.validated_data["stage_id"], is_active=True,
+        ).first()
+        if stage is None:
+            raise ValidationError({"stage_id": "Status não encontrado."})
+        if stage.category == TicketStatus.CLOSED:
+            raise ValidationError({
+                "stage_id": "Para encerrar, use Encerrar: fechar pede as datas da solução.",
+            })
+        updated, failed = [], []
+        for ticket in self._tickets_visiveis(ser.validated_data["ticket_ids"]):
+            try:
+                ticket_service.mudar_status(ticket=ticket, stage=stage, actor=request.user)
+                updated.append(ticket.pk)
+            except TicketRuleViolation as exc:
+                failed.append({"id": ticket.pk, "detail": str(exc)})
+        return Response({"updated": updated, "failed": failed})
+
+
+def _facetas_da_fila(contar):
+    """As facetas que a barra de filtros da fila (resolv/tickets) pede além
+    das quatro de `facets()`: equipe, categoria, etiqueta e SLA.
+
+    Mesma regra de faceta de lá (`contar(exceto)` conta com todos os filtros
+    MENOS o da própria dimensão) e mesmo formato `{value, label, count}`,
+    com `value` sendo exatamente o que o filtro correspondente aceita — slug
+    para equipe e etiqueta, id para categoria. Dimensão aberta: só entra quem
+    tem count > 0, maior primeiro; "sem categoria" não entra porque não
+    existe filtro que o selecione.
+
+    SLA são só duas perguntas fixas (em risco / estourado), então as duas
+    voltam sempre, zero inclusive — mesmo raciocínio de status/prioridade.
+    Contadas reaplicando o próprio `?sla=` sobre a base sem ele: a definição
+    de "em risco" continua morando num lugar só (`_aplicar_filtros`).
+    """
+    equipes = (
+        contar({"team"})
+        .exclude(team__isnull=True)
+        .values("team__slug", "team__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "team__name")
+    )
+    categorias = (
+        contar({"category"})
+        .exclude(category__isnull=True)
+        .values("category_id", "category__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "category__name")
+    )
+    etiquetas = (
+        contar({"tag"})
+        .exclude(tags__isnull=True)
+        .values("tags__slug", "tags__name")
+        .annotate(n=Count("id", distinct=True))
+        .order_by("-n", "tags__name")
+    )
+    sem_sla = contar({"sla"})
+    return {
+        "team": [
+            {"value": r["team__slug"], "label": r["team__name"], "count": r["n"]}
+            for r in equipes
+        ],
+        "category": [
+            {"value": r["category_id"], "label": r["category__name"], "count": r["n"]}
+            for r in categorias
+        ],
+        "tag": [
+            {"value": r["tags__slug"], "label": r["tags__name"], "count": r["n"]}
+            for r in etiquetas
+        ],
+        "sla": [
+            {
+                "value": valor,
+                "label": rotulo,
+                "count": _aplicar_filtros(sem_sla, {"sla": valor}, None).count(),
+            }
+            for valor, rotulo in (("at_risk", "Em risco"), ("breached", "Estourado"))
+        ],
+    }
+
 
 def _busca_q(user, term: str) -> Q:
     """O `?q=` da fila e da busca global.
@@ -1204,8 +1495,21 @@ def _aplicar_filtros(qs, params, user, *, exceto=frozenset()):
     # e não existia filtro nenhum (GAPS.md).
     if "company" not in exceto and (company_id := params.get("company")):
         qs = qs.filter(company_id=company_id)
+    # LISTA também, pelo mesmo motivo do status: "Alta ou Urgente" é o
+    # recorte que a fila mais pede ("o que pega fogo"), e são dois valores.
     if "priority" not in exceto and (priority := params.get("priority")):
-        qs = qs.filter(priority=priority)
+        valores = [p for p in priority.split(",") if p]
+        if len(valores) > 1:
+            qs = qs.filter(priority__in=valores)
+        elif valores:
+            qs = qs.filter(priority=valores[0])
+    # "Outros tickets desta pessoa" (painel do cliente no detalhe) e o link
+    # "Ver todos" que leva para a fila recortada. Só número: o recorte é
+    # SOBRE o escopo que `visible_tickets` já aplicou, então pedir o id de
+    # alguém de outra empresa devolve vazio, não os chamados dela.
+    if "requester" not in exceto and (solicitante := params.get("requester")):
+        if solicitante.isdigit():
+            qs = qs.filter(requester_id=int(solicitante))
     if "tag" not in exceto and (tag := params.get("tag")):
         qs = qs.filter(tags__slug=tag)
 
@@ -1280,6 +1584,15 @@ def _aplicar_filtros(qs, params, user, *, exceto=frozenset()):
         qs = qs.filter(created_at__date__gte=desde)
     if "ate" not in exceto and (ate := params.get("ate")):
         qs = qs.filter(created_at__date__lte=ate)
+    # Período RELATIVO ("últimos 7 dias"): `desde` guardado numa visão
+    # pessoal congelaria a data do dia em que a visão foi salva — daqui a um
+    # mês "últimos 7 dias" mostraria 37. Conta em dias de calendário, com
+    # hoje incluso, igual a `desde`/`ate` (que também comparam a data).
+    if "periodo" not in exceto and (periodo := params.get("periodo")):
+        dias = PERIODOS_RELATIVOS.get(periodo)
+        if dias is not None:
+            inicio = timezone.localdate() - dt.timedelta(days=dias - 1)
+            qs = qs.filter(created_at__date__gte=inicio)
 
     # As visões da barra lateral são recortes NOMEADOS, não filtros soltos: a
     # definição mora aqui, no servidor, para "Tickets sem atendimento" querer

@@ -34,7 +34,7 @@ from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 
-from apps.accounts import avatars, rbac
+from apps.accounts import assinatura, avatars, rbac
 from apps.accounts.models import (
     AccessEventKind,
     AgentTeam,
@@ -55,15 +55,25 @@ from apps.notifications.services import queue_email
 
 
 def login_por_google_ativo() -> bool:
-    """O Google Workspace está mesmo ligado nesta instalação?
+    """O Google Workspace está mesmo ligado nesta instalação — e USÁVEL?
 
     Interno "entra por Google" era premissa do código, não fato da
-    configuração: com o allauth comentado (o estado atual), quem era criado
-    como agente ficava sem senha utilizável E sem Google — trancado para fora
-    do sistema, sem nenhuma tela dizer isso a quem o cadastrou. Perguntar às
-    settings em vez de supor é o que faz o convite chegar a quem precisa dele.
+    configuração: com o allauth comentado, quem era criado como agente
+    ficava sem senha utilizável E sem Google — trancado para fora do sistema,
+    sem nenhuma tela dizer isso a quem o cadastrou. Perguntar às settings em
+    vez de supor é o que faz o convite chegar a quem precisa dele.
+
+    As DUAS condições importam, não só a primeira: o backend pode estar
+    registrado em código (allauth ligado) e ainda assim ninguém conseguir
+    entrar por Google, porque `GOOGLE_OAUTH_ALLOWED_DOMAINS` — a allowlist de
+    `apps.accounts.adapters.SocialAccountAdapter._domain_allowed` — está
+    vazia (o padrão até um admin configurar o domínio real do Workspace, e o
+    próprio adapter trata vazio como "bloqueia todo mundo", de propósito).
+    Checar só a primeira condição faria um agente recém-criado ficar sem
+    convite por e-mail E sem conseguir logar por Google — sem senha, sem
+    Google, sem aviso pra ninguém.
     """
-    return any(
+    return bool(settings.GOOGLE_OAUTH_ALLOWED_DOMAINS) and any(
         "allauth" in backend for backend in settings.AUTHENTICATION_BACKENDS
     )
 
@@ -92,7 +102,9 @@ def send_invite(user) -> None:
         template="invite",
         context={
             "full_name": user.full_name,
-            "company": user.company.name if user.company else "",
+            # o molde é "Seu acesso ao suporte{company} foi criado": sem o
+            # separador aqui o e-mail saía "suporteAcme"
+            "company": f" ({user.company.name})" if user.company else "",
             # absoluta: o link viaja por e-mail (relativo não é clicável lá)
             "link": f"{settings.SITE_URL}/portal/definir-senha/{uid}/{token}/",
         },
@@ -274,6 +286,11 @@ class UserAdminSerializer(serializers.ModelSerializer):
             "company", "company_name", "job_title", "phone", "phone_secondary",
             "is_active", "last_login", "last_seen_at", "anonymized_at",
             "invite_status", "team_ids", "two_factor_method", "avatar_url",
+            # assinatura do rodapé das respostas: o admin edita a de qualquer
+            # agente (quem pede ajuda pra montar a própria costuma pedir a
+            # ele), com as MESMAS regras do self-service
+            "signature", "signature_kind", "signature_html", "signature_image_url",
+            "signature_render",
             # RBAC: papel personalizado e escopo por pessoa (ver rbac.py).
             "custom_role", "custom_role_name", "ticket_scope",
         ]
@@ -289,13 +306,33 @@ class UserAdminSerializer(serializers.ModelSerializer):
     custom_role_name = serializers.CharField(
         source="custom_role.name", read_only=True, default=None
     )
+    signature_render = serializers.SerializerMethodField()
+
+    def get_signature_render(self, obj) -> str:
+        """A assinatura montada — o mesmo HTML que o cliente vê. É o que a
+        prévia da tela desenha, e vir do servidor é o que garante que a
+        prévia mostre o resultado DEPOIS da higienização."""
+        return assinatura.render_html(obj)
+
+    def validate_signature_html(self, value):
+        """Guarda o HTML já higienizado. Duas linhas repetidas de
+        `ProfileUpdateSerializer` (apps/accounts/views.py), pelo mesmo motivo
+        que `avatar_url` acima."""
+        return assinatura.limpar_html(value or "")
+
+    def validate_signature_image_url(self, value):
+        if not assinatura.imagem_aceitavel(value or ""):
+            raise ValidationError(
+                "Envie a imagem pelo botão. Endereço de fora não é aceito aqui."
+            )
+        return value
 
     def get_team_ids(self, obj) -> list[int]:
         # lê o prefetch da view (team_links) em vez de uma query por linha
         return [link.team_id for link in obj.team_links.all()]
 
     def get_invite_status(self, obj) -> str:
-        """`pendente` | `aceito` | `` (só quem entra por Google fica sem status).
+        """`pendente` | `aceito` | `visitante` | `` (só quem entra por Google fica sem status).
 
         Vale para o AGENTE também: enquanto ele não abre o convite não tem
         senha, e "pendente" na lista é o que avisa o admin de que aquela conta
@@ -304,6 +341,14 @@ class UserAdminSerializer(serializers.ModelSerializer):
         """
         if not precisa_de_convite(obj):
             return ""
+        # Visitante do chat público nunca teve convite: ele se cadastrou
+        # sozinho na janelinha do site (apps/customers/services/embed_visitor).
+        # Dizer "pendente" aqui faria o admin procurar um convite que ninguém
+        # mandou — e, pior, sugeriria que basta reenviá-lo para a pessoa ter
+        # portal, quando promover um visitante é uma decisão consciente
+        # (definir senha por "Redefinir senha").
+        if obj.is_widget_visitor and not obj.has_usable_password():
+            return "visitante"
         return "aceito" if obj.has_usable_password() else "pendente"
 
     def validate_avatar_url(self, value):
@@ -477,15 +522,13 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         senha atual.
 
         Caso de uso real: cliente esquece a senha e liga pedindo pro
-        atendimento trocar. O autoatendimento não tem "esqueci minha senha"
-        nenhum (`accountApi` não expõe troca de senha — não existe self-
-        service pra isso, ver GAPS.md), e a única porta administrativa que já
-        existia (reenviar o CONVITE, `invite` acima) resolve um problema
-        DIFERENTE: manda um e-mail com link pra pessoa escolher a própria
-        senha — útil pra quem nunca acessou, mas exige e-mail acessível
-        naquele instante, e não serve pro atendimento por telefone/chat que
-        precisa resolver na hora. Este endpoint é direto: o admin aciona, o
-        sistema já troca, sem passar por caixa de entrada nenhuma.
+        atendimento trocar. Hoje existe "Esqueci minha senha" self-service
+        (apps/accounts/recuperacao.py), mas ele exige a caixa de e-mail
+        acessível naquele instante — e o convite (`invite` acima) também.
+        Nenhum dos dois serve pro atendimento por telefone/chat que precisa
+        resolver na hora, nem pra quem perdeu o acesso ao próprio e-mail.
+        Este endpoint é direto: o admin aciona, o sistema já troca, sem
+        passar por caixa de entrada nenhuma.
 
         Mesmo espírito do `reset_2fa`: o próprio acesso administrativo já é
         a prova de identidade exigida — ninguém confirma a senha antiga pra
@@ -567,6 +610,38 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         avatars.apagar(user)
         user.avatar_url = ""
         user.save(update_fields=["avatar_url"])
+        return Response(self.get_serializer(user).data)
+
+    @extend_schema(request=None, responses=UserAdminSerializer)
+    @action(detail=True, methods=["post"], permission_classes=[IsAdmin],
+            parser_classes=[MultiPartParser], url_path="assinatura-imagem")
+    def upload_assinatura(self, request, pk=None):
+        """Imagem da assinatura de OUTRA pessoa — gêmeo de
+        `POST me/assinatura-imagem/`, pelo mesmo motivo do avatar acima."""
+        user = self.get_object()
+        enviado = request.FILES.get("file")
+        if enviado is None:
+            raise ValidationError({"file": "Nenhum arquivo enviado."})
+        try:
+            url = assinatura.guardar_imagem(user, enviado)
+        except assinatura.AssinaturaInvalida as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+        user.signature_image_url = url
+        user.signature_kind = assinatura.IMAGEM
+        user.save(update_fields=["signature_image_url", "signature_kind"])
+        return Response(self.get_serializer(user).data)
+
+    @extend_schema(request=None, responses=UserAdminSerializer)
+    @upload_assinatura.mapping.delete
+    def remove_assinatura(self, request, pk=None):
+        user = self.get_object()
+        assinatura.apagar_imagem(user)
+        user.signature_image_url = ""
+        campos = ["signature_image_url"]
+        if user.signature_kind == assinatura.IMAGEM:
+            user.signature_kind = assinatura.NENHUMA
+            campos.append("signature_kind")
+        user.save(update_fields=campos)
         return Response(self.get_serializer(user).data)
 
     @action(detail=True, methods=["put"], permission_classes=[IsAdmin],

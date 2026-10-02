@@ -184,8 +184,8 @@ class TestPainelDeMidia:
             chat_service.rate(chat=chat, client=ana, service_score=9, resolution_score=9)
 
         links = api(ana).get(URL_MEDIA).json()["links"]
-        assert {l["url"] for l in links} == {"https://um.test/a", "https://dois.test/b"}
-        assert all(l["author_name"] == "Ana Almeida" for l in links)
+        assert {link["url"] for link in links} == {"https://um.test/a", "https://dois.test/b"}
+        assert all(link["author_name"] == "Ana Almeida" for link in links)
 
     def test_link_repetido_nao_vira_duas_linhas(self, api, ana, chat_da_ana):
         for _ in range(3):
@@ -193,7 +193,7 @@ class TestPainelDeMidia:
                 chat=chat_da_ana, author=ana, body="de novo https://x.test/a",
             )
         links = api(ana).get(URL_MEDIA).json()["links"]
-        assert [l["url"] for l in links] == ["https://x.test/a"]
+        assert [link["url"] for link in links] == ["https://x.test/a"]
 
     def test_nao_vaza_link_de_outro_cliente(self, api, ana, carla, chat_da_ana):
         chat, _ = chat_service.open_chat(client=carla)
@@ -201,7 +201,7 @@ class TestPainelDeMidia:
         ChatMessage.objects.create(chat=chat_da_ana, author=ana, body="meu https://acme.test/y")
 
         links = api(ana).get(URL_MEDIA).json()["links"]
-        assert [l["url"] for l in links] == ["https://acme.test/y"]
+        assert [link["url"] for link in links] == ["https://acme.test/y"]
 
     def test_boas_vindas_do_sistema_nao_entra(self, api, ana, chat_da_ana, config):
         """A boas-vindas se repete a cada sessão; um link nela encheria o

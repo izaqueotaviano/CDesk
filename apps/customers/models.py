@@ -187,6 +187,18 @@ class CompanyChatEmbed(models.Model):
         "customers.Company", on_delete=models.CASCADE, related_name="chat_embed"
     )
     enabled = models.BooleanField(default=False)
+    # Modo público: UM código por empresa, colado uma vez no site, sem
+    # assinatura por pessoa. É o que permite embutir numa loja/página pública,
+    # onde não existe ninguém logado para assinar. Quem se identifica é o
+    # próprio visitante, dentro da janelinha (nome + e-mail), e o que garante
+    # que o widget só abre onde deveria continua sendo a lista de origens —
+    # a mesma dos dois modos.
+    #
+    # Desligado por padrão, e independente de `enabled`: ligar o embed não
+    # abre a porta pública junto. Com ele desligado, só a URL assinada entra
+    # (o modo identificado de sempre, que é o certo dentro de um console onde
+    # a pessoa JÁ está logada — ali a identidade é real, não declarada).
+    public_enabled = models.BooleanField(default=False)
     secret = models.CharField(max_length=64, default=generate_secret, editable=False)
     rotated_at = models.DateTimeField(auto_now=True)
 
@@ -195,7 +207,7 @@ class CompanyChatEmbed(models.Model):
         verbose_name_plural = "embeds do chat"
 
     def __str__(self):
-        return f"embed do chat — {self.company.name}"
+        return f"embed do chat ({self.company.name})"
 
 
 class CompanyChatEmbedOrigin(models.Model):

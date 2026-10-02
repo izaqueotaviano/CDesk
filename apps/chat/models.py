@@ -60,6 +60,16 @@ class Chat(TimeStampedModel):
         max_length=10, choices=ChatStatus.choices,
         default=ChatStatus.QUEUED, db_index=True,
     )
+    # Quem ENTROU na conversa sem ser o dono dela — o supervisor que chega
+    # para ajudar ("Entrar na conversa", `chat_service.join_chat`). Escreve
+    # como o agente, mas o atendimento continua sendo de `agent`: o limite de
+    # simultâneos, "meus chats" e as métricas seguem contando só o dono. M2M,
+    # e não um segundo FK, porque nada impede dois supervisores na mesma
+    # conversa difícil.
+    participants = models.ManyToManyField(
+        "accounts.User", blank=True, related_name="chats_participando",
+        verbose_name="participantes",
+    )
 
     # nome interno dado pelo agente ("o cliente escreve qualquer coisa na
     # primeira mensagem") — vira o assunto do ticket na conversão
@@ -92,6 +102,26 @@ class Chat(TimeStampedModel):
         on_delete=models.SET_NULL, null=True, blank=True,
         related_name="chats_encerrados",
     )
+    # Por que terminou + a observação interna de quem encerrou. `PROTECT` no
+    # motivo pelo mesmo motivo do `is_active`: relatório de trás não pode
+    # perder a legenda porque alguém limpou o cadastro.
+    close_reason = models.ForeignKey(
+        "chat.ChatCloseReason",
+        on_delete=models.PROTECT, null=True, blank=True,
+        related_name="chats", verbose_name="motivo do encerramento",
+    )
+    close_note = models.TextField(
+        blank=True, verbose_name="observação do encerramento",
+        help_text="Interna: o cliente nunca vê.",
+    )
+    # Encerrou sozinho (inatividade/expediente) ou alguém encerrou? O
+    # `closed_by` não responde isso: fechamento automático não tem ator, e
+    # `closed_by IS NULL` também acontece quando a conta do agente é
+    # removida depois. Um booleano explícito é o que o relatório consegue
+    # somar sem adivinhar.
+    closed_automatically = models.BooleanField(
+        default=False, verbose_name="encerrado automaticamente"
+    )
     reopen_count = models.PositiveSmallIntegerField(default=0)
 
     # nota do AGENTE sobre o atendimento (0–10) — interna, o cliente nunca vê
@@ -99,6 +129,15 @@ class Chat(TimeStampedModel):
 
     # timeout de fila: ninguém pegou e o sistema converteu sozinho
     timeout_converted = models.BooleanField(default=False)
+
+    # Aviso de inatividade já mandado — para não repetir a cada passagem da
+    # rotina. Zera a cada mensagem nova: quem voltou a falar não está inativo.
+    inactivity_warned_at = models.DateTimeField(null=True, blank=True)
+
+    # Retenção (D18): o CONTEÚDO da conversa expira, a linha fica. Mesmo
+    # carimbo do `Ticket.retention_purged_at`, e pelo mesmo motivo — sem ele
+    # a rotina não sabe o que já passou e reprocessaria tudo toda vez.
+    retention_purged_at = models.DateTimeField(null=True, blank=True)
 
     # O ticket gerado é acessível por `self.generated_ticket` (OneToOne em
     # tickets.Ticket.origin_chat — a FK mora lá para evitar ciclo de import).
@@ -118,7 +157,7 @@ class Chat(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Chat #{self.pk} — {self.client} ({self.get_status_display()})"
+        return f"Chat #{self.pk} · {self.client} ({self.get_status_display()})"
 
     @property
     def rating_pending(self) -> bool:
@@ -148,8 +187,35 @@ class ChatMessage(models.Model):
     )
     body = models.TextField()
     is_system = models.BooleanField(default=False)
+
+    # NOTA INTERNA: fica na conversa, mas o cliente nunca a vê. É o recado da
+    # equipe sobre o atendimento ("já pedi o estorno pro financeiro") no lugar
+    # onde ele faz sentido — dentro da conversa — em vez de num canal paralelo
+    # que ninguém encontra depois.
+    #
+    # Quem decide o que sai é `chat_service.mensagens_visiveis()`, UM lugar só.
+    # Espalhar `if user.is_internal` por cada consulta é como um vazamento
+    # destes acontece: alguém acrescenta a sétima consulta e esquece a
+    # condição. O socket tem o mesmo cuidado no `chat_message` do consumer.
+    is_internal_note = models.BooleanField(default=False, db_index=True)
+
     sent_at = models.DateTimeField(auto_now_add=True, db_index=True)
     read_at = models.DateTimeField(null=True, blank=True)
+
+    # A escada de status que a tela desenha para QUEM ESCREVEU: enviada
+    # (existe id), entregue (chegou no aparelho do outro) e lida. "Entregue"
+    # é carimbado pelo destinatário, não pelo servidor — dizer "entregue"
+    # porque o INSERT deu certo seria mentir sobre a única coisa que o
+    # indicador promete. Sem confirmação, fica em "enviada", que é verdade.
+    delivered_at = models.DateTimeField(null=True, blank=True)
+
+    # Resposta citada. SET_NULL e não CASCADE: apagar o original não pode
+    # levar junto as respostas dele — a conversa perderia trechos inteiros
+    # por causa de uma mensagem só. A citação some, a resposta fica.
+    reply_to = models.ForeignKey(
+        "self", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="replies",
+    )
 
     # Mesmo par que TicketMessage já usa — edited_at é o que a tela mostra
     # como "editada"; o texto anterior não fica registrado aqui de propósito
@@ -211,6 +277,12 @@ class ChatFile(models.Model):
         related_name="chat_files",
     )
 
+    # Retenção/LGPD: o BLOB sai, a linha fica — mesmo campo e mesma semântica
+    # de `TicketAttachment.purged_at`, para o `purge_blob` servir aos dois. Sem
+    # ele o anexo de chat era o único conteúdo do sistema que nenhuma política
+    # alcançava: a mensagem virava "[expurgado]" e o arquivo continuava no disco.
+    purged_at = models.DateTimeField(null=True, blank=True)
+
     scan_status = models.CharField(
         max_length=10, choices=ChatScanStatus.choices,
         default=ChatScanStatus.PENDING, db_index=True,
@@ -228,16 +300,59 @@ class ChatFile(models.Model):
         return self.filename
 
     @property
+    def is_purged(self) -> bool:
+        return self.purged_at is not None
+
+    @property
     def is_downloadable(self) -> bool:
         """Quarentena: só sai do servidor o que a varredura liberou. `ERROR`
         segue o fail-closed global (`ATTACHMENT_BLOCK_ON_SCAN_ERROR`)."""
         from django.conf import settings
 
+        # expurgado não tem o que servir — e o teste vem antes da varredura
+        # porque um arquivo limpo apagado continua apagado
+        if self.purged_at is not None:
+            return False
         if self.scan_status in (ChatScanStatus.CLEAN, ChatScanStatus.SKIPPED):
             return True
         if self.scan_status == ChatScanStatus.ERROR:
             return not settings.ATTACHMENT_BLOCK_ON_SCAN_ERROR
         return False
+
+
+class ChatCloseReason(models.Model):
+    """Por que o atendimento terminou — cadastro do admin, não enum no código.
+
+    É a mesma escolha do `TicketStatus`/`TicketTag`: motivo de encerramento
+    é vocabulário de operação, muda por empresa e por época ("abandono",
+    "duplicado", "transferido para o financeiro"), e congelar isso num
+    `TextChoices` obrigaria deploy para cada palavra nova.
+
+    `requires_note` é por motivo, não global: "resolvido" não precisa de
+    explicação, "outro" precisa. Quem decide é quem cadastra.
+
+    Desativar (`is_active=False`) em vez de apagar: o motivo sai do seletor
+    mas os atendimentos que já o usaram continuam legíveis no relatório —
+    apagar reescreveria o passado.
+    """
+
+    name = models.CharField(max_length=60, unique=True, verbose_name="motivo")
+    slug = models.SlugField(unique=True)
+    requires_note = models.BooleanField(
+        default=False,
+        verbose_name="exige observação",
+        help_text="O agente precisa escrever uma observação interna ao escolher este motivo.",
+    )
+    is_active = models.BooleanField(default=True, verbose_name="ativo")
+    order = models.PositiveSmallIntegerField(default=0, verbose_name="ordem")
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "motivo de encerramento"
+        verbose_name_plural = "motivos de encerramento"
+
+    def __str__(self):
+        return self.name
 
 
 class ChatRating(models.Model):
@@ -299,6 +414,24 @@ class ChatConfig(TimeStampedModel):
         help_text="Equipe que recebe o ticket da conversão automática (timeout).",
     )
 
+    # Inatividade DURANTE o atendimento — diferente do `queue_timeout_minutes`,
+    # que é ninguém ter PEGADO. Aqui alguém pegou e a conversa parou.
+    #
+    # Zero DESLIGA, e é o padrão de propósito: encerrar sozinho o atendimento
+    # de quem foi procurar um documento é pior do que deixar a conversa aberta.
+    # Quem liga escolhe o tempo sabendo do próprio público.
+    inactivity_warning_minutes = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Sem mensagem nenhuma por esse tempo, o chat avisa que vai "
+                  "encerrar. 0 desliga o aviso.",
+    )
+    inactivity_close_minutes = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Sem mensagem nenhuma por esse tempo, o chat encerra sozinho "
+                  "(contado desde a última mensagem, não desde o aviso). "
+                  "0 desliga o encerramento automático.",
+    )
+
     class Meta:
         verbose_name = "configuração do chat"
 
@@ -346,12 +479,12 @@ class ClientQuickReply(models.Model):
 
     class Contexto(models.TextChoices):
         CHAT = "chat", "chat"
-        TICKET = "ticket", "chamado"
+        TICKET = "ticket", "ticket"
 
     contexto = models.CharField(
         max_length=8, choices=Contexto.choices, default=Contexto.CHAT,
         verbose_name="onde aparece",
-        help_text="No chat (frases que ABREM a conversa) ou no chamado "
+        help_text="No chat (frases que ABREM a conversa) ou no ticket "
                   "(frases que RESPONDEM ao atendimento).",
     )
     rotulo = models.CharField(

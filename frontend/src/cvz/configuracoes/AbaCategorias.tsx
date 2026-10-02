@@ -72,7 +72,7 @@ export function AbaCategorias() {
           onChange={(e) => setNomeNovo(e.target.value)}
         />
         <Select value={servicoNovo} onChange={(e) => setServicoNovo(e.target.value)} options={opcoesServico} />
-        <Button Icon={IconPlus} size="sm" onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
+        <Button Icon={IconPlus} onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
           Adicionar
         </Button>
       </div>

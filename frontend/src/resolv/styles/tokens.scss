@@ -1,88 +1,408 @@
 // ============================================================================
 // Resolv Design System — tokens (custom properties).
 //
-// Só define as variáveis do design system entregue em resolvdesignsystem.md.
 // NÃO faz reset global de propósito: esta tela vive num app que já carrega o
 // Preflight do Tailwind (src/styles/index.css); um segundo reset brigaria com
 // ele. Os componentes .resolv-* abaixo estilizam tudo explicitamente.
 //
 // Escopado em .resolv-scope para os tokens valerem só sob o shell novo — o
-// resto do app (login etc., ainda no visual Tailwind quente) fica intocado.
+// resto do app (login etc.) fica intocado.
+//
+// A paleta é a do design system Convertize v2: superfície BRANCA no
+// conteúdo, canvas #f5f5f5, cromo #f0efed, tinta #292524 e a AÇÃO em carvão
+// — no v2 o laranja não preenche ação, ele marca foco, seleção, item ativo e
+// marca. O calor mora nos neutros (pedra) e no laranja. Os mesmos valores
+// vivem em
+// styles/tokens.css (portal/Tailwind) e cvz/styles/_theme.scss (admin) —
+// mudar aqui é mudar nos três. Nenhum componente repete hex.
 // ============================================================================
 
 .resolv-scope {
   // ── Fontes ──
-  --f-ui: 'Inter', -apple-system, system-ui, sans-serif;
-  --f-mono: 'JetBrains Mono', monospace;
+  // Inter na interface inteira, inclusive nos números. Tenor Sans SÓ em
+  // título editorial (saudação da Início, título de tela) — serifada e
+  // decorativa, número nela fica ilegível. JetBrains Mono segue só em dado
+  // técnico (id, referência de ticket, atalho) — nunca em texto corrido.
+  --f-ui: Inter, sans-serif;
+  --f-mono: Inter, sans-serif;
+  --f-display: Inter, sans-serif;
 
   // ── Superfícies ──
-  --surface: #f5f5f5;
-  --surface-alt: #f0efed;
-  --surface-card: #ffffff;
-  --stroke: #e7e5e4;
+  // `surface` é o conteúdo (branco) e `surface-alt` é o CROMO — a inversão em
+  // relação à paleta antiga é o ponto: antes o cromo era quase igual ao fundo,
+  // agora ele recua de verdade e a área de trabalho ganha o branco inteiro.
+  //
+  // `surface-canvas` é nova: o fundo geral ATRÁS do conteúdo (pintado uma vez
+  // só, em .novo-shell — ver shell.scss), não os cards/tabelas/modais em si,
+  // que continuam brancos. `surface-alt`/`surface-canvas` são os dois
+  // primeiros tons do app da Manus (nav e canvas); o card de lá (#fafafa)
+  // não entrou — o pedido original já tinha fixado cartão/tabela em branco
+  // puro, e isso não mudou.
+  --surface: #ffffff;
+  // Sidebar e conteúdo com o MESMO fundo, e um fio de 1px entre os dois —
+  // é como a referência (Copilot) divide a tela. A tentativa anterior de
+  // dividir por luminância (cromo mais escuro, painel creme arredondado por
+  // cima) lia como duas janelas empilhadas; um plano só, com uma costura,
+  // lê como um documento com margem. Quem sobe de tom é só o que é
+  // superfície de verdade: cartão, campo e composer, em branco.
+  --surface-alt: #f6f5f3;      // sidebar
+  --surface-canvas: #f6f5f3;   // conteúdo — o mesmo plano
+  --surface-card: #ffffff;     // cartão, campo, composer
+  // Linha estrutural (tabela, card, divisória, cromo) — hex fixo, não mais
+  // preto translúcido: sobre o novo `--surface-canvas` (#f8f8f7, não mais
+  // branco puro) uma borda derivada de preto ficava clara demais. Mesma
+  // ideia do tema escuro (linha 193 abaixo), que já usa hex fixo por este
+  // motivo. `--borda-campo`, abaixo, é outra família — não mexe aqui.
+  --stroke: #e5e4e2;
   --stroke-hover: #d6d3d1;
-  --stroke-subtle: #d6d3d1;
+  --stroke-subtle: rgba(41, 37, 36, 0.04);
+
+  // Linha de CAMPO de entrada (input, select, textarea, busca, filtro). É bem
+  // mais escura que `--stroke` de propósito: linha estrutural separa blocos,
+  // linha de campo anuncia "dá para digitar aqui". Usar a mesma nos dois fazia
+  // o formulário sumir dentro da página.
+  // DIVERGÊNCIA do briefing, e a única: ele pede `#D6D3D1`, que dá 1,44:1
+  // sobre branco e reprova em 1.4.11 (contorno de controle pede 3:1). Campo
+  // cuja borda não se enxerga não é minimalismo, é campo invisível. Este é o
+  // tom mais claro da mesma família quente que ainda passa: 3,47:1.
+  --borda-campo: #8e8983;
 
   // ── Texto ──
-  --text-primary: #292524;
-  --text-secondary: #4e4e4e;
-  --text-muted: #777169;
+  // Fonte: o mesmo material de referência do fundo (app da Manus) —
+  // #1a1a1a/#4d4d4d/#737373, todos com contraste maior que os tons que
+  // saem daqui (ver conferência de WCAG no commit).
+  --text-primary: #242424;
+  --text-secondary: #616161;
+  // 5,1:1 no plano e 4,6:1 na pílula ativa (#eae9e6) — o #767676 de antes só
+  // passava sobre branco (4,2:1 no plano, 3,7:1 na pílula). Mesmo valor de
+  // --tinta-terciaria (styles/tokens.css) e --cvz-text-muted (cvz).
+  --text-muted: #686868;
+  // Texto e ícone sobre o cromo (#f0f0f0). Um degrau mais claro que o texto
+  // principal: sobre o cinza claro ele já tem contraste de sobra (11:1) e o
+  // preto cheio pesava demais numa barra que fica na tela o dia inteiro.
+  --texto-cromo: #242424;
+  // Fundo do item ATIVO da sidebar: o véu de laranja do kit
+  // (`.site-sidebar a.active{background:#fff0eb}`). Continua token à parte de
+  // `--tom-acento` porque aquele é derivado por alfa e pinta uma dúzia de
+  // outros lugares; aqui o kit pede um creme SÓLIDO. No escuro volta a ser
+  // `--tom-acento`.
+  // Fundo do item ATIVO da sidebar. Era um véu de laranja; agora é o cinza
+  // neutro do briefing — "sem cor de marca vibrante na navegação". O que
+  // marca o item ativo é o pill e o peso da fonte, não a cor. Quente, na
+  // família do plano: o #ebebeb frio do briefing destoava do #f6f5f3.
+  --sidebar-ativo: #eae9e6;
+  // Hover de item sobre o plano (sidebar, abas do topo, ícones do topo). O
+  // `--fundo-hover` do briefing (#f5f5f5) foi pensado sobre branco; sobre o
+  // #f6f5f3 do plano ele é invisível. Um degrau abaixo do ativo.
+  --sidebar-hover: #f0efec;
+
+  // ── Identidade ──
+  // O que distingue "esta pessoa" de "aquela" (avatar de iniciais) e "este
+  // plano" de "aquele". Paleta à parte da semântica de propósito: nenhum dos
+  // seis é azul, verde, âmbar ou vermelho, que já querem dizer ação, sucesso,
+  // alerta e perigo. Os MESMOS seis valores vivem em styles/tokens.css
+  // (portal, --avatar-c*) e cvz/styles/_theme.scss (--cvz-identity-*) — a
+  // pessoa tem a mesma cor dos dois lados; quem escolhe entre eles é o hash
+  // de ui/identidade.ts. Todos AA com texto branco em cima (4,9:1 a 7,3:1) e
+  // AA como TEXTO sobre branco/canvas/cromo (o pior par é 4,7:1) — é por isso
+  // que o preenchimento do avatar e o texto do selo podem ser o mesmo valor.
+  // "Branco/canvas" aqui inclui a tinta de 14% do selo: 4,6:1 no pior caso
+  // (petróleo sobre a tinta no plano) — foi o que fez escurecer um pouco os
+  // três primeiros. Terracota e magenta saíram (sépia e ameixa no lugar):
+  // numa lista de conversas, avatar avermelhado lia como alerta.
+  --identidade-1: #5054C3; // violeta
+  --identidade-2: #0B6C75; // petróleo
+  --identidade-3: #396783; // aço
+  --identidade-4: #6D604F; // sépia (era terracota: Gold segue quente)
+  --identidade-5: #4B5768; // ardósia
+  --identidade-6: #7A4F8F; // ameixa (era magenta)
+  // Texto na cor de identidade (selo de plano sobre tint). No claro é a
+  // própria cor; no escuro ela precisa clarear (ver paleta-escura).
+  --identidade-1-texto: var(--identidade-1);
+  --identidade-2-texto: var(--identidade-2);
+  --identidade-3-texto: var(--identidade-3);
+  --identidade-4-texto: var(--identidade-4);
+  --identidade-5-texto: var(--identidade-5);
+  --identidade-6-texto: var(--identidade-6);
+  // Iniciais sobre o preenchimento: branco nos DOIS temas, porque o
+  // preenchimento não muda de tema — é o único branco literal fora de
+  // `--surface`, e por isso tem nome próprio.
+  --texto-sobre-identidade: #ffffff;
+
+  // Paleta de identidade SÓ do chat (resolv/chat/tons.ts) — 15 tons em vez
+  // de 6, pedido para separar atendimentos abertos ao mesmo tempo sem
+  // repetir tão cedo (com só seis, três conversas já colidiam). Família à
+  // parte de `--identidade-N`: aquele token pinta o produto inteiro
+  // (cartão do quadro, painel do cliente, gráfico de categoria — ver
+  // ui/identidade.ts) e trocar a contagem ali mudaria a cor de todo mundo
+  // em toda tela, não só no chat.
+  //
+  // Cada tom vem com a SUA tinta, e é por isso que ele não pode ser só um
+  // hex. `--identidade-N` são seis tons escolhidos para servirem todos com
+  // branco em cima (4,9:1 a 7,3:1); aqui são quinze, e quinze tons bem
+  // separados por MATIZ não cabem todos na mesma faixa de luminosidade —
+  // amarelo e ciano existirem na paleta é justamente o que a torna útil.
+  // Com branco fixo, treze dos quinze reprovavam o AA (o amarelo dava
+  // 1,65:1). Então o par anda junto: quem pinta com `--chat-tom-N` escreve
+  // com `--chat-tom-N-tinta`, e o menor contraste da tabela é 4,60:1.
+  //
+  // Sem vermelho, laranja, rosa-choque ou salmão: avatar nessas cores, numa
+  // fila de conversas, lia como alerta ("AA" e "VV" em carmim pareciam
+  // chamados estourados), e laranja é a marca, que fica só no logo. Os
+  // quatro deram lugar a ameixa (4), oliva (8), pedra (9) e petróleo (14),
+  // que preenchem os buracos de matiz da roda sem imitar estado.
+  //
+  // Os dois valores são fixos nos dois temas: o fundo aqui é a cor da
+  // pessoa, não uma superfície — ele não vira com o tema, e a tinta que
+  // serve em cima dele também não.
+  --chat-tom-1: #3d7ef7;   --chat-tom-1-tinta: #1c1917;   // 4,60:1
+  --chat-tom-2: #5fb8b4;   --chat-tom-2-tinta: #1c1917;   // 7,50:1
+  --chat-tom-3: #f6c244;   --chat-tom-3-tinta: #1c1917;   // 10,59:1
+  --chat-tom-4: #7d4f96;   --chat-tom-4-tinta: #ffffff;   // 6,12:1
+  --chat-tom-5: #c28faa;   --chat-tom-5-tinta: #1c1917;   // 6,50:1
+  --chat-tom-6: #7189b0;   --chat-tom-6-tinta: #1c1917;   // 4,92:1
+  --chat-tom-7: #5cbb4b;   --chat-tom-7-tinta: #1c1917;   // 7,22:1
+  --chat-tom-8: #9c9a4e;   --chat-tom-8-tinta: #1c1917;   // 5,95:1
+  --chat-tom-9: #a39480;   --chat-tom-9-tinta: #1c1917;   // 5,92:1
+  --chat-tom-10: #6d3ef5;  --chat-tom-10-tinta: #ffffff;  // 5,74:1
+  --chat-tom-11: #5ec5ea;  --chat-tom-11-tinta: #1c1917;  // 8,87:1
+  --chat-tom-12: #75a868;  --chat-tom-12-tinta: #1c1917;  // 6,29:1
+  --chat-tom-13: #c9a883;  --chat-tom-13-tinta: #1c1917;  // 7,84:1
+  --chat-tom-14: #236d77;  --chat-tom-14-tinta: #ffffff;  // 5,96:1
+  --chat-tom-15: #a29bc7;  --chat-tom-15-tinta: #1c1917;  // 6,70:1
+
+  // ── Presença (status de usuário e agente) ──
+  // Família à parte de `--ok`/`--away`: aqueles dois têm outro significado
+  // (SLA em dia/em risco — pílula do chamado, fila, socket do chat) e viram
+  // âmbar, não vermelho, para "em risco". Usar os mesmos aqui faria
+  // "ausente" (vermelho pedido) e "SLA estourado" (`--danger`, também
+  // vermelho) ficarem indistinguíveis.
+  //
+  // Verde e vermelho são fixos nos dois temas: são hues, leem em qualquer
+  // fundo. O offline NÃO pode ser — ele é um cinza, e `.cc-conversa__presenca`
+  // o usa como TEXTO ("cliente offline"), não só como bolinha. Fixo em
+  // #59524d ele dava 7,5:1 no claro e 2,1:1 no escuro; por isso clareia lá
+  // (ver paleta-escura).
+  --presenca-disponivel: #00b530;
+  --presenca-ausente: #ff1919;
+  --presenca-offline: #59524d;
 
   // ── Semânticas ──
-  --accent: #292524;
-  --danger: #dc2626;
-  --ok: #16a34a;
-  --away: #84662b;
+  // Três papéis DIFERENTES, e a rodada anterior confundia dois deles:
+  //
+  //   --primario  a AÇÃO. Carvão, não laranja — regra de marca do v2 ("a
+  //               ação principal é carvão; se tudo for laranja, nada chama
+  //               atenção"). É o `--primary` do kit, e quem preenche botão
+  //               usa ele.
+  //   --accent    o laranja que pode ser LIDO (`--accent-text` do kit):
+  //               link, item ativo, ícone de estado. 5,73:1 sobre a
+  //               superfície branca.
+  //   --laranja   a MARCA (#ff5e2c). Foco, seleção e grafismo — sobre branco
+  //               dá 3,05:1, então nunca texto nem fundo com texto claro.
+  //
+  // Os estados agora são os do kit, inclusive o perigo: o #b13d24 dele já
+  // não se confunde com a ação, porque a ação deixou de ser laranja — era
+  // justamente por isso que a rodada passada precisou fechá-lo mais.
+  --laranja: #ff5e2c;
+  --primario: #242424;
+  --primario-hover: #141414;
+  --primario-sobre: #ffffff;
+  // `--accent` deixou de ser o laranja: um acento só, e ele é o sólido
+  // escuro. Link passa a se anunciar por sublinhado, não por matiz.
+  --accent: #242424;
+  --accent-hover: #141414;
+  --accent-active: #000000;
+  --foco: #242424;
+  --foco-anel: #d6d3d1;
+  --danger: #b13d24;
+  --ok: #3e6f4e;
+  --away: #8a5c35;
+  // Tinta de quem PREENCHE com --away (o selo "fila" do mini chat). O --away
+  // vira dos dois lados com o tema — âmbar fechado no claro, âmbar claro no
+  // escuro —, então a tinta em cima dele tem que virar junto: branco fixo
+  // dava 6,15:1 no claro e 1,70:1 no escuro.
+  --texto-sobre-away: #ffffff;
+  // Selos de sinal PREENCHIDOS (o quadro: prazo vencido, SLA em risco, urgente).
+  // Cada fundo tem a tinta certa por cima, e as duas viram juntas com o tema:
+  // o --danger do escuro é claro, então a tinta ali escurece. Ver kanban.scss.
+  --vivo-perigo: var(--danger);
+  --vivo-perigo-texto: #ffffff;
+  --vivo-alerta: #f0b429;
+  --vivo-alerta-texto: #3a2900;
+  --vivo-ok: var(--ok);
+  --vivo-ok-texto: #ffffff;
 
-  // Material Web: a paleta do sistema e a densidade vivem no mesmo escopo do
-  // novo shell para não afetar login e telas legadas ainda em migração.
-  --md-ref-typeface-plain: 'Inter', -apple-system, system-ui, sans-serif;
-  --md-ref-typeface-brand: 'Inter', -apple-system, system-ui, sans-serif;
-  --md-sys-color-primary: #292524;
-  --md-sys-color-on-primary: #ffffff;
-  --md-sys-color-primary-container: #f0efed;
-  --md-sys-color-on-primary-container: #0c0a09;
-  --md-sys-color-secondary: #4e4e4e;
-  --md-sys-color-secondary-container: #f0efed;
-  --md-sys-color-on-secondary-container: #292524;
-  --md-sys-color-surface: #ffffff;
-  --md-sys-color-surface-container: #ffffff;
-  --md-sys-color-surface-container-high: #ffffff;
-  --md-sys-color-surface-container-highest: #f0efed;
-  --md-sys-color-surface-variant: #f0efed;
-  --md-sys-color-on-surface: #292524;
-  --md-sys-color-on-surface-variant: #4e4e4e;
-  --md-sys-color-outline: #d6d3d1;
-  --md-sys-color-outline-variant: #e7e5e4;
-  --md-sys-color-error: #dc2626;
-  --md-sys-color-on-error: #ffffff;
-  --md-sys-color-error-container: #fdf1f1;
-  --md-sys-color-on-error-container: #991b1b;
-  --md-sys-color-background: #f5f5f5;
-  --md-sys-color-on-background: #292524;
-  --md-sys-typescale-body-large-font: var(--f-ui);
-  --md-sys-typescale-body-medium-font: var(--f-ui);
-  --md-sys-typescale-body-small-font: var(--f-ui);
-  --md-sys-typescale-label-large-font: var(--f-ui);
-  --md-sys-typescale-label-medium-font: var(--f-ui);
-  --md-sys-typescale-label-small-font: var(--f-ui);
-  --md-sys-typescale-title-medium-font: var(--f-ui);
-  --md-filled-button-container-height: 32px;
-  --md-filled-button-container-shape: 999px;
-  --md-filled-button-label-text-size: 12px;
-  --md-filled-tonal-button-container-height: 32px;
-  --md-filled-tonal-button-container-shape: 999px;
-  --md-filled-tonal-button-label-text-size: 12px;
-  --md-outlined-button-container-height: 32px;
-  --md-outlined-button-container-shape: 999px;
-  --md-outlined-button-label-text-size: 12px;
-  --md-outlined-button-outline-color: #d6d3d1;
-  --md-text-button-container-height: 32px;
-  --md-text-button-container-shape: 7px;
-  --md-text-button-label-text-size: 12px;
-  --md-icon-button-state-layer-width: 32px;
-  --md-icon-button-state-layer-height: 32px;
+  // ── Tons (washes de fundo e de borda) ──
+  // Derivados por color-mix do próprio token semântico: cada um é a semântica
+  // com alfa, então acompanham a troca de tema (e a de paleta) sozinhos —
+  // rgba() cru aqui era exatamente o que quebrava no escuro.
+  --tom-acento: color-mix(in srgb, var(--accent) 8%, transparent);
+  --tom-acento-forte: color-mix(in srgb, var(--accent) 16%, transparent);
+  --tom-acento-borda: color-mix(in srgb, var(--accent) 30%, transparent);
+  --tom-ok: color-mix(in srgb, var(--ok) 10%, transparent);
+  --tom-alerta-borda: color-mix(in srgb, var(--away) 28%, transparent);
+  --tom-perigo: color-mix(in srgb, var(--danger) 8%, transparent);
 
+  // As duas exceções da família: cremes SÓLIDOS, não o --away diluído. O --away
+  // do claro é um âmbar escuro (#8a5d0f) e diluí-lo dá bege acinzentado, não
+  // este creme — por isso os dois têm valor próprio por tema (ver a paleta
+  // escura abaixo, onde viram wash e param de brilhar).
+  --tom-alerta: #fff5d9; // pílula de SLA em risco
+  --tom-nota: #fffaec; // fundo da nota interna, um degrau mais claro que a pílula
+
+  // ── Raio ──
+  // O v2 é mais fechado que a leitura anterior: 6px no botão e no campo
+  // (`--radius-sm`), e o canto generoso guardado para superfície — 12px no
+  // cartão (`--radius-lg`). `--raio` é o padrão de controle. Quem precisa de
+  // círculo de verdade (avatar, ponto de presença) usa 50% direto — é forma,
+  // não estilo.
+  --raio: 8px;
+  --raio-cartao: 12px;
+
+  // ── Foco ──
+  // Valor completo de box-shadow, não só a cor: o anel é o mesmo desenho em
+  // toda a base e quem usa não deveria ter que lembrar do "0 0 0 2px".
+  --anel-foco: 0 0 0 2px color-mix(in srgb, var(--accent) 22%, transparent);
+  --anel-foco-alerta: 0 0 0 2px color-mix(in srgb, var(--away) 18%, transparent);
+
+  // ── Elevação e véus ──
+  // Sombra é o caso em que derivar do token NÃO serve: no claro ela é preto
+  // diluído, mas no escuro precisa de muito mais opacidade para aparecer. Daí
+  // o par por tema. Valores baixos de propósito — a separação entre superfícies
+  // é feita por LINHA nesta base, não por sombra.
+  --sombra-suave: rgba(0, 0, 0, 0.06);
+  --sombra-forte: rgba(0, 0, 0, 0.12);
+  --sombra-flutuante: 0 8px 24px var(--sombra-forte), 0 0 0 1px var(--stroke);
+  --veu: rgba(41, 37, 36, 0.48);
+  --veu-suave: rgba(41, 37, 36, 0.26);
+
+  color-scheme: light;
   font-family: var(--f-ui);
   color: var(--text-primary);
+}
+
+// ============================================================================
+// Tema escuro
+// ============================================================================
+// Redefine as MESMAS custom properties: nenhum componente troca de seletor por
+// causa do tema. O corolário é que quem pinta com hex cru fica claro no escuro;
+// o que sobra de literal mora AQUI, que é o único lugar onde cor literal tem
+// valor por tema.
+//
+// Off-black/off-white de propósito: contra #000 puro a linha de 1px do design
+// system some, e #fff puro sobre fundo escuro brilha demais para uma tela de
+// fila que a equipe encara o dia inteiro.
+//
+// A ordem de luminância das superfícies é a MESMA do claro
+// (surface-alt < surface < surface-card): o cromo continua recuado em relação
+// ao corpo e o cartão continua saltando dos dois, só que espelhado.
+@mixin paleta-escura {
+  color-scheme: dark;
+
+  // Superfícies pelos ROLES de escala do Material 3 (m3.material.io/styles/
+  // color/roles), calculados de verdade via @material/material-color-utilities
+  // (DynamicScheme/SchemeTonalSpot, a mesma classe do Material Theme Builder)
+  // a partir do accent da marca (#0f62fe): surface-container-lowest (tom 4) <
+  // surface/surface-dim (tom 6) < surface-container-low (tom 10) <
+  // surface-container (tom 12) — a MESMA ordem relativa de antes
+  // (chrome < canvas < corpo < cartão), só que nos tom-stops reais do M3.
+  // `surface` e `surface-card` são o MESMO valor, como no claro (os dois
+  // brancos): campo e cartão em #2a2a29, que é o que o briefing chama de
+  // superfície. O #242423 de antes era um terceiro cinza a meio caminho.
+  --surface: #2a2a29;
+  --surface-alt: #1a1a19;
+  --surface-card: #2a2a29;
+  --surface-canvas: #1a1a19;
+  // outline-variant (tom 30) / outline (tom 60) / outline-variant discreto (tom 24)
+  --stroke: #323230;
+  --stroke-hover: #4e4e4e;
+  --stroke-subtle: #231f1d;
+  // No escuro o contraste de campo se ganha CLAREANDO a linha, não escurecendo.
+  --borda-campo: #7c7a75;
+
+  // O cinza de "offline" precisa virar do outro lado junto com o fundo:
+  // 6,1:1 sobre --surface-card, contra os 2,1:1 que o tom claro dava ali.
+  --presenca-offline: #a59c96;
+
+  // on-surface (tom 90) / on-surface-variant (tom 80) / on-surface-variant
+  // com menos ênfase (tom 65) — mesmos roles do M3 para texto sobre superfície.
+  --text-primary: #f2f1ee;
+  --text-secondary: #d6d3d1;
+  --text-muted: #a8a29e;
+  // No escuro o cromo é o fundo mais escuro da tela: o texto dele volta a ser
+  // o mesmo texto principal (um cinza #333 ali seria ilegível).
+  --texto-cromo: var(--text-primary);
+  // Sem pedido de troca no escuro: mantém o valor de sempre (--tom-acento
+  // recalcula sozinho com o --accent redefinido logo abaixo).
+  --sidebar-ativo: var(--tom-acento);
+  --sidebar-hover: color-mix(in srgb, var(--accent) 5%, transparent);
+
+  // O role `primary` do M3 (TonalSpot, tom 80) para a source color #0f62fe —
+  // não é mais uma aproximação manual "clareada": é o HCT real. Mais claro/
+  // pastel que o valor antigo (#78a9ff, tom≈69), e com contraste MAIOR
+  // (9,6–10,9:1 como texto nas três superfícies, contra os 7,4:1 de antes).
+  // hover/active seguem a MESMA paleta tonal do primary (tons 88/70).
+  // No escuro a AÇÃO inverte (carvão sumiria): o primário vira o claro do
+  // kit com tinta escura em cima. O acento clareia junto.
+  --primario: #f2f1ee;
+  --primario-hover: #ffffff;
+  --primario-sobre: #1a1a19;
+  --accent: #f2f1ee;
+  --accent-hover: #ffffff;
+  --accent-active: #d6d3d1;
+  --foco: #f2f1ee;
+  --foco-anel: #3d3d3a;
+  // role `error` do M3 (tom 80) para #b3261e.
+  --danger: #ff9b85;
+  // Sem role nativo no M3 para sucesso/atenção — retonados pelo MESMO método
+  // (HCT, tom 80) preservando o hue/chroma reais de #1d7a4c e #8a5d0f.
+  --ok: #8fc39e;
+  --away: #e3b682;
+  // 10,28:1 — no escuro o --away é claro, e quem escreve em cima dele escurece
+  --texto-sobre-away: #1c1917;
+  --vivo-perigo-texto: #2b0f08;
+  --vivo-ok-texto: #10261a;
+
+  // Identidade: o PREENCHIMENTO (avatar) não muda — são tons médios, e
+  // branco em cima segue AA sobre qualquer fundo. Só o TEXTO clareia, retonado
+  // pelo mesmo método M3 (tom 58) até passar 4,5:1 nas duas superfícies
+  // escuras do resolv e nas duas do cvz.
+  // Conferido também sobre a tinta de 14% do selo em cima do cartão escuro
+  // (#2a2a29) e sobre o selecionado (#333332): 4,6:1 no pior caso.
+  --identidade-1-texto: #9597db;
+  --identidade-2-texto: #11adbb;
+  --identidade-3-texto: #71a3c1;
+  --identidade-4-texto: #a99b89;
+  --identidade-5-texto: #919eb0;
+  --identidade-6-texto: #b393c3;
+
+  // Sombra preta e MUITO mais opaca: sobre #1d1b19 uma sombra de 6–12% não
+  // aparece, e a peça flutuante perde a separação do fundo — que é a única
+  // função dela. O véu sobe pelo mesmo motivo.
+  --sombra-suave: rgba(0, 0, 0, 0.45);
+  --sombra-forte: rgba(0, 0, 0, 0.62);
+  --veu: rgba(0, 0, 0, 0.62);
+  --veu-suave: rgba(0, 0, 0, 0.45);
+
+  // Os dois cremes sólidos do claro viram wash do próprio --away: sólidos aqui
+  // eles brilhariam e o texto por cima sumiria (a pílula escreve em --away, a
+  // nota em --text-primary). 16% deixa --away sobre a pílula em 6,66:1.
+  --tom-alerta: color-mix(in srgb, var(--away) 16%, transparent);
+  --tom-nota: color-mix(in srgb, var(--away) 10%, transparent);
+}
+
+// A escolha explícita mora no atributo carimbado por useTema.ts no <html> e
+// ganha da preferência do SO nos DOIS sentidos: quem escolheu claro num sistema
+// escuro não casa com o `:not([data-tema])` abaixo e continua claro.
+html[data-tema='escuro'] .resolv-scope {
+  @include paleta-escura;
+}
+
+// Só para quem nunca escolheu — e, na prática, só até o useTema montar e
+// carimbar o atributo. É o que evita o flash claro no primeiro paint de quem
+// usa o sistema no escuro.
+@media (prefers-color-scheme: dark) {
+  html:not([data-tema]) .resolv-scope {
+    @include paleta-escura;
+  }
 }

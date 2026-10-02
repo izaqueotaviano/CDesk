@@ -1,6 +1,135 @@
 @use '../styles/tokens' as *;
 @use '../styles/mixins' as *;
 
+// =============================================================================
+// A página: navegação por seção à esquerda, seção aberta à direita.
+//
+// `container-type` e não media query: quem decide se a lista lateral cabe é
+// a largura que SOBRA para a página, não a da janela — com a sidebar do
+// shell aberta num notebook de 1280px sobram ~1000px; recolhida, ~1200px.
+// Abaixo de 760px úteis a lista vira o seletor do topo (`.cfg-seletor`).
+// =============================================================================
+.cfg-pagina {
+  container-type: inline-size;
+  container-name: cfg-pagina;
+
+  &__corpo {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    align-items: start;
+    gap: $sp-6;
+  }
+
+  &__conteudo {
+    min-width: 0;
+  }
+}
+
+.cfg-nav {
+  // Presa no topo enquanto a seção rola: com quinze destinos, voltar lá em
+  // cima pra trocar de seção era o gesto mais repetido da tela.
+  position: sticky;
+  top: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+
+  &__titulo {
+    margin: 0 0 $sp-1;
+    padding: 0 $sp-2;
+    @include type($fs-meta, $w-medium);
+    color: $text-muted;
+  }
+
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  // Mesmo desenho do item da sidebar do shell (resolv/shell/sidebar.scss):
+  // pílula de 32px, sem cor de marca — o ativo é o fundo um degrau abaixo
+  // e o peso. As custom properties são as do `.resolv-scope`, que sempre
+  // envolve esta página (SuperficieCvz vive dentro do NovoShell); o
+  // fallback é o hover do próprio cvz, pra quem montar fora dele.
+  &__item {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 $sp-2;
+    border-radius: 8px;
+    @include type($fs-body, $w-regular, $lh-none);
+    color: $text-secondary;
+    text-decoration: none;
+    transition: background-color $dur $ease, color $dur $ease;
+
+    &:hover {
+      background-color: var(--sidebar-hover, #{$hover-soft});
+      color: $text;
+    }
+
+    &[aria-current='page'] {
+      background-color: var(--sidebar-ativo, #{$hover-soft});
+      color: $text;
+      font-weight: $w-medium;
+    }
+
+    &:focus-visible {
+      outline: $focus-w solid var(--foco, #{$text});
+      outline-offset: -2px;
+    }
+  }
+}
+
+// O seletor só existe em largura estreita (ver `.cfg-pagina`).
+.cfg-seletor {
+  display: none;
+}
+
+.cfg-secao {
+  &__topo {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-1;
+  }
+
+  &__titulo {
+    margin: 0;
+    @include type($fs-subhead, $w-semibold);
+    color: $text;
+  }
+
+  &__descricao {
+    margin: 0;
+    @include type($fs-body, $w-regular);
+    color: $text-secondary;
+  }
+}
+
+@container cfg-pagina (max-width: 760px) {
+  .cfg-pagina__corpo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: $sp-4;
+  }
+
+  .cfg-nav {
+    display: none;
+  }
+
+  .cfg-seletor {
+    display: block;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-nav__item {
+    transition: none;
+  }
+}
+
 // Conteúdo de cada aba de Configurações — linha de "adicionar" no topo,
 // tabela editável inline embaixo. Compartilhado pelas abas de cadastro
 // simples (Status, Serviços, Categorias, Tags); as mais complexas (SLA,
@@ -67,7 +196,7 @@
   }
   &::-webkit-color-swatch {
     border: 0;
-    border-radius: 1px;
+    border-radius: $radius;
   }
 }
 
@@ -90,6 +219,25 @@
   height: 12px;
   border-radius: 50%;
   border: $border;
+
+  // o chip É o seletor de cor: some a moldura nativa do <input type=color>
+  &--editavel {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    cursor: pointer;
+    appearance: none;
+    background: none;
+
+    &::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    &::-webkit-color-swatch,
+    &::-moz-color-swatch {
+      border: 0;
+      border-radius: 50%;
+    }
+  }
 }
 
 // Grade de permissões do formulário de papel (AbaPapeis) — agrupada pelo
@@ -109,8 +257,6 @@
 .cfg-permissoes__titulo {
   @include type($fs-meta, $w-medium);
   color: $text-muted;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
 .cfg-permissoes__grid {
@@ -177,5 +323,478 @@
   > .field {
     flex: 1;
     min-width: 140px;
+  }
+}
+
+// Linha de estado do formulário de Sistema (AbaSistema), dentro do
+// `FormActions`: `margin-right: auto` empurra os botões pra direita e deixa o
+// texto onde o olho já está antes de clicar em Salvar. No mobile o
+// FormActions vira coluna e o `auto` perde o efeito — que é o certo: lá o
+// texto fica acima dos botões, na ordem de leitura.
+.cfg-sistema__meta {
+  margin-right: auto;
+  @include type($fs-meta, $w-regular);
+  color: $text-muted;
+}
+
+// Sistema → E-mail: destinatário + botão do e-mail de teste na mesma linha
+.cfg-sistema__teste {
+  display: flex;
+  gap: var(--espaco-2, 8px);
+  align-items: center;
+
+  .control {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// Configurações → Equipes: roster (cada equipe com quem a atende, mais
+// "Sem equipe") e as ações administrativas por agente. A DataTable já traz
+// borda/raio/fundo próprios (DataTable.scss) — o card aqui é só o cabeçalho
+// da equipe em cima dela, não uma segunda moldura.
+.cfg-roster {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-5;
+}
+
+.cfg-roster__equipe {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.cfg-roster__cabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $sp-3;
+}
+
+.cfg-roster__cabecalho-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cfg-roster__cabecalho-titulo {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  @include type($fs-title, $w-semibold);
+  color: $text;
+}
+
+.cfg-roster__cabecalho-acoes {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+// Menu de ações por agente (Popover + botões) — mesmo padrão do menu de
+// perfil do shell (AppShell.scss, `.app-shell__profile-menu`).
+.cfg-roster__menu {
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+}
+
+.cfg-roster__menu-item {
+  @include button-reset;
+  @include focus-ring;
+  width: 100%;
+  min-height: $control-h;
+  padding: 0 $sp-3;
+  border-radius: $radius;
+  text-align: left;
+  @include type($fs-ui);
+  color: $text;
+  transition: background-color $dur $ease;
+
+  &:hover {
+    background-color: $hover;
+  }
+
+  &--perigo {
+    color: $danger;
+  }
+}
+
+// Alterna entre "criar novo" e "vincular existente" no modal de adicionar
+// agente — dois botões que se comportam como um radiogroup, não uma escolha
+// de ação (por isso Button + aria-pressed, não Tabs: não há conteúdo por
+// aba, só qual formulário aparece embaixo).
+.cfg-roster__modo {
+  display: flex;
+  gap: $sp-2;
+}
+
+// Senha sorteada em `reset-password` — mostrada uma única vez, na resposta.
+// Mesmo tratamento visual da chave do chat embutido (clientes.scss,
+// `.clientes-chave-gerada`): código monoespaçado + botão de copiar.
+.cfg-roster__segredo {
+  display: flex;
+  align-items: center;
+  gap: $sp-2;
+  margin-top: $sp-2;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+  background-color: $raised;
+
+  code {
+    flex: 1;
+    min-width: 0;
+    @include type($fs-ui, $w-regular);
+    font-family: $f-mono;
+    word-break: break-all;
+  }
+}
+
+// Histórico de acesso (modal) — sessões vivas + atividade recente, mesma
+// forma de `apps.accounts.sessions.access_history_payload`.
+.cfg-roster__historico {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.cfg-roster__historico-titulo {
+  margin: 0 0 $sp-2;
+  @include type($fs-ui, $w-semibold);
+  color: $text;
+}
+
+.cfg-roster__lista {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-1;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cfg-roster__historico-linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border: $border;
+  border-radius: $radius;
+}
+
+// Configurações → Tela de login: campos à esquerda, prévia do painel à direita
+.cfg-marca {
+  display: grid;
+  gap: 24px;
+  align-items: start;
+
+  @media (min-width: 1100px) {
+    grid-template-columns: minmax(0, 1fr) 320px;
+  }
+
+  &__campos {
+    min-width: 0;
+  }
+
+  &__imagem-acoes {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__previa {
+    position: sticky;
+    top: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 360px;
+    padding: 20px;
+    border-radius: $radius;
+    color: #fff;
+    background: linear-gradient(135deg, #1b63d6, #0d3f96);
+    background-size: cover;
+    background-position: center;
+    box-shadow: inset 0 -160px 120px -80px rgba(0, 0, 0, 0.55);
+  }
+
+  &__previa-marca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  &__previa-logo {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: $radius;
+    background: rgba(255, 255, 255, 0.18);
+  }
+
+  &__previa-chamada {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+  }
+
+  &__previa-lista {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 12px;
+    line-height: 1.5;
+    opacity: 0.9;
+  }
+}
+
+// ── Ferramentas: Importar (Movidesk) e Backup ─────────────────────────────
+// O console de um trabalho — estado, barra e o log ao vivo. Compartilhado
+// pelas duas abas (ConsoleDeTrabalho.tsx).
+.cfg-console {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  padding: $sp-4;
+  border: $border;
+  border-radius: $radius;
+  background: $surface;
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: $sp-3;
+    flex-wrap: wrap;
+  }
+  &__titulo {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    flex-wrap: wrap;
+  }
+  &__quando {
+    color: $text-muted;
+    font-size: $fs-meta;
+  }
+  &__etapa {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $fs-meta;
+  }
+  &__erro {
+    margin: 0;
+    padding: $sp-2 $sp-3;
+    border-radius: $radius;
+    background: $danger-tint;
+    color: $danger;
+    font-size: $fs-meta;
+  }
+  // Monoespaçado e com teto de altura: o log de uma base inteira tem
+  // centenas de linhas — rola dentro da caixa, não empurra a página.
+  &__log {
+    margin: 0;
+    padding: $sp-3;
+    max-height: 320px;
+    overflow-y: auto;
+    list-style: none;
+    border-radius: $radius;
+    background: $chrome;
+    font-family: $f-mono;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  &__linha {
+    white-space: pre-wrap;
+    word-break: break-word;
+    time {
+      margin-right: $sp-2;
+      color: $text-muted;
+    }
+    &--aviso { color: $away; }
+    &--erro { color: $danger; }
+  }
+}
+
+// Modal "Assinatura de <agente>": as três formas, o campo da vez e a prévia
+// do que o cliente vê.
+.cfg-assinatura {
+  display: grid;
+  gap: $sp-4;
+
+  &__formas {
+    border: 0;
+    margin: 0;
+    padding: 0;
+
+    legend {
+      padding: 0;
+      font-size: $fs-meta;
+      font-weight: $w-medium;
+      color: $text;
+    }
+
+    > div {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $sp-2;
+      margin-top: $sp-2;
+    }
+
+    label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: $border;
+      border-radius: $radius;
+      font-size: $fs-meta;
+      color: $text;
+      cursor: pointer;
+
+      &:has(:checked) {
+        border-color: $blue;
+        background-color: $blue-tint;
+      }
+    }
+  }
+
+  &__imagem {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $sp-2;
+  }
+
+  &__rotulo {
+    display: block;
+    font-size: $fs-meta;
+    font-weight: $w-medium;
+    color: $text;
+    margin-bottom: $sp-2;
+  }
+
+  &__ajuda {
+    font-size: $fs-label;
+    color: $text-muted;
+  }
+
+  &__previa {
+    padding: $sp-3;
+    border: $border;
+    border-radius: $radius;
+    background-color: $chrome;
+    font-size: $fs-meta;
+    color: $text-secondary;
+  }
+
+  &__vazio {
+    margin: 0;
+    padding: $sp-4;
+    border: 1px dashed $stroke;
+    border-radius: $radius;
+    text-align: center;
+    font-size: $fs-meta;
+    color: $text-muted;
+  }
+}
+
+.cfg-importar {
+  // a lista do aviso "o que não vem": marcador discreto e linhas soltas, para
+  // ser varrida com o olho antes de importar
+  &__limites {
+    margin: $sp-2 0 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 4px;
+
+    li { line-height: 1.45; }
+    b { font-weight: $w-medium; color: $text; }
+  }
+
+  // as duas caixas de opção ao lado do campo "quantas", alinhadas ao rótulo
+  &__opcoes {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    padding-top: $sp-4;
+  }
+  &__resumo {
+    display: flex;
+    flex-direction: column;
+    gap: $sp-3;
+    align-items: flex-start;
+  }
+  &__contadores {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: $sp-3;
+    width: 100%;
+    margin: 0;
+    > div {
+      padding: $sp-3;
+      border: $border;
+      border-radius: $radius;
+      background: $surface;
+    }
+    dt { font-size: $fs-meta; color: $text-muted; }
+    dd { margin: $sp-1 0 0; font-size: 20px; font-weight: 600; }
+  }
+  &__avisos {
+    margin: 0;
+    padding: $sp-3 $sp-3 $sp-3 $sp-6;
+    width: 100%;
+    border-radius: $radius;
+    background: $away-tint;
+    color: $text;
+    font-size: $fs-meta;
+    li + li { margin-top: $sp-1; }
+  }
+  &__historico {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    li {
+      display: grid;
+      grid-template-columns: 1fr auto 2fr;
+      gap: $sp-3;
+      padding: $sp-2 0;
+      border-bottom: $border;
+      font-size: $fs-meta;
+      color: $text-secondary;
+      &:last-child { border-bottom: 0; }
+    }
+  }
+}
+
+.cfg-backup {
+  &__nome {
+    display: inline-flex;
+    align-items: center;
+    gap: $sp-2;
+    flex-wrap: wrap;
+    code { font-family: $f-mono; font-size: 12px; }
+  }
+  &__acoes {
+    display: inline-flex;
+    gap: $sp-1;
+    white-space: nowrap;
+  }
+  &__nota {
+    margin: 0;
+    font-size: $fs-meta;
+    color: $text-secondary;
   }
 }

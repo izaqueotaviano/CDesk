@@ -11,8 +11,10 @@
     gap: 4px;
     min-height: $control-h;
     padding: 4px 32px 4px 10px;
-    border: $stroke-w solid $stroke;
-    border-bottom-color: $text-muted;
+    // Combobox é campo de entrada: linha de campo, igual a input e select
+    // (`@mixin field`). O reforço só na borda de baixo que existia aqui saiu
+    // junto — ele compensava uma linha clara demais, que não existe mais.
+    border: $border-field;
     border-radius: $radius;
     background-color: $raised;
     cursor: text;
@@ -21,7 +23,7 @@
 
   &--open &__control {
     border-color: $blue;
-    box-shadow: 0 0 0 2px $blue-tint;
+    box-shadow: 0 0 0 2px $focus-ring;
   }
 
   &--disabled &__control {
@@ -36,7 +38,7 @@
     height: 22px;
     padding: 0 4px 0 8px;
     border-radius: $radius;
-    background-color: $chrome;
+    background-color: $blue-tint;
     @include type($fs-meta, $w-regular);
 
     button {
@@ -121,7 +123,7 @@
     @include type($fs-ui, $w-regular);
     color: $text;
 
-    &--active { background-color: $chrome; }
+    &--active { background-color: $hover; }
     &--selected { font-weight: $w-medium; }
 
     &-text {

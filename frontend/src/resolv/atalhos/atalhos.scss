@@ -1,0 +1,196 @@
+// Painel "Atalhos de teclado" — diálogo sobre véu, mesma casca da busca
+// (busca-comando.scss): cartão branco, raio de superfície, sombra de flutuante.
+// Dentro, só texto e <kbd>; nenhuma borda decorativa, os grupos se separam
+// pelo espaço e por um fio.
+
+.painel-atalhos__veu {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 10vh 16px 16px;
+  background: var(--veu);
+}
+
+.painel-atalhos {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 720px;
+  max-height: 80vh;
+  overflow: hidden;
+  background: var(--surface-card);
+  border-radius: var(--raio-cartao);
+  box-shadow: var(--sombra-flutuante);
+  color: var(--text-primary);
+  font-family: var(--f-ui);
+  animation: painel-atalhos-entrar 0.15s ease;
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 16px 12px 24px;
+    border-bottom: 1px solid var(--stroke);
+  }
+
+  &__titulo {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &__fechar {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+  }
+
+  &__grupos {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 32px;
+    padding: 16px 24px 8px;
+    overflow-y: auto;
+  }
+
+  // "Ticket aberto" é o grupo mais comprido junto com "Geral": a lista de
+  // tickets (curta) divide a segunda coluna com ele.
+  &__grupo:first-child {
+    grid-row: span 2;
+  }
+
+  &__grupo-titulo {
+    margin: 0 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__lista {
+    margin: 0 0 16px;
+  }
+
+  &__linha {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 36px;
+    padding: 4px 0;
+    & + & {
+      border-top: 1px solid var(--stroke);
+    }
+  }
+
+  &__teclas {
+    flex-shrink: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    min-width: 96px;
+    margin: 0;
+  }
+
+  &__combinacao,
+  &__passo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__ou,
+  &__depois {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  kbd {
+    display: inline-grid;
+    place-items: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  &__descricao {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.35;
+  }
+
+  &__rodape {
+    margin: 0;
+    padding: 12px 24px 16px;
+    border-top: 1px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+@keyframes painel-atalhos-entrar {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+// Celular: uma coluna só, e o painel vira folha que ocupa a tela.
+@media (max-width: 767px) {
+  .painel-atalhos__veu {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .painel-atalhos {
+    max-width: none;
+    max-height: 92vh;
+    border-radius: var(--raio-cartao) var(--raio-cartao) 0 0;
+    &__topo {
+      padding: 12px 12px 12px 16px;
+    }
+    &__grupos {
+      grid-template-columns: 1fr;
+      padding: 12px 16px 4px;
+    }
+    &__grupo:first-child {
+      grid-row: auto;
+    }
+    &__rodape {
+      padding: 12px 16px 16px;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-atalhos {
+    animation: none;
+  }
+}

@@ -1,22 +1,137 @@
+// Shell do console: sidebar fixa à esquerda, e à direita a barra superior
+// (com as abas) sobre o conteúdo.
+//
+// Tudo no MESMO plano (`--surface-canvas`), dividido por um fio vertical de
+// 1px na borda da sidebar, como na referência (Copilot). Antes o conteúdo
+// vivia num painel creme arredondado apoiado sobre um cromo mais escuro, com
+// uma barra de abas fundida nele; lia como duas janelas empilhadas. As abas
+// voltaram (BarraDeAbas.tsx), mas desenhadas para este plano: sem faixa e sem
+// linha própria, a ativa é um cartão sobre o plano, e a moldura e o painel
+// continuam fora.
+//
+// `--largura-sidebar` mora AQUI, na raiz, e não dentro da barra: a barra é
+// `position: fixed` (não ocupa espaço no fluxo), então é o corpo que precisa
+// saber o quanto recuar. Uma variável só, lida pelos dois, é o que garante que
+// o conteúdo nunca fica por baixo da barra em nenhum dos estados.
 .novo-shell {
+  // Etapa 1: tokens de navegação, independentes das superfícies das páginas.
+  --shell-fundo: light-dark(#f4f6f8, #20262c);
+  --shell-superficie: var(--surface-card);
+  --shell-borda: light-dark(#d8dee4, #46515d);
+  --shell-tinta: light-dark(#263238, #edf2f7);
+  --shell-ativo: light-dark(#263238, #dce6ef);
+  --shell-ativo-sobre: light-dark(#ffffff, #20262c);
+  --shell-selecao: light-dark(#eaf2ff, #233c56);
+  --shell-acento: light-dark(#2563eb, #93baff);
+  --shell-hover: light-dark(#e8edf2, #303c47);
+  --shell-raio: 6px;
+  font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+  --largura-sidebar: 248px;
+
   display: flex;
   min-height: 100vh;
-  background: var(--surface);
+  background: var(--shell-fundo);
 
-  &__corpo {
-    margin-left: 64px;
-    flex: 1;
-    height: 100vh;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
+  &--recolhida {
+    --largura-sidebar: 52px;
   }
 
-  &__conteudo {
+  &__corpo {
+    margin-left: var(--largura-sidebar);
     flex: 1;
+    min-width: 0;
+    height: 100vh;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    // Quem rola é o painel, não o corpo: a barra superior fica sempre à
+    // vista sem precisar de `sticky`.
     overflow: hidden;
+    transition: margin-left 0.15s ease;
+  }
+
+  // Barra superior: uma linha de 52px (a mesma do topo da sidebar, então o
+  // centro das abas cai na linha da marca "Resolv") com as abas à esquerda (a
+  // faixa toma o espaço que sobra e rola sozinha) e os dois ícones fixos à
+  // direita. Sem fundo próprio e sem borda: um andar a mais de cromo em cima
+  // de cada tela era exatamente o peso que se quis tirar, e a aba ativa já se
+  // destaca.
+  &__topo {
+    border-bottom: 1px solid var(--shell-borda);
+    background: var(--shell-fundo);
+    flex-shrink: 0;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 12px 0 16px;
+  }
+
+  &__topo-lado {
+    display: flex;
+    align-items: center;
+    flex: none;
+    gap: 2px;
+    // Um respiro a mais entre as abas (com o "+") e os ícones fixos: com a
+    // faixa cheia o "+" ficaria com cara de terceiro ícone da direita.
+    margin-left: 4px;
+  }
+
+  // Botão só-ícone da barra superior: notificações, tema e, em tela pequena,
+  // o menu. Alvo de 32px (acima dos 24px da WCAG 2.5.8); o ícone é o mesmo
+  // Tabler monolinear do resto.
+  &__icone {
+    position: relative;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: var(--shell-raio);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 18px;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      color 0.12s ease;
+
+    &:hover {
+      background: var(--shell-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  // O painel é a página: rola, e é o alvo do "pular para o conteúdo"
+  // (`#resolv-corpo`). A coluna flex continua porque as páginas de altura
+  // cheia (o detalhe do ticket, o chat) dependem dela.
+  &__painel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    background: var(--surface-canvas);
+  }
+}
+
+// Abaixo de 768px a sidebar vira gaveta por cima do conteúdo (sidebar.scss):
+// o corpo não recua nada, e a barra superior ganha o botão que abre a gaveta,
+// antes da faixa de abas.
+@media (max-width: 767px) {
+  .novo-shell {
+    --largura-sidebar: 0px;
+
+    // Sem sidebar ao lado para alinhar: a linha volta aos 48px.
+    &__topo {
+      height: 48px;
+      padding: 0 8px;
+      gap: 4px;
+    }
   }
 }

@@ -29,7 +29,7 @@ class BoardSerializer(serializers.ModelSerializer):
 class BoardLaneSerializer(serializers.ModelSerializer):
     class Meta:
         model = BoardLane
-        fields = ["id", "board", "name", "order"]
+        fields = ["id", "board", "name", "order", "wip_limit"]
 
 
 class PlaceSerializer(serializers.Serializer):
@@ -49,3 +49,14 @@ class EntryUpdateSerializer(serializers.Serializer):
 
     due_at = serializers.DateTimeField(required=False, allow_null=True)
     owner_id = serializers.IntegerField(required=False, allow_null=True)
+
+
+class ColumnLimitSerializer(serializers.Serializer):
+    """Limite de WIP de uma coluna. `null` tira o limite.
+
+    Obrigatório (não `required=False`): um PATCH vazio não pode ser lido como
+    "tirar o limite" por omissão. O teto de 999 é só sanidade: um limite que
+    nenhuma coluna alcança é o mesmo que não ter limite.
+    """
+
+    wip_limit = serializers.IntegerField(min_value=1, max_value=999, allow_null=True)

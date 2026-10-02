@@ -51,4 +51,54 @@
   [data-tema='escuro'] .etiqueta {
     color: oklch(from var(--etapa, var(--acento)) 85% c h);
   }
+  /*
+   * Assinatura de mensagem: o HTML vem do perfil do agente, já higienizado
+   * pelo servidor (apps/accounts/assinatura.py). Estas regras existem porque
+   * o conteúdo é INJETADO — utilitária do Tailwind não alcança um `<table>`
+   * que a tela não escreveu. É só contenção: cabe na largura, links no
+   * acento, tabela sem espaçamento fantasma. O resto (cor, fonte) é o que a
+   * pessoa escolheu na assinatura dela.
+   */
+  .assinatura-mensagem :is(img, table) {
+    max-width: 100%;
+  }
+  .assinatura-mensagem table {
+    border-collapse: collapse;
+  }
+  .assinatura-mensagem a {
+    color: var(--acento);
+  }
+  .assinatura-mensagem :is(p, div) {
+    margin: 0;
+  }
+  .assinatura-mensagem :is(p, div) + :is(p, div) {
+    margin-top: 4px;
+  }
+
+  /* LINK.
+     O acento deixou de ser o laranja e virou a própria tinta, então cor não
+     distingue mais link de texto corrido. Quem assume esse trabalho é o
+     sublinhado — mas SÓ onde o problema existe: link INLINE, no meio de uma
+     frase. É a isso que a WCAG 1.4.1 se refere ("dentro de um bloco de
+     texto"), e foi onde a primeira versão desta regra errou: ela sublinhava
+     todo <a>, e no portal isso pintou navegação, botões, datas e títulos de
+     cartão — a tela inteira virou link.
+     Item de navegação, linha de lista e cartão clicável se anunciam por
+     posição, hover e foco; não precisam de traço, e com ele ficam ilegíveis.
+
+     `text-underline-offset` afasta o traço da base da letra para não cortar
+     o rabo do "g" e do "p".
+
+     O `:not(nav a)` tira a lista de navegação (<nav><ul><li><a>): o `li` do
+     seletor é para lista de TEXTO, e o índice das Configurações do portal
+     saía todo sublinhado. */
+  :is(p, li, dd, blockquote, .prosa) a:not(nav a) {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--borda-controle);
+  }
+  :is(p, li, dd, blockquote, .prosa) a:not(nav a):hover {
+    text-decoration-color: currentColor;
+  }
 }

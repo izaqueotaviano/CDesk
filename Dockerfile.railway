@@ -28,7 +28,15 @@ RUN pip install --upgrade pip && pip install ".[reports,antivirus]"
 
 COPY . .
 
-RUN mkdir -p /var/lib/resolv/media && chmod +x deploy/entrypoint.sh
+# Usuário sem privilégio, mesmo raciocínio do Dockerfile principal: o dono
+# muda ANTES do USER, senão a troca de dono roda como quem não tem permissão
+# para ela. O entrypoint faz migrate/collectstatic no boot (staticfiles fica
+# dentro de /app, coberto pelo chown -R abaixo) — precisa rodar como o dono.
+RUN mkdir -p /var/lib/resolv/media staticfiles \
+    && chmod +x deploy/entrypoint.sh \
+    && useradd --system --create-home --home-dir /home/resolv --shell /usr/sbin/nologin resolv \
+    && chown -R resolv:resolv /app /var/lib/resolv/media
+USER resolv
 
 # Railway injeta PORT; o entrypoint o respeita.
 CMD ["./deploy/entrypoint.sh"]

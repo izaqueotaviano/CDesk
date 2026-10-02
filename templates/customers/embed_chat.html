@@ -11,6 +11,13 @@ chat já aberto ou de um novo. NÃO inclui anexo nem a avaliação de duas
 notas do fim do atendimento — quem precisa disso usa o portal completo
 (o link "abrir no portal" no rodapé).
 
+Dois jeitos de a página chegar aqui, decididos no `embed_views`:
+- com `token`: a identidade já veio provada (URL assinada) e o chat abre
+  direto;
+- com `sessao`: modo público — ninguém sabe ainda quem é a pessoa, então a
+  janelinha começa no formulário de identificação e só vira chat depois que
+  `/embed/chat/identificar/` devolver o token.
+
 {% endcomment %}
 <html lang="pt-br">
 <head>
@@ -35,6 +42,11 @@ notas do fim do atendimento — quem precisa disso usa o portal completo
   .cab__status { font-size: 11px; color: #6b6459; display: flex; align-items: center; gap: 5px; }
   .cab__ponto { width: 7px; height: 7px; border-radius: 50%; background: #9a9284; flex: none; }
   .cab__ponto--ok { background: #2f8a3e; }
+  .cab__fechar {
+    flex: none; width: 26px; height: 26px; border: 0; border-radius: 6px; background: none;
+    color: #6b6459; cursor: pointer; font-size: 17px; line-height: 1; display: grid; place-items: center;
+  }
+  .cab__fechar:hover { background: #f1efe9; color: #1b1917; }
   .corpo {
     flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px;
     display: flex; flex-direction: column; gap: 8px;
@@ -70,35 +82,80 @@ notas do fim do atendimento — quem precisa disso usa o portal completo
   .rodape__link { display: block; margin-top: 6px; font-size: 11px; text-align: center; }
   .rodape__link a { color: #6b6459; }
   .vazio { margin: auto; text-align: center; color: #6b6459; font-size: 12px; padding: 0 24px; }
+  .ident { margin: auto; width: 100%; max-width: 300px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .ident__texto { margin: 0 0 2px; font-size: 13px; color: #6b6459; }
+  .ident label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #6b6459; }
+  .ident input {
+    padding: 8px 10px; border: 1px solid #d8d3c8; border-radius: 8px;
+    font: inherit; font-size: 13px; color: #1b1917; outline: none;
+  }
+  .ident input:focus { border-color: #1b1917; }
+  .ident button {
+    margin-top: 4px; padding: 9px 12px; border: 0; border-radius: 8px;
+    background: #1b1917; color: #fff; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  .ident button:disabled { opacity: .5; cursor: default; }
+  .ident__erro { margin: 0; font-size: 12px; color: #a33; min-height: 1em; }
 </style>
 </head>
 <body>
 
 {{ token|json_script:"embed-token" }}
+{{ sessao|json_script:"embed-sessao" }}
 {{ user_name|json_script:"embed-user-name" }}
 {{ company_name|json_script:"embed-company-name" }}
 {{ erro|json_script:"embed-erro" }}
 
-{% if not token %}
+{% if erro %}
   <div class="vazio">{{ erro }}</div>
 {% else %}
   <header class="cab">
     <span class="cab__nome">Atendimento</span>
     <span class="cab__status"><i class="cab__ponto" id="ponto"></i><span id="status-txt">conectando…</span></span>
+    {% if do_loader %}
+    {% comment %}
+      Só existe quando quem abriu foi o loader (embed/widget.js): é ele que
+      sabe fechar a janela — aqui dentro do iframe não dá para se esconder.
+    {% endcomment %}
+    <button type="button" class="cab__fechar" id="fechar" aria-label="Fechar o atendimento">&times;</button>
+    {% endif %}
   </header>
-  <div class="corpo" id="corpo"></div>
-  <div class="rodape">
+
+  {% if sessao %}
+  {% comment %}
+    Modo público: quem chegou aqui ainda é um visitante anônimo. O nome e o
+    e-mail vão para /embed/chat/identificar/, que devolve o token — o mesmo
+    token que o modo assinado já traz pronto.
+  {% endcomment %}
+  <form class="ident" id="ident">
+    <p class="ident__texto">Para começar, diga quem é você.</p>
+    <label>Nome
+      <input id="ident-nome" name="nome" autocomplete="name" required maxlength="150">
+    </label>
+    <label>E-mail
+      <input id="ident-email" name="email" type="email" autocomplete="email" required>
+    </label>
+    <button type="submit" id="ident-enviar">Começar conversa</button>
+    <p class="ident__erro" id="ident-erro" role="alert"></p>
+  </form>
+  {% endif %}
+
+  <div class="corpo" id="corpo"{% if sessao %} hidden{% endif %}></div>
+  <div class="rodape"{% if sessao %} hidden{% endif %} id="rodape">
     <div class="compositor">
       <textarea id="campo" rows="1" placeholder="Escreva sua mensagem…" disabled></textarea>
       <button id="enviar" type="button" disabled aria-label="Enviar">➤</button>
     </div>
-    <span class="rodape__link"><a href="/chat" target="_top">Abrir a conversa completa no portal ↗</a></span>
+    <span class="rodape__link" id="link-portal"{% if sessao %} hidden{% endif %}><a href="/chat" target="_top">Abrir a conversa completa no portal ↗</a></span>
   </div>
 
   <script>
   (function () {
     'use strict';
-    var TOKEN = JSON.parse(document.getElementById('embed-token').textContent);
+    // No modo assinado o token já vem pronto; no público ele só existe
+    // depois da identificação — por isso `TOKEN` é variável, não constante.
+    var TOKEN = JSON.parse(document.getElementById('embed-token').textContent) || '';
+    var SESSAO = JSON.parse(document.getElementById('embed-sessao').textContent) || '';
     var API = '/api/v1';
     var corpo = document.getElementById('corpo');
     var campo = document.getElementById('campo');
@@ -173,8 +230,15 @@ notas do fim do atendimento — quem precisa disso usa o portal completo
         marcarConectado(true, 'conectado');
         habilitarComposer(true);
       };
-      socket.onclose = function () {
+      socket.onclose = function (ev) {
         habilitarComposer(false);
+        // 4401/4403/4404 (apps/chat/consumers.py): a sessão do visitante
+        // expirou ou o chat sumiu — reconectar não resolve, e ficar tentando
+        // a cada 2–30s era o "erro de conexão toda hora"
+        if (ev && (ev.code === 4401 || ev.code === 4403 || ev.code === 4404)) {
+          marcarConectado(false, 'sessão expirada, recarregue a página');
+          return;
+        }
         marcarConectado(false, 'reconectando…');
         // backoff simples: 2s, 4s, 8s, até 30s — uma aba de iframe esquecida
         // aberta não pode martelar o servidor pra sempre
@@ -245,23 +309,81 @@ notas do fim do atendimento — quem precisa disso usa o portal completo
       };
     }
 
-    Promise.all([
-      api('/chat/chats/?status=queued'),
-      api('/chat/chats/?status=active'),
-    ]).then(function (r) {
-      var vivo = (r[1].results && r[1].results[0]) || (r[0].results && r[0].results[0]);
-      if (vivo) { abrirConversa(vivo); return; }
-      return api('/chat/config/').then(function (config) {
-        if (!config.queue_open) {
-          mostrarAviso('Atendimento indisponível no momento. Tente novamente mais tarde ou abra um ticket pelo portal.');
-          return;
-        }
-        mostrarAviso('Escreva sua dúvida abaixo para começar.');
-        iniciarNovaConversa();
+    function iniciarChat() {
+      Promise.all([
+        api('/chat/chats/?status=queued'),
+        api('/chat/chats/?status=active'),
+      ]).then(function (r) {
+        var vivo = (r[1].results && r[1].results[0]) || (r[0].results && r[0].results[0]);
+        if (vivo) { abrirConversa(vivo); return; }
+        return api('/chat/config/').then(function (config) {
+          if (!config.queue_open) {
+            mostrarAviso('Atendimento indisponível no momento. Tente novamente mais tarde ou abra um ticket pelo portal.');
+            return;
+          }
+          mostrarAviso('Escreva sua dúvida abaixo para começar.');
+          iniciarNovaConversa();
+        });
+      }).catch(function () {
+        mostrarAviso('Não foi possível carregar o atendimento agora.', true);
       });
-    }).catch(function () {
-      mostrarAviso('Não foi possível carregar o atendimento agora.', true);
+    }
+
+    // ------------------------------------------------- identificação (público)
+    function prepararIdentificacao() {
+      var form = document.getElementById('ident');
+      var nome = document.getElementById('ident-nome');
+      var email = document.getElementById('ident-email');
+      var enviar = document.getElementById('ident-enviar');
+      var erro = document.getElementById('ident-erro');
+      if (!form) return;
+
+      form.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        erro.textContent = '';
+        enviar.disabled = true;
+        enviar.textContent = 'Um instante…';
+        fetch('/embed/chat/identificar/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessao: SESSAO, nome: nome.value, email: email.value })
+        }).then(function (r) {
+          return r.json().catch(function () { return {}; }).then(function (corpo) {
+            if (!r.ok) throw new Error(corpo.detail || 'Não foi possível começar agora.');
+            return corpo;
+          });
+        }).then(function (dados) {
+          TOKEN = dados.token;
+          form.remove();
+          // Só quem tem conta de portal de verdade vê o atalho pra ele.
+          if (dados.tem_portal) document.getElementById('link-portal').hidden = false;
+          document.getElementById('corpo').hidden = false;
+          document.getElementById('rodape').hidden = false;
+          iniciarChat();
+        }).catch(function (e) {
+          erro.textContent = e.message;
+          enviar.disabled = false;
+          enviar.textContent = 'Começar conversa';
+        });
+      });
+    }
+
+    // ---------------------------------------------------- fechar (loader)
+    // O evento de teclado não sobe do iframe para a página de fora, então
+    // quem fecha a janela é o loader — avisado por postMessage.
+    function pedirParaFechar() {
+      if (window.parent !== window) window.parent.postMessage({ resolv: 'fechar' }, '*');
+    }
+    var fechar = document.getElementById('fechar');
+    if (fechar) fechar.addEventListener('click', pedirParaFechar);
+    document.addEventListener('keydown', function (e) {
+      // Só quando o foco não está no campo: no meio de uma mensagem, Esc
+      // fechando a janela apagaria o que a pessoa escreveu.
+      if (e.key === 'Escape' && document.activeElement !== campo) pedirParaFechar();
     });
+
+    if (TOKEN) iniciarChat();
+    else prepararIdentificacao();
   })();
   </script>
 {% endif %}

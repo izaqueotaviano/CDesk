@@ -2,7 +2,7 @@
 
 import re
 
-from django.db.models import Count
+from django.db.models import Count, Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import action
@@ -63,6 +63,11 @@ class PlanAdminViewSet(viewsets.ModelViewSet):
 class CompanyAdminSerializer(serializers.ModelSerializer):
     slug = slug_unico(Company, o_que="uma empresa")
     plan_name = serializers.CharField(source="plan.name", read_only=True)
+    # O cabeçalho da página da empresa (Cliente 360) mostra QUEM é o gerente
+    # de conta, não o id. Só leitura: a escrita continua por `account_manager`.
+    account_manager_name = serializers.CharField(
+        source="account_manager.full_name", read_only=True, default=None
+    )
     user_count = serializers.IntegerField(read_only=True)
     effective_limit = serializers.SerializerMethodField()
     effective_period = serializers.SerializerMethodField()
@@ -85,10 +90,13 @@ class CompanyAdminSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "legal_name", "tax_id", "slug", "plan", "plan_name",
             "is_active", "ticket_limit", "limit_period", "limit_scope",
-            "timezone", "business_calendar", "account_manager",
+            "timezone", "business_calendar", "account_manager", "account_manager_name",
             "contract_started_at", "contract_ended_at", "notes", "domains",
             "user_count", "effective_limit", "effective_period", "quota_usage",
             "maintenance_minutes", "effective_maintenance_minutes", "maintenance_usage",
+            # "Cliente desde" quando não há data de contrato — `auto_now_add`,
+            # então o DRF já o expõe só para leitura.
+            "created_at",
         ]
 
     def to_representation(self, instance):
@@ -167,13 +175,40 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
     # user_count por annotate; quota_usage/maintenance_usage seguem por linha
     # (COUNT/SUM do período) — aceitável na escala de dezenas de empresas, é o
     # próximo ponto a revisar se a lista crescer muito.
+    #
+    # `queryset` só para o SCHEMA — em runtime quem manda é `get_queryset()`,
+    # logo abaixo (o mesmo padrão de `apps.customers.views.CompanyViewSet`).
     queryset = (
-        Company.objects.select_related("plan")
+        Company.objects.select_related("plan", "account_manager")
         .annotate(user_count=Count("users"))
         .order_by("name")
     )
     serializer_class = CompanyAdminSerializer
     permission_classes = [IsInternalReadAdminWrite]
+
+    def get_queryset(self):
+        qs = (
+            Company.objects.select_related("plan", "account_manager")
+            .annotate(user_count=Count("users"))
+            .order_by("name")
+        )
+        ativo = self.request.query_params.get("is_active")
+        if ativo is not None:
+            # o front manda "true"/"false" (String(boolean)) — sem isso o
+            # filtro de status da tela era só decoração, a lista nunca mudava
+            qs = qs.filter(is_active=ativo.lower() == "true")
+        if termo := self.request.query_params.get("q", "").strip():
+            # domínio via subquery (`id__in`), não `Q(domains__domain=...)`:
+            # um JOIN ali fanaria o `Count("users")` acima (empresa com 2
+            # usuários e 2 domínios batendo a busca contaria 4).
+            dominios = CompanyDomain.objects.filter(domain__icontains=termo).values("company_id")
+            qs = qs.filter(
+                Q(name__icontains=termo)
+                | Q(legal_name__icontains=termo)
+                | Q(slug__icontains=termo)
+                | Q(id__in=dominios)
+            )
+        return qs
 
     def perform_destroy(self, instance):
         # LGPD (D11): empresa nunca é apagada — desativa, e anonimiza sob pedido
@@ -243,9 +278,11 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
         if request.method == "PATCH":
             if not IsAdmin().has_permission(request, self):
                 return Response({"detail": IsAdmin.message}, status=403)
-            if "enabled" in request.data:
-                embed.enabled = bool(request.data["enabled"])
-                embed.save(update_fields=["enabled"])
+            campos = [c for c in ("enabled", "public_enabled") if c in request.data]
+            if campos:
+                for campo in campos:
+                    setattr(embed, campo, bool(request.data[campo]))
+                embed.save(update_fields=campos)
             if "origins" in request.data:
                 origins = request.data.get("origins")
                 if not isinstance(origins, list):
@@ -288,10 +325,21 @@ class CompanyAdminViewSet(viewsets.ModelViewSet):
             [CompanyChatEmbedOrigin(embed=embed, origin=o) for o in limpas - existentes]
         )
 
-    @staticmethod
-    def _serialize_embed(embed) -> dict:
+    def _serialize_embed(self, embed) -> dict:
+        """Inclui o CÓDIGO DE INSTALAÇÃO pronto — montado aqui, e não no
+        front, porque quem sabe o endereço público desta instalação é o
+        servidor que está respondendo (a SPA pode estar noutro domínio, e o
+        snippet precisa apontar pro Django). Um por empresa, sempre o mesmo:
+        o que varia por pessoa é a identificação DENTRO da janelinha, não o
+        código colado no site."""
+        base = self.request.build_absolute_uri("/").rstrip("/")
+        slug = embed.company.slug
         return {
             "enabled": embed.enabled,
+            "public_enabled": embed.public_enabled,
             "origins": list(embed.origins.order_by("origin").values_list("origin", flat=True)),
             "rotated_at": embed.rotated_at.isoformat(),
+            "company_slug": slug,
+            "snippet": f'<script src="{base}/embed/widget.js?company={slug}" async></script>',
+            "iframe_url": f"{base}/embed/chat/?company={slug}",
         }

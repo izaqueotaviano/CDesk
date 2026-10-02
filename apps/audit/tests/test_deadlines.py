@@ -13,6 +13,7 @@ from django.utils import timezone
 
 from apps.audit.models import DataSubjectRequest
 from apps.audit.tasks import scan_lgpd_deadlines
+from apps.notifications.models import NotificationPreference, OutboundEmail
 
 pytestmark = pytest.mark.django_db
 
@@ -83,6 +84,36 @@ class TestScan:
         request.save(update_fields=["status"])
 
         assert scan_lgpd_deadlines() == {"warned": 0, "overdue": 0}
+
+
+class TestScanEmail:
+    """LGPD_DEADLINE só avisava in-app — o toggle de e-mail da tela de
+    Notificações não tinha efeito nenhum. Avisa um papel institucional
+    (admin), mas respeita a preferência PESSOAL de cada admin — a mesma
+    tela de Minha conta > Notificações de qualquer usuário interno."""
+
+    def test_scan_emails_the_admin(self, dsr, ana, admin):
+        due_in(dsr(user=ana), 8)
+        scan_lgpd_deadlines()
+
+        assert OutboundEmail.objects.filter(
+            to_email=admin.email, template="lgpd_deadline"
+        ).exists()
+
+    def test_email_desligado_nao_envia(self, dsr, ana, admin):
+        NotificationPreference.objects.create(user=admin, email={"lgpd_deadline": False})
+        due_in(dsr(user=ana), 8)
+        scan_lgpd_deadlines()
+
+        assert admin.notifications.filter(kind="lgpd_deadline").exists()  # sino continua ligado
+        assert not OutboundEmail.objects.filter(template="lgpd_deadline").exists()
+
+    def test_overdue_email_traz_vencido_no_assunto(self, dsr, ana, admin):
+        due_in(dsr(user=ana), -2)
+        scan_lgpd_deadlines()
+
+        email = OutboundEmail.objects.get(to_email=admin.email, template="lgpd_deadline")
+        assert "VENCIDO" in email.subject
 
 
 class TestRejectionNeedsAReason:

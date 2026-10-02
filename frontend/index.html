@@ -2,17 +2,15 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <!--
       Sem data-tema fixo: tokens.css já resolve o padrão via
       prefers-color-scheme quando a pessoa não escolheu (ver src/stores/prefs.ts).
       Fixar "claro" ou "escuro" aqui duplicaria a lógica de tema num lugar que
       o design system explicitamente pede para não duplicar.
     -->
-    <meta name="theme-color" content="#f8f4f1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#1b1917" media="(prefers-color-scheme: dark)" />
-    <!-- Remix Icon (design system Resolv) — usado nas classes ri-* da nova tela de tickets -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/remixicon@4.6.0/fonts/remixicon.css" />
+    <meta name="theme-color" content="#f6f5f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1a1a19" media="(prefers-color-scheme: dark)" />
     <title>resolv</title>
     <!-- O <link rel="manifest"> é injetado em runtime por rota (equipe × cliente)
          em src/features/pwa/PwaManifest.tsx — ver docs/10-pwa.md. -->

@@ -43,6 +43,11 @@ fmt:  ## Formata
 check:  ## django check --deploy (com as settings de PRODUÇÃO — precisa de um .env de prod)
 	docker compose exec -e DJANGO_SETTINGS_MODULE=config.settings.prod web python manage.py check --deploy
 
+# `[security]` (pip-audit, bandit) é ferramenta de auditoria, não de runtime — de
+# propósito NENHUM Dockerfile instala esse extra, então ele não está dentro do
+# container `web` por padrão. Antes de rodar este alvo, instale-o onde os dois
+# comandos abaixo vão executar: `docker compose exec web pip install '.[security]'`
+# (ou rode pip-audit/bandit fora do container, num venv local com o extra instalado).
 audit:  ## CVEs nas dependências + análise estática (pip install '.[security]')
 	docker compose exec web pip-audit --strict --desc
 	docker compose exec web bandit -q -r apps config -x apps/*/tests -ll

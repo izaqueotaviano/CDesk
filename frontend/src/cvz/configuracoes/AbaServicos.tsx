@@ -56,7 +56,7 @@ export function AbaServicos() {
           onChange={(e) => setNomeNovo(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && adicionar()}
         />
-        <Button Icon={IconPlus} size="sm" onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
+        <Button Icon={IconPlus} onClick={adicionar} disabled={criar.isPending || !nomeNovo.trim()}>
           Adicionar
         </Button>
       </div>

@@ -150,6 +150,41 @@ Se o widget estivesse dentro de uma rota, cada navegação o desmontaria e a
 conexão cairia. ⚑ Isso foi verificado: com o widget fora, navegar para o Kanban
 com uma conversa aberta preserva as mensagens e o socket.
 
+Na base atual o widget é o **mini chat** (`frontend/src/resolv/chat/MiniChat.tsx`):
+docado embaixo à direita, montado como irmão do `<main>` no `NovoShell`. Três
+peças (Rodada 13):
+
+- o **balão** — sempre presente pra quem é interno, fora do `/chat`. Abre a
+  fila com "Pegar" (quem entra na fila aparece na hora, pelo canal pessoal)
+  e mostra o que pede atenção: quantos esperam (âmbar, pulsando, se ainda
+  cabe) ou quantas mensagens não lidas. É por ele que se atende de qualquer
+  tela — ticket, cliente, relatório — sem ir ao console;
+- as **abas**, uma por atendimento em andamento;
+- os **painéis** — cada aba aberta vira um painel com o mesmo `ConversaChat`
+  do console (mesma sala de socket — o registro em `realtime/salaChat.ts` é
+  contado por assinante — mesmo composer, mesmos anexos, **mesmo rascunho**).
+
+Sincronia console ↔ mini chat: mensagens são o cache do TanStack Query pela
+chave do chat (`chaves.mensagens(id)`), então os dois leem a mesma lista; o
+**rascunho** mora em `stores/chatUi.ts` (`rascunhos[chatId]`) — o que se
+digita num aparece no outro, e a conversa é respondida de onde for melhor.
+Cada painel aberto tem o **cabeçalho na cor do atendimento** (`tonsDistintos`,
+`resolv/chat/tons.ts`: parte da cor de identidade da pessoa e desvia só se
+dois abertos colidirem — nunca dois painéis iguais). O **tamanho** dos painéis
+é preferência do agente (`stores/prefs.ts::miniChat`): alça no canto superior
+esquerdo (arrasto ou setas) e um botão que cicla três presets, a alternativa
+sem arrasto da WCAG 2.5.7.
+
+Quais painéis estão abertos mora em `stores/chatUi.ts` (zustand, fora do React
+Router), e o teto de painéis simultâneos é o `max_chats_per_agent` da
+configuração do chat — o mesmo número que limita quantos atendimentos o agente
+pega. Painéis abertos e rascunhos **persistem** (localStorage `resolv:chat-ui`):
+um F5 ou um link aberto no meio do atendimento devolve a mesma tela. Ids de
+atendimentos que encerraram desde então são podados com a lista do servidor
+(`podar`, chamado pelo `MiniChat` quando "meus atendimentos" chega), e o logout
+— explícito ou por sessão expirada — zera tudo (`limparTudo`), pra próxima
+pessoa nesta máquina não herdar painéis nem texto de outra.
+
 **Dois sockets, ciclos de vida distintos:**
 
 | Socket | Vive enquanto | Serve para |
@@ -165,6 +200,17 @@ assina. Razões:
   conexões (aconteceu no protótipo);
 - HMR não deixa socket órfão;
 - backoff exponencial de reconexão fica num lugar só, testável sem render.
+
+**O que `socket.ts` faz pra conexão não "dar erro toda hora" (Rodada 13):**
+
+| Situação | Antes | Agora |
+|---|---|---|
+| Build sem `VITE_WS_BASE_URL` | ia pra `ws://localhost:8000` e falhava pra sempre | deriva de `VITE_API_BASE_URL` (http→ws) ou da própria origem (wss em https); em dev sem `.env`, `localhost:8000` como o `api/client.ts` |
+| Sessão expirou / sem acesso (4401, 4403, 4404) | reconectava a cada 2–30s, "reconectando…" o dia inteiro | status `recusado`, sem nova tentativa; a tela pede pra recarregar |
+| Socket meio-morto (laptop dormiu, trocou de rede) | "Conectado" com nada chegando, por minutos | ping a cada 30s exige resposta em 10s; sem ela fecha e reconecta |
+| Rede voltou / aba voltou ao primeiro plano | esperava o backoff (até 30s) | `online`/`visibilitychange` tentam na hora |
+| `new WebSocket()` lançando (esquema proibido) | derrubava o componente | vira tentativa falha |
+| Reconexão do canal pessoal | só a sala fazia catch-up | invalida fila, meus, notificações, pendentes e tickets |
 
 **A ponte WebSocket → Query (o padrão central do tempo real):**
 
@@ -194,6 +240,188 @@ Para o chat, onde a latência importa, vale **append otimista** da mensagem
 recebida no cache — mas a reconexão sempre faz catch-up por REST
 (`GET /chat/sessions/:id/messages/?after=<últimoId>`), que é o que garante zero
 perda. Esse endpoint já existe.
+
+#### Finalizados, motivo de encerramento e auditoria (Fase 1 da rodada de chat)
+
+O console tem DUAS listas na coluna esquerda, em abas (`?aba=finalizados` na
+URL, como a conversa selecionada): **Ativos** (fila + meus atendimentos) e
+**Finalizados**. Separadas de propósito — encerrado não some, mas também não
+volta a disputar atenção com quem espera agora.
+
+Todo recorte de Finalizados é do SERVIDOR (`?agent=`, `?reason=`, `?rating=`,
+`?desde=`/`?ate=`, `?ordering=`, e `?q=` que também varre protocolo, telefone
+e o corpo das mensagens): filtrar no navegador só valeria para a página já
+baixada, e essa lista cresce para sempre. A ordenação é uma lista FECHADA no
+backend (`ChatViewSet.ORDENACOES`) — `order_by` com string livre do cliente
+ordenaria por qualquer coluna do modelo, inclusive as que o serializer
+esconde. Duração e espera não são colunas: saem de diferenças entre carimbos,
+anotadas na consulta.
+
+O **motivo de encerramento** é cadastro (`chat.ChatCloseReason`), não enum:
+muda por empresa e por época, e congelá-lo no código pediria deploy para cada
+palavra nova. Cada motivo declara se `requires_note`; quem cobra a observação
+é o SERVIÇO (`close_chat`), não a tela — esconder o campo no front não é
+validação. Motivo desativado sai do seletor mas continua legível em quem já o
+usou (por isso `is_active`, e nunca apagar).
+
+A **auditoria do chat** escreve no `audit.AuditLog` de sempre, via
+`chat_service.auditar()`. Uma trilha própria seria uma segunda tabela
+append-only com as mesmas colunas, e a tela de Auditoria teria de aprender a
+juntar duas fontes. `AuditLog` já é genérico, já barra update/delete de linha
+(`AppendOnlyModel`) e já entra no expurgo de retenção. Aceite, transferência,
+encerramento, reabertura e avaliação deixam rastro; um erro ao auditar nunca
+derruba a operação que já aconteceu.
+
+#### Busca, citação, entrega e mídia (Fase 3 da rodada de chat)
+
+Quatro coisas da conversa, e todas com a mesma raiz: **o navegador só conhece
+o pedaço que já rolou até a tela**.
+
+- **Busca** (`GET messages/?q=`) roda no SERVIDOR. Filtrar no que está
+  carregado responde "não achei" para algo que existe — o pior tipo de
+  resposta errada. A tela mostra em qual ocorrência está (`3 de 12`), destaca
+  os trechos e navega entre eles.
+- **Janela** (`?around=<id>&radius=`) traz o entorno de UMA mensagem. É o que
+  faz pular num achado antigo sem baixar meses de conversa até chegar nele: a
+  janela é costurada no cache da thread e a rolagem vai até o `data-msg`.
+- **Mídia** (`GET chats/<id>/media/`) lista anexos e links DESTE atendimento.
+  Irmão de `chat/timeline-media/`, que faz o mesmo para todas as sessões do
+  cliente — o recorte é a pergunta que se está fazendo. Os links saem do
+  servidor pelo mesmo motivo da busca.
+- **Estado da mensagem** — enviando / enviada / entregue / lida / falha, só
+  para quem escreveu. `delivered_at` é carimbado pelo DESTINATÁRIO (evento
+  `delivered` no socket, `chat_service.marcar_entregues`), nunca pelo INSERT:
+  o servidor sabe que gravou, não que alguém recebeu, e um indicador que
+  dissesse "entregue" no gravar prometeria uma coisa e mediria outra. Sem
+  confirmação fica em "enviada", que é verdade. `read/` avisa a sala
+  (`message_read`) para o tique mudar na hora, sem refetch da thread.
+
+A **resposta citada** (`ChatMessage.reply_to`) é `SET_NULL`, não `CASCADE`:
+apagar o original não pode levar junto as respostas dele. O `reply_preview`
+vem montado do servidor porque o original pode estar fora da janela carregada
+— deixar o front buscá-lo seria uma requisição por citação.
+
+O que console e portal COMPARTILHAM mora em `src/chat/conversa.ts`: colar
+imagem (com o renome por carimbo de hora — cinco prints ficariam todos
+"image.png"), a fila de anexos com progresso/cancelar/repetir, a escada de
+estado, a régua de não lidas e o destaque da busca. As duas telas desenham com
+primitivas próprias, mas a REGRA é uma só — é o "evite duplicar regras entre o
+chat principal e o mini chat" do brief.
+
+Upload com progresso usa `enviarComProgresso` (XMLHttpRequest) e não `fetch`,
+por um motivo só: `fetch` não expõe progresso de upload. Cada arquivo sobe na
+sua própria requisição — uma barra agregada não diz qual travou, e cancelar um
+derrubaria os outros.
+
+Miniatura de imagem só depois que a varredura LIBEROU (`is_downloadable`):
+renderizar a `<img>` de um anexo em quarentena seria servi-lo pela porta da
+frente, que é o que a quarentena existe para impedir (D19).
+
+#### Nota interna e inatividade (Fase 4 da rodada de chat)
+
+A **nota interna** (`ChatMessage.is_internal_note`) é o recado da equipe
+DENTRO da conversa — "já pedi o estorno pro financeiro" no lugar onde faz
+sentido, em vez de num canal paralelo que ninguém acha depois. O cliente
+nunca a vê.
+
+Quem decide isso é UMA função, `chat_service.mensagens_visiveis(qs, user)`,
+e não um `if user.is_internal` repetido por consulta. É assim que um
+vazamento destes acontece de verdade: a sétima consulta a mensagens é
+escrita meses depois, por outra pessoa, e ninguém lembra da condição. Os
+caminhos que passam por ela: listagem, busca (`?q=`), janela (`?around=`),
+prévia da lista (`last_message_preview` — o mais fácil de esquecer, porque
+aparece sem ninguém abrir a conversa), contagem de não lidas, `read/`,
+conversa contínua, PDF e painel de mídia.
+
+O **socket é a outra metade do par**, porque `group_send` fala com a sala
+inteira e a sala tem o cliente dentro: `ChatConsumer._esconder()` corta
+`message`/`message_edited`/`message_deleted` de nota para quem não é
+interno, e `_badge_counterpart` não dispara — senão o texto sairia na
+prévia da notificação do celular. Só interno consegue MARCAR uma mensagem
+como nota; o cliente pedindo isso é ignorado (não esconderia nada de
+ninguém, e daria a ele um campo que não é dele).
+
+Na tela, o modo é dito de três jeitos ao mesmo tempo — faixa de aviso, cor
+do compositor inteiro e o botão virando "Salvar nota". Um botão pressionado
+no canto é fácil demais de não ver na terceira hora de plantão, e o erro
+aqui manda para fora o que era da equipe. O modo NÃO se desliga sozinho ao
+enviar (quem anota escreve mais de uma linha), e o rascunho sobrevive à
+troca de modo (quem percebeu no meio que aquilo é recado interno não perde
+o texto). Nota não tem escada de entrega: não há destinatário para receber
+nem para ler.
+
+A **inatividade** é o `ChatConfig.inactivity_warning_minutes` /
+`inactivity_close_minutes` + a rotina `close_inactive_chats`. Diferente do
+`queue_timeout_minutes`, que é ninguém ter PEGADO; aqui alguém pegou e a
+conversa parou. Três decisões:
+
+- **Zero desliga, e é o padrão dos dois.** Encerrar sozinho o atendimento de
+  quem foi buscar um documento é pior do que a conversa ficar aberta.
+- **O aviso vem antes**, uma vez por silêncio (`Chat.inactivity_warned_at`),
+  e diz quanto tempo resta — "ainda está aí?" sem prazo não ajuda ninguém a
+  decidir se responde. Quem volta a falar e some de novo é avisado outra vez.
+- **O relógio conta da última fala de uma PESSOA**, não da última linha: a
+  boas-vindas, o "fulano entrou" e o próprio aviso são do sistema, e
+  deixá-los contar faria o aviso zerar o silêncio que acabou de anunciar.
+
+As **variáveis da macro** ganharam `{{agente}}`, `{{protocolo}}` e
+`{{saudacao}}` além de `{{solicitante}}` e `{{empresa}}`, e a lista aparece
+no rodapé do menu: uma marca que ninguém conhece nunca é usada, e uma que
+ninguém preenche vai para o cliente escrita como `{{assim}}`.
+
+O **rascunho por conversa** já existia (`stores/chatUi`, persistido e
+compartilhado entre console e mini chat) — a Fase 4 só o fez atravessar a
+troca de modo do compositor.
+
+#### Exportação, métricas e retenção (Fase 5 da rodada de chat)
+
+**Exportar um atendimento** (`GET chats/<id>/export/`) gera o PDF de UMA
+conversa, para quem atende — irmão do `chat/timeline/export/`, que é a
+conversa contínua do cliente. `?notes=1` leva as notas internas, e só para
+quem é interno.
+
+O documento se IDENTIFICA: com notas, o rodapé diz "CONTÉM NOTAS INTERNAS —
+documento de uso interno, não envie ao cliente", e cada nota leva o selo
+escrito (texto, não só a barra lateral: impresso em preto e branco a cor não
+sobrevive). O arquivo sai do sistema e ninguém controla para onde vai
+depois, então ele precisa dizer o que é sem depender de quem o abriu
+lembrar. São dois botões e não uma caixinha pelo mesmo motivo. A exportação
+entra na auditoria com `com_notas` no `changes`.
+
+**Métricas** (`GET chats/metrics/`, `chat/services/metrics.py`) respondem
+COMO foram os atendimentos: espera, duração, desfecho e nota. A aba
+"Desfechos" em Relatórios é a terceira sobre chat — "Chats" é volume,
+"Desempenho do chat" são médias por eixo, e nenhuma delas lia o motivo de
+encerramento que existe desde a Fase 1. Três decisões:
+
+- **O recorte é por ENCERRAMENTO.** As medidas só existem depois que o chat
+  fecha; contar pela abertura deixaria o mês passado mudando de valor
+  conforme conversas antigas terminam.
+- **Mediana ao lado da média.** Um chat esquecido no fim de semana leva a
+  média de espera para as alturas enquanto a experiência de quase todo mundo
+  foi outra — o par é o que denuncia o outlier.
+- **Quem NÃO avaliou aparece.** Uma média 9 sobre 5% dos atendimentos não é
+  uma média 9.
+
+**Retenção** (`purge_chat_content`) fechou um buraco: o chat só era expurgado
+quando VIRAVA ticket, e a conversa resolvida no próprio chat — a maioria —
+ficava guardada para sempre num sistema que promete o contrário. Agora tem
+política própria, com o mesmo prazo do ticket (`RETENTION_DAYS`
+`chat_after_close`) e a mesma forma: o CONTEÚDO sai (corpo, anexos,
+observação de encerramento e a justificativa da avaliação, que é texto livre
+do cliente) e o que sustenta métrica fica (datas, status, motivo, notas, quem
+atendeu). `ChatFile` ganhou `purged_at` — sem ele o anexo de chat era o único
+conteúdo do sistema que nenhuma política alcançava: a mensagem virava
+"[expurgado]" e o arquivo continuava no disco.
+
+**Anonimização LGPD** passou a alcançar os três lugares onde o titular
+escreve no chat: corpo das mensagens dele, justificativa da avaliação e a
+observação de encerramento dos chats dele. O que a EQUIPE escreveu na
+conversa não é apagado — é fala de terceiro, e um pedido do titular não
+apaga o registro de outra pessoa. A revisão assistida de PII
+(`find_free_text_pii`) também varre o chat: antes olhava só o chamado, e
+quem mandou o CPF por chat passava batido — o admin aprovava uma lista que
+dizia "nada encontrado" sobre metade do conteúdo do titular.
 
 ### 3.4 Autenticação e sessão
 
@@ -278,7 +506,21 @@ profundidade, não substituto da API.)
 
 ### 4.5 Públicas
 
-`/login` · `/login/google` (redireciona para o fluxo allauth) · `/sessao-expirada`
+`/login` · `/sessao-expirada`
+
+(`/login/google` existiu como rota própria da SPA, um redirect client-side
+sem nenhum botão apontando pra ela — removida. O login por Google chegou a
+voltar como um `<a href>` em `/login` para `{API_BASE_URL}/accounts/google/login/`,
+e saiu de novo da tela por decisão de produto (Rodada 14: sem rede social).
+A rota do backend continua existindo; quem chegar por ela e for recusado
+volta em `/login?erro=dominio|inativo`, que `PaginaLogin.tsx` ainda lê.)
+
+A tela em si (Rodada 14) segue a referência "auth-page" do 21st.dev, sem os
+botões sociais: painel da marca à esquerda (superfície sutil com 36 linhas
+animadas em CSS puro — `features/auth/login.css`, `stroke-dashoffset` com
+`pathLength="1"`, sem framer-motion — ou a imagem do admin no lugar), brilhos
+radiais atrás do formulário, e-mail + senha, 2FA em segundo passo. Marca,
+chamada e destaques continuam vindo de Configurações → Tela de login.
 
 ### 4.6 Filtros em query params, não em estado
 

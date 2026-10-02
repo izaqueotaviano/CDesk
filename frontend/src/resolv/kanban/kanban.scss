@@ -1,0 +1,1216 @@
+// Quadro: cores e formas do briefing Copilot/Fluent. Neutros suaves,
+// busca em cápsula e cartões sem sombra; cor identifica status e prazo.
+// Tokens locais preservam o tema do shell e a escala de texto do usuário.
+
+// Texto só para leitor de tela. Local de propósito (mesma técnica do
+// `.lista-tickets__sr`): o `.sr-only` do cvz não é carregado sob o NovoShell.
+.kb-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ------------------------------------------------------------------ página
+.kb-pagina {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  // Paleta escopada: não altera outras telas. O tema escuro conserva
+  // as superfícies do produto, com as mesmas funções de cada token.
+  --f-ui: 'Segoe UI', Inter, system-ui, sans-serif;
+  --surface-canvas: light-dark(#f6f5f3, #1a1a19);
+  --surface-card: light-dark(#ffffff, #2a2a29);
+  --surface-alt: light-dark(#f5f5f5, #343433);
+  --text-primary: light-dark(#242424, #f5f5f5);
+  --text-secondary: light-dark(#616161, #c7c7c7);
+  --text-muted: var(--text-secondary);
+  --borda-campo: light-dark(#d4d4d4, #666663);
+  --stroke: light-dark(#d8dee4, #46515d);
+  --stroke-hover: light-dark(#d4d4d4, #777773);
+  --primario: light-dark(#242424, #ebebeb);
+  --primario-sobre: light-dark(#ffffff, #242424);
+  --primario-hover: light-dark(#3b3b3b, #ffffff);
+  --sidebar-hover: var(--surface-alt);
+  --kb-selecionado: light-dark(#eaf2ff, #233c56);
+  --kb-cabecalho: light-dark(#f7f9fb, #252d35);
+  --kb-cabecalho-texto: var(--text-primary);
+  --kb-trilho: var(--kb-cabecalho);
+  --kb-linha: var(--stroke);
+  --kb-raio: 6px;
+  --kb-raio-card: 6px;
+  --kb-raio-pill: 999px;
+  --raio: var(--kb-raio);
+  padding: 0 24px 16px;
+  gap: 0;
+  font-family: var(--f-ui);
+  background: var(--surface-card);
+
+  &__header {
+    padding: 20px 0 16px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+  }
+  &__titulo-bloco {
+    flex: 1 1 240px;
+    min-width: 0;
+  }
+  &__titulo {
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 600;
+    letter-spacing: normal;
+    color: var(--text-primary);
+  }
+  &__subtitulo {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.33;
+    // secondary e não muted: sobre o plano (#f6f5f3) o muted fica abaixo
+    // de 4,5:1 em texto deste tamanho
+    color: var(--text-secondary);
+  }
+
+  // As colunas encostam nas bordas do painel ao rolar para o lado (margem
+  // negativa + padding igual): o quadro "continua" além da tela, em vez de
+  // ser cortado antes da borda.
+  &__colunas {
+    // Contêiner de referência dos textos só-de-leitor-de-tela (`.kb-sr`, que
+    // são `absolute`): sem ele, o de uma coluna lá na direita escapava da
+    // área que rola e alargava a PÁGINA inteira no celular (rolagem lateral).
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    flex: 1;
+    min-height: 320px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    margin: 0 -24px;
+    padding: 16px 24px 4px;
+    scroll-padding: 0 24px;
+  }
+
+  // Estados de página inteira (sem quadro, erro): centrados, com a ação logo
+  // abaixo da explicação.
+  &--estado {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+
+    > i {
+      font-size: 18px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+    .kb-botao {
+      margin-top: 8px;
+    }
+  }
+}
+
+.kb-estado {
+  &__titulo {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__form {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 8px;
+
+    input {
+      height: 32px;
+      width: 220px;
+      padding: 0 12px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font: inherit;
+      font-size: 14px;
+      color: var(--text-primary);
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+  }
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+  }
+}
+
+// ------------------------------------------------------------------ botões
+.kb-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--borda-campo);
+  border-radius: var(--kb-raio-pill);
+  background: var(--surface-card);
+  font-family: var(--f-ui);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.12s ease;
+
+  i {
+    font-size: 16px;
+  }
+  &:hover:not(:disabled) {
+    background: var(--sidebar-hover);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+
+  // a ação da vez: carvão cheio (no escuro, o claro do tema)
+  &--primario {
+    border-color: var(--primario);
+    background: var(--primario);
+    color: var(--primario-sobre);
+
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+  }
+}
+
+// ------------------------------------------------------------------ filtros
+.kb-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  margin: 0 -24px;
+  background: var(--kb-cabecalho);
+  border-top: 1px solid var(--stroke);
+  border-bottom: 1px solid var(--stroke);
+
+  &__pilulas {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__resumo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  &__limpar {
+    border: 0;
+    padding: 4px 0;
+    background: none;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+      border-radius: 4px;
+    }
+  }
+}
+
+// Busca e pílulas são campos: brancos sobre o plano, com o fio de 1px que
+// diz "isto é controle" (o branco sozinho sobre #f6f5f3 não se distingue).
+.kb-busca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 300px;
+  min-width: 200px;
+  height: 50px;
+  padding: 0 20px;
+  background: var(--surface-card);
+  border: 1px solid var(--borda-campo);
+  border-radius: var(--kb-raio-pill);
+  transition: border-color 0.12s ease;
+
+  i {
+    font-size: 16px;
+    color: var(--text-muted);
+  }
+  input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    outline: none;
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 16px;
+    line-height: 1.43;
+    color: var(--text-primary);
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+    // o "x" nativo do type=search vem azul, fora da paleta: o nosso (abaixo)
+    // faz o mesmo e segue o tema
+    &::-webkit-search-cancel-button {
+      appearance: none;
+    }
+  }
+  &__limpar {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    margin-right: -6px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    i {
+      font-size: 14px;
+      color: inherit;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &:hover {
+    border-color: var(--stroke-hover);
+  }
+  &:focus-within {
+    border-color: var(--borda-campo);
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+}
+
+.kb-filtro {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--borda-campo);
+  border-radius: var(--kb-raio-card);
+  font-family: var(--f-ui);
+  font-size: 14px;
+  line-height: 1.43;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 0.12s ease;
+
+  i {
+    font-size: 16px;
+  }
+  &__seta {
+    font-size: 14px !important;
+    margin-right: -2px;
+  }
+  &__texto {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // o <select> nativo cobre a pílula inteira, invisível: é ele quem recebe
+  // clique, toque e teclado (ver o Seletor em BarraDeFiltros.tsx)
+  select {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    opacity: 0;
+    cursor: pointer;
+    // 16px: abaixo disso o Safari do iPhone dá zoom na página ao focar
+    font-size: 16px;
+  }
+
+  &:hover {
+    border-color: var(--stroke-hover);
+    color: var(--text-primary);
+  }
+  &:focus-within,
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  // Com valor escolhido: o fio vira o acento e o texto ganha peso — "isto
+  // está recortando o quadro" sem precisar de cor.
+  &--ativo,
+  &[aria-pressed='true'] {
+    border-color: var(--controle-foco);
+    background: var(--kb-selecionado);
+    color: var(--controle-foco);
+    font-weight: 500;
+  }
+}
+
+// --------------------------------------------------------------- aviso erro
+// Mutação recusada (mover, criar/apagar coluna, prazo, limite): dispensável,
+// some na próxima ação que der certo. Tom de perigo no fundo, sem moldura.
+.kb-aviso-erro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: var(--raio);
+  padding: 8px 8px 8px 12px;
+  color: var(--danger);
+  font-size: 14px;
+  background: var(--tom-perigo);
+
+  span {
+    flex: 1;
+  }
+  button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: none;
+    color: inherit;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// ------------------------------------------------------------------ coluna
+// Trilhos contínuos com cabeçalhos compactos, alinhados para leitura horizontal.
+.kb-coluna {
+  // Cresce até dividir a largura quando há poucas colunas (quatro cabem
+  // inteiras numa tela de 1440px, com o "Nova coluna" ao lado, sem nada
+  // cortado na borda) e rola para o lado quando há muitas.
+  flex: 1 0 260px;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+
+  // Cabeçalho neutro: a linha inferior identifica o status configurável.
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0 6px 0 12px;
+    border: 1px solid var(--kb-linha);
+    border-radius: var(--kb-raio) var(--kb-raio) 0 0;
+    background: var(--kb-cabecalho);
+    color: var(--kb-cabecalho-texto);
+    box-shadow: inset 0 -2px var(--kb-cor, transparent);
+    margin-bottom: 0;
+  }
+
+  &__tipo {
+    font-size: 14px;
+    flex-shrink: 0;
+    opacity: 0.85;
+  }
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: inherit;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  // Contagem à direita; o excesso de WIP mantém o aviso vermelho.
+  &__contador {
+    flex-shrink: 0;
+    min-width: 26px;
+    padding: 3px 7px;
+    border-radius: var(--kb-raio);
+    background: var(--kb-selecionado);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    color: inherit;
+    font-variant-numeric: tabular-nums;
+
+    &--acima {
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
+    }
+  }
+  &__menu {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background 0.12s ease;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover,
+    &[aria-expanded='true'] {
+      background: var(--kb-selecionado);
+    }
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: -2px;
+    }
+  }
+
+  // Formulário do limite, logo abaixo do cabeçalho
+  &__limite {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 10px 4px;
+    background: var(--kb-trilho);
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+  }
+  &__limite-linha {
+    display: flex;
+    gap: 6px;
+
+    input {
+      width: 72px;
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+      font-variant-numeric: tabular-nums;
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+      &[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
+    }
+  }
+  &__limite-ajuda,
+  &__limite-erro {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+  &__limite-erro {
+    color: var(--danger);
+  }
+
+  &__corpo {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px;
+    border: 1px solid var(--kb-linha);
+    border-top: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-radius: 0 0 var(--kb-raio) var(--kb-raio);
+    background: var(--kb-trilho);
+    transition:
+      background 0.12s ease,
+      box-shadow 0.12s ease;
+  }
+  // O alvo de arraste ganha tom e contorno na cor do status.
+  &--sobre &__corpo {
+    background: color-mix(in srgb, var(--kb-cor, var(--text-muted)) 12%, var(--kb-trilho));
+    box-shadow: inset 0 0 0 2px var(--kb-cor, var(--stroke-hover));
+  }
+
+  &__vazia {
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  // ---- "Nova coluna": a última, sem cabeçalho nem fio ----
+  // Fechada, a "coluna nova" é só o botão (não rouba 240px das colunas
+  // de verdade); aberta, ganha a largura do formulário.
+  &--nova {
+    flex: 0 0 auto;
+    &:has(form) {
+      flex: 0 0 240px;
+    }
+  }
+  &__nova-botao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 34px;
+    padding: 0 8px;
+    border: 0;
+    border-radius: var(--raio);
+    background: none;
+    font-family: var(--f-ui);
+    font-size: 14px;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &__form-nova {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 4px;
+
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    input {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+  }
+  &__form-ajuda {
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--text-secondary);
+  }
+  &__form-nova-acoes {
+    display: flex;
+    gap: 6px;
+  }
+}
+
+// ------------------------------------------------------------------ cartão
+.kb-cartao {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  // Faixa recuada, como na referência: status sem competir com o assunto.
+  padding: 12px 12px 10px 18px;
+  background: var(--surface-card);
+  border-radius: var(--kb-raio-card);
+  border: 1px solid var(--kb-linha);
+  box-shadow: none;
+  cursor: grab;
+  // `manipulation` e não `none`: o toque segura para pegar (TouchSensor com
+  // atraso), então o deslizar comum tem que continuar rolando a coluna
+  touch-action: manipulation;
+  transition:
+    border-color 0.12s ease,
+    background 0.12s ease;
+
+  // A faixa de status: a cor do status DO TICKET (ver PaginaKanban.statusDe),
+  // que numa coluna de organização difere da coluna.
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 10px auto 10px 6px;
+    width: 3px;
+    border-radius: var(--kb-raio);
+    background: var(--kb-cor, var(--stroke-hover));
+  }
+
+  &:hover {
+    border-color: var(--stroke-hover);
+    background: var(--surface-alt);
+    box-shadow: none;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  // O lugar de onde o cartão saiu, enquanto a cópia segue o ponteiro: um
+  // encaixe tracejado do mesmo tamanho, sem conteúdo.
+  &--origem {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    outline: 1px dashed var(--stroke-hover);
+    outline-offset: -1px;
+
+    > * {
+      visibility: hidden;
+    }
+    &:hover {
+      box-shadow: none;
+    }
+    // pego pelo teclado: o encaixe continua mostrando o foco
+    &:focus-visible {
+      outline: 2px dashed var(--foco);
+    }
+  }
+
+  // A cópia no DragOverlay: a única peça do quadro com sombra, porque é a
+  // única que de fato flutua sobre as outras.
+  &--flutuando {
+    cursor: grabbing;
+    box-shadow: var(--sombra-flutuante);
+  }
+
+  &__topo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 18px;
+  }
+  &__ref {
+    font-size: 12px;
+    line-height: 1.33;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  // Numa coluna de organização (lane) a coluna não diz o status; este selo diz,
+  // na cor do status. Tinta e fundo vêm de coresDaBarra (contraste garantido).
+  &__status {
+    margin-right: auto;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+  }
+  &__ref + &__prioridade {
+    margin-left: auto;
+  }
+  // Só Alta e Urgente chegam aqui (ver Cartao.tsx). Selo CHEIO, com ícone e
+  // palavra: a cor nunca é o único sinal, mas é ela que faz o cartão urgente
+  // saltar numa coluna de vinte.
+  &__prioridade {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px 2px 6px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+
+    i {
+      font-size: 13px;
+    }
+    &--high {
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
+    }
+    &--urgent {
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
+    }
+  }
+
+  &__assunto {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.43;
+    color: var(--text-primary);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  // Empresa » contato, como nas mesas de atendimento: quem paga primeiro, quem
+  // escreveu depois. A empresa em tinta cheia; o contato, um degrau abaixo.
+  &__cliente {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+
+    i {
+      flex-shrink: 0;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+  }
+  &__empresa {
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__contato {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--stroke);
+    min-height: 20px;
+  }
+  &__sinais {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  // Prazo interno e SLA: o mesmo formato de selo compacto, cores
+  // SÓ quando pedem ação. Neutro é cinza; vencido é perigo; hoje/amanhã é
+  // alerta.
+  &__prazo,
+  &__sla {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 20px;
+    padding: 0 5px;
+    border: 0;
+    border-radius: var(--kb-raio);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+
+    i {
+      font-size: 14px;
+    }
+  }
+  &__prazo {
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+      opacity 0.12s ease,
+      background 0.12s ease;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    // Pede ação: selo CHEIO. Vencido é vermelho, hoje/amanhã é âmbar.
+    &--proximo {
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
+    }
+    &--vencido {
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
+    }
+    // Sem prazo: só aparece no hover/foco do cartão. Continua ocupando o
+    // lugar (opacidade, não display) para o cartão não mudar de altura, e
+    // Ícone compacto no fim: a área de edição não empurra os indicadores
+    // nem o responsável para uma segunda linha.
+    &--definir {
+      order: 1;
+      width: 24px;
+      padding: 0;
+      flex-shrink: 0;
+
+      .kb-cartao__prazo-texto {
+        display: none;
+      }
+      background: transparent;
+      color: var(--text-secondary);
+      font-weight: 400;
+      opacity: 0;
+
+      &:hover {
+        background: var(--surface-alt);
+        color: var(--text-primary);
+      }
+    }
+  }
+  &:hover &__prazo--definir,
+  &:focus-within &__prazo--definir,
+  &__prazo--definir:focus-visible {
+    opacity: 1;
+  }
+
+  &__prazo-edicao {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  &__prazo-input {
+    height: 28px;
+    padding: 0 6px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    color: var(--text-primary);
+    color-scheme: inherit;
+    cursor: text;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &__prazo-remover {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--danger);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  &__sla {
+    cursor: help;
+
+    &--ok {
+      background: var(--tom-ok);
+      color: var(--ok);
+    }
+    &--at_risk {
+      background: var(--vivo-alerta);
+      color: var(--vivo-alerta-texto);
+    }
+    &--breached {
+      background: var(--vivo-perigo);
+      color: var(--vivo-perigo-texto);
+    }
+  }
+
+  &__fim {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    margin-left: auto;
+  }
+  &__contador {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__responsavel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+
+    img,
+    .kb-cartao__avatar-fallback {
+      display: block;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+    img,
+    .kb-cartao__avatar-fallback {
+      flex-shrink: 0;
+    }
+    .kb-cartao__avatar-fallback {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+    }
+  }
+  &__responsavel-nome {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+}
+
+// ------------------------------------------------------------------ esqueleto
+// Mesmas medidas do quadro de verdade, para a troca não pular.
+.kb-esq {
+  &--cabecalho {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  &__titulo {
+    width: 140px;
+    font-size: 28px;
+  }
+  &__linha {
+    font-size: 12px;
+
+    &--longa {
+      width: min(420px, 80%);
+      font-size: 14px;
+    }
+    &--nome {
+      width: 96px;
+      font-size: 14px;
+    }
+    &--ref {
+      width: 64px;
+    }
+    &--assunto {
+      width: 85%;
+      font-size: 14px;
+    }
+    &--cliente {
+      width: 55%;
+    }
+  }
+  &__busca {
+    width: 320px;
+    max-width: 100%;
+    height: 50px !important;
+    border-radius: var(--kb-raio-pill) !important;
+  }
+  &__pilula {
+    width: 112px;
+    height: 36px !important;
+    border-radius: var(--kb-raio-card) !important;
+  }
+}
+.kb-coluna--esqueleto .kb-coluna__cabecalho {
+  align-items: center;
+  background: var(--stroke);
+}
+.kb-cartao--esqueleto {
+  gap: 10px;
+  cursor: default;
+
+  &:hover {
+    box-shadow: none;
+  }
+}
+
+// -------------------------------------------------------------------- modal
+.kb-modal-fechar__intro {
+  font-size: 14px;
+  // Sem fallback literal: o fallback era um cinza que nem pertence à paleta e,
+  // fora do .resolv-scope, devolveria a cor do tema claro no escuro.
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+.kb-modal-fechar__campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+
+  label {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  input {
+    height: 32px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    padding: 0 8px;
+    font-size: 14px;
+  }
+}
+.kb-modal-fechar__erro {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 2px;
+}
+
+// ------------------------------------------------------------------ celular
+// Abaixo de 768px (o mesmo corte do shell): margem de 16px, busca na linha
+// inteira, pílulas numa faixa que rola para o lado, e uma coluna por vez
+// (~85% da largura, com encaixe) — a vizinha aparece na borda, dizendo que
+// há mais quadro para o lado.
+@media (max-width: 767px) {
+  .kb-pagina {
+    padding: 0 16px 12px;
+    gap: 0;
+
+    &__colunas {
+      gap: 8px;
+      margin: 0 -16px;
+      padding: 12px 16px 4px;
+      scroll-padding: 0 16px;
+      scroll-snap-type: x mandatory;
+    }
+  }
+
+  .kb-filtros {
+    margin: 0 -16px;
+    padding: 12px 16px;
+  }
+  .kb-busca {
+    flex: 1 1 100%;
+  }
+  .kb-filtros__pilulas {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    width: calc(100% + 32px);
+    margin: 0 -16px;
+    // folga para o anel de foco (2px + 2px de afastamento) não ser cortado
+    padding: 4px 16px;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  .kb-filtros__resumo {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .kb-coluna {
+    flex-basis: 85vw;
+    max-width: none;
+    scroll-snap-align: start;
+
+    &--nova {
+      flex-basis: 70vw;
+    }
+  }
+}
+
+// Sem hover (toque): o "Definir prazo" não tem como surgir no hover, então
+// fica sempre visível, só o ícone, para não repetir a palavra em todo cartão.
+@media (hover: none) {
+  .kb-cartao__prazo--definir {
+    opacity: 1;
+    padding: 0 6px;
+
+    .kb-cartao__prazo-texto {
+      display: none;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kb-cartao,
+  .kb-cartao__prazo,
+  .kb-coluna__corpo,
+  .kb-coluna__menu,
+  .kb-botao,
+  .kb-busca,
+  .kb-filtro {
+    transition: none;
+  }
+  .kb-pagina .animate-pulse {
+    animation: none;
+  }
+}

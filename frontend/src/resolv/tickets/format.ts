@@ -1,4 +1,4 @@
-import type { Prioridade, StatusTicket } from './tipos'
+import type { Prioridade, RelogioSla, StatusTicket, TicketLinha } from './tipos'
 
 /** "03/09/2026 15:51" — formato da coluna "Aberto em" do print. */
 export function formatarDataHora(iso: string): string {
@@ -28,6 +28,21 @@ export function esperaEmFila(createdAt: string, firstResponseAt: string | null, 
   return `${Math.floor(h / 24)}d`
 }
 
+/**
+ * Nome acessível do link "abrir chamado" da célula de protocolo
+ * (TicketsTable.tsx, item 26 da auditoria) — a REFERÊNCIA sozinha
+ * ("T-0007") é o que uma pessoa vidente vê escrito no link, mas ela também
+ * lê de graça o assunto e a empresa nas células vizinhas da mesma linha;
+ * quem navega por teclado ou leitor de tela só tem o alcance do próprio
+ * link, então o mesmo contexto entra aqui.
+ */
+export function rotuloAbrirChamado(
+  t: Pick<TicketLinha, 'reference' | 'subject' | 'company_name'>,
+): string {
+  const empresa = t.company_name ? ` (${t.company_name})` : ''
+  return `Abrir ticket ${t.reference}: ${t.subject}${empresa}`
+}
+
 export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
   low: 'Baixa',
   normal: 'Normal',
@@ -35,12 +50,29 @@ export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
   urgent: 'Urgente',
 }
 
-/** Cor da barra de urgência — mapeada às cores semânticas do design system. */
+/** Ícone da pílula de prioridade (Tabler) — o segundo sinal além da cor. */
+export const ICONE_PRIORIDADE: Record<Prioridade, string> = {
+  low: 'ti-arrow-down',
+  normal: 'ti-minus',
+  high: 'ti-arrow-up',
+  urgent: 'ti-alert-triangle',
+}
+
+/** Cor da pílula de prioridade. Só Alta e Urgente têm cor: cor é sinal de
+ *  ESTADO que pede atenção, e "Normal" em verde (como era) dizia "tudo
+ *  certo" em 80% das linhas da fila, gastando a única coisa que faz o
+ *  vermelho saltar. Baixa e Normal ficam na tinta neutra. */
 export const COR_PRIORIDADE: Record<Prioridade, string> = {
   low: 'var(--text-muted)',
-  normal: 'var(--ok)',
+  normal: 'var(--text-secondary)',
   high: 'var(--away)',
   urgent: 'var(--danger)',
+}
+
+/** Prioridades que merecem pílula colorida na fila (e no cartão do
+ *  celular). As outras são texto corrido — ver `COR_PRIORIDADE`. */
+export function prioridadeEmDestaque(p: Prioridade): boolean {
+  return p === 'high' || p === 'urgent'
 }
 
 export const ROTULO_STATUS: Record<StatusTicket, string> = {
@@ -48,4 +80,58 @@ export const ROTULO_STATUS: Record<StatusTicket, string> = {
   open: 'Aberto',
   pending_customer: 'Aguardando retorno',
   closed: 'Fechado',
+}
+
+/** Cor do relógio de SLA (`RelogioSla.state`) — mesma semântica de
+ *  `COR_PRIORIDADE`: vermelho estourou, âmbar em risco, cinza sem prazo,
+ *  verde no prazo. Usado nas listas da Início ("Seus próximos",
+ *  "Vencendo na equipe") e na coluna SLA da fila (TicketsTable.tsx). */
+export function corEstadoSla(sla: RelogioSla): string {
+  if (sla.state === 'breached') return 'var(--danger)'
+  if (sla.state === 'at_risk') return 'var(--away)'
+  if (sla.state === 'none') return 'var(--text-muted)'
+  return 'var(--ok)'
+}
+
+/** Texto curto do relógio — "2h restantes", "Estourado", "Sem SLA". */
+export function textoEstadoSla(sla: RelogioSla): string {
+  if (sla.state === 'breached') return 'Estourado'
+  if (sla.state === 'none') return 'Sem SLA'
+  // `met` antes da conta de tempo: o relógio parou quando o prazo foi
+  // cumprido, e `minutes_left` continua correndo pro passado no serializer
+  // (apps/tickets/serializers.py, `_sla_clock` calcula sempre due_at - agora).
+  // Sem este ramo, um ticket resolvido lia "-3h restantes" — a fila mostra
+  // fechados nas visões "Todos" e "Resolvidos", que é onde isso aparecia.
+  if (sla.state === 'met') return 'Cumprido'
+  if (sla.minutes_left == null) return 'No prazo'
+  const h = Math.floor(sla.minutes_left / 60)
+  const restante = h > 0 ? `${h}h` : `${sla.minutes_left}min`
+  return sla.state === 'at_risk' ? `${restante}, em risco` : `${restante} restantes`
+}
+
+/** "agora mesmo" / "há 3 min" / "há 2 h" — quando a lista na tela foi
+ *  buscada (dica do botão de atualizar da fila). */
+export function atualizadoHa(desdeMs: number, agoraMs: number): string {
+  const min = Math.floor(Math.max(0, agoraMs - desdeMs) / 60_000)
+  if (min < 1) return 'atualizado agora mesmo'
+  if (min < 60) return `atualizado há ${min} min`
+  return `atualizado há ${Math.floor(min / 60)} h`
+}
+
+/** "8 tickets" / "1 ticket" — o total da fila no cabeçalho. */
+export function totalDeTickets(n: number): string {
+  return n === 1 ? '1 ticket' : `${n.toLocaleString('pt-BR')} tickets`
+}
+
+/**
+ * "38min" / "2h" / "3d" a partir de MINUTOS — a unidade em que o resumo da
+ * fila manda a espera mais longa (`nao_atribuidos.espera_mais_longa_min`,
+ * apps/tickets/views.py). Mesma escala de `esperaEmFila` para as duas
+ * durações da tela não se lerem com vocabulário diferente.
+ */
+export function duracaoEmMinutos(min: number): string {
+  if (min < 60) return `${Math.max(0, Math.round(min))}min`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `${h}h`
+  return `${Math.floor(h / 24)}d`
 }

@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, type Paginado } from '@/api/client'
-import type { AlvoMencao, Macro, TicketDetalhe } from './tiposDetalhe'
-import type { Prioridade, StatusTicket } from '../tipos'
+import type {
+  AgenteAtribuivel,
+  AlvoMencao,
+  DadosFechamento,
+  Macro,
+  RespostaAgendada,
+  TicketDetalhe,
+} from './tiposDetalhe'
+import type { Prioridade, StatusTicket, TicketLinha } from '../tipos'
 
 const chaveDetalhe = (id: number) => ['ticket', id] as const
 
@@ -19,26 +26,85 @@ export function useTicketDetalhe(id: number) {
   })
 }
 
+/** Quantos "outros tickets" o painel do cliente mostra. */
+export const LIMITE_OUTROS_TICKETS = 5
+
+/**
+ * Os chamados mais recentes do MESMO solicitante, sem o que está aberto na
+ * tela (`?requester=`, apps/tickets/views.py `_aplicar_filtros`). Pede um a
+ * mais que o limite porque o ticket atual quase sempre volta no recorte — é
+ * do mesmo solicitante — e é tirado aqui, não no servidor.
+ *
+ * Chave sob `['tickets', …]` de propósito: toda ação que invalida a fila
+ * (`gravar`, realtime) atualiza esta lista junto.
+ */
+export function useOutrosTicketsDoSolicitante(requesterId: number | undefined, ticketAtual: number) {
+  return useQuery({
+    queryKey: ['tickets', 'do-solicitante', requesterId],
+    queryFn: () =>
+      api.get<Paginado<TicketLinha>>(
+        `/api/v1/tickets/?requester=${requesterId}&ordering=-criado&limit=${LIMITE_OUTROS_TICKETS + 1}`,
+      ),
+    enabled: requesterId != null,
+    staleTime: 60_000,
+    select: (d) => ({
+      itens: d.results.filter((t) => t.id !== ticketAtual).slice(0, LIMITE_OUTROS_TICKETS),
+      // `count` inclui o ticket da tela: ele é deste solicitante e, se está
+      // aberto aqui, está no escopo de quem pede
+      total: Math.max(0, d.count - 1),
+    }),
+  })
+}
+
 export interface Categoria {
   id: number
   name: string
   slug: string
 }
 
+// `?limit=200` porque o backend pagina em 25 por padrão (PAGE_SIZE,
+// config/settings/base.py) — sem isso, empresa com mais de 25
+// categorias/macros perde as demais em silêncio (o <select> de categoria em
+// PainelPropriedades.tsx não tem paginação, é lista fechada ou nada). Mesmo
+// precedente de cvz/tickets/dados.ts (`useAgentes`, `?limit=500`); 200 já
+// cobre a escala real de categoria/macro sem carregar o catálogo inteiro à
+// toa como 500 faria aqui.
 export function useCategorias() {
   return useQuery({
     queryKey: ['categorias'],
-    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/'),
+    queryFn: () => api.get<Paginado<Categoria> | Categoria[]>('/api/v1/categories/?limit=200'),
     staleTime: 300_000,
     select: (d) => (Array.isArray(d) ? d : d.results),
   })
 }
 
-/** Agentes/equipes que podem ser atribuídos — lista inteira, filtrada em memória. */
-export function useAlvosMencao(id: number) {
+/** Quem pode ser @mencionado neste ticket — agentes internos ativos e
+ *  equipes (MentionTargetSerializer, apps/tickets/views.py `mention_targets`).
+ *  NÃO é a lista de quem pode ser Responsável/Dono técnico — ver
+ *  `useAgentesAtribuiveis` logo abaixo, que é a pergunta certa para os dois
+ *  seletores do painel de propriedades. */
+export function useAlvosMencao(id: number, ativo = true) {
   return useQuery({
     queryKey: ['ticket', id, 'mention-targets'],
     queryFn: () => api.get<AlvoMencao[]>(`/api/v1/tickets/${id}/mention-targets/`),
+    staleTime: 60_000,
+    // o compositor só pede quando a pessoa pode escrever nota interna — a
+    // única mensagem em que menção existe
+    enabled: ativo,
+  })
+}
+
+/** Quem os seletores de Responsável e Dono técnico podem oferecer
+ *  (AssignableAgentSerializer, `GET /tickets/{id}/assignable-agents/`,
+ *  apps/tickets/views.py `assignable_agents`). Pergunta DIFERENTE de
+ *  `useAlvosMencao`: aqui o próprio agente logado JÁ está incluído (é o
+ *  "Assumir" pelo seletor) e agente leve JÁ está excluído (não passa em
+ *  `TICKET_BE_ASSIGNED`) — reusar a lista de menção aqui é o que fazia o
+ *  seletor oferecer gente que a atribuição real recusa com 400. */
+export function useAgentesAtribuiveis(id: number) {
+  return useQuery({
+    queryKey: ['ticket', id, 'assignable-agents'],
+    queryFn: () => api.get<AgenteAtribuivel[]>(`/api/v1/tickets/${id}/assignable-agents/`),
     staleTime: 60_000,
   })
 }
@@ -46,10 +112,56 @@ export function useAlvosMencao(id: number) {
 export function useMacros() {
   return useQuery({
     queryKey: ['ticket-macros'],
-    queryFn: () => api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/'),
+    queryFn: () =>
+      api.get<Paginado<Macro> | Macro[]>('/api/v1/settings/ticket-macros/?limit=200'),
     staleTime: 300_000,
-    select: (d) => (Array.isArray(d) ? d : d.results),
+    select: (d) => (Array.isArray(d) ? d : d.results).filter((m) => m.is_active !== false),
   })
+}
+
+/** Corpo do `POST /tickets/{id}/reply/`. Responder-e-fechar é UMA chamada:
+ *  quando `new_status` é `closed`, os campos de resolução (D4) e a
+ *  justificativa vão juntos (TicketReplySerializer). */
+export interface DadosResposta {
+  body: string
+  is_public: boolean
+  new_status?: StatusTicket
+  resolution_started_at?: string
+  resolution_ended_at?: string
+  close_note?: string
+  /** A assinatura do agente entra no rodapé desta mensagem? Ela NÃO vai no
+   *  `body` — o servidor a desenha a partir do perfil (apps/accounts/assinatura.py). */
+  with_signature?: boolean
+  files?: File[]
+}
+
+/** Corpo do `POST /tickets/{id}/schedule-reply/` — mesmos campos de
+ *  `DadosResposta` (sem `files`: a v1 do agendamento não segura upload por
+ *  horas até o disparo) mais `scheduled_at`. */
+export interface DadosAgendamento {
+  body: string
+  is_public: boolean
+  new_status?: StatusTicket
+  resolution_started_at?: string
+  resolution_ended_at?: string
+  close_note?: string
+  with_signature?: boolean
+  /** ISO — a tela monta a partir do `<input type="datetime-local">`. */
+  scheduled_at: string
+}
+
+/**
+ * As duas requisições que o detalhe também faz ADIADAS, atrás de um
+ * "Desfazer" (useAcaoAdiada.ts) — fora de `useMutation` porque a gravação
+ * adiada pode sair depois de a tela desmontar (trocou de ticket, fechou a
+ * aba), e aí precisa de `keepalive` e de não depender de componente vivo.
+ * As mutações abaixo usam as mesmas funções: um endereço, um corpo.
+ */
+export const requisicoesTicket = {
+  atribuir: (id: number, assignee_id: number | null, opcoes?: { keepalive?: boolean }) =>
+    api.post<TicketDetalhe>(`/api/v1/tickets/${id}/assign/`, { assignee_id }, opcoes),
+  fechar: (id: number, dados: DadosFechamento, opcoes?: { keepalive?: boolean }) =>
+    api.post<TicketDetalhe>(`/api/v1/tickets/${id}/close/`, dados, opcoes),
 }
 
 /**
@@ -62,35 +174,31 @@ export function useAcoesTicket(id: number) {
   const qc = useQueryClient()
   const gravar = (t: TicketDetalhe) => {
     qc.setQueryData(chaveDetalhe(id), t)
-    qc.invalidateQueries({ queryKey: ['tickets', 'lista'] })
+    // Prefixo `['tickets']`: transferir de equipe ou mexer em etiquetas muda a
+    // fila E as contagens da barra lateral (`['tickets', 'resumo']`).
+    qc.invalidateQueries({ queryKey: ['tickets'] })
   }
 
   const responder = useMutation({
-    mutationFn: (dados: {
-      body: string
-      is_public: boolean
-      new_status?: StatusTicket
-      files?: File[]
-    }) => {
+    mutationFn: (dados: DadosResposta) => {
       // Com anexos vai por multipart (o endpoint reply aceita `files`); sem,
       // JSON puro. O client detecta FormData e ajusta o Content-Type sozinho.
-      if (dados.files && dados.files.length > 0) {
+      const { files, ...json } = dados
+      if (files && files.length > 0) {
         const fd = new FormData()
-        fd.append('body', dados.body)
-        fd.append('is_public', String(dados.is_public))
-        if (dados.new_status) fd.append('new_status', dados.new_status)
-        dados.files.forEach((f) => fd.append('files', f))
+        Object.entries(json).forEach(([k, v]) => {
+          if (v !== undefined) fd.append(k, String(v))
+        })
+        files.forEach((f) => fd.append('files', f))
         return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, fd)
       }
-      const { files: _f, ...json } = dados
       return api.post<TicketDetalhe>(`/api/v1/tickets/${id}/reply/`, json)
     },
     onSuccess: gravar,
   })
 
   const atribuir = useMutation({
-    mutationFn: (assignee_id: number | null) =>
-      api.post<TicketDetalhe>(`/api/v1/tickets/${id}/assign/`, { assignee_id }),
+    mutationFn: (assignee_id: number | null) => requisicoesTicket.atribuir(id, assignee_id),
     onSuccess: gravar,
   })
 
@@ -121,10 +229,65 @@ export function useAcoesTicket(id: number) {
     onSuccess: gravar,
   })
 
+  /** Transferir de equipe é o MESMO PATCH de triagem de prioridade e categoria
+   *  (`partial_update` em apps/tickets/views.py). Quem recusa equipe interna
+   *  para chamado de cliente é o serviço, que também escreve "equipe → X" no
+   *  histórico — a tela manda e mostra o motivo que voltar. */
+  const mudarEquipe = useMutation({
+    mutationFn: (team: number) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { team }),
+    onSuccess: gravar,
+  })
+
+  /** A lista SUBSTITUI o conjunto de etiquetas, e lista vazia limpa — contrato
+   *  do `TicketReclassifySerializer.tags` (apps/tickets/serializers.py). Por
+   *  isso a tela manda sempre o conjunto inteiro, nunca "adicione esta". */
+  const mudarEtiquetas = useMutation({
+    mutationFn: (tags: number[]) => api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/`, { tags }),
+    onSuccess: gravar,
+  })
+
+  /** Grava só os campos de triagem da macro (categoria/urgência/responsável/
+   *  etiquetas). O texto pronto é responsabilidade do compositor. */
   const aplicarMacro = useMutation({
     mutationFn: (macro_id: number) =>
       api.post<TicketDetalhe>(`/api/v1/tickets/${id}/apply-macro/`, { macro_id }),
     onSuccess: gravar,
+  })
+
+  /** Fechamento sem resposta ao cliente — mesmo contrato do quadro (D4). */
+  const fechar = useMutation({
+    mutationFn: (dados: DadosFechamento) => requisicoesTicket.fechar(id, dados),
+    onSuccess: gravar,
+  })
+
+  const editarMensagem = useMutation({
+    mutationFn: ({ mensagemId, body }: { mensagemId: number; body: string }) =>
+      api.patch<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`, { body }),
+    onSuccess: gravar,
+  })
+
+  const apagarMensagem = useMutation({
+    mutationFn: (mensagemId: number) =>
+      api.delete<TicketDetalhe>(`/api/v1/tickets/${id}/messages/${mensagemId}/`),
+    onSuccess: gravar,
+  })
+
+  // As duas devolvem a RESPOSTA AGENDADA, não o ticket (`ScheduledReplySerializer`)
+  // — por isso não usam `gravar` (que espera um TicketDetalhe inteiro):
+  // invalidar a query do detalhe já basta pra `scheduled_replies` chegar
+  // atualizado no próximo GET.
+  const revalidar = () => qc.invalidateQueries({ queryKey: chaveDetalhe(id) })
+
+  const agendarResposta = useMutation({
+    mutationFn: (dados: DadosAgendamento) =>
+      api.post<RespostaAgendada>(`/api/v1/tickets/${id}/schedule-reply/`, dados),
+    onSuccess: revalidar,
+  })
+
+  const cancelarAgendamento = useMutation({
+    mutationFn: (agendamentoId: number) =>
+      api.post<RespostaAgendada>(`/api/v1/tickets/${id}/schedule-reply/${agendamentoId}/cancel/`),
+    onSuccess: revalidar,
   })
 
   return {
@@ -135,6 +298,13 @@ export function useAcoesTicket(id: number) {
     seguir,
     deixarDeSeguir,
     mudarPrioridade,
+    mudarEquipe,
+    mudarEtiquetas,
     aplicarMacro,
+    fechar,
+    editarMensagem,
+    apagarMensagem,
+    agendarResposta,
+    cancelarAgendamento,
   }
 }

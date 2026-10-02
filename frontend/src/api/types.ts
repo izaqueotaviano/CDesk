@@ -13,6 +13,8 @@ export type InternalRole = 'admin' | 'supervisor' | 'agent' | 'light_agent'
 export type ClientRole = 'owner' | 'member'
 export type Presence = 'available' | 'away' | 'offline'
 export type UiDensity = 'comfortable' | 'compact' | ''
+/** '' = o tamanho padrão do produto. */
+export type UiTextSize = '' | 'large' | 'larger'
 
 export interface Me {
   id: number
@@ -32,13 +34,32 @@ export interface Me {
   ticket_scope: string
   custom_role_name: string
   avatar_url: string
+  /** Cargo e telefone — o que a pessoa edita em Configurações. */
+  job_title: string
+  phone: string
   ui_density: UiDensity
-  /** Texto livre (o backend guarda cru, sem formato). Nunca é anexado
-   *  automaticamente pelo servidor — quem concatena na resposta é o front. */
+  /** Conforto (apps/accounts/models.py, bloco de mesmo nome). Opcionais só
+   *  no TIPO: o servidor sempre manda, mas as dezenas de `Me` de teste
+   *  espalhadas pela base não precisam saber que eles existem. Quem lê é
+   *  stores/sincronizarPrefs.ts, que trata ausente como "não mexe". */
+  ui_text_size?: UiTextSize
+  notification_sound?: boolean
+  /** 0 = nunca. */
+  auto_away_minutes?: 0 | 5 | 10 | 15 | 30
+  /** Assinatura do rodapé das respostas, em uma de três formas. O conteúdo
+   *  NÃO é copiado para o corpo da mensagem: `signature_render` é o bloco
+   *  pronto (já higienizado pelo servidor) que a prévia e a conversa
+   *  desenham. Ver apps/accounts/assinatura.py. */
   signature: string
+  signature_kind: '' | 'texto' | 'html' | 'imagem'
+  signature_html: string
+  signature_image_url: string
+  signature_render: string
+  /** Só para cliente: uso da cota de chamados no período corrente. */
+  quota?: { used: number; limit: number | null; period_start: string; period_end: string }
 }
 
 /** Resposta do passo 1 do login (docs/10-frontend-novo.md §"Autenticação"). */
 export interface LoginPendente {
-  two_factor: 'email'
+  two_factor: 'email' | 'totp'
 }

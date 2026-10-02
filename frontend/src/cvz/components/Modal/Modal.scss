@@ -24,7 +24,8 @@
   width: 100%;
   max-height: 80vh;
   overflow: hidden;
-  border-radius: $radius;
+  // Superfície (12), não controle (8): o modal é um cartão que flutua.
+  border-radius: $radius-card;
   background-color: $raised;
   box-shadow: $shadow-lg;
   animation: modal-in $dur $ease;
@@ -71,7 +72,7 @@
     justify-content: flex-end;
     gap: $sp-2;
     padding: $sp-3 $sp-4;
-    border-top: $border;
+    border-top: $stroke-w solid $stroke;
     background-color: $surface;
   }
 }

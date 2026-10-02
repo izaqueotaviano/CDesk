@@ -1,0 +1,113 @@
+// Padrão das tabelas do console: usa os tokens do Resolv em ambos os temas.
+// Mantém as colunas, a densidade escolhida e os layouts móveis existentes.
+.resolv-scope.novo-shell {
+  .data-table,
+  .auditoria-tabela__wrap,
+  .relatorios-tabela__wrap {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 8px;
+    background: var(--surface-card);
+    overflow-x: auto;
+  }
+
+  .relatorios-tabela { border: 0; border-radius: 0; }
+
+  :is(.data-table__table, .tickets-tabela, .auditoria-tabela, .relatorios-tabela) {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+
+    thead th {
+      height: 44px;
+      padding: 10px 12px;
+      background: var(--acabamento-painel);
+      border-bottom: 1px solid var(--acabamento-linha);
+      color: var(--text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+
+    tbody td {
+      border-bottom: 1px solid var(--acabamento-linha);
+      vertical-align: middle;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: var(--acabamento-painel); }
+  }
+
+  .tickets-tabela { border-collapse: separate; border-spacing: 0; }
+
+  .data-table__toolbar { padding: 12px; }
+  .data-table__batch {
+    padding: 12px;
+    background: var(--acabamento-selecao);
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .data-table__batch-clear {
+    color: var(--acabamento-azul);
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+    background: var(--surface-card);
+  }
+  .data-table__sort { gap: 8px; }
+  .data-table__sort--active { color: var(--acabamento-azul); }
+  .data-table__row--selected,
+  .data-table__row--selected:hover,
+  .tickets-tabela tbody tr.is-selecionada,
+  .tickets-tabela tbody tr.is-selecionada:hover {
+    background: var(--acabamento-selecao);
+  }
+
+  .pagination,
+  .lista-tickets__paginacao {
+    min-height: 60px;
+    padding: 12px;
+    gap: 12px;
+    border-top: 1px solid var(--acabamento-linha);
+    background: var(--surface-card);
+    font-size: 12px;
+  }
+  .pagination__range { font-family: inherit; font-variant-numeric: tabular-nums; }
+  .pagination__size select,
+  .pagination__pages button,
+  .lista-tickets__paginacao button {
+    height: 32px;
+    min-width: 32px;
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+  }
+  .pagination__pages .pagination__page--current {
+    border-color: var(--acabamento-azul);
+    background: var(--acabamento-selecao);
+    color: var(--acabamento-azul) !important;
+  }
+  .pagination__pages button:disabled,
+  .lista-tickets__paginacao button:disabled { opacity: .45; }
+
+  // O layout de cartões em telas pequenas continua sob responsabilidade
+  // das tabelas existentes; estas medidas só se aplicam às linhas desktop.
+  @media (min-width: 769px) {
+    .data-table tbody td { height: 48px; padding: 10px 12px; }
+    .data-table--compact tbody td { height: 40px; padding: 6px 12px; }
+    .data-table--relaxed tbody td { height: 56px; padding: 14px 12px; }
+    .tickets-tabela tbody td { padding-top: 10px; padding-bottom: 10px; }
+    .tickets-tabela--confortavel tbody td { padding-top: 14px; padding-bottom: 14px; }
+    :is(.auditoria-tabela, .relatorios-tabela) tbody td { padding: 12px; }
+    .tickets-tabela__wrap {
+      margin: 16px 24px;
+      border: 1px solid var(--acabamento-linha);
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+  }
+  @media (max-width: 768px) {
+    .pagination { flex-wrap: wrap; }
+    .pagination__size { margin-right: 0; }
+    .pagination__pages { margin-left: auto; }
+  }
+}

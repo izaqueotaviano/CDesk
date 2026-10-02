@@ -26,6 +26,7 @@ Card referencia ticket (FK), nunca é o mesmo registro (docs/05 §3.1): apagar
 card, lane ou quadro não toca no ticket.
 """
 
+from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -65,25 +66,71 @@ class BoardLane(models.Model):
     """Coluna de ORGANIZAÇÃO do quadro — visual, nunca de status.
 
     Fica depois das colunas de status, e o chamado fixado nela permanece com o
-    status que tem. É deliberadamente rasa: nome e ordem. Cor, contrato com o
-    SLA e visibilidade para o cliente são assuntos de STATUS, e status mora em
-    `tickets.TicketStage`.
+    status que tem. É deliberadamente rasa: nome, ordem e limite de WIP. Cor,
+    contrato com o SLA e visibilidade para o cliente são assuntos de STATUS, e
+    status mora em `tickets.TicketStage`.
     """
 
     board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="lanes")
     name = models.CharField(max_length=60)
     order = models.PositiveSmallIntegerField(default=0)
+    # Limite de trabalho em andamento. É AVISO, não trava: passar do limite
+    # pinta o cabeçalho da coluna, mas o arraste continua aceito — travar
+    # o move no meio de um atendimento só empurraria o chamado para a coluna
+    # errada. Nulo = sem limite.
+    wip_limit = models.PositiveSmallIntegerField(
+        null=True, blank=True, validators=[MinValueValidator(1)],
+        help_text="Limite de tickets na coluna (aviso, não bloqueia).",
+    )
 
     class Meta:
         verbose_name = "coluna de organização"
         verbose_name_plural = "colunas de organização"
         ordering = ["order", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["board", "name"], name="uniq_lane_name_per_board")
+            models.UniqueConstraint(fields=["board", "name"], name="uniq_lane_name_per_board"),
+            models.CheckConstraint(
+                condition=models.Q(wip_limit__isnull=True) | models.Q(wip_limit__gte=1),
+                name="lane_wip_limit_positivo",
+            ),
         ]
 
     def __str__(self):
         return f"{self.board.name} / {self.name}"
+
+
+class BoardStageLimit(models.Model):
+    """Limite de WIP de uma coluna de STATUS, neste quadro.
+
+    A coluna de status não é do quadro — é `tickets.TicketStage`, global e
+    administrada em Configurações —, então o limite não pode morar nela: o
+    mesmo "Aberto" aparece no quadro do Suporte e no do Financeiro, e a
+    capacidade de cada equipe é outra. O limite é um acordo de trabalho de
+    QUEM OLHA o quadro, e por isso é do quadro. A lane, que já é do quadro,
+    guarda o dela direto (`BoardLane.wip_limit`).
+
+    Sem linha = sem limite: tirar o limite apaga o registro.
+    """
+
+    board = models.ForeignKey(Board, on_delete=models.CASCADE, related_name="stage_limits")
+    # CASCADE: status apagado leva o limite junto — não há coluna para limitar
+    stage = models.ForeignKey(
+        "tickets.TicketStage", on_delete=models.CASCADE, related_name="board_limits"
+    )
+    wip_limit = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+
+    class Meta:
+        verbose_name = "limite de coluna de status"
+        verbose_name_plural = "limites de coluna de status"
+        constraints = [
+            models.UniqueConstraint(fields=["board", "stage"], name="uniq_stage_limit_per_board"),
+            models.CheckConstraint(
+                condition=models.Q(wip_limit__gte=1), name="stage_wip_limit_positivo"
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.board.name} / {self.stage.name}: {self.wip_limit}"
 
 
 class Card(TimeStampedModel):

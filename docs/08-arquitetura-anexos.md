@@ -130,8 +130,12 @@ verdade, com o cliente `clamd` real (inclusive detecção do EICAR e arquivo de
 base de assinaturas, `freshclam` e `StreamMaxLength` continuam por validar no
 primeiro `docker compose up`.
 
-Complementos ainda não feitos, quase grátis: `Content-Security-Policy: sandbox`
-no download e forçar download em vez de preview inline para PDF.
+Complemento ainda não feito, quase grátis: `Content-Security-Policy: sandbox`
+no download (confirmado: não há esse header em `apps/tickets/` nem
+`apps/chat/`). A outra metade desta lista, forçar download em vez de preview
+inline, **já foi feita** — `AttachmentDownloadView` (`apps/tickets/views.py`)
+e `ChatFileDownloadView` (`apps/chat/views.py`) já respondem com
+`Content-Disposition: attachment` (`as_attachment=True`).
 
 ---
 

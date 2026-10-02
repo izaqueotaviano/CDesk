@@ -1,8 +1,20 @@
 import type { ReactNode } from 'react';
+import { indiceDeIdentidade } from '@/ui/identidade';
 import { IconClose } from '../icons';
 import './Tag.scss';
 
-export type TagTone = 'neutral' | 'blue' | 'success' | 'away' | 'danger';
+/** Tons de IDENTIDADE: não querem dizer nada (ao contrário de success/away/
+ *  danger), só separam "este" de "aquele" — plano da empresa, categoria.
+ *  Seis, os mesmos do avatar (ui/identidade.ts). */
+export type IdentityTone = `identity-${1 | 2 | 3 | 4 | 5 | 6}`;
+
+export type TagTone = 'neutral' | 'blue' | 'success' | 'away' | 'danger' | IdentityTone;
+
+/** Tom de identidade determinístico pra uma chave (nome de plano, de
+ *  categoria…): a mesma chave, o mesmo tom, em toda tela. */
+export function identityTone(chave: string): IdentityTone {
+  return `identity-${indiceDeIdentidade(chave)}`;
+}
 
 export interface TagProps {
   children: ReactNode;

@@ -197,6 +197,54 @@ confiar na sessão de lá. A pergunta que sobra é: como provar, sem cookie
 nem novo login, "esta pessoa é fulano@empresa.com" — e a resposta é
 assinar essa afirmação.
 
+### 10.1 Dois modos de entrar
+
+|  | **Identificado** (assinado) | **Público** |
+|---|---|---|
+| URL do iframe | `?company=&email=&ts=&sig=` — montada pelo backend do cliente a cada carregamento | `?company=` e nada mais — **um código por empresa**, colado uma vez no site (`/embed/widget.js?company=`) |
+| Quem diz quem é a pessoa | a página que hospeda, assinando com a chave da empresa | o próprio visitante, digitando nome e e-mail na janelinha |
+| Pra que serve | dentro de um console onde a pessoa JÁ está logada (Vtex, Tray): a identidade é real | site/loja/landing, onde não existe ninguém logado pra assinar |
+| Liga em | `CompanyChatEmbed.enabled` | `enabled` **e** `public_enabled` (opt-in separado, desligado por padrão) |
+| Vira quem no sistema | o usuário de portal daquele e-mail (tem que existir e estar ativo) | um `User` cliente da empresa marcado `is_widget_visitor`, criado na hora se preciso |
+
+**Modo público não é "aberto pra internet".** O que decide ONDE o widget
+abre continua sendo a allowlist de origens da empresa, igual nos dois
+modos — o que o modo público dispensa é a assinatura POR PESSOA, não a
+porta. Numa origem não cadastrada, a resposta é a mesma de sempre: 404 com
+`frame-ancestors 'none'`.
+
+**Por que o visitante vira usuário (e por que isso não abre o portal).**
+`Chat.client` é o que sustenta tudo o que acontece depois da conversa (nome
+na fila do agente, "já tem atendimento aberto", solicitante do ticket na
+conversão, destinatário das notificações); um cliente nulo espalharia um
+`if` por cada um desses pontos. Então o visitante é um usuário de verdade —
+mas nasce **sem senha utilizável**, e o produto **não tem "esqueci minha
+senha"** (`apps.accounts.admin_api.reset_password`: só um admin define
+senha). Ou seja: não existe caminho de self-service do visitante para
+dentro do portal; promovê-lo é uma decisão consciente de um admin.
+E-mail que já existe em outra empresa (ou de alguém interno) nunca é
+reaproveitado nem sobrescrito — a conversa é recusada com uma mensagem que
+não confirma que a conta existe (senão o formulário viraria um enumerador
+de contas aberto na internet).
+
+**A sessão do widget (`_VISITOR_SESSION_SALT`).** A origem só dá pra
+conferir no carregamento do iframe: o `POST /embed/chat/identificar/` que
+vem depois sai da NOSSA página, então o `Origin` dele somos nós. Por isso a
+abertura emite um token assinado curto (`(company_id, origem)`, 30 min) que
+o POST precisa apresentar — sem ele, a rota que cria visitante e abre
+atendimento aceitaria `curl` de qualquer lugar. O POST é `csrf_exempt` pelo
+mesmo motivo que todo o resto do widget é sem cookie (§10, Safari): quem
+faz o papel do anti-CSRF aqui é essa sessão assinada. Além dela, um teto
+de 10 identificações por IP/empresa/hora (cache) segura o abuso de criar
+usuário em massa a partir de uma origem legítima; e tanto `enabled` quanto
+`public_enabled` são reconferidos NO POST, não só na abertura — desligar no
+painel invalida as janelas já abertas.
+
+**O loader (`/embed/widget.js`) não autoriza nada.** Ele só monta o balão e
+o iframe na página do cliente; quem decide se a janela abre continua sendo
+`embed_chat`. Por isso ele é público e cacheável (60s) — e some sozinho
+quando o embed é desligado no painel.
+
 **Duas famílias de assinatura, não confundir uma com a outra:**
 
 | | Identidade declarada | Token de acesso do widget |

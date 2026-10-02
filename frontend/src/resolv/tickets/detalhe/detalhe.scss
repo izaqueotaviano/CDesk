@@ -1,85 +1,645 @@
-// ============================================================================
-// Detalhe do ticket — 3 colunas (Propriedades · Conversa · Cliente).
-// ============================================================================
+// Detalhe do ticket: mesa de atendimento em três áreas, inspirada na
+// referência. Painéis brancos, divisórias finas e conversa com autoria clara.
+// Campos e ações mantêm seus componentes e comportamentos existentes.
+
 .detalhe {
+  // Só o que é geometria desta tela; a cor mora nos tokens.
+  --largura-props: 272px;
+  --largura-cliente: 320px;
+  // Paleta do briefing anterior, escopada à página do ticket.
+  --f-ui: 'Segoe UI', Inter, system-ui, sans-serif;
+  --f-mono: var(--f-ui);
+  --surface-canvas: light-dark(#f6f5f3, #1a1a19);
+  --surface-card: light-dark(#ffffff, #2a2a29);
+  --surface: var(--surface-card);
+  --surface-alt: light-dark(#f5f5f5, #343433);
+  --text-primary: light-dark(#242424, #f5f5f5);
+  --text-secondary: light-dark(#616161, #c7c7c7);
+  --text-muted: var(--text-secondary);
+  --borda-campo: light-dark(#d4d4d4, #666663);
+  --stroke: light-dark(#e5e4e2, #454543);
+  --stroke-hover: light-dark(#d4d4d4, #777773);
+  --primario: light-dark(#242424, #ebebeb);
+  --primario-sobre: light-dark(#ffffff, #242424);
+  --primario-hover: light-dark(#3b3b3b, #ffffff);
+  --sidebar-hover: var(--surface-alt);
+  --raio: 8px;
+  --raio-cartao: 12px;
+  --plano-detalhe: var(--surface-card);
+  --ticket-mensagem-cliente: light-dark(#eaf7f8, #24393c);
+  background: var(--plano-detalhe);
+  font-family: var(--f-ui);
+  border-top: 1px solid var(--stroke);
+
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  position: relative;
 
+  // Foco visível em tudo que é clicável — teclado precisa enxergar onde está.
+  button:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  // Wrapper de ARIA (role="tabpanel"), não de visual: mesma regra de flex de
+  // __miolo/__esqueleto/__estado, porque ele agora fica ENTRE .detalhe e o
+  // que antes era filho direto dela — sem isto o conteúdo perderia a altura
+  // que o flex column de .detalhe distribuía.
+  &__painel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  &__miolo {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
   &__colunas {
     display: flex;
     flex: 1;
     min-height: 0;
+    position: relative;
   }
 
+  // ---- estados de página (erro, restrito) ----
   &__estado {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 12px;
-    color: var(--text-muted);
+    gap: 8px;
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    max-width: 520px;
+    margin: 0 auto;
     i {
       font-size: 32px;
-    }
-    p {
-      font-size: 13px;
+      margin-bottom: 4px;
     }
     &--erro i {
       color: var(--danger);
     }
+    &--restrito i {
+      color: var(--text-secondary);
+    }
   }
-  &__spin {
-    animation: resolv-spin 0.8s linear infinite;
+  &__estado-titulo {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__estado-acoes {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  &__botao {
+    height: 34px;
+    padding: 0 14px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &--primario {
+      background: var(--primario);
+      border-color: var(--accent);
+      // Token de superfície sobre fundo de marca: o --accent clareia no tema
+      // escuro (tokens.scss:77) e branco por cima cai para 2.45:1. Vale para
+      // todo botão --primario deste arquivo.
+      color: var(--primario-sobre);
+      &:hover {
+        filter: brightness(1.06);
+      }
+    }
+    // painel aberto: o botão fica marcado, como as gavetas fazem com
+    // `--ativa`. Sem isto, nada na barra diz que as Notas estão abertas.
+    &--ativo {
+      background: var(--tom-acento);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+
+  // Faixa em --accent: informa, não alerta — o
+  // chamado mudou por baixo (status/responsável/dono), nada quebrou (item 20).
+  &__aviso-atualizacao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 20px;
+    margin: 0;
+    background: var(--tom-acento);
+    border-bottom: 1px solid var(--tom-acento-borda);
+    font-size: 12px;
+    color: var(--accent);
+    i {
+      font-size: 15px;
+    }
+    span {
+      flex: 1;
+    }
+    button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      color: var(--accent);
+      border-radius: var(--raio);
+      cursor: pointer;
+      &:hover {
+        background: var(--tom-acento-forte);
+      }
+    }
+  }
+
+  &__veu {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    border: none;
+    // Véu por token: no claro é o marrom do texto diluído, no escuro vira preto
+    // mais opaco (tokens.scss), porque 24% de qualquer coisa sobre uma tela já
+    // escura mal escurece.
+    background: var(--veu-suave);
+    cursor: pointer;
+  }
+
+  // ---- esqueleto ----
+  &__esqueleto {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
   }
 }
 
-// ---------------------------------------------------------------- Propriedades
-.prop-panel {
-  width: 260px;
-  flex-shrink: 0;
-  background: var(--surface-card);
-  border-right: 0.7px solid var(--stroke);
-  padding: 16px;
-  overflow-y: auto;
+.esq {
+  display: flex;
+  gap: 12px;
+  background: var(--plano-detalhe);
+  &--cabecalho {
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  &--coluna {
+    flex-direction: column;
+    padding: 16px;
+  }
+  &--props {
+    width: var(--largura-props, 272px);
+    border-right: 1px solid var(--stroke);
+  }
+  &--conversa {
+    flex: 1;
+  }
+  &--cliente {
+    width: var(--largura-cliente, 296px);
+    border-left: 1px solid var(--stroke);
+  }
+  &__bloco {
+    display: block;
+    height: 16px;
+    border-radius: var(--raio);
+    background: linear-gradient(
+      90deg,
+      var(--surface-alt) 0%,
+      var(--stroke) 50%,
+      var(--surface-alt) 100%
+    );
+    background-size: 200% 100%;
+    animation: detalhe-brilho 1.4s ease infinite;
+    &--curto {
+      height: 30px;
+    }
+    &--campo {
+      height: 34px;
+      margin-top: 18px;
+    }
+    &--msg {
+      height: 72px;
+      margin-bottom: 4px;
+    }
+    &--linha {
+      height: 14px;
+      margin-top: 10px;
+    }
+  }
+}
+
+@keyframes detalhe-brilho {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes detalhe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// ============================================================================
+// Cabeçalho do ticket
+// ============================================================================
+.ticket-cab {
+  background: var(--plano-detalhe);
+  border-bottom: 1px solid var(--stroke);
+  padding: 14px 20px 12px 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 8px;
+  flex-shrink: 0;
+
+  &__linha {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+    min-width: 0;
+    &--meta {
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      padding-left: 40px;
+    }
+  }
+
+  &__voltar {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 18px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+
+  &__identidade {
+    // Pelo menos um assunto legível; sem espaço, as ações descem de linha
+    // (a linha quebra) em vez de o assunto virar "Teclado sem".
+    flex: 1 1 280px;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+  &__ref {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  &__assunto {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    line-height: 1.3;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    i {
+      font-size: 15px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  // Ação de vez em quando (exportar): só ícone, 32px, sem moldura.
+  &__icone {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 17px;
+    }
+    &:hover:not(:disabled) {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+  &__girando {
+    animation: detalhe-spin 1s linear infinite;
+  }
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+    i {
+      font-size: 15px;
+      color: var(--text-secondary);
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+      background: var(--surface);
+    }
+    &:active {
+      transform: translateY(1px);
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+    &--ativo {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+      i {
+        color: var(--accent);
+      }
+    }
+    &--primario {
+      background: var(--primario);
+      border-color: var(--accent);
+      color: var(--primario-sobre);
+      i {
+        color: var(--surface-card);
+      }
+      &:hover {
+        background: var(--primario);
+        filter: brightness(1.06);
+      }
+    }
+  }
+
+  // gavetas dos painéis — só aparecem quando a largura os esconde (ver media)
+  &__gavetas {
+    display: none;
+    gap: 2px;
+    margin-left: 4px;
+    padding-left: 6px;
+    border-left: 1px solid var(--stroke);
+  }
+  &__gaveta {
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 17px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &--ativa {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+    }
+  }
+
+  // pílulas: etapa (cor do banco) e prioridade (cor semântica)
+  &__pilula {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
+    padding: 0 9px 0 7px;
+    border-radius: var(--raio);
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+  &__ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cor, var(--text-secondary));
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--cor, var(--text-secondary)) 18%, transparent);
+  }
+  &__barra {
+    width: 3px;
+    height: 12px;
+    border-radius: var(--raio);
+    background: var(--cor, var(--text-secondary));
+  }
+
+  &__meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    i {
+      font-size: 14px;
+    }
+    strong {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    &--quieto {
+      white-space: normal;
+    }
+  }
+
+  // Mesma linguagem do .detalhe__erro-acao, sem a borda de baixo: aqui ele é
+  // uma TERCEIRA LINHA dentro do cabeçalho, não uma faixa entre seções.
+  &__aviso {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: var(--raio);
+    background: var(--tom-perigo);
+    font-size: 12px;
+    color: var(--danger);
+    i {
+      font-size: 15px;
+    }
+    span {
+      flex: 1;
+    }
+    button {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      color: var(--danger);
+      border-radius: var(--raio);
+      cursor: pointer;
+      &:hover {
+        background: color-mix(in srgb, var(--danger) 12%, transparent);
+      }
+    }
+  }
+
+  &__slas {
+    display: inline-flex;
+    gap: 6px;
+    margin-left: auto;
+  }
+  &__sla {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 24px;
+    padding: 0 9px;
+    border-radius: var(--raio);
+    border: 1px solid var(--stroke);
+    background: var(--surface-alt);
+    font-size: 11px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    &--ok {
+      background: var(--tom-ok);
+      border-color: color-mix(in srgb, var(--ok) 25%, transparent);
+      color: var(--ok);
+    }
+    &--alerta {
+      background: var(--tom-alerta);
+      border-color: var(--tom-alerta-borda);
+      color: var(--away);
+    }
+    &--perigo {
+      background: var(--tom-perigo);
+      border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+      color: var(--danger);
+    }
+  }
+  &__sla-rotulo {
+    font-weight: 500;
+  }
+  &__sla-valor {
+    font-family: var(--f-mono);
+    font-weight: 600;
+  }
+  &__sla-estado {
+    opacity: 0.85;
+  }
+}
+
+// ============================================================================
+// Coluna — Propriedades
+// ============================================================================
+.props {
+  width: var(--largura-props);
+  flex-shrink: 0;
+  background: var(--plano-detalhe);
+  border-right: 1px solid var(--stroke);
+  overflow-y: auto;
+  padding-bottom: 24px;
+
+  &__grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 18px 18px 20px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  &__titulo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
 
   &__campo {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-  }
-  &__grid2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-
-  &__label {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
     gap: 4px;
   }
-  &__label-linha {
+  &__rotulo-linha {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 8px;
+    min-height: 20px;
   }
-  &__obrig {
-    color: var(--danger);
-  }
-  &__info {
-    font-size: 13px;
-    color: var(--text-muted);
-    cursor: help;
+  &__rotulo {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
   }
   &__link {
     border: none;
@@ -88,46 +648,51 @@
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    padding: 0;
+    padding: 2px 6px;
+    margin-right: -6px;
+    min-height: 24px;
+    border-radius: var(--raio);
+    &:hover {
+      background: var(--tom-acento);
+    }
     &:disabled {
       opacity: 0.5;
       cursor: default;
     }
   }
-
-  &__valor-fixo {
-    display: flex;
+  &__ajuda {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  &__estado {
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    height: 34px;
-    padding: 0 10px;
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    font-size: 13px;
-    color: var(--text-primary);
-    background: var(--surface);
-    i {
+    gap: 4px;
+    font-size: 11px;
+    line-height: 1.4;
+    &--salvando {
       color: var(--text-secondary);
-      font-size: 15px;
+      i {
+        animation: detalhe-spin 0.8s linear infinite;
+      }
     }
-    &--multi {
-      height: auto;
-      min-height: 34px;
-      padding: 8px 10px;
-      align-items: flex-start;
-      line-height: 1.4;
+    &--erro {
+      color: var(--danger);
     }
   }
 
-  &__select {
+  &__seletor {
     position: relative;
     display: flex;
     align-items: center;
-    height: 34px;
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    height: 36px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
     background: var(--surface-card);
     padding-left: 10px;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
     > i:first-child {
       color: var(--text-secondary);
       font-size: 15px;
@@ -135,6 +700,7 @@
     }
     select {
       flex: 1;
+      min-width: 0;
       appearance: none;
       border: none;
       outline: none;
@@ -142,167 +708,373 @@
       font-family: var(--f-ui);
       font-size: 13px;
       color: var(--text-primary);
-      padding: 0 26px 0 8px;
+      padding: 0 28px 0 8px;
       height: 100%;
       cursor: pointer;
+      text-overflow: ellipsis;
+      &:disabled {
+        cursor: progress;
+        color: var(--text-secondary);
+      }
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
     }
     &:focus-within {
       border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.15);
-    }
-    &--off {
-      background: var(--surface);
-      opacity: 0.7;
-      select {
-        cursor: default;
-      }
+      box-shadow: var(--anel-foco);
     }
   }
   &__seta {
     position: absolute;
     right: 8px;
-    color: var(--text-muted);
+    color: var(--text-secondary);
     font-size: 16px;
     pointer-events: none;
   }
+  &__cor {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  &__valor {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 8px;
+    min-height: 34px;
+    padding: 6px 10px;
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    i {
+      color: var(--text-secondary);
+      font-size: 15px;
+    }
+    &--vazio {
+      color: var(--text-secondary);
+    }
+  }
+  &__valor-principal {
+    font-weight: 500;
+  }
+  &__valor-sub {
+    flex-basis: 100%;
+    padding-left: 23px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
 
   &__chips {
+    list-style: none;
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+    margin: 0;
+    padding: 0;
   }
   &__chip {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
+    gap: 6px;
+    padding: 3px 9px;
     background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
     font-size: 12px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
+    &--pessoa {
+      padding-left: 3px;
+    }
+    // Chip que liga/desliga uma etiqueta. min-height 24px é alvo de toque
+    // mínimo (WCAG 2.5.8) — o chip só de leitura tem ~21px e não é alvo.
+    &--acionavel {
+      min-height: 24px;
+      font-family: inherit;
+      cursor: pointer;
+      &:hover:not(:disabled) {
+        border-color: var(--stroke-hover);
+      }
+      &:focus-visible {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: var(--anel-foco);
+      }
+      &:disabled {
+        opacity: 0.55;
+        cursor: progress;
+      }
+    }
+    // Ligada: o estado tem que ler sem depender do aria-pressed nem só da cor
+    // do ponto da etiqueta, que é do cadastro e pode ser qualquer uma.
+    &--ligada {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+      font-weight: 500;
+    }
+  }
+  &__mini-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--tom-acento-forte);
+    color: var(--accent);
+    font-size: 9px;
+    font-weight: 600;
   }
   &__vazio {
     font-size: 12px;
-    color: var(--text-muted);
+    line-height: 1.45;
+    color: var(--text-secondary);
   }
-  &__textarea {
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 7px 10px;
-    font-family: var(--f-ui);
-    font-size: 13px;
+  &__nota {
+    display: flex;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--surface-alt);
+    border-left: 2px solid var(--stroke-hover);
+    font-size: 12px;
+    line-height: 1.45;
     color: var(--text-primary);
-    resize: vertical;
-    background: var(--surface);
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.15);
+    i {
+      font-size: 14px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
     }
   }
 }
 
-// ---------------------------------------------------------------- Conversa
+// ============================================================================
+// Coluna — Conversa
+// ============================================================================
 .conversa {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--surface-card);
+  background: var(--plano-detalhe);
 
-  &__header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 16px 20px;
-    border-bottom: 0.7px solid var(--stroke);
-  }
-  &__titulo {
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  &__sub {
+  &__topo {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: 6px;
-  }
-  &__sla {
-    font-family: var(--f-mono);
-    font-size: 11px;
-    font-weight: 500;
-    padding: 2px 8px;
-    border-radius: 7px;
-    background: #fef3cd;
-    color: var(--away);
-    &--breached {
-      background: rgba(179, 38, 30, 0.1);
-      color: var(--danger);
-    }
-    &--ok,
-    &--met {
-      background: rgba(29, 122, 76, 0.1);
-      color: var(--ok);
+    height: 40px;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--stroke);
+    background: var(--plano-detalhe);
+    flex-shrink: 0;
+    // No celular a linha não quebra ("7 / mensagens" em duas linhas): rola
+    // para o lado, e o título "Conversa" (óbvio ali) sai de cena.
+    overflow-x: auto;
+    scrollbar-width: none;
+    @media (max-width: 560px) {
+      padding: 0 12px;
     }
   }
-  &__canal {
-    display: flex;
-    align-items: center;
-    gap: 5px;
+  &__titulo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    @media (max-width: 560px) {
+      display: none;
+    }
+  }
+  &__filtro,
+  &__contagem,
+  &__interruptor {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  &__contagem {
     font-size: 12px;
     color: var(--text-secondary);
   }
-  &__acoes-header {
-    display: flex;
-    gap: 2px;
-    md-icon-button {
-      --md-icon-button-icon-color: var(--text-secondary);
-      --md-icon-button-hover-icon-color: var(--text-primary);
-      --md-icon-button-hover-state-layer-color: var(--surface-alt);
-      --md-icon-button-pressed-state-layer-color: var(--surface-alt);
+  // Os mesmos números de antes, agora clicáveis: contador vira filtro (thread
+  // longa — "menor movimento com maior efeito", auditoria desta rodada).
+  // Botões, não pílulas de etiqueta: aqui a cor sozinha nunca é o único sinal
+  // de estado — `aria-pressed` carrega o estado para quem usa leitor de tela,
+  // e o texto (contagem) já muda com o item que representa.
+  &__filtros {
+    display: inline-flex;
+    gap: 4px;
+  }
+  &__filtro {
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--raio);
+    padding: 2px 9px;
+    cursor: pointer;
+    &:hover {
+      border-color: var(--stroke);
+    }
+    &:focus-visible {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--anel-foco);
+    }
+    &--ativo {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+      font-weight: 500;
+    }
+  }
+  &__filtro-vazio {
+    margin: 8px 0 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--surface-alt);
+    border-radius: var(--raio);
+  }
+  &__interruptor {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    input {
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
     }
   }
 
-  &__mensagens {
+  &__lista {
     flex: 1;
     overflow-y: auto;
-    padding: 20px;
+    padding: 18px 20px 24px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 18px;
+    scroll-behavior: smooth;
   }
-  &__vazio {
-    color: var(--text-muted);
-    font-size: 13px;
-    text-align: center;
-    margin-top: 40px;
-  }
-
-  &__msg {
+  &__dia {
     display: flex;
+    flex-direction: column;
     gap: 12px;
   }
-  &__avatar {
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-    border-radius: 50%;
+  &__dia-rotulo {
+    // Sticky ao topo do scroller (`.conversa__lista`, overflow-y: auto) —
+    // numa thread de duas semanas o rótulo do dia sumia no topo assim que a
+    // pessoa rolava um pixel; deveria acompanhar, como em qualquer app de
+    // chat. Fundo sólido (não só as duas linhas decorativas) para as
+    // mensagens que passam por baixo não vazarem por trás do texto.
+    position: sticky;
+    top: 0;
+    z-index: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 12px;
+    padding: 4px 0;
+    background: var(--plano-detalhe);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke);
+    }
+  }
+
+  &__vazio {
+    margin: auto;
+    max-width: 380px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 0;
+    i {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      background: var(--surface-alt);
+      font-size: 22px;
+    }
+  }
+  &__vazio-titulo {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+}
+
+// ---- mensagem ----
+.msg {
+  display: flex;
+  gap: 14px;
+  padding: 6px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+
+  &--cliente &__texto {
+    padding: 12px 14px;
+    background: var(--ticket-mensagem-cliente);
+    border-radius: var(--raio);
+  }
+  &--agente &__texto {
+    padding: 12px 14px;
+    background: var(--surface-alt);
+    border-radius: var(--raio);
+  }
+  &--interna &__texto {
+    background: var(--tom-nota);
+    border: 1px solid var(--tom-alerta-borda);
+  }
+  &--sistema &__texto {
+    background: var(--surface-alt);
+    border: 1px dashed var(--stroke);
+  }
+
+  &--interna {
+    // Creme da nota interna por token: o valor sólido do claro escureceria o
+    // texto do tema escuro contra um fundo luminoso (tokens.scss cuida do par).
+    // Sem faixa lateral: o creme e a etiqueta "Nota interna" já dizem o que é.
+    background: transparent;
+  }
+  &--sistema {
+    background: transparent;
+    border-color: transparent;
+  }
+
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
     background: var(--surface-alt);
     color: var(--text-secondary);
     font-size: 11px;
     font-weight: 600;
     overflow: hidden;
     i {
-      font-size: 16px;
+      font-size: 15px;
     }
     img {
       width: 100%;
@@ -310,499 +1082,2258 @@
       object-fit: cover;
     }
     &--agente {
-      background: rgba(2, 117, 222, 0.08);
+      background: var(--tom-acento);
       color: var(--accent);
     }
   }
-  &__msg-corpo {
+  &__corpo {
     flex: 1;
     min-width: 0;
-  }
-  &__msg-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 6px;
-    font-size: 12px;
-    color: var(--text-muted);
-    i {
-      font-size: 13px;
-    }
-  }
-  &__msg-autor {
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-  &__msg-tag-interna {
-    padding: 1px 6px;
-    border-radius: 7px;
-    background: #fef3cd;
-    color: var(--away);
-    font-size: 10px;
-    font-weight: 500;
-  }
-  &__msg-editada {
-    font-style: italic;
-  }
-  &__balao {
-    padding: 10px 14px;
-    border-radius: 2px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--text-primary);
-    background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    white-space: pre-wrap;
-    word-break: break-word;
-    &--agente {
-      background: rgba(2, 117, 222, 0.04);
-      border-color: rgba(2, 117, 222, 0.12);
-    }
-    &--interna {
-      background: #fef3cd;
-      border-color: rgba(138, 93, 15, 0.25);
-    }
-    &--apagada {
-      color: var(--text-muted);
-      font-style: italic;
-    }
-  }
-  &__anexos {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 6px;
-  }
-  &__anexo {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 12px;
-    color: var(--accent);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 2px 8px;
-  }
-
-  // -------- compositor --------
-  &__composer {
-    border-top: 0.7px solid var(--stroke);
-    padding: 12px 20px 16px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-  }
-  &__composer-topo {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-  }
-  &__tipo-resposta {
-    display: flex;
-    gap: 2px;
-  }
-  &__seg {
-    --md-text-button-label-text-color: var(--text-secondary);
-    --md-text-button-container-height: 28px;
-    --md-text-button-container-shape: 7px;
-    &--on {
-      --md-text-button-label-text-color: var(--text-primary);
-      --md-text-button-hover-label-text-color: var(--text-primary);
-      --md-text-button-container-color: var(--surface-alt);
-    }
-  }
-  &__para {
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-  &__para-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    background: var(--surface-alt);
-    border-radius: 7px;
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  &__textarea {
-    min-height: 90px;
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 12px;
-    font-family: var(--f-ui);
-    font-size: 13px;
-    color: var(--text-primary);
-    resize: vertical;
-    &:focus {
-      outline: none;
-      border-color: var(--accent);
-      box-shadow: 0 0 0 2px rgba(2, 117, 222, 0.15);
-    }
-  }
-  &__toolbar {
-    display: flex;
-    gap: 2px;
-    md-icon-button {
-      --md-icon-button-icon-color: var(--text-secondary);
-      --md-icon-button-hover-icon-color: var(--text-primary);
-      --md-icon-button-hover-state-layer-color: var(--surface-alt);
-    }
-  }
-  &__anexos-pend {
-    display: flex;
-    flex-wrap: wrap;
     gap: 6px;
   }
-  &__anexo-chip {
-    display: inline-flex;
+  &__meta {
+    display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 6px 3px 8px;
-    background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+    flex-wrap: wrap;
+    gap: 6px;
     font-size: 12px;
     color: var(--text-secondary);
-    i {
+    min-height: 20px;
+    > i {
       font-size: 13px;
     }
+  }
+  &__autor {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__papel {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    &--equipe {
+      background: var(--tom-acento);
+      color: var(--accent);
+    }
+  }
+  &__tempo {
+    cursor: default;
+  }
+  &__etiqueta {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 7px;
+    border-radius: var(--raio);
+    background: var(--tom-ok);
+    color: var(--ok);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    i {
+      font-size: 11px;
+    }
+    &--interna {
+      background: var(--tom-alerta);
+      color: var(--away);
+    }
+  }
+  &__editada {
+    font-style: italic;
+  }
+
+  &__acoes {
+    // Sempre visível — sem mouse (teclado) ou em touch não existe ":hover"
+    // para revelar o botão, e o alvo então simplesmente não existia (item 29).
+    // O alvo de toque já era 24×24; só a visibilidade muda, em --text-muted
+    // para não competir com o texto da mensagem em repouso.
+    margin-left: auto;
+    display: inline-flex;
+    gap: 2px;
     button {
-      display: flex;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
       border: none;
       background: transparent;
+      border-radius: var(--raio);
       color: var(--text-muted);
       cursor: pointer;
-      padding: 0;
+      i {
+        font-size: 14px;
+      }
       &:hover {
-        color: var(--danger);
+        background: var(--surface-alt);
+        color: var(--text-primary);
       }
     }
   }
-  &__composer-rodape {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+
+  &__texto {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
-  &__macro {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 34px;
-    padding: 0 10px;
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
+  &--apagada &__texto {
     color: var(--text-secondary);
-    background: var(--surface-card);
-    i {
-      font-size: 15px;
-    }
-    select {
-      appearance: none;
-      border: none;
-      outline: none;
-      background: transparent;
+  }
+  // o corpo (formatação leve e o chip de menção) é desenhado por
+  // ui/TextoFormatado.tsx, com a própria folha (ui/texto-formatado.css)
+
+  &__editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    textarea {
+      width: 100%;
+      border: 1px solid var(--accent);
+      border-radius: var(--raio);
+      padding: 8px 10px;
       font-family: var(--f-ui);
       font-size: 13px;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding-right: 8px;
+      line-height: 1.5;
+      color: var(--text-primary);
+      background: var(--surface-card);
+      resize: vertical;
+      box-shadow: var(--anel-foco);
     }
   }
-  &__enviar-grupo {
+  &__editor-acoes,
+  &__confirmar {
     display: flex;
-    align-items: stretch;
-    position: relative;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
   }
-  &__enviar {
-    padding: 8px 16px;
-    background: var(--text-primary);
-    color: #fff;
-    border: none;
-    border-radius: 2px 0 0 2px;
-    font-size: 13px;
+  &__confirmar {
+    padding: 8px 10px;
+    background: var(--tom-perigo);
+    border-radius: var(--raio);
+    color: var(--text-primary);
+  }
+  &__editor-dica {
+    margin-left: auto;
+  }
+  &__btn {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 12px;
     font-weight: 500;
+    color: var(--text-primary);
     cursor: pointer;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
     &:disabled {
       opacity: 0.5;
       cursor: default;
     }
+    &--primario {
+      background: var(--primario);
+      border-color: var(--accent);
+      color: var(--primario-sobre);
+    }
+    &--perigo {
+      background: var(--danger);
+      border-color: var(--danger);
+      // Mesma regra do accent: no escuro --danger é salmão claro (tokens.scss:78).
+      color: var(--surface-card);
+    }
   }
-  &__enviar-toggle {
-    width: 30px;
-    background: var(--text-primary);
-    color: #fff;
-    border: none;
-    border-left: 0.7px solid rgba(255, 255, 255, 0.2);
-    border-radius: 0 2px 2px 0;
-    cursor: pointer;
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+  }
+
+  // Anexos (AnexosDaMensagem.tsx): imagens em miniatura, que abrem o
+  // visualizador; o resto em chip de download com ícone do tipo e tamanho.
+  &__anexos {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  &__miniaturas,
+  &__arquivos {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  &__miniatura {
+    display: block;
+    width: 120px;
+    height: 88px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    overflow: hidden;
+    background: var(--surface-alt);
+    cursor: zoom-in;
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+  }
+  &__anexo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 4px 8px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 12px;
+    color: var(--accent);
+    text-decoration: none;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      border-color: var(--accent);
+      background: var(--tom-acento);
+    }
+    &--off {
+      color: var(--text-secondary);
+      cursor: not-allowed;
+      &:hover {
+        border-color: var(--stroke);
+        background: var(--surface-card);
+      }
+    }
+  }
+  &__anexo-nome {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 240px;
+  }
+  &__anexo-tam {
+    color: var(--text-secondary);
+  }
+  &__anexo-baixar {
+    color: var(--text-secondary);
+  }
+}
+
+// ---- evento de status, no meio da conversa ----
+.evento {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  &__linha {
+    flex: 1;
+    height: 1px;
+    background: var(--stroke);
+  }
+  &__miolo {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    max-width: 80%;
+    text-align: center;
+  }
+  &__ponto {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-secondary);
+    flex-shrink: 0;
+  }
+  &--ok &__ponto {
+    background: var(--ok);
+  }
+  &--alerta &__ponto {
+    background: var(--away);
+  }
+  &--perigo &__ponto {
+    background: var(--danger);
+  }
+  &__texto {
+    color: var(--text-primary);
+  }
+  &__nota {
+    font-style: italic;
+  }
+  &__tempo {
+    cursor: default;
+    &::before {
+      content: '·';
+      margin-right: 6px;
+    }
+  }
+}
+
+// ============================================================================
+// Compositor
+//
+// Um campo branco só (a "superfície"), sobre o plano da conversa: abas e
+// destinatário em cima, o texto, os anexos, e a barra de ferramentas com o
+// envio embaixo. Nota interna troca o branco por um tom quente e diz por
+// escrito que só a equipe vê — cor sozinha não basta para quem não enxerga a
+// diferença.
+//
+// As classes base (__texto, __anexo, __ferramenta, __botao…) também servem à
+// abertura de chamado (novo/PaginaNovoTicket.tsx), que usa o textarea COM
+// borda: o que é próprio do compositor fica sob .compositor__superficie.
+// ============================================================================
+.compositor {
+  flex-shrink: 0;
+  background: var(--surface-card);
+  border-top: 1px solid var(--stroke);
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &--bloqueado {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    border-top: 1px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-secondary);
     i {
       font-size: 16px;
     }
   }
-  &__enviar-menu-wrap {
-    position: relative;
-  }
-  &__enviar-menu {
-    position: absolute;
-    bottom: calc(100% + 4px);
-    right: 0;
-    min-width: 200px;
-    background: var(--surface-card);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    box-shadow: 0 12px 32px rgba(59, 53, 50, 0.12);
-    list-style: none;
-    padding: 4px;
-    z-index: 500;
-    button {
-      width: 100%;
-      text-align: left;
-      padding: 8px 10px;
-      border: none;
-      background: transparent;
-      font-size: 13px;
-      color: var(--text-primary);
-      border-radius: 2px;
-      cursor: pointer;
-      &:hover {
-        background: var(--surface-alt);
-      }
-    }
-  }
-}
 
-// ---------------------------------------------------------------- Cliente
-.cliente-panel {
-  width: 280px;
-  flex-shrink: 0;
-  background: var(--surface-card);
-  border-left: 0.7px solid var(--stroke);
-  padding: 16px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-
-  &__cabecalho {
+  &__aviso-fechado {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    background: var(--tom-ok);
+    border-radius: var(--raio);
+    font-size: 12px;
+    color: var(--text-primary);
+    i {
+      font-size: 16px;
+      color: var(--ok);
+      flex-shrink: 0;
+    }
   }
-  &__avatar {
+
+  // ---- a superfície -------------------------------------------------------
+  &__superficie {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border: 1px solid transparent;
+    border-radius: var(--raio);
+    transition:
+      border-color 0.15s ease,
+      background-color 0.18s ease;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    // O foco do texto aparece na superfície inteira: o textarea não tem
+    // borda própria aqui dentro.
+    &:focus-within {
+      border-color: var(--foco);
+      box-shadow: var(--anel-foco);
+    }
+  }
+  &--interna &__superficie {
+    background: var(--tom-nota);
+    border-color: var(--tom-alerta-borda);
+    &:focus-within {
+      border-color: var(--away);
+      box-shadow: var(--anel-foco-alerta);
+    }
+  }
+
+  &__cabeca {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 6px 12px 0 6px;
+  }
+
+  &__abas {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  &__aba {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    border-radius: 999px;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      color: var(--text-primary);
+      background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &--ativa {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+  // Nota interna ativa: o tom quente é o aviso de "isto não vai para o
+  // cliente". --away sobre --tom-alerta passa o AA nos dois temas.
+  &--interna &__aba--nota.compositor__aba--ativa {
+    background: var(--tom-alerta);
+    color: var(--away);
+  }
+
+  &__destino {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-width: 0;
+    strong {
+      font-weight: 500;
+      color: var(--text-primary);
+      white-space: nowrap;
+    }
+    i {
+      font-size: 14px;
+    }
+  }
+  &--interna &__destino {
+    color: var(--away);
+  }
+  &__email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // ---- texto ----------------------------------------------------------------
+  &__campo-texto {
+    position: relative;
+  }
+
+  // Base: textarea com borda própria — é assim que a abertura de chamado usa.
+  &__texto {
+    display: block;
+    width: 100%;
+    min-height: 84px;
+    max-height: 40vh;
+    padding: 10px 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    resize: none;
+    overflow-y: auto;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: var(--anel-foco);
+    }
+  }
+  // Dentro da superfície o campo some: quem desenha a borda e o foco é ela.
+  &__superficie &__texto {
+    min-height: 112px;
+    padding: 8px 14px 10px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &__previa {
+    min-height: 112px;
+    max-height: 40vh;
+    overflow-y: auto;
+    padding: 8px 14px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+      border-radius: var(--raio);
+    }
+  }
+  &__previa-vazia {
+    margin: 0;
+    color: var(--text-secondary);
+  }
+
+  // ---- @menção --------------------------------------------------------------
+  // Abre para CIMA: o compositor mora no pé da tela.
+  &__mencoes {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 8px;
+    z-index: 500;
+    width: min(340px, calc(100% - 16px));
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    overflow: hidden;
+  }
+  &__mencoes-lista {
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    max-height: 264px;
+    overflow-y: auto;
+  }
+  &__mencao {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: var(--raio);
+    cursor: pointer;
+    &--ativa {
+      background: var(--surface-alt);
+    }
+  }
+  &__mencao-avatar {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+    i {
+      font-size: 14px;
+    }
+  }
+  &__mencao--ativa &__mencao-avatar {
+    background: var(--surface-card);
+  }
+  &__mencao-nome {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+  &__mencao-grupo {
+    flex-shrink: 0;
+    max-width: 45%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__mencoes-vazio {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__mencoes-dica {
+    margin: 0;
+    padding: 6px 12px;
+    border-top: 1px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__so-leitor {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  // ---- anexos -----------------------------------------------------------------
+  &__anexos {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+  }
+  &__superficie &__anexos {
+    padding: 0 12px 8px;
+  }
+  &__anexo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 4px 3px 8px;
+    background: var(--surface-alt);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    font-size: 12px;
+    color: var(--text-primary);
+    > i {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    button {
+      flex-shrink: 0;
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: none;
+      background: transparent;
+      border-radius: var(--raio);
+      color: var(--text-secondary);
+      cursor: pointer;
+      &:hover {
+        background: var(--tom-perigo);
+        color: var(--danger);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+    &--imagem {
+      padding-left: 3px;
+    }
+  }
+  &__anexo-miniatura {
+    flex-shrink: 0;
     width: 36px;
     height: 36px;
-    border-radius: 50%;
-    background: var(--surface-alt);
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--surface-card);
+  }
+  &__anexo-texto {
+    min-width: 0;
+    display: inline-flex;
+    flex-direction: column;
+    line-height: 1.3;
+  }
+  &__anexo-nome {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__anexo-tam {
+    color: var(--text-secondary);
+  }
+  // Na abertura de chamado nome e tamanho ficam lado a lado (sem o invólucro)
+  &__anexo > &__anexo-tam {
+    margin-left: 2px;
+  }
+
+  // Área que aceita soltar arquivo fora do compositor (bloco da mensagem na
+  // abertura de chamado): só precisa ser a referência da zona abaixo.
+  &__area-soltar {
+    position: relative;
+  }
+  &__area-soltar &__soltar {
+    border-radius: var(--raio);
+  }
+
+  // Arrastando um arquivo por cima: a superfície inteira vira a zona.
+  &__soltar {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: var(--text-secondary);
+    gap: 8px;
+    border: 2px dashed var(--foco);
+    border-radius: inherit;
+    background: color-mix(in srgb, var(--surface-card) 90%, transparent);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    pointer-events: none;
     i {
-      font-size: 18px;
+      font-size: 20px;
     }
   }
-  &__nome {
-    display: block;
+
+  // Legenda que vai no lugar do texto quando só há anexo (`corpoParaEnviar`):
+  // discreta, mas legível — a pessoa precisa ler ANTES de enviar o que vai sair
+  // com o nome dela.
+  &__corpo-padrao {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    padding: 0 14px 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    i {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+
+  // Prévia da assinatura DENTRO da mensagem, onde ela vai aparecer.
+  &__assinatura-previa {
+    margin: 0 14px 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--stroke);
+    font-size: 12px;
+    color: var(--text-secondary);
+    max-height: 120px;
+    overflow: auto;
+  }
+
+  // Pergunta do "Reabrir…" sobre uma nota interna já escrita. Tom âmbar, o
+  // mesmo da nota interna em todo o compositor: o assunto da pergunta é
+  // justamente o texto que hoje é interno.
+  &__pergunta {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    background: var(--tom-alerta);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-primary);
+    > i {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      color: var(--away);
+    }
+    p {
+      margin: 0;
+    }
+  }
+  &__pergunta-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  &__pergunta-botao {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--tom-alerta-borda);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--away);
+    }
+    &--primario {
+      background: var(--away);
+      border-color: var(--away);
+      // Superfície sobre fundo de marca, como no --accent: branco cru reprova
+      // o AA quando o --away clareia no tema escuro.
+      color: var(--surface-card);
+    }
+  }
+
+  &__fechamento {
+    margin: 0 12px 10px;
+    padding: 10px 12px 12px;
+    border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    legend {
+      padding: 0 6px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ok);
+    }
+  }
+  &__fechamento-dica {
+    margin-left: 6px;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+  &__fechamento-campos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+  }
+  &__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    input {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--surface-card);
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: var(--anel-foco);
+      }
+      &[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
+    }
+    &--largo {
+      grid-column: 1 / -1;
+    }
+  }
+  &__campo-erro {
+    font-size: 12px;
+    color: var(--danger);
+  }
+  &__opcional {
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  &__aviso,
+  &__erro {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    font-size: 12px;
+    line-height: 1.45;
+    i {
+      font-size: 14px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+  &__superficie &__aviso,
+  &__superficie &__erro {
+    margin: 0 12px 8px;
+  }
+  &__aviso {
+    background: var(--tom-acento);
+    color: var(--text-primary);
+    i {
+      color: var(--accent);
+    }
+  }
+  &__erro {
+    background: var(--tom-perigo);
+    color: var(--danger);
+  }
+
+  // ---- barra: ferramentas e envio ------------------------------------------
+  &__rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+  }
+  &__superficie &__rodape {
+    padding: 4px 8px 8px 6px;
+  }
+  &__ferramentas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+  &__ferramenta {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 16px;
+    }
+    &:hover,
+    &--ativa,
+    &[aria-pressed='true'] {
+      // tinta diluída, e não um cinza fixo: funciona sobre o branco e sobre o
+      // tom da nota interna
+      background: color-mix(in srgb, var(--text-primary) 7%, transparent);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      &:hover {
+        background: transparent;
+        color: var(--text-secondary);
+      }
+    }
+    &--icone {
+      width: 32px;
+      padding: 0;
+    }
+  }
+  // A abertura de chamado usa a ferramenta fora da superfície: lá ela
+  // continua com contorno, que é o que a separa do fundo da página.
+  .novo__rodape &__ferramenta {
+    border: 1px solid var(--stroke);
+    background: var(--surface-card);
+  }
+
+  // Dica de ferramenta: o rótulo e o atalho, no hover e no foco por teclado.
+  // Flutua, então é o único lugar da barra com sombra.
+  &__ferramenta[data-dica]::after {
+    content: attr(data-dica);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    z-index: 600;
+    transform: translateX(-50%);
+    padding: 4px 8px;
+    border-radius: var(--raio);
+    background: var(--text-primary);
+    color: var(--surface-card);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.4;
+    white-space: nowrap;
+    box-shadow: var(--sombra-flutuante);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.12s ease;
+  }
+  &__ferramenta[data-dica]:hover::after,
+  &__ferramenta[data-dica]:focus-visible::after {
+    opacity: 1;
+    transition-delay: 0.35s;
+  }
+  &__ferramenta[data-dica]:focus-visible::after {
+    transition-delay: 0s;
+  }
+  // a primeira da barra não pode ter a dica cortada à esquerda
+  &__ferramentas > &__ferramenta:first-child[data-dica]::after {
+    left: 0;
+    transform: none;
+  }
+
+  &__separador {
+    width: 1px;
+    height: 18px;
+    margin: 0 4px;
+    background: var(--stroke);
+  }
+
+  &__macro,
+  &__agenda {
+    position: relative;
+  }
+  // O painel inteiro (campo de filtro + lista) é o que fica posicionado
+  // sobre o compositor; a lista em si (abaixo) só rola por dentro dele.
+  &__macro-painel {
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 0;
+    z-index: 500;
+    width: 340px;
+    max-width: calc(100vw - 32px);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    overflow: hidden;
+  }
+  &__macro-filtro {
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o painel inteiro já se destaca com sombra; o campo não precisa de anel próprio aqui
+    }
+  }
+  // Também é o menu (role=menu, com <button>) da abertura de chamado.
+  &__macro-menu {
+    max-height: 260px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+  }
+  &__macro-vazio {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__macro-opcao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    cursor: pointer;
+    // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
+    // precisa do mesmo destaque visual do :hover, porque é o único sinal de
+    // "isto é o que Enter escolhe agora" — não há foco real na opção.
+    &:hover,
+    &--ativa {
+      background: var(--surface-alt);
+    }
+  }
+  &__macro-nome {
     font-size: 14px;
     font-weight: 500;
     color: var(--text-primary);
   }
-  &__empresa {
-    display: block;
+  &__macro-previa {
     font-size: 12px;
-    color: var(--text-muted);
-  }
-
-  &__campos {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  &__campo {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    &--col {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 6px;
-    }
-  }
-  &__rotulo {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--text-muted);
-    i {
-      font-size: 13px;
-    }
-  }
-  &__valor {
-    font-size: 13px;
-    color: var(--text-primary);
-    max-width: 160px;
+    color: var(--text-secondary);
+    max-width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    &--off {
-      color: var(--text-muted);
+  }
+  &__macro-triagem {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  &__enviar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  &__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    label {
+      white-space: nowrap;
     }
+  }
+  &__status-select {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    select {
+      appearance: none;
+      height: 100%;
+      max-width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0 28px 0 10px;
+      font-family: var(--f-ui);
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      &:focus {
+        outline: none;
+      }
+    }
+    i {
+      position: absolute;
+      right: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:focus-within {
+      border-color: var(--foco);
+      box-shadow: var(--anel-foco);
+    }
+  }
+
+  &__agenda-painel {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 6px);
+    z-index: 500;
+    width: 288px;
+    max-width: calc(100vw - 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    input {
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      &:focus {
+        outline: none;
+        border-color: var(--foco);
+        box-shadow: var(--anel-foco);
+      }
+    }
+  }
+  &__agenda-rotulo {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__agenda-dica {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+  &__agenda-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  &__agenda-cancelar,
+  &__agenda-confirmar {
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--raio);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &__agenda-cancelar {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    &:hover {
+      color: var(--text-primary);
+    }
+  }
+  &__agenda-confirmar {
+    border: none;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+  }
+
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 10px 0 14px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+    kbd {
+      font-family: var(--f-ui);
+      font-size: 12px;
+      line-height: 1;
+      padding: 3px 6px;
+      border-radius: 999px;
+      // a própria cor do texto do botão, diluída — segue claro e escuro
+      background: color-mix(in srgb, currentColor 16%, transparent);
+    }
+    &:hover {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      &:hover {
+        background: var(--primario);
+      }
+    }
+    // Fechar é estado (o chamado termina aqui): a única cor além do carvão.
+    &--fechar,
+    &--fechar:hover,
+    &--fechar:disabled:hover {
+      background: var(--ok);
+    }
+  }
+
+  // ---- abaixo da superfície -------------------------------------------------
+  &__pe {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    padding: 0 6px;
+  }
+  &__assinatura-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    input {
+      accent-color: var(--accent);
+    }
+  }
+  // Limite anunciado antes de escolher (e como anexar sem o botão).
+  &__dica-anexo {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compositor__superficie,
+  .compositor__ferramenta[data-dica]::after {
+    transition: none;
+  }
+}
+
+// ============================================================================
+// Respostas agendadas (AgendarResposta.tsx): a fila do que ainda vai sair,
+// logo acima do compositor. Agendar em si é no compositor, sobre o mesmo
+// texto (botão ao lado de enviar).
+// ============================================================================
+.agendar-resposta {
+  flex-shrink: 0;
+  padding: 8px 20px 0;
+  background: var(--surface-canvas);
+
+  &__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 6px 6px 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 12px;
+
+    i {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+      font-size: 16px;
+    }
+  }
+  &__item-texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.35;
+
+    strong {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+    span:last-child {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-secondary);
+    }
+  }
+  &__cancelar {
+    flex-shrink: 0;
+    height: 28px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    padding: 0 10px;
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--tom-perigo);
+      color: var(--danger);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ============================================================================
+// Coluna — Cliente
+// ============================================================================
+.cliente {
+  width: var(--largura-cliente);
+  flex-shrink: 0;
+  background: var(--plano-detalhe);
+  border-left: 1px solid var(--stroke);
+  overflow-y: auto;
+  padding-bottom: 24px;
+
+  &__cabecalho {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px 10px;
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--tom-acento-forte);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__id {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  &__nome {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__empresa {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__plano {
+    grid-column: 2;
+    justify-self: start;
+    margin-left: 0;
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+
+  &__grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px 20px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  &__titulo {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+  }
+  &__linha {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 8px;
+    align-items: baseline;
+  }
+  &__rotulo {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  &__valor {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    i {
+      font-size: 13px;
+      color: var(--text-secondary);
+      vertical-align: -1px;
+    }
+    &--vazio {
+      color: var(--text-secondary);
+    }
+  }
+  &__ate {
+    color: var(--text-secondary);
+  }
+  // Era `__email`; virou genérico quando o número do pedido passou a usar o
+  // mesmo par "valor + botão de copiar".
+  &__copiavel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 100%;
+  }
+  &__pedido {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+
+  // ---- nota de satisfação ----
+  &__nota {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  &__nota-valor {
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border-radius: var(--raio);
+    // Neutro de propósito: não existe faixa de "nota boa/ruim" no backend, e
+    // pintar de verde/vermelho aqui inventaria uma (ver PainelCliente.tsx).
+    background: var(--surface-alt);
+    border: 1px solid var(--stroke);
+    font-family: var(--f-mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__nota-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  &__nota-escala {
+    font-size: 12px;
+    font-weight: 500;
+  }
+  &__nota-comentario {
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  &__nota-ajuda {
+    font-size: 11px;
+    color: var(--text-secondary);
   }
   &__link {
     color: var(--accent);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
     &:hover {
       text-decoration: underline;
     }
   }
-  &__aviso {
-    font-size: 11px;
-    color: var(--text-muted);
-    line-height: 1.4;
-    background: var(--surface-alt);
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 8px 10px;
-  }
-  &__obs {
-    border: 0.7px solid var(--stroke);
-    border-radius: 2px;
-    padding: 7px 10px;
-    font-family: var(--f-ui);
-    font-size: 13px;
-    background: var(--surface);
-    resize: vertical;
-  }
-
-  &__historico {
-    border-top: 0.7px solid var(--stroke);
-    padding-top: 16px;
-  }
-  &__lista {
-    list-style: none;
-    margin-top: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-  &__item {
-    display: flex;
-    gap: 8px;
-    padding: 8px;
-    border-radius: 2px;
-    &--ativo {
+  &__copiar {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
       background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+    &--ok {
+      color: var(--ok);
     }
   }
-  &__dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 2px;
-    margin-top: 4px;
-    flex-shrink: 0;
+  &__ajuda {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-secondary);
   }
-  &__item-titulo {
+
+  &__sla {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 8px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    border: 1px solid var(--stroke);
+    border-left-width: 3px;
+    background: var(--surface-card);
+    &--ok {
+      border-left-color: var(--ok);
+    }
+    &--alerta {
+      border-left-color: var(--away);
+      background: var(--tom-alerta);
+    }
+    &--perigo {
+      border-left-color: var(--danger);
+      background: var(--tom-perigo);
+    }
+  }
+  &__sla-rotulo {
     font-size: 12px;
     font-weight: 500;
     color: var(--text-primary);
-    line-height: 1.3;
   }
-  &__item-meta {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-top: 2px;
+  &__sla-valor {
+    font-family: var(--f-mono);
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+    color: var(--text-primary);
   }
-  &__item-status {
+  &__sla-estado {
     font-size: 11px;
     color: var(--text-secondary);
-    margin-top: 1px;
+  }
+  &--ok &__sla-estado,
+  &__sla--ok &__sla-estado {
+    color: var(--ok);
+  }
+  &__sla--alerta &__sla-estado {
+    color: var(--away);
+  }
+  &__sla--perigo &__sla-estado {
+    color: var(--danger);
+  }
+  &__sla-prazo {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    color: var(--text-secondary);
   }
 }
 
-// Componentes Material Web da tela. As variáveis preservam a escala compacta
-// sem transformar cada ação em um botão HTML customizado.
-.prop-panel__link {
-  --md-text-button-container-height: 26px;
-  --md-text-button-label-text-size: 11px;
-  --md-text-button-label-text-color: var(--accent);
+// ============================================================================
+// Modal de fechamento (conteúdo; a moldura é o Modal do cvz)
+// ============================================================================
+// O Modal do cvz pinta fundo e véu com `--cvz-*`, que só existem quando o
+// global.scss do cvz está carregado. Sob o shell Resolv isso não é garantido —
+// sem esta âncora o painel fica transparente sobre a conversa.
+.detalhe .modal-overlay {
+  background: var(--veu);
+}
+.detalhe .modal {
+  background: var(--surface-card);
+  box-shadow: var(--sombra-flutuante);
+  color: var(--text-primary);
 }
 
-.conversa__anexo-chip md-icon-button {
-  --md-icon-button-state-layer-width: 24px;
-  --md-icon-button-state-layer-height: 24px;
-  --md-icon-button-icon-size: 14px;
-  --md-icon-button-icon-color: var(--text-muted);
-  --md-icon-button-hover-icon-color: var(--danger);
+.fechar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  &__intro {
+    font-size: 12px;
+    line-height: 1.5;
+    // Sem fallback literal: o fallback era a cor do tema CLARO, então num
+    // eventual portal para fora do .resolv-scope o texto voltaria clara no
+    // escuro — falhar sem cor é mais honesto do que falhar com a cor errada.
+    color: var(--text-secondary);
+    margin: 0;
+  }
+  &__campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    label {
+      font-size: 12px;
+      font-weight: 500;
+    }
+    input,
+    textarea {
+      border: 1px solid var(--stroke);
+      border-radius: var(--raio);
+      padding: 7px 10px;
+      font-family: inherit;
+      font-size: 13px;
+      &:focus {
+        outline: none;
+        border-color: var(--accent);
+        box-shadow: var(--anel-foco);
+      }
+      &[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
+    }
+    textarea {
+      resize: vertical;
+    }
+  }
+  &__opcional {
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+  &__contador {
+    align-self: flex-end;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+    margin: 0;
+  }
 }
 
-.conversa__enviar {
-  --md-filled-button-container-height: 34px;
-  --md-filled-button-container-shape: 999px;
-  --md-filled-button-container-color: var(--text-primary);
-  --md-filled-button-label-text-color: #fff;
-}
+// ============================================================================
+// Responsivo — os painéis viram gavetas antes de a conversa ficar apertada
+// ============================================================================
+// ---- painel de notas pessoais ----
+// Sobreposto em QUALQUER largura (não é coluna): abre sob demanda e some ao
+// fechar, então nunca disputa espaço com a conversa.
+.notas {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 6;
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0 14px 20px;
+  overflow-y: auto;
+  background: var(--surface-card);
+  border-left: 1px solid var(--stroke);
+  box-shadow: var(--sombra-flutuante);
 
-.conversa__enviar-menu-wrap md-icon-button {
-  --md-icon-button-icon-color: var(--text-primary);
-  --md-icon-button-hover-state-layer-color: var(--surface-alt);
-}
+  &__cabecalho {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: 0 -14px;
+    padding: 14px;
+    background: var(--surface-card);
+    border-bottom: 1px solid var(--stroke);
+  }
+  &__cabecalho-titulo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    i {
+      font-size: 16px;
+      color: var(--accent);
+    }
+  }
+  &__fechar {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+  &__aviso {
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
 
-.conversa__enviar-menu md-text-button {
-  width: 100%;
-  justify-content: flex-start;
-  --md-text-button-label-text-color: var(--text-primary);
-  --md-text-button-hover-state-layer-color: var(--surface-alt);
-}
-
-.prop-panel__select {
-  height: auto;
-  min-height: 0;
-  padding: 0;
-  border: 0;
-  background: transparent;
-
-  md-outlined-select {
+  // ---- editor ----
+  &__editor {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-alt);
+  }
+  &__titulo-campo,
+  &__corpo-campo {
     width: 100%;
-    --md-outlined-select-text-field-container-height: 34px;
-    --md-outlined-select-text-field-outline-color: var(--stroke-hover);
-    --md-outlined-select-text-field-focus-outline-color: var(--text-primary);
-    --md-outlined-select-text-field-input-text-size: 12px;
-    --md-outlined-select-text-field-container-shape: 7px;
+    padding: 7px 9px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    &:focus-visible {
+      outline: none;
+      box-shadow: var(--anel-foco);
+    }
+  }
+  &__titulo-campo {
+    font-weight: 600;
+  }
+  &__corpo-campo {
+    resize: vertical;
+    min-height: 90px;
+    line-height: 1.5;
+  }
+  &__editor-acoes {
+    display: flex;
+    gap: 6px;
+  }
+
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 12px;
+    cursor: pointer;
+    &:hover:not(:disabled) {
+      background: var(--surface-alt);
+    }
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    &--primario {
+      border-color: transparent;
+      background: var(--primario);
+      // `--surface-card` e não branco: `--accent` clareia no tema escuro e
+      // branco por cima cai para 2.45:1 — mesma razão do comentário em
+      // `.ticket-cab__botao--primario`, neste mesmo arquivo.
+      color: var(--primario-sobre);
+      &:hover:not(:disabled) {
+        filter: brightness(1.06);
+      }
+    }
+  }
+  &__nova {
+    align-self: flex-start;
+  }
+
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 11px;
+    cursor: pointer;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__erro {
+    margin: 0;
+    font-size: 11px;
+    color: var(--danger, #c0392b);
+  }
+  &__estado {
+    margin: 8px 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    p {
+      margin: 0 0 4px;
+    }
+  }
+  &__desfazer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 7px 9px;
+    border-radius: var(--raio);
+    background: var(--tom-acento);
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  // ---- lista ----
+  &__lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  &__item {
+    padding: 10px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+  }
+  &__item-topo {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  &__item-titulo {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__item-quando {
+    flex-shrink: 0;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+  &__item-corpo {
+    margin: 5px 0 0;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    // o corpo é texto puro com quebras de linha de quem escreveu
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  &__etiquetas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 7px 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  &__etiqueta {
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: var(--tom-acento);
+    color: var(--accent);
+    font-size: 10px;
+  }
+  &__item-acoes {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
   }
 }
 
-.conversa__textarea,
-.cliente-panel__obs {
-  width: 100%;
-  --md-outlined-text-field-container-shape: 7px;
-  --md-outlined-text-field-outline-color: var(--stroke-hover);
-  --md-outlined-text-field-focus-outline-color: var(--text-primary);
-  --md-outlined-text-field-input-text-size: 13px;
+// Hierarquia da área de atendimento: cabeçalho, painéis e editor.
+.detalhe {
+  --stroke: light-dark(#d8dee4, #46515d);
+  --ticket-painel: light-dark(#f7f9fb, #252d35);
+  --ticket-mensagem-cliente: light-dark(#eaf6f8, #24393c);
+
+  .ticket-cab {
+    padding: 16px 20px 14px 12px;
+    gap: 10px;
+  }
+  .ticket-cab__assunto {
+    font-size: 19px;
+    line-height: 1.35;
+  }
+  .ticket-cab__ref {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+  .ticket-cab__linha--meta {
+    border-top: 1px solid var(--stroke);
+    padding-top: 10px;
+  }
+  .props,
+  .cliente {
+    background: var(--ticket-painel);
+  }
+  .props__grupo {
+    padding: 16px 18px 18px;
+    gap: 14px;
+  }
+  .props__titulo,
+  .cliente__titulo {
+    color: var(--text-primary);
+    font-size: 13px;
+    font-weight: 600;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .cliente__cabecalho {
+    background: var(--surface-card);
+    padding: 16px 20px;
+  }
+  .cliente__grupo {
+    padding: 16px 20px 18px;
+  }
+  .conversa__topo {
+    background: var(--ticket-painel);
+    height: 42px;
+  }
+  .msg {
+    padding: 12px 0;
+  }
+  .msg + .msg {
+    border-top: 1px solid var(--stroke);
+  }
+  .msg__meta {
+    gap: 8px;
+  }
+  .msg__texto {
+    line-height: 1.55;
+  }
+  .msg--cliente .msg__texto {
+    border-radius: 6px;
+  }
+  .compositor {
+    padding: 12px;
+    background: var(--ticket-painel);
+    gap: 8px;
+  }
+  .compositor__superficie {
+    border-color: var(--stroke);
+    border-radius: 6px;
+  }
+  .compositor__cabeca {
+    padding: 8px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .compositor__superficie .compositor__rodape {
+    padding: 8px;
+    border-top: 1px solid var(--stroke);
+  }
 }
 
-.conversa__macro {
-  height: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
+@media (max-width: 767px) {
+  .detalhe .ticket-cab {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .detalhe .ticket-cab__assunto {
+    font-size: 16px;
+  }
+}
+@media (max-width: 640px) {
+  .detalhe .compositor {
+    padding: 8px 12px 10px;
+  }
+}
 
-  > i {
+@media (max-width: 1280px) {
+  .detalhe {
+    --largura-props: 248px;
+    --largura-cliente: 300px;
+  }
+}
+
+// Abaixo de 1024px as duas colunas laterais viram gavetas — os botões de
+// painel aparecem no cabeçalho — e a conversa fica com a largura toda.
+@media (max-width: 1023px) {
+  .ticket-cab__gavetas {
+    display: inline-flex;
+  }
+  .props,
+  .cliente {
     display: none;
   }
+  .detalhe--gaveta-propriedades .props,
+  .detalhe--gaveta-cliente .cliente {
+    display: block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 6;
+    box-shadow: var(--sombra-flutuante);
+  }
+  .detalhe--gaveta-propriedades .props {
+    left: 0;
+  }
+  .detalhe--gaveta-cliente .cliente {
+    right: 0;
+  }
+  .detalhe--gaveta-propriedades,
+  .detalhe--gaveta-cliente {
+    .detalhe__veu {
+      display: block;
+    }
+  }
+  .ticket-cab__linha--meta {
+    padding-left: 0;
+  }
+  .ticket-cab__slas {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
 
-  md-outlined-select {
-    min-width: 148px;
-    --md-outlined-select-text-field-container-height: 34px;
-    --md-outlined-select-text-field-container-shape: 999px;
-    --md-outlined-select-text-field-outline-color: var(--stroke-hover);
-    --md-outlined-select-text-field-input-text-size: 12px;
+// Celular: uma coluna só, a conversa primeiro. Os painéis sobem como folha
+// de baixo para cima (largura inteira), e o cabeçalho encolhe para o que se
+// usa com o polegar: botões só com ícone (o nome segue no rótulo acessível).
+@media (max-width: 767px) {
+  .ticket-cab {
+    padding: 8px 12px;
+    gap: 6px;
+  }
+  .ticket-cab__identidade {
+    flex-basis: calc(100% - 44px);
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .ticket-cab__assunto {
+    white-space: normal;
+    font-size: 16px;
+  }
+  .ticket-cab__botao {
+    padding: 0 10px;
+  }
+  .ticket-cab__rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .ticket-cab__botao--primario .ticket-cab__rotulo {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  // "Aberto em … por …" também está no painel do cliente; aqui só alongava
+  // o cabeçalho em mais uma linha.
+  .ticket-cab__meta--quieto {
+    display: none;
+  }
+  .presenca-ticket__texto {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .detalhe {
+    --largura-props: 100%;
+    --largura-cliente: 100%;
+  }
+  .detalhe--gaveta-propriedades .props,
+  .detalhe--gaveta-cliente .cliente {
+    top: auto;
+    left: 0;
+    right: 0;
+    max-height: 85%;
+    border: none;
+    border-radius: var(--raio-cartao) var(--raio-cartao) 0 0;
+  }
+  .conversa__topo {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .conversa__lista {
+    padding: 12px;
+  }
+  // Compositor no celular: o destinatário ganha linha própria, as
+  // ferramentas ficam só no ícone (a dica e o nome acessível continuam), e o
+  // envio vai para uma linha inteira — "Aguardando retorno do cliente" não
+  // cabe ao lado do botão em 390px.
+  .compositor {
+    padding: 8px 12px 10px;
+  }
+  .compositor__destino {
+    flex-basis: 100%;
+    margin-left: 0;
+    padding-left: 6px;
+  }
+  .compositor__ferramenta-rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .compositor__superficie .compositor__ferramenta {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+  }
+  .compositor__fechamento-campos {
+    grid-template-columns: 1fr;
+  }
+  .compositor__enviar {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .compositor__status {
+    flex: 1 1 100%;
+    select {
+      flex: 1;
+    }
+  }
+  .compositor__status-select {
+    flex: 1;
+  }
+  .compositor__botao {
+    flex: 1;
+    justify-content: center;
+    height: 40px;
+  }
+  // toque não tem hover: a dica só atrapalharia o dedo; e nem arrastar
+  // arquivo nem Ctrl+Enter existem no celular
+  .compositor__ferramenta[data-dica]::after,
+  .compositor__dica-arrastar,
+  .compositor__botao kbd {
+    display: none;
+  }
+  .compositor__superficie .compositor__texto,
+  .compositor__previa {
+    min-height: 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detalhe *,
+  .detalhe *::before,
+  .detalhe *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

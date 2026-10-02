@@ -173,7 +173,7 @@ export function AbaCalendarios() {
           }
         }}
         title={`Excluir "${paraExcluir?.name}"?`}
-        description="Empresas e equipes que usam este calendário passam a ficar sem calendário — não sem SLA quebrado, mas sem essa referência. Não dá pra desfazer."
+        description="Empresas e equipes que usam este calendário passam a ficar sem calendário. O SLA não quebra, só perde essa referência. Não dá pra desfazer."
         confirmLabel="Excluir"
         danger
       />
@@ -286,7 +286,7 @@ function ModalCalendario({
 
         <Checkbox
           label="Calendário padrão"
-          description="Usado quando a empresa cliente (ou a equipe, no chat) não define um calendário próprio. Só um por vez faz sentido — marcar aqui não desmarca outro automaticamente."
+          description="Usado quando a empresa cliente (ou a equipe, no chat) não define um calendário próprio. Só um por vez faz sentido, mas marcar aqui não desmarca outro automaticamente."
           checked={form.is_default}
           onChange={(e) => campo('is_default', e.target.checked)}
         />
@@ -300,7 +300,7 @@ function ModalCalendario({
           </div>
 
           {form.workdays.length === 0 && (
-            <p className="cfg-meta-form">Nenhuma janela — este calendário nunca conta como expediente.</p>
+            <p className="cfg-meta-form">Nenhuma janela: este calendário nunca conta como expediente.</p>
           )}
 
           {form.workdays.map((janela, i) => (

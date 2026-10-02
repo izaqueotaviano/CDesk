@@ -39,3 +39,10 @@ dump.rdb
 # clone do plugin superpowers (repo de terceiro, com .git próprio) — mora
 # aqui só por conveniência de desenvolvimento, não faz parte do produto
 superpowers/
+
+# Configurações → Backup (dev): dumps do banco, nunca versionados
+backups/
+
+# Carimbo do `./resolv`: a data do último `docker compose build`. Serve só para
+# o script saber que a imagem ficou velha quando o pyproject/Dockerfile muda.
+.docker-imagem-construida

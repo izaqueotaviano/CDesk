@@ -1,0 +1,2769 @@
+// ============================================================================
+// Console de chat — design system Resolv, na linguagem "um plano só": o
+// console inteiro mora no MESMO fundo da tela (`--surface-canvas`), dividido
+// por fios de 1px (`--stroke`). Branco (`--surface-card`) só no que é
+// superfície de verdade: balão de quem fala do outro lado, campo, compositor
+// e botão secundário. Nada de sombra fora do que flutua (menu, folha, dica).
+//
+// Escala fechada: texto 28/16/14/12, raio 8 (controle) / 12 (superfície) /
+// 999 (pílula, busca, compositor). Cor só para estado: o único acento é o
+// carvão (`--primario`), e o âmbar (`--away`) só aparece onde há risco de
+// vazamento — a nota interna.
+//
+// Três formas pela largura (PaginaChat + ./layout.ts, `data-modo`):
+// três colunas (≥1200px), lista + conversa com o painel em folha
+// (768–1199px) e uma coisa por vez no celular (<768px).
+// ============================================================================
+
+// A tela do chat precisa da altura que SOBRA, não da janela inteira: no
+// celular o `100vh` inclui a barra do navegador, e com o teclado aberto a
+// parte de baixo (o compositor) ficava escondida. `--cc-altura-visivel` vem
+// da visualViewport (layout.ts); `100dvh` é o piso para quem não a tem. O
+// seletor mira o corpo do shell SÓ quando o console está nele — as outras
+// telas continuam com a altura que o shell decide.
+.novo-shell__corpo:has(.chat-console) {
+  height: 100vh;
+  height: 100dvh;
+  height: var(--cc-altura-visivel, 100dvh);
+}
+
+.chat-console {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  background: var(--surface-canvas);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.cc-spin {
+  animation: cc-girar 0.8s linear infinite;
+}
+@keyframes cc-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.cc-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+// ----------------------------------------------------------------- botões
+// Um botão só para o console inteiro, em três pesos: secundário (branco sobre
+// o plano, com o fio), primário (carvão — a ação da vez) e discreto (sem
+// caixa, para "ver mais"). Perigo é o secundário com o texto em vermelho:
+// distinto sem gritar mais que os vizinhos.
+.cc-botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+
+  i {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  &:hover:not(:disabled) {
+    border-color: var(--stroke-hover);
+    background: color-mix(in srgb, var(--text-primary) 4%, var(--surface-card));
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  // o formulário que o botão abriu está aberto logo abaixo
+  &[aria-expanded='true'] {
+    border-color: var(--text-secondary);
+    background: var(--sidebar-ativo);
+  }
+
+  &--primario {
+    border-color: var(--primario);
+    background: var(--primario);
+    color: var(--primario-sobre);
+
+    &:hover:not(:disabled) {
+      border-color: var(--primario-hover);
+      background: var(--primario-hover);
+    }
+  }
+  &--perigo {
+    color: var(--danger);
+
+    &:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--danger) 8%, var(--surface-card));
+    }
+  }
+  &--discreto {
+    min-height: 28px;
+    padding: 0 8px;
+    border-color: transparent;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 12px;
+
+    i {
+      font-size: 14px;
+    }
+    &:hover:not(:disabled) {
+      border-color: transparent;
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &[aria-expanded='true'] {
+      border-color: transparent;
+      background: transparent;
+    }
+  }
+  // botão que ocupa a largura do painel, com o texto alinhado à esquerda
+  &--bloco {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+// Botão só-ícone (cabeçalho da conversa, folha). Alvo de 32px, acima dos 24px
+// da WCAG 2.5.8; o nome vem do `aria-label` e a dica visível do `data-dica`.
+.cc-icone {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--raio);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 1px;
+  }
+  &--ativo,
+  &[aria-expanded='true'] {
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
+  }
+}
+
+// Dica de botão só-ícone: aparece no hover E no foco do teclado (o `title`
+// nativo não aparece no foco, e demora a aparecer no hover). O nome acessível
+// continua sendo o `aria-label`; esta é só a versão visível dele.
+.chat-console [data-dica] {
+  position: relative;
+}
+.chat-console [data-dica]::after {
+  content: attr(data-dica);
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  z-index: 60;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  border-radius: var(--raio);
+  background: var(--text-primary);
+  color: var(--surface-canvas);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.3;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease 0.25s;
+}
+.chat-console [data-dica]:hover::after,
+.chat-console [data-dica]:focus-visible::after {
+  opacity: 1;
+}
+// perto da borda direita a dica cresce para a esquerda, e vice-versa —
+// centrada ela sairia da tela
+.cc-conversa__acoes-topo [data-dica]::after,
+.cc-folha [data-dica]::after {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.cc-conversa__voltar[data-dica]::after {
+  left: 0;
+  transform: none;
+}
+
+// ------------------------------------------------------------------- lista
+.cc-lista {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--stroke);
+
+  // Ativos | Finalizados: um controle segmentado em pílula, com o ativo no
+  // mesmo cinza quente do item ativo da sidebar.
+  &__abas {
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+    padding: 12px 12px 4px;
+  }
+  &__aba {
+    flex: 1;
+    height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &--ativa,
+    &--ativa:hover {
+      background: var(--sidebar-ativo);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  // só a lista rola; as abas ficam
+  &__rolagem {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  &__secao {
+    padding: 12px 12px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+
+    h2 {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+  }
+  &__contador {
+    min-width: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--sidebar-ativo);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  &__itens {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__vazio {
+    padding: 4px 8px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+
+    p + p {
+      margin-top: 2px;
+    }
+    .cc-link {
+      margin-top: 4px;
+      font-size: 12px;
+    }
+  }
+  // Estado da fila (fechada, no limite): neutro, com ícone — é informação
+  // sobre a operação, não um erro.
+  &__aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 0 2px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 1.45;
+
+    i {
+      margin-top: 1px;
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+  }
+  &__erro {
+    padding: 4px 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--danger);
+
+    .cc-link {
+      color: var(--danger);
+    }
+  }
+}
+
+// Uma linha da lista (pessoa, fila ou finalizado). Não é cartão: é item de
+// lista sobre o plano — o hover e o selecionado são o mesmo véu quente da
+// sidebar, e o avatar leva o anel da cor da pessoa.
+.cc-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: var(--raio);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  // o recorte da bolinha de presença acompanha o fundo da linha
+  --fundo-do-ponto: var(--surface-canvas);
+
+  &:hover {
+    background: var(--sidebar-hover);
+    --fundo-do-ponto: var(--sidebar-hover);
+  }
+  &--ativo,
+  &--ativo:hover {
+    background: var(--sidebar-ativo);
+    --fundo-do-ponto: var(--sidebar-ativo);
+  }
+  &:focus-visible,
+  &__corpo:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: -2px;
+  }
+
+  // a fila é uma linha com DOIS botões (abrir e pegar) — quem tem o padding
+  // é o botão de abrir, para o alvo de clique ser a linha toda
+  &--fila {
+    align-items: center;
+    padding: 0;
+    cursor: default;
+  }
+  &__corpo {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+    min-width: 0;
+  }
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+  &__texto {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    flex: 1;
+  }
+  &__linha {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  &__nome {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  // não lida pesa: o nome em negrito é o sinal que todo mensageiro usa, e o
+  // número na ponta diz quantas
+  &--nao-lida &__nome,
+  &--nao-lida &__preview {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__quando {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  &__badge {
+    flex-shrink: 0;
+    align-self: center;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 20px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  &__meta,
+  &__preview {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__preview {
+    flex: 1;
+  }
+  // --- finalizados ---
+  &__protocolo {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  &__desfecho {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 12px;
+  }
+  &__motivo {
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
+    line-height: 20px;
+  }
+  &__agente {
+    color: var(--text-secondary);
+  }
+  &__nota {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--text-primary);
+    // nunca só a cor: o número (ou "sem avaliação") é que informa
+    font-variant-numeric: tabular-nums;
+
+    &--vazia {
+      color: var(--text-secondary);
+    }
+  }
+
+  &__pegar {
+    flex-shrink: 0;
+    height: 28px;
+    margin-right: 8px;
+    padding: 0 12px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+// ---------------------------------------------------------------- conversa
+.cc-conversa {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  // o plano: a conversa não é uma coluna branca com uma faixa colorida em
+  // cima, é o mesmo fundo do resto — quem sobe de tom é o balão
+  background: var(--surface-canvas);
+
+  &--estado {
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    color: var(--text-secondary);
+    text-align: center;
+
+    > i {
+      font-size: 28px;
+    }
+    > p {
+      max-width: 44ch;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+  }
+  // a conversa carregando é a forma dela, alinhada ao alto como a de verdade
+  &--carregando {
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 20px clamp(12px, 3vw, 32px);
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--stroke);
+    flex-shrink: 0;
+  }
+  &__avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+  &__identidade {
+    flex: 1;
+    min-width: 0;
+  }
+  &__titulo {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-primary);
+  }
+  &__nome-interno {
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+  &__sub {
+    margin-top: 1px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__acoes-topo {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  // só aparece quando falta conexão: é aviso, então fala em texto e cor
+  &__socket {
+    margin-right: 6px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: var(--sidebar-ativo);
+    color: var(--text-primary);
+    font-size: 12px;
+    line-height: 24px;
+    white-space: nowrap;
+
+    &--fechado,
+    &--recusado {
+      background: var(--tom-perigo);
+      color: var(--danger);
+    }
+  }
+
+  &__mensagens {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px clamp(12px, 3vw, 32px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  &__vazio {
+    margin-top: 40px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-align: center;
+  }
+  &__anteriores {
+    align-self: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      border-color: var(--stroke-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+  }
+  // o separador de dia: um rótulo pequeno no meio, sem caixa — sobre o plano
+  // a pílula cinza de antes era mais uma forma disputando o olho
+  &__dia {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 500;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke);
+    }
+  }
+  &__digitando {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  // A faixa acima do compositor (na fila, acompanhando, encerrada): texto à
+  // esquerda, ações à direita; quebra em duas linhas quando não cabe.
+  &__banner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--stroke);
+    font-size: 14px;
+    color: var(--text-primary);
+    flex-shrink: 0;
+
+    &--neutro {
+      color: var(--text-primary);
+    }
+    &--confirmar {
+      background: var(--sidebar-ativo);
+    }
+  }
+  &__banner-texto {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex: 1 1 260px;
+    min-width: 0;
+    line-height: 1.45;
+
+    i {
+      font-size: 16px;
+      color: var(--text-secondary);
+      transform: translateY(2px);
+    }
+  }
+  &__banner-acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  &__erro {
+    padding: 8px 20px;
+    font-size: 12px;
+    color: var(--danger);
+  }
+  // Aviso de macro aplicada — some sozinho (timeout em ConversaChat.tsx).
+  &__aviso {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    font-size: 12px;
+    color: var(--text-primary);
+
+    i {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+  }
+}
+
+.cc-estado__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.cc-estado__erro {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+// ---------------------------------------------------------------- balões
+// Três vozes que não se confundem, nos dois temas:
+//   cliente  → balão BRANCO (superfície), à esquerda;
+//   equipe   → balão cinza quente (tinta a 9% sobre o cartão), à direita;
+//   sistema  → sem balão: uma linha centrada, entre fios, como marco;
+//   nota     → o balão da equipe em creme, com a barra âmbar e o selo
+//              escrito "Nota interna" — três sinais, porque confundir nota
+//              com mensagem é mandar para fora o que era da equipe.
+.cc-msg {
+  display: flex;
+  gap: 8px;
+  max-width: min(72%, 640px);
+
+  &--agente {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+  &--sistema {
+    align-self: stretch;
+    max-width: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-align: center;
+
+    time {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  &__avatar {
+    width: 28px;
+    height: 28px;
+    margin-top: 18px; // alinha com o balão, abaixo da linha de autor
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__corpo {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  &--agente &__corpo {
+    align-items: flex-end;
+  }
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+
+    time {
+      font-variant-numeric: tabular-nums;
+    }
+    em {
+      font-style: italic;
+    }
+  }
+  &__autor {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__balao {
+    padding: 8px 12px;
+    border-radius: var(--raio-cartao);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font-size: 14px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+
+    &--apagada {
+      color: var(--text-secondary);
+    }
+  }
+  &--agente &__balao {
+    // sólido, derivado da tinta: no claro vira um cinza quente sob o branco
+    // do cliente, no escuro um degrau ACIMA do cartão — a diferença entre os
+    // dois lados continua visível nos dois temas
+    background: color-mix(in srgb, var(--text-primary) 9%, var(--surface-card));
+  }
+
+  // "Ver na conversa": a mensagem apontada, e dentro dela o anexo ou o link
+  // clicado, como marca-texto — some sozinho (ver `irPara`).
+  &--destaque &__balao {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+  &__anexos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+}
+
+.cc-anexo {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio);
+  background: var(--surface-card);
+  color: var(--text-primary);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+  &--bloqueado {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+}
+
+// ------------------------------------------------------------- compositor
+// A pílula branca (campo + Enviar) sobre o plano, e as ferramentas embaixo.
+// Com mais de uma linha a pílula vira cartão de canto 12 — o raio de pílula
+// cortaria o texto nos cantos (a classe `--multilinha` vem da medida do
+// campo, ConversaChat.tsx).
+.cc-composer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  // a dica dos atalhos só cabe ao lado das ferramentas numa conversa larga;
+  // quem decide é a largura DO COMPOSITOR (a coluna varia com o painel e a
+  // sidebar), não a da janela
+  container-type: inline-size;
+
+  @container (max-width: 600px) {
+    .cc-composer__dica {
+      display: none;
+    }
+  }
+
+  &__caixa {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 4px 4px 4px 16px;
+    border: 1px solid var(--borda-campo);
+    border-radius: 999px;
+    background: var(--surface-card);
+
+    &:focus-within {
+      border-color: var(--text-primary);
+      box-shadow: 0 0 0 1px var(--text-primary);
+    }
+    &--multilinha {
+      border-radius: var(--raio-cartao);
+    }
+  }
+  &__textarea {
+    flex: 1;
+    min-width: 0;
+    min-height: 40px;
+    max-height: 160px;
+    padding: 10px 0;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    line-height: 20px;
+    resize: none;
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o anel é da caixa inteira (:focus-within acima)
+    }
+  }
+  &__enviar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+    height: 40px;
+    padding: 0 16px;
+    border: none;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+  }
+  &__rodape {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 12px;
+    flex-wrap: wrap;
+  }
+  &__ferramentas {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  &__anexar {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover,
+    &--ativa {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+  &__dica {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  // Menu "Aplicar macro…" — mesmo combobox com filtro do compositor do
+  // chamado (resolv/tickets/detalhe/detalhe.scss, `.compositor__macro*`),
+  // classes copiadas aqui porque esta pasta não importa scss de outra.
+  &__macro {
+    position: relative;
+  }
+  &__macro-painel {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    z-index: 500;
+    width: min(360px, calc(100vw - 32px));
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-card);
+    border-radius: var(--raio-cartao);
+    box-shadow: var(--sombra-flutuante);
+    overflow: hidden;
+  }
+  &__macro-filtro {
+    flex-shrink: 0;
+    height: 40px;
+    padding: 0 12px;
+    border: none;
+    border-bottom: 1px solid var(--stroke);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+
+    &::placeholder {
+      color: var(--text-secondary);
+    }
+    &:focus {
+      outline: none; // o painel já se destaca com sombra; o campo não precisa de anel próprio
+    }
+  }
+  &__macro-menu {
+    max-height: 260px;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+  }
+  &__macro-vazio {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__macro-opcao {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    cursor: pointer;
+
+    // Seleção VIRTUAL (setas no campo de filtro, não Tab): o estado ativo
+    // precisa do mesmo destaque do :hover — é o único sinal de "isto é o
+    // que Enter escolhe agora", já que não há foco real na opção.
+    &:hover,
+    &--ativa {
+      background: var(--sidebar-ativo);
+    }
+  }
+  &__macro-nome {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__macro-previa {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__macro-triagem {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+// ------------------------------------------------------------------- painel
+.cc-painel {
+  width: 300px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--stroke);
+  padding-bottom: env(safe-area-inset-bottom);
+
+  &__bloco {
+    padding: 16px;
+
+    & + & {
+      border-top: 1px solid var(--stroke);
+    }
+
+    h3 {
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    dl {
+      display: grid;
+      grid-template-columns: minmax(84px, auto) 1fr;
+      gap: 6px 12px;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+    dt {
+      font-size: 12px;
+      line-height: 20px;
+      color: var(--text-secondary);
+    }
+    dd {
+      min-width: 0;
+      color: var(--text-primary);
+      word-break: break-word;
+    }
+  }
+  // título de seção com a ação dela na ponta ("Ver atendimentos")
+  &__titulo-linha {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+
+    h3 {
+      margin-bottom: 0;
+    }
+  }
+  // o grupo de ações: botões do mesmo tamanho, empilhados, com o mesmo
+  // respiro entre si — antes eram linhas de texto soltas com vãos diferentes
+  &__botoes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  &__form {
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: var(--raio-cartao);
+    background: var(--surface-card);
+  }
+  &__ajuda {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+  &__erro {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--danger);
+
+    .cc-link {
+      color: var(--danger);
+    }
+  }
+  &__historico {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  &__historico-item {
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+  &__historico-topo {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  &__historico-protocolo {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__historico-meta {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+// ------------------------------------------------------------------- folha
+// O painel do cliente abaixo de 1200px: por cima, pela direita, com véu. É o
+// único lugar da tela com sombra — ele flutua.
+.cc-folha {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+
+  &__veu {
+    position: absolute;
+    inset: 0;
+    background: var(--veu-suave);
+    animation: cc-aparecer 0.16s ease;
+  }
+  &__caixa {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(380px, 100%);
+    display: flex;
+    flex-direction: column;
+    background: var(--surface-canvas);
+    box-shadow: var(--sombra-flutuante);
+    animation: cc-entrar-da-direita 0.18s ease;
+
+    .cc-painel {
+      width: auto;
+      flex: 1;
+      border-left: none;
+    }
+  }
+  &__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 56px;
+    padding: 8px 12px 8px 16px;
+    padding-top: calc(8px + env(safe-area-inset-top));
+    border-bottom: 1px solid var(--stroke);
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+}
+@keyframes cc-aparecer {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes cc-entrar-da-direita {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+
+// ============================================================================
+// Aba "Finalizados" — busca, filtros e a lista de encerrados
+// ============================================================================
+
+.cc-final {
+  &__filtro-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+    min-height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    // filtro ligado ganha PESO e fundo, não só cor (item 22 do brief)
+    &--ativo {
+      background: var(--sidebar-ativo);
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  // a busca é pílula (escala do brief), com o botão dentro do mesmo gesto
+  &__busca {
+    display: flex;
+    gap: 6px;
+    padding: 0 0 4px;
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 32px;
+      padding: 0 14px;
+      border: 1px solid var(--borda-campo);
+      border-radius: 999px;
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 14px;
+
+      &::placeholder {
+        color: var(--text-secondary);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+    button {
+      height: 32px;
+      padding: 0 14px;
+      border: none;
+      border-radius: 999px;
+      background: var(--primario);
+      color: var(--primario-sobre);
+      font: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__filtros {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    border-radius: var(--raio-cartao);
+    background: var(--surface-card);
+
+    label {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+    select,
+    input {
+      height: 32px;
+      padding: 0 8px;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 14px;
+    }
+  }
+
+  &__limpar {
+    align-self: flex-start;
+    margin-top: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}
+
+/* Rótulo só para leitor de tela — o campo de busca da aba Finalizados tem
+   `placeholder`, que NÃO substitui rótulo (some ao digitar). */
+.cc-visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+// ============================================================================
+// Ações do atendimento (./acoes.tsx) — os MESMOS formulários no console e no
+// mini chat. Por isso o estilo é neutro e não presume a largura de nenhum dos
+// dois: `width: 100%` e o container decide.
+// ============================================================================
+
+.cc-acao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+
+  label {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  select,
+  input,
+  textarea {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 8px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  textarea {
+    resize: vertical;
+  }
+
+  &__ajuda {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+  }
+  &__erro {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--danger);
+  }
+
+  &__botoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  &__confirmar {
+    min-height: 32px;
+    padding: 0 14px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+    // encerrar é destrutivo: cor E rótulo dizem isso, nunca só a cor
+    &--perigo {
+      background: var(--danger);
+      color: var(--surface-card);
+
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--danger) 88%, var(--text-primary));
+      }
+    }
+  }
+  &__cancelar {
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Busca na conversa, citação, estado, mídia e envios
+ * ------------------------------------------------------------------ */
+
+/* A busca é do SERVIDOR — acha no histórico inteiro, não só no que rolou. */
+.cc-busca {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border-bottom: 1px solid var(--stroke);
+
+  input[type='search'] {
+    flex: 1;
+    min-width: 140px;
+    height: 32px;
+    padding: 0 14px;
+    border: 1px solid var(--borda-campo);
+    border-radius: 999px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--stroke);
+    border-radius: 999px;
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__contagem {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  &__ajuda {
+    flex-basis: 100%;
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+/* O trecho achado, dentro do balão. Marca-texto é ESTADO (achado), então
+   pode ter cor — a mesma família âmbar do aviso, diluída. */
+.cc-msg__balao mark {
+  padding: 0 1px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--away) 28%, transparent);
+  color: inherit;
+}
+
+/* o link apontado pelo painel: marca-texto mais forte que o da busca */
+.cc-msg__balao mark.cc-marca-alvo {
+  background: color-mix(in srgb, var(--away) 45%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--away) 45%, transparent);
+}
+
+.cc-anexo--destaque {
+  outline: 2px solid var(--away);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--away) 22%, var(--surface-card));
+}
+
+/* A ocorrência em que a navegação está agora. */
+.cc-msg--achada .cc-msg__balao {
+  outline: 2px solid var(--foco);
+  outline-offset: 2px;
+}
+
+.cc-conversa__regua {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--text-primary);
+    opacity: 0.4;
+  }
+}
+
+.cc-msg__responder {
+  /* `opacity`, e não `display: none`: escondido por display o botão sai da
+     ordem de tabulação e da árvore de acessibilidade, e a ação passaria a
+     existir só para quem tem mouse. Assim ele continua alcançável pelo
+     teclado e aparece quando recebe foco. */
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--raio);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+
+  &:hover {
+    background: var(--sidebar-hover);
+    color: var(--text-primary);
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 1px;
+  }
+}
+
+.cc-msg:hover .cc-msg__responder,
+.cc-msg__responder:focus,
+.cc-msg__responder:focus-visible {
+  opacity: 1;
+}
+
+/* Em tela de toque não há hover: as ações da mensagem ficam sempre à vista. */
+@media (hover: none) {
+  .cc-msg__responder {
+    opacity: 1;
+  }
+}
+
+/* Edição inline: substitui a bolha no lugar, mesma largura de balão do
+   composer principal — sem isto a mensagem "pularia" de posição na rolagem. */
+.cc-msg-editar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 75%;
+  margin: 2px 0 2px 36px; // alinha com o balão (avatar + gap do .cc-msg)
+  padding: 8px;
+  border: 1px solid var(--borda-campo);
+  border-radius: var(--raio-cartao);
+  background: var(--surface-card);
+
+  &__texto {
+    min-height: 48px;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--raio);
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    resize: vertical;
+
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  &__acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+
+    button {
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--stroke);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      color: var(--text-primary);
+      font: inherit;
+      font-size: 14px;
+      cursor: pointer;
+
+      &:hover {
+        border-color: var(--stroke-hover);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 2px;
+      }
+    }
+  }
+
+  &__salvar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border-color: var(--primario) !important;
+    background: var(--primario) !important;
+    color: var(--primario-sobre) !important;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.cc-msg__citacao {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 4px 10px;
+  border: 0;
+  border-left: 3px solid var(--text-secondary);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--text-primary) 5%, var(--surface-canvas));
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: color-mix(in srgb, var(--text-primary) 8%, var(--surface-canvas));
+  }
+  &:focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+
+  &-autor {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  &-corpo {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.cc-msg__estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+  color: var(--text-secondary);
+  font-size: 12px;
+
+  /* Lida muda o PESO e o ícone: cor sozinha não chega a quem não a
+     distingue (item 22 do brief), e o rótulo por extenso está sempre junto. */
+  &--lida {
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  &--falha {
+    color: var(--danger);
+  }
+}
+
+.cc-anexo--imagem {
+  display: inline-block;
+  overflow: hidden;
+  max-width: 220px;
+  padding: 0;
+  border-radius: var(--raio-cartao);
+  line-height: 0;
+
+  img {
+    display: block;
+    max-width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+  }
+}
+
+/* Fila de envios: uma barra POR arquivo — numa barra agregada não dá para
+   ver qual travou, nem cancelar só ele. */
+.cc-envios {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 20px 0;
+}
+
+.cc-envio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--raio-cartao);
+  background: var(--surface-card);
+
+  &--erro {
+    border-color: var(--danger);
+  }
+
+  &__previa {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--raio);
+    object-fit: cover;
+  }
+
+  &__icone {
+    width: 32px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  &__texto {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__nome {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__erro {
+    color: var(--danger);
+    font-size: 12px;
+  }
+
+  &__barra {
+    width: 100%;
+    height: 4px;
+  }
+
+  button {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+}
+
+.cc-composer__citando {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 12px;
+  border-left: 3px solid var(--text-secondary);
+  border-radius: var(--raio);
+  background: color-mix(in srgb, var(--text-primary) 5%, var(--surface-canvas));
+
+  &-autor {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  &-corpo {
+    overflow: hidden;
+    flex: 1;
+    color: var(--text-secondary);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  button {
+    display: inline-grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: var(--raio);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+}
+
+.cc-midia {
+  flex-shrink: 0;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--stroke);
+
+  h2 {
+    margin: 0 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  h3 {
+    margin: 8px 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  &__vazio {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+
+  &__lista {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+  }
+
+  &__ir,
+  &__link {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+
+  &__nome {
+    overflow: hidden;
+    flex: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__meta {
+    color: var(--text-secondary);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  &__contexto {
+    font-size: 12px;
+    white-space: nowrap;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Nota interna, presença do cliente e variáveis da macro
+ * ------------------------------------------------------------------ */
+
+/* A nota interna precisa ser IMPOSSÍVEL de confundir com uma fala ao cliente
+   — quem confunde manda para fora o que era da equipe. Por isso três sinais
+   ao mesmo tempo: fundo creme, barra âmbar e o selo escrito. `--tom-nota` e
+   `--away` são tokens de tema (o creme vira wash no escuro); o fallback em
+   hex cru de antes não virava. */
+.cc-msg--nota {
+  .cc-msg__balao {
+    background: var(--tom-nota);
+    box-shadow: inset 3px 0 0 var(--away);
+    padding-left: 15px;
+  }
+
+  .cc-msg__anexos {
+    padding-left: 8px;
+    box-shadow: inset 3px 0 0 var(--away);
+  }
+}
+
+.cc-msg__selo-nota {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--away);
+  font-size: 12px;
+  font-weight: 600;
+  font-style: normal;
+}
+
+/* O compositor em modo nota muda de cor inteiro: um botão pressionado no
+   canto é fácil demais de não ver na terceira hora de plantão. */
+.cc-composer--nota {
+  .cc-composer__caixa {
+    border-color: var(--away);
+    background: var(--tom-nota);
+
+    &:focus-within {
+      box-shadow: 0 0 0 1px var(--away);
+    }
+  }
+}
+
+.cc-composer__aviso-nota {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--away);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.cc-composer__anexar--nota,
+.cc-composer__anexar--nota:hover {
+  background: var(--tom-nota);
+  color: var(--away);
+  box-shadow: inset 0 0 0 1px var(--away);
+}
+
+.cc-composer__enviar--nota,
+.cc-composer__enviar--nota:hover:not(:disabled) {
+  background: var(--away);
+  color: var(--texto-sobre-away);
+}
+
+.cc-composer__macro-vars {
+  margin: 0;
+  padding: 8px 12px;
+  border-top: 1px solid var(--stroke);
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+
+  code {
+    padding: 0 3px;
+    border-radius: 4px;
+    background: var(--sidebar-ativo);
+    font-size: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Avatar: iniciais em fundo neutro, com o ANEL da cor da pessoa
+ * ------------------------------------------------------------------ */
+
+/* A cor de identidade do chat (15 tons, resolv/chat/tons.ts) deixou de
+   PINTAR o avatar inteiro: quinze matizes preenchidos numa lista eram cor
+   decorativa disputando com os estados. Ela virou um anel de 2px em volta
+   de um avatar neutro — continua dizendo "a azul-aço é o Bruno" para quem
+   tem várias conversas abertas, sem colorir a tela. O atributo só publica
+   as variáveis; quem desenha o anel é a classe do avatar. */
+@for $i from 1 through 15 {
+  [data-tom-chat='#{$i}'] {
+    --tom-do-chat: var(--chat-tom-#{$i});
+    --tinta-do-tom: var(--chat-tom-#{$i}-tinta);
+  }
+}
+
+.cc-avatar,
+.cc-msg__avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--sidebar-ativo);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: inset 0 0 0 2px var(--tom-do-chat, transparent);
+}
+
+.cc-avatar {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.cc-avatar__ponto {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  /* ~1/3 do avatar: menor que isto vira sujeira em vez de sinal */
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  /* O recorte é uma BORDA na cor da superfície de trás — é ela que separa o
+     ponto do avatar sem depender de contraste entre as duas cores. Via
+     variável para a linha selecionada (outro fundo) poder corrigir a cor
+     sem uma segunda regra para cada superfície. */
+  box-shadow: 0 0 0 2px var(--fundo-do-ponto, var(--surface-card));
+
+  &--em-canvas {
+    --fundo-do-ponto: var(--surface-canvas);
+  }
+
+  &--em-superficie {
+    --fundo-do-ponto: var(--surface-card);
+  }
+
+  &--em-cabecalho {
+    --fundo-do-ponto: var(--surface-card);
+  }
+
+  /* `--presenca-*` (tokens.scss): família à parte de `--ok`/`--away`, que já
+     servem o SLA — usar os mesmos aqui faria "ausente" e "SLA estourado"
+     ficarem indistinguíveis. */
+  &--available {
+    background: var(--presenca-disponivel);
+  }
+
+  &--away {
+    background: var(--presenca-ausente);
+  }
+
+  &--offline {
+    background: var(--presenca-offline);
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Thread por cliente — o histórico das aberturas anteriores no topo da
+ * mesma rolagem da conversa de agora.
+ * ------------------------------------------------------------------ */
+
+.cc-thread {
+  &__historico {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* O divisor entre uma abertura e a seguinte: mesma linguagem da faixa de
+     dia, com o texto em peso maior — ali começa outro atendimento. */
+  &__marco {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    color: var(--text-secondary);
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--stroke);
+    }
+
+    span {
+      max-width: 80%;
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+    }
+  }
+
+  &__erro {
+    font-size: 12px;
+    color: var(--danger);
+    text-align: center;
+
+    .cc-link {
+      color: var(--danger);
+    }
+  }
+}
+
+/* O que já passou é leitura: sem hover de ação, um tom mais apagado, para o
+   olho achar de imediato onde a conversa de HOJE começa. */
+.cc-msg--historico {
+  opacity: 0.86;
+}
+
+/* ------------------------------------------------------------------ *
+ * Esqueletos (./Esqueletos.tsx)
+ * ------------------------------------------------------------------ */
+
+.cc-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  &__linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    font-size: 14px;
+  }
+  &__avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+  }
+  &__textos {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  &__menor {
+    font-size: 12px;
+  }
+
+  &--conversa {
+    flex: 1;
+    width: 100%;
+    gap: 16px;
+    padding: 8px 0;
+  }
+  &__balao {
+    display: flex;
+
+    &--agente {
+      justify-content: flex-end;
+    }
+  }
+
+  &--painel {
+    padding: 16px;
+    gap: 24px;
+    font-size: 14px;
+  }
+  &__secao {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  &__par {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Movimento reduzido: nada entra deslizando nem pisca
+ * ------------------------------------------------------------------ */
+
+@media (prefers-reduced-motion: reduce) {
+  .cc-msg__responder,
+  .cc-botao,
+  [data-dica]::after {
+    transition: none;
+  }
+  .cc-folha__veu,
+  .cc-folha__caixa,
+  .cc-spin {
+    animation: none;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Larguras: duas colunas (768–1199) e uma por vez (<768)
+ * ------------------------------------------------------------------ */
+
+.chat-console[data-modo='dois'] {
+  .cc-lista {
+    width: 280px;
+  }
+}
+
+.chat-console[data-modo='um'] {
+  // uma coisa por vez: a lista OU a conversa ocupa a largura toda
+  .cc-lista {
+    width: 100%;
+    border-right: none;
+  }
+  .cc-conversa__header {
+    gap: 8px;
+    min-height: 56px;
+    padding: 8px 8px 8px 4px;
+  }
+  .cc-conversa__avatar {
+    width: 32px;
+    height: 32px;
+  }
+  .cc-conversa__mensagens {
+    padding: 16px 12px;
+  }
+  .cc-msg {
+    max-width: 88%;
+  }
+  .cc-msg__avatar {
+    display: none; // no celular o nome do autor já diz quem é; o avatar comia 36px de balão
+  }
+  .cc-msg-editar {
+    max-width: 100%;
+    margin-left: 0;
+  }
+  .cc-conversa__banner {
+    padding: 12px;
+  }
+  .cc-busca,
+  .cc-midia,
+  .cc-conversa__erro,
+  .cc-conversa__aviso {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .cc-envios {
+    padding: 8px 12px 0;
+  }
+  .cc-composer {
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+  }
+  // no celular não há Shift nem Ctrl: a dica dos atalhos sai
+  .cc-composer__dica {
+    display: none;
+  }
+  // os rótulos das ferramentas viram só ícone (continuam como nome
+  // acessível), e o Enviar vira o círculo com a seta
+  .cc-composer__rotulo,
+  .cc-composer__enviar-rotulo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .cc-composer__enviar {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+  }
+  .cc-folha__caixa {
+    width: 100%;
+  }
+}
+
+// Referência de mensageiro: atalhos leves e duas áreas brancas de trabalho.
+// Regras locais ao console para preservar a apresentação do mini chat.
+.chat-console {
+  --f-ui: 'Segoe UI', Inter, system-ui, sans-serif;
+  --f-mono: var(--f-ui);
+  --surface-canvas: light-dark(#f6f5f3, #1a1a19);
+  --surface-card: light-dark(#ffffff, #2a2a29);
+  --surface-alt: light-dark(#f5f5f5, #343433);
+  --text-primary: light-dark(#242424, #f5f5f5);
+  --text-secondary: light-dark(#616161, #c7c7c7);
+  --text-muted: var(--text-secondary);
+  --stroke: light-dark(#e5e4e2, #454543);
+  --stroke-hover: light-dark(#d4d4d4, #777773);
+  --borda-campo: light-dark(#d4d4d4, #666663);
+  --primario: light-dark(#242424, #ebebeb);
+  --primario-sobre: light-dark(#ffffff, #242424);
+  --primario-hover: light-dark(#3b3b3b, #ffffff);
+  --sidebar-hover: var(--surface-alt);
+  --sidebar-ativo: light-dark(#ebebeb, #454543);
+  --raio: 8px;
+  --raio-cartao: 12px;
+  font-family: var(--f-ui);
+  padding: 12px;
+  gap: 12px;
+  min-width: 0;
+
+  .cc-atalhos {
+    width: 176px;
+    flex-shrink: 0;
+    padding: 12px 0;
+    &__titulo {
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.2;
+      padding: 0 10px 24px;
+    }
+    &__grupo {
+      font-size: 12px;
+      color: var(--text-secondary);
+      padding: 0 10px 8px;
+    }
+    &__item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      min-height: 36px;
+      padding: 6px 10px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--text-primary);
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+      i {
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+      &[aria-current='page'] {
+        background: var(--sidebar-ativo);
+        font-weight: 500;
+      }
+      &:hover:not(:disabled) {
+        background: var(--sidebar-hover);
+      }
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: -2px;
+      }
+      &:disabled {
+        cursor: default;
+        color: var(--text-secondary);
+      }
+    }
+    &__rotulo {
+      white-space: nowrap;
+    }
+    &__breve {
+      white-space: nowrap;
+      margin-left: auto;
+      font-size: 10px;
+      line-height: 1.2;
+    }
+  }
+  .cc-lista {
+    width: 320px;
+    background: var(--surface-card);
+    border: 0;
+    border-radius: 12px;
+    overflow: hidden;
+    &__titulo {
+      padding: 20px 20px 8px;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1.2;
+    }
+    &__abas {
+      padding: 0 16px 12px;
+      border-bottom: 1px solid var(--stroke);
+    }
+    &__secao {
+      padding-top: 16px;
+    }
+    &__cabecalho {
+      padding-bottom: 4px;
+    }
+  }
+  .cc-card {
+    padding: 12px 8px;
+    --fundo-do-ponto: var(--surface-card);
+  }
+  .cc-card--fila {
+    padding: 0;
+  }
+  .cc-card__corpo {
+    padding: 12px 8px;
+  }
+  .cc-card--ativo {
+    --fundo-do-ponto: var(--sidebar-ativo);
+  }
+  .cc-conversa {
+    background: var(--surface-card);
+    border-radius: 12px;
+    overflow: hidden;
+    &__header {
+      border-bottom: 0;
+      min-height: 72px;
+    }
+    &__mensagens {
+      padding: 24px clamp(16px, 3vw, 48px);
+      gap: 20px;
+    }
+    &__dia {
+      justify-content: center;
+      font-weight: 400;
+      padding: 8px 0;
+    }
+    &__dia::before,
+    &__dia::after {
+      display: none;
+    }
+  }
+  .cc-msg {
+    max-width: min(84%, 640px);
+    &__balao {
+      background: var(--surface-alt);
+      border-radius: 20px;
+      padding: 8px 14px;
+    }
+    &--agente .cc-msg__balao {
+      background: var(--sidebar-ativo);
+    }
+    &__meta {
+      font-size: 12px;
+    }
+  }
+  .cc-composer {
+    padding: 16px 24px calc(16px + env(safe-area-inset-bottom));
+    &__caixa {
+      min-height: 56px;
+      background: var(--surface-alt);
+      border-color: transparent;
+      border-radius: 32px;
+      padding: 6px 6px 6px 18px;
+    }
+    &__caixa--multilinha {
+      border-radius: 20px;
+    }
+    &__rodape {
+      padding: 0 4px;
+    }
+  }
+  .cc-painel {
+    width: 260px;
+    border: 0;
+    background: var(--surface-card);
+    border-radius: 12px;
+  }
+  // Nota interna continua distinta da resposta pública.
+  .cc-msg--nota .cc-msg__balao {
+    background: var(--tom-nota);
+  }
+  .cc-composer--nota .cc-composer__caixa {
+    background: var(--tom-nota);
+    border-color: var(--away);
+  }
+}
+
+@media (max-width: 1399px) {
+  .chat-console:not([data-modo='um']) {
+    .cc-atalhos {
+      width: 44px;
+      &__titulo,
+      &__grupo,
+      &__breve {
+        display: none;
+      }
+      &__rotulo {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+      }
+      &__item {
+        justify-content: center;
+        min-height: 44px;
+        padding: 8px;
+      }
+    }
+    .cc-lista {
+      width: 280px;
+    }
+  }
+}
+.chat-console[data-modo='um'] {
+  flex-direction: column;
+  padding: 0;
+  gap: 0;
+  .cc-atalhos {
+    width: 100%;
+    display: flex;
+    gap: 4px;
+    padding: 12px;
+    &__titulo,
+    &__grupo,
+    &__breve {
+      display: none;
+    }
+    &__item {
+      width: auto;
+      flex: 1;
+      justify-content: center;
+      font-size: 12px;
+      gap: 6px;
+      padding: 6px;
+    }
+  }
+  .cc-lista {
+    width: 100%;
+    flex: 1;
+    border-radius: 0;
+  }
+  .cc-lista__titulo {
+    padding: 16px 20px;
+  }
+  .cc-conversa {
+    border-radius: 0;
+  }
+  .cc-conversa__header {
+    min-height: 56px;
+  }
+  .cc-conversa__mensagens {
+    padding: 16px 12px;
+    gap: 16px;
+  }
+  .cc-msg {
+    max-width: 88%;
+  }
+  .cc-composer {
+    padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+  }
+  .cc-painel {
+    width: 100%;
+    border-radius: 0;
+  }
+}
+
+// O aviso de conexão ocupa sua própria linha em conversas estreitas.
+.chat-console[data-modo='um'] {
+  .cc-conversa__header {
+    display: grid;
+    grid-template-columns: 32px 32px minmax(0, 1fr) repeat(3, 32px);
+    gap: 6px;
+    padding: 12px 8px;
+  }
+  .cc-conversa__acoes-topo {
+    display: contents;
+  }
+  .cc-conversa__acoes-topo > button {
+    grid-row: 1;
+    &:nth-of-type(1) {
+      grid-column: 4;
+    }
+    &:nth-of-type(2) {
+      grid-column: 5;
+    }
+    &:nth-of-type(3) {
+      grid-column: 6;
+    }
+  }
+  .cc-conversa__socket {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin: 2px 0 0 4px;
+  }
+  .cc-composer__textarea {
+    min-height: 60px;
+  }
+}
+.chat-console[data-modo='um'] .cc-atalhos {
+  &__item {
+    min-height: 44px;
+  }
+  &__item:disabled {
+    flex-wrap: wrap;
+    gap: 0 6px;
+  }
+  &__breve {
+    display: block;
+    flex-basis: 100%;
+    margin: 0;
+    text-align: center;
+    font-size: 10px;
+  }
+}

@@ -1,0 +1,205 @@
+// Etapa 2 — contrato visual dos controles de atendimento.
+// Seletores explícitos preservam badges, avatares, botões de linha e links.
+.resolv-scope {
+  --controle-altura: 36px;
+  --controle-icone: 32px;
+  --controle-raio: 6px;
+  --controle-borda: light-dark(#8795a3, #8593a1);
+  --controle-hover: light-dark(#f0f4f8, #35414d);
+  --controle-foco: light-dark(#2563eb, #93baff);
+  --controle-selecao: light-dark(#eaf2ff, #233c56);
+  --controle-primario: light-dark(#263238, #dce6ef);
+  --controle-sobre: light-dark(#ffffff, #20262c);
+
+  :is(.detalhe, .lista-tickets, .kb-pagina, .chat-console) {
+    :is(
+      .detalhe__botao,
+      .ticket-cab__botao,
+      .compositor__botao,
+      .lista-tickets__botao,
+      .lista-tickets__botao-filtros,
+      .lista-tickets__seletor-visao,
+      .lista-tickets__lote-limpar,
+      .kb-botao,
+      .cc-botao,
+      .cc-composer__enviar
+    ) {
+      min-height: var(--controle-altura);
+      height: var(--controle-altura);
+      border-radius: var(--controle-raio);
+      font-family: var(--f-ui);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1.2;
+      padding-inline: 12px;
+      box-sizing: border-box;
+      &:focus-visible {
+        outline: 2px solid var(--controle-foco);
+        outline-offset: 2px;
+      }
+    }
+    :is(
+      .detalhe__botao,
+      .ticket-cab__botao,
+      .cc-botao,
+      .kb-botao,
+      .lista-tickets__botao--secundario,
+      .lista-tickets__botao-filtros,
+      .lista-tickets__seletor-visao
+    ) {
+      border: 1px solid var(--controle-borda);
+      box-shadow: none;
+      &:hover:not(:disabled) {
+        border-color: var(--controle-borda);
+        background: var(--controle-hover);
+      }
+    }
+    :is(
+      .detalhe__botao--primario,
+      .compositor__botao,
+      .kb-botao--primario,
+      .cc-botao--primario,
+      .lista-tickets__botao--primario,
+      .cc-composer__enviar:not(.cc-composer__enviar--nota)
+    ) {
+      border: 1px solid var(--controle-primario);
+      background: var(--controle-primario);
+      color: var(--controle-sobre);
+      box-shadow: none;
+      i {
+        color: inherit;
+      }
+      &:hover:not(:disabled) {
+        background: color-mix(in srgb, var(--controle-primario) 85%, var(--controle-sobre));
+        border-color: var(--controle-primario);
+        filter: none;
+      }
+    }
+    // Grupos de resposta: formato de controle, com o modo interno preservado.
+    :is(.compositor__aba, .cc-lista__aba) {
+      min-height: var(--controle-icone);
+      height: var(--controle-icone);
+      border-radius: var(--controle-raio);
+      border: 1px solid var(--stroke);
+      font-size: 13px;
+    }
+    .compositor__aba--ativa:not(.compositor__aba--nota) {
+      background: var(--controle-selecao);
+      border-color: var(--controle-foco);
+      color: var(--controle-foco);
+    }
+    :is(.cc-icone, .ticket-cab__icone, .lista-tickets__densidade-btn, .compositor__ferramenta) {
+      border-radius: var(--controle-raio);
+    }
+
+    // Campos compostos: a borda e o foco ficam no invólucro, não no select interno.
+    :is(
+      .props__seletor,
+      .compositor__status-select,
+      .lista-tickets__search,
+      .views-panel__busca,
+      .kb-busca,
+      .kb-filtro,
+      .filtro__pilula
+    ) {
+      min-height: var(--controle-altura);
+      height: var(--controle-altura);
+      border: 1px solid var(--controle-borda);
+      border-radius: var(--controle-raio);
+      background: var(--surface-card);
+      box-shadow: none;
+      box-sizing: border-box;
+      &:hover {
+        border-color: var(--controle-borda);
+      }
+      &:focus-within {
+        border-color: var(--controle-foco);
+        outline: 2px solid var(--controle-foco);
+        outline-offset: 1px;
+        box-shadow: none;
+      }
+    }
+    .filtro {
+      height: var(--controle-altura);
+      border-radius: var(--controle-raio);
+    }
+    :is(.kb-busca, .lista-tickets__search) {
+      padding-inline: 12px;
+      input {
+        font-size: 14px;
+      }
+    }
+    :is(.props__seletor select, .compositor__status-select select) {
+      font-size: 14px;
+    }
+    :is(
+      .lista-tickets__lote-select,
+      .notas textarea,
+      .fechar-form input,
+      .fechar-form textarea,
+      .agendar-resposta input,
+      .agendar-resposta textarea,
+      .cc-acao input,
+      .cc-acao select,
+      .cc-acao textarea
+    ) {
+      min-height: var(--controle-altura);
+      border: 1px solid var(--controle-borda);
+      border-radius: var(--controle-raio);
+      box-shadow: none;
+      &:focus {
+        outline: 2px solid var(--controle-foco);
+        outline-offset: 1px;
+        border-color: var(--controle-foco);
+        box-shadow: none;
+      }
+      &[aria-invalid='true'] {
+        border-color: var(--danger);
+      }
+    }
+    .cc-composer__caixa {
+      border-radius: var(--controle-raio);
+      border: 1px solid var(--controle-borda);
+      background: var(--surface-card);
+      min-height: 56px;
+      &:focus-within {
+        outline: 2px solid var(--controle-foco);
+        outline-offset: 1px;
+        border-color: var(--controle-foco);
+        box-shadow: none;
+      }
+    }
+    .cc-composer--nota .cc-composer__caixa {
+      border-color: var(--away);
+      background: var(--tom-nota);
+      &:focus-within {
+        outline-color: var(--away);
+      }
+    }
+    .compositor__status-select {
+      min-width: 140px;
+    }
+    .props__seletor[aria-invalid='true'] {
+      border-color: var(--danger);
+    }
+    // O editor mantém sua área de escrita; só o foco muda para o padrão comum.
+    .compositor__superficie:focus-within {
+      outline: 2px solid var(--controle-foco);
+      outline-offset: -2px;
+    }
+    .lista-tickets__novo-icone {
+      width: var(--controle-altura);
+      padding: 0;
+    }
+    .cc-botao--discreto {
+      border-color: transparent;
+      background: transparent;
+    }
+  }
+  @media (max-width: 767px) {
+    .chat-console .cc-composer__enviar {
+      width: var(--controle-altura);
+      padding: 0;
+    }
+  }
+}

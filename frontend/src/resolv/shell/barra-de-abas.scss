@@ -1,0 +1,434 @@
+// Barra de abas do console (BarraDeAbas.tsx): tickets e páginas abertas como
+// abas de navegador, dentro da barra superior do shell (shell.scss).
+//
+// O shell é UM plano só (`--surface-canvas`), dividido por fios de 1px. As
+// abas respeitam isso: nenhuma faixa de cromo, nenhuma aba "fundida" num
+// painel. A inativa é só texto sobre o plano; a ativa é um cartão claro
+// (`--surface-card`) com um fio (`--stroke`), o mesmo vocabulário do campo e do
+// cartão do resto do produto. O hover usa o `--sidebar-hover` da sidebar, então
+// os dois lados do shell respondem ao ponteiro do mesmo jeito.
+//
+// Medidas: aba de 32px centrada na linha do topo (52px; 48px no celular), raio `--raio`, 2px
+// entre abas. Como no Chrome, a aba de ticket mede até 220px e encolhe até
+// 120px conforme as abas se acumulam; passando disso a faixa rola na
+// horizontal, sem barra de rolagem visível e com um esmaecido na ponta
+// cortada. O "+" fica FORA da rolagem: com a faixa cheia ele fica colado à
+// direita dela, nunca escondido.
+.barra-de-abas {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  // Sem isto a faixa empurra os ícones da direita para fora da tela: um item
+  // flex não encolhe abaixo do conteúdo a menos que se peça.
+  min-width: 0;
+  height: 100%;
+  gap: 2px;
+
+  // ── Faixa que rola ────────────────────────────────────────────────────────
+  &__rolagem {
+    --fade-esquerda: 0px;
+    --fade-direita: 0px;
+
+    position: relative; // offsetParent das abas, para revelar a ativa
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    // Rolar a faixa até o fim não passa a rolagem para a página.
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    // Margem que o foco e o "revelar" respeitam, para a aba não parar debaixo
+    // do esmaecido.
+    scroll-padding-inline: 24px;
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-esquerda),
+      #000 calc(100% - var(--fade-direita)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      #000 var(--fade-esquerda),
+      #000 calc(100% - var(--fade-direita)),
+      transparent 100%
+    );
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    // Só há esmaecido onde ainda existe aba além da borda.
+    &[data-borda-esquerda] {
+      --fade-esquerda: 20px;
+    }
+    &[data-borda-direita] {
+      --fade-direita: 20px;
+    }
+  }
+
+  &__lista {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
+  }
+
+  // ── A aba ─────────────────────────────────────────────────────────────────
+  // O invólucro é quem tem a aparência (fundo, fio, raio); o botão `role="tab"`
+  // e o "x" moram dentro dele, irmãos.
+  &__aba {
+    position: relative;
+    display: flex;
+    align-items: center;
+    // Aba de seção: do tamanho do que tem, e não encolhe. Quem cede quando a
+    // faixa aperta são as de ticket (abaixo): um "Tick…" no lugar de "Tickets"
+    // não ajuda ninguém.
+    flex: none;
+    max-width: 220px;
+    height: 32px;
+    box-sizing: border-box;
+    border: 1px solid var(--shell-borda, var(--stroke));
+    background: var(--shell-superficie, var(--surface-card));
+    border-radius: var(--shell-raio, var(--raio));
+    color: var(--text-secondary);
+    transition:
+      background 0.12s ease,
+      color 0.12s ease,
+      border-color 0.12s ease;
+
+    &:hover {
+      background: var(--shell-hover, var(--sidebar-hover));
+      color: var(--text-primary);
+    }
+
+    // Ticket: a largura é declarada (`width`), e não só a base do flex, porque
+    // o contêiner (abaixo) zera o tamanho do conteúdo e, sem largura, a faixa
+    // se mediria por abas de 120px. É a `width` que faz a faixa ter 220px por
+    // aba antes de apertar.
+    &--ticket {
+      flex: 0 1 auto;
+      width: 220px;
+      min-width: 120px;
+      container-type: inline-size;
+    }
+
+    // Ativa: cartão claro com fio, para ler como "a aba em que estou" sobre o
+    // plano. No hover não muda: o cartão já é o degrau mais alto.
+    &--ativa,
+    &--ativa:hover {
+      background: var(--shell-ativo, var(--primario));
+      border-color: var(--shell-ativo, var(--primario));
+      color: var(--shell-ativo-sobre, var(--primario-sobre));
+    }
+
+    // O ponteiro está sobre a aba durante o arrasto, então o `:hover` (mais
+    // específico) ganharia do fundo de cartão: no escuro a aba levantada ficava
+    // quase transparente, com o texto da vizinha aparecendo por baixo.
+    &--arrastando,
+    &--arrastando:hover {
+      z-index: 2;
+      background: var(--surface-card);
+      border-color: var(--stroke-hover);
+      color: var(--text-primary);
+      // Sombra curta: a faixa corta o que passa de 48px de altura (overflow-y),
+      // e uma sombra longa terminaria numa linha reta.
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.16);
+      cursor: grabbing;
+      transition: none;
+    }
+
+    // Anel de foco em volta da aba inteira (a do botão ou a do "x"), por dentro
+    // para a rolagem não cortá-lo nas pontas.
+    @supports selector(:has(*)) {
+      &:has(:focus-visible) {
+        outline: 2px solid var(--foco);
+        outline-offset: -2px;
+      }
+    }
+  }
+
+  // O botão que é a aba: ocupa o invólucro inteiro menos o "x". Sobe sobre o
+  // fio de 1px do invólucro (margem negativa), para a área clicável ter os 32px
+  // da aba e não 30.
+  &__abrir {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: calc(100% + 2px);
+    margin: -1px 0 -1px -1px;
+    padding: 0 4px 0 11px;
+    border: 0;
+    border-radius: inherit;
+    background: transparent;
+    color: inherit;
+    font-family: var(--f-ui);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
+    white-space: nowrap;
+    text-align: left;
+    cursor: pointer;
+    // Arrastar a aba não seleciona o texto dela.
+    user-select: none;
+
+    i {
+      font-size: 16px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+
+    @supports not selector(:has(*)) {
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: -2px;
+      }
+    }
+    @supports selector(:has(*)) {
+      &:focus-visible {
+        outline: none;
+      }
+    }
+  }
+
+  // A Início não tem "x": sem o espaço dele à direita, o texto ficava a 4px da
+  // borda, contra 11px à esquerda.
+  &__aba--fixa &__abrir {
+    padding-right: 11px;
+  }
+
+  // Mesmo degrau de peso do item ativo da sidebar.
+  &__aba--ativa &__abrir {
+    font-weight: 500;
+  }
+
+  // `overflow: hidden` é o que dá a reticência, e corta o que passa da caixa
+  // de linha: com `line-height: 1` (13px) a cauda de g, p, q, y e ç saía
+  // cortada. A caixa tem folga de sobra (a aba tem 32px).
+  &__titulo {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+
+    // Reserva a largura do texto no peso da aba ativa (`data-t` é o próprio
+    // título): as abas de seção medem o que têm, e sem isto ficar em destaque
+    // as alargava em ~1px e empurrava as vizinhas.
+    &::after {
+      content: attr(data-t);
+      display: block;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      font-weight: 500;
+    }
+  }
+
+  // Referência do ticket (TD-00027): em tom discreto, antes do assunto. É o
+  // que se perde primeiro numa aba apertada (contêiner abaixo).
+  &__ref {
+    flex: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  // Ponto com a cor da etapa do ticket: dá para ver de longe qual está
+  // aguardando cliente, fechado etc., sem abrir cada aba.
+  &__etapa {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+  }
+
+  // Rascunho não enviado: um anel vazio antes do "x". Fechar não pergunta
+  // nada (o store guarda o texto e o devolve ao reabrir o ticket), então esta
+  // marca só avisa que há uma resposta começada naquele ticket.
+  &__rascunho {
+    width: 6px;
+    height: 6px;
+    margin-left: auto;
+    border-radius: 50%;
+    box-shadow: inset 0 0 0 1.5px var(--text-muted);
+    flex: none;
+  }
+
+  // Aba de ticket apertada (abaixo de ~190px de conteúdo): tudo se junta um
+  // pouco para a referência continuar ao lado do assunto. É ela que distingue
+  // dois tickets de assunto parecido ("Horas de manutenção... Acme" e "...
+  // Bravo"), e o tooltip não existe em tela de toque.
+  @container (max-width: 190px) {
+    &__abrir {
+      gap: 5px;
+      padding-left: 9px;
+    }
+    &__ref {
+      font-size: 10.5px;
+    }
+  }
+  // Quase no mínimo (120px): não sobra espaço para os dois, e o assunto ganha.
+  // A referência continua no tooltip e no nome acessível.
+  @container (max-width: 150px) {
+    &__ref {
+      display: none;
+    }
+  }
+
+  // ── O "x" ─────────────────────────────────────────────────────────────────
+  // 24px de alvo. Invisível na aba em repouso, para a faixa ficar quieta; a
+  // ativa, o hover e o foco o mostram. `opacity` e não `display`: continua no
+  // DOM e no leitor de tela. Fica fora do Tab (o Delete fecha a aba focada).
+  &__fechar {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 24px;
+    height: 24px;
+    margin-right: 3px;
+    border: 0;
+    border-radius: calc(var(--shell-raio, var(--raio)) - 2px);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition:
+      opacity 0.12s ease,
+      background 0.12s ease,
+      color 0.12s ease;
+
+    i {
+      font-size: 14px;
+      line-height: 1;
+    }
+    // Um degrau acima do fundo da aba, seja o hover ou o cartão da ativa.
+    &:hover {
+      background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: none;
+    }
+  }
+
+  &__aba:hover &__fechar,
+  &__aba:focus-within &__fechar,
+  &__aba--ativa &__fechar {
+    opacity: 1;
+  }
+
+  // O "x" que ficou (em parte) sob o esmaecido da ponta da faixa some: tocar
+  // nele fecharia uma aba que a pessoa nem enxerga (BarraDeAbas.tsx marca a
+  // aba com `data-x-coberto`).
+  &__aba[data-x-coberto] &__fechar {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  // Sem ponteiro que paire, o "x" tem de estar sempre à mão. Alvo mais alto,
+  // para o dedo (a aba tem 32px): o desenho é de 28px e a área tocável chega a
+  // 32 com o `::after`.
+  @media (hover: none) {
+    &__fechar {
+      opacity: 1;
+      width: 28px;
+      height: 28px;
+      margin-right: 1px;
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: -2px;
+      }
+    }
+  }
+
+  // ── O "+" ─────────────────────────────────────────────────────────────────
+  &__novo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: var(--shell-raio, var(--raio));
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      color 0.12s ease;
+
+    &:hover {
+      background: var(--shell-hover, var(--sidebar-hover));
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__aba,
+    &__fechar,
+    &__novo {
+      transition: none;
+    }
+  }
+
+  // Alto contraste do sistema: as cores do plano e do cartão somem, então a
+  // aba ativa se marca pelo fio (cor de destaque do sistema), as inativas
+  // ficam sem fio, e o que era feito de sombra ou de fundo (o anel do
+  // rascunho, o ponto da etapa) passa a ter borda ou mantém a cor.
+  @media (forced-colors: active) {
+    &__aba {
+      border-color: Canvas;
+    }
+    &__aba--ativa,
+    &__aba--ativa:hover {
+      border-color: Highlight;
+    }
+    &__rascunho {
+      box-shadow: none;
+      border: 1.5px solid CanvasText;
+      box-sizing: border-box;
+    }
+    &__etapa {
+      forced-color-adjust: none;
+    }
+  }
+}
+
+// ── Telas pequenas ──────────────────────────────────────────────────────────
+// A barra superior fica com o botão de menu, esta faixa (que rola) e os dois
+// ícones da direita. A aba de ticket é mais estreita para que mais de uma
+// apareça; o resto (rolar, "x" sempre à mão) é o mesmo.
+@media (max-width: 767px) {
+  .barra-de-abas__aba--ticket {
+    width: 184px;
+  }
+}
+
+.barra-de-abas__aba--ativa .barra-de-abas__abrir {
+  font-weight: 600;
+}
+.barra-de-abas__novo {
+  border: 1px solid var(--shell-borda, var(--stroke));
+  border-radius: var(--shell-raio, var(--raio));
+}
+.barra-de-abas__aba--ativa .barra-de-abas__fechar {
+  color: var(--shell-ativo-sobre, var(--primario-sobre));
+  &:hover {
+    background: color-mix(in srgb, currentColor 15%, transparent);
+  }
+}

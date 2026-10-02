@@ -1,49 +1,122 @@
-// Home — KPI row no estilo do design system (cards brancos lado a lado,
-// separados por borda, sem gap; valor grande peso 300; accent na borda inferior).
+// Home — cabeçalho com a ação "Pegar o próximo", as listas acionáveis em
+// cartões brancos sobre o plano, e a faixa de KPI num cartão só.
 .inicio {
-  padding: 30px;
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  max-width: 1360px;
-  width: 100%;
-  margin: 0 auto;
+  gap: 20px;
 
   &__cabecalho {
     display: flex;
-    align-items: flex-end;
+    align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
+    gap: 16px;
+    flex-wrap: wrap;
   }
-  &__pre {
-    display: block;
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-bottom: 7px;
-  }
+  // Mesmo título de página das outras telas do console: 28px, Inter,
+  // semibold, com a linha de apoio embaixo.
   &__titulo {
+    font-family: var(--f-ui);
     font-size: 28px;
-    font-weight: 500;
-    color: #0c0a09;
-    letter-spacing: -0.04em;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
   }
   &__sub {
-    margin-top: 7px;
-    font-size: 12px;
-    color: var(--text-muted);
+    margin-top: 4px;
+    font-size: 14px;
+    color: var(--text-secondary);
   }
-  &__acoes { display: flex; gap: 8px; }
-  &__secao-cabecalho { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;
-    h2 { font-size: 12px; font-weight: 600; color: #0c0a09; }
-    span { color: var(--text-muted); font-size: 10px; }
+  &__fila-estado {
+    color: var(--away);
+    font-weight: 500;
+    &--aberta {
+      color: var(--ok);
+    }
   }
 
+  // "Pegar o próximo" e a frase que diz quantos há (ou por que não há):
+  // coluna alinhada à direita, a frase logo abaixo do botão.
+  &__pegar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+  &__botao {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--primario);
+    // Texto sobre fundo de marca sai do token de superfície: o --accent clareia
+    // no tema escuro (tokens.scss:77) e branco por cima cai para 2.45:1.
+    color: var(--primario-sobre);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.15s ease;
+
+    i {
+      font-size: 16px;
+    }
+    &:hover {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    // `aria-disabled` e não `disabled`: continua focável, e a frase ao lado
+    // (aria-describedby) é lida junto. O visual é o de desabilitado.
+    &[aria-disabled='true'] {
+      background: var(--sidebar-ativo);
+      color: var(--text-muted);
+      cursor: not-allowed;
+    }
+    &[aria-busy='true'] {
+      cursor: progress;
+    }
+  }
+  &__dica {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    &--erro {
+      color: var(--danger);
+    }
+  }
+
+  // Duas colunas no desktop (fila de prioridade/vencimentos à esquerda,
+  // chat/equipe à direita); uma coluna abaixo de 900px — mesmo ponto de
+  // quebra do mini chat, que já some nessa largura.
+  &__grade {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+
+    @media (max-width: 899px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  // Grade e não flex com quebra: com sete ladrilhos, o flex deixava o
+  // "Resolvidos hoje" sozinho numa segunda linha inteira. Assim as colunas
+  // se dividem por igual e só quebram quando não cabem mesmo.
   &__kpis {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
     background: var(--surface-card);
-    border: 1px solid var(--stroke);
-    border-radius: 10px;
+    border-radius: var(--raio-cartao);
     overflow: hidden;
   }
 
@@ -51,41 +124,53 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
     gap: 6px;
-    min-height: 86px;
-    padding: 15px 17px;
-    border-right: 1px solid var(--stroke);
-    --md-text-button-container-height: 86px;
-    --md-text-button-container-shape: 0;
-    --md-text-button-label-text-color: var(--text-primary);
-    --md-text-button-hover-label-text-color: var(--text-primary);
-    --md-text-button-hover-state-layer-color: #f0efed;
+    padding: 20px;
+    border: none;
+    border-bottom: 3px solid transparent;
     background: transparent;
+    cursor: pointer;
     text-align: left;
+    transition: background 0.12s ease, border-color 0.12s ease;
 
     &:last-child {
       border-right: none;
     }
     &:hover {
-      box-shadow: inset 0 -2px #292524;
+      background: var(--sidebar-hover);
+      border-bottom-color: var(--accent);
+    }
+    // Item (impeccable/polish): `.inicio__kpis` é `overflow: hidden` (só
+    // pra cortar os cantos arredondados do container nas pontas) — mas os
+    // ladrilhos ficam colados uns nos outros SEM padding vertical, então o
+    // anel de foco padrão do navegador (que desenha PRA FORA da caixa)
+    // ficava cortado em cima/embaixo ao tabular até aqui, e só sobrava uma
+    // linha fina de um lado. Anel PRA DENTRO via box-shadow não depende do
+    // espaço fora da caixa — mesma cor, mesma ideia do anel padrão, só que
+    // imune ao corte do container. `.lista-tickets__views--recolhido` já
+    // resolve essa mesma classe de problema com `overflow: visible`; aqui
+    // não dá pra abrir mão do `overflow: hidden` do container (ele existe
+    // pelos cantos), então o anel é quem se adapta.
+    &:focus-visible {
+      outline: none;
+      box-shadow: inset 0 0 0 2px var(--accent);
     }
   }
 
   &__kpi-rotulo {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 400;
     color: var(--text-secondary);
   }
   &__kpi-valor {
-    font-size: 27px;
+    font-size: 28px;
     font-weight: 500;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     color: var(--text-primary);
     line-height: 1;
+    font-variant-numeric: tabular-nums;
     &--accent {
-      color: var(--text-primary);
+      color: var(--accent);
     }
     &--danger {
       color: var(--danger);
@@ -95,25 +180,385 @@
     }
   }
 
-  &__orientacao {
+  // "Resolvidos hoje" — mesmo cartão, mais a variação vs a mesma hora
+  // ontem (apps/reports/services/indicators.py::variation, período "today").
+  &__kpi--tendencia {
+    cursor: default;
+    &:hover {
+      background: transparent;
+      border-bottom-color: transparent;
+    }
+  }
+  // O número ainda não chegou: um bloco na altura do número (1em do valor).
+  &__kpi .inicio__kpi-esqueleto {
+    width: 48px;
+  }
+  &__kpi-delta {
+    font-size: 12px;
+    font-weight: 500;
+    &--up {
+      color: var(--ok);
+    }
+    &--down {
+      color: var(--danger);
+    }
+    &--flat {
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ============================================================================
+// Listas da Início — fila de prioridade, vencimentos de SLA, fila de chat,
+// equipe online. Um cartão por widget, mesma borda/raio do resto do design
+// system; cada linha é o item de verdade (clicável), não um resumo.
+// ============================================================================
+.inicio-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--surface-card);
+  border-radius: var(--raio-cartao);
+  min-width: 0;
+
+  &__cabecalho {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 15px 17px;
-    border: 1px solid var(--stroke);
-    border-radius: 10px;
-    background: linear-gradient(100deg, rgba(167, 229, 211, .16), transparent 42%), var(--surface-card);
-    &-icone { width: 31px; height: 31px; border-radius: 8px; background: #eaf5ef; color: #47785d; display: grid; place-items: center; font-weight: 600; }
-    h2 { font-size: 12px; font-weight: 600; color: #0c0a09; }
-    p { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
-    md-text-button { margin-left: auto; }
+    justify-content: space-between;
+    gap: 8px;
+
+    h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+  &__contador {
+    font-family: var(--f-ui);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-secondary);
+  }
+  &__ver-tudo {
+    border: none;
+    background: none;
+    color: var(--accent);
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+    padding: 0;
+    &:hover {
+      text-decoration-thickness: 2px;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+  }
+  &__vazio {
+    font-size: 14px;
+    color: var(--text-secondary);
+    padding: 8px 2px;
   }
 
-  @media (max-width: 800px) {
-    padding: 20px;
-    &__cabecalho { align-items: flex-start; flex-direction: column; }
-    &__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    &__kpi { border-bottom: 1px solid var(--stroke); }
-    &__orientacao { align-items: flex-start; flex-wrap: wrap; md-text-button { margin-left: 43px; } }
+  &__itens {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 6px;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+
+    &:hover {
+      background: var(--sidebar-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+    &--chat {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+    }
+    // A linha enquanto carrega: mesma altura e mesmas colunas da de verdade.
+    &--esqueleto {
+      cursor: default;
+      &:hover {
+        background: none;
+      }
+      .inicio-lista__esq-barra {
+        width: 3px;
+        height: auto;
+        align-self: stretch;
+      }
+      .inicio-lista__esq-avatar {
+        width: 26px;
+        height: 26px;
+        flex-shrink: 0;
+      }
+      .inicio-lista__texto {
+        gap: 6px;
+      }
+      .inicio-lista__esq-assunto {
+        width: 70%;
+        height: 14px;
+      }
+      .inicio-lista__esq-meta {
+        width: 40%;
+        height: 12px;
+      }
+      .inicio-lista__esq-lado {
+        width: 44px;
+        height: 12px;
+        flex-shrink: 0;
+      }
+    }
+  }
+  &__barra {
+    width: 3px;
+    align-self: stretch;
+    border-radius: var(--raio);
+    flex-shrink: 0;
+  }
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  &__assunto {
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  &__sla {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+}
+
+.inicio-chat {
+  &__avatar {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 600;
+  }
+  &__pegar {
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 12px;
+    border: none;
+    border-radius: var(--raio);
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    &:hover:not(:disabled) {
+      background: var(--primario-hover);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 2px;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+}
+
+.inicio-online {
+  &__grade {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 14px;
+    list-style: none;
+    margin: 0;
+    padding: 4px 2px;
+  }
+  &__pessoa {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 52px;
+  }
+  &__avatar {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--surface-alt);
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+  }
+  &__dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--surface-card);
+    &--available {
+      background: var(--presenca-disponivel);
+    }
+    &--away {
+      background: var(--presenca-ausente);
+    }
+  }
+  // Esqueleto da grade de rostos (QuemEstaOnline enquanto carrega).
+  &__pessoa .inicio-online__esq-avatar {
+    width: 36px;
+    height: 36px;
+  }
+  &__pessoa .inicio-online__esq-nome {
+    width: 40px;
+    height: 12px;
+  }
+  &__nome {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+}
+
+// ============================================================================
+// Mural de avisos — o que a equipe publicou pra essa audiência (fixados
+// primeiro). Uma borda de cor por tipo, mesmo padrão do aviso de erro do
+// Kanban (border + fundo tingido via color-mix).
+// ============================================================================
+.mural-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &__item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--raio-cartao);
+    background: var(--surface-card);
+    font-size: 14px;
+
+    // Cor só para o que é ESTADO: o aviso urgente. Feriado e férias são tipo
+    // de aviso, não alerta; o ícone já diz qual é, sem faixa colorida.
+    > i:first-child {
+      margin-top: 2px;
+      font-size: 16px;
+      color: var(--text-secondary);
+    }
+    &--urgent {
+      background: color-mix(in srgb, var(--danger) 6%, var(--surface-card));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--danger) 30%, transparent);
+      > i:first-child {
+        color: var(--danger);
+      }
+    }
+  }
+
+  &__texto {
+    flex: 1;
+    min-width: 0;
+    strong {
+      display: block;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+    p {
+      margin-top: 2px;
+      color: var(--text-secondary);
+    }
+  }
+
+  &__item button {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--raio);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    &:hover {
+      background: var(--sidebar-hover);
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// Celular: a ação desce para baixo da saudação e ocupa a largura toda, com
+// a frase embaixo alinhada à esquerda, como o resto do texto.
+@media (max-width: 599px) {
+  .inicio {
+    padding: 16px;
+    gap: 16px;
+
+    &__titulo {
+      font-size: 24px;
+    }
+    &__pegar {
+      width: 100%;
+      align-items: stretch;
+    }
+    &__botao {
+      justify-content: center;
+    }
+    &__dica {
+      text-align: left;
+    }
+    &__kpis {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    &__kpi {
+      padding: 16px;
+    }
   }
 }
