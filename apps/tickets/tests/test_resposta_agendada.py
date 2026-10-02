@@ -57,7 +57,9 @@ class TestAgendar:
                 ticket=ticket, actor=agente_suporte, body="oi", scheduled_at=_futuro(),
             )
 
-    def test_fechar_ao_enviar_exige_campos_de_resolucao(self, make_ticket, ana, suporte, agente_suporte):
+    def test_fechar_ao_enviar_exige_campos_de_resolucao(
+        self, make_ticket, ana, suporte, agente_suporte
+    ):
         ticket = make_ticket(ana, suporte)
         with pytest.raises(TicketRuleViolation, match="D4"):
             ticket_service.schedule_reply(
@@ -109,7 +111,9 @@ class TestCancelar:
         cancelada = ticket_service.cancel_scheduled_reply(scheduled=agendada, actor=agente_suporte)
         assert cancelada.status == ScheduledReplyStatus.CANCELLED
 
-    def test_outra_pessoa_nao_cancela(self, make_ticket, ana, suporte, agente_suporte, agente_financeiro):
+    def test_outra_pessoa_nao_cancela(
+        self, make_ticket, ana, suporte, agente_suporte, agente_financeiro
+    ):
         ticket = make_ticket(ana, suporte)
         agendada = ticket_service.schedule_reply(
             ticket=ticket, actor=agente_suporte, body="oi", scheduled_at=_futuro(),
@@ -176,7 +180,9 @@ class TestDisparo:
         agendada.refresh_from_db()
         assert agendada.status == ScheduledReplyStatus.CANCELLED
 
-    def test_falha_no_disparo_marca_failed_com_o_motivo(self, make_ticket, ana, suporte, agente_leve):
+    def test_falha_no_disparo_marca_failed_com_o_motivo(
+        self, make_ticket, ana, suporte, agente_leve
+    ):
         """Simula o agendamento ter ficado inválido até a hora do disparo —
         aqui, criado direto pelo ORM (contornando a validação de
         `schedule_reply`) para exercitar o caminho de erro do disparo."""
@@ -194,7 +200,9 @@ class TestDisparo:
         assert agendada.error  # guarda o motivo pra quem agendou entender
         assert ticket.messages.count() == 1  # nenhuma mensagem nova entrou
 
-    def test_idempotente_nao_reenviar_apos_marcar_enviada(self, make_ticket, ana, suporte, agente_suporte):
+    def test_idempotente_nao_reenviar_apos_marcar_enviada(
+        self, make_ticket, ana, suporte, agente_suporte
+    ):
         ticket = make_ticket(ana, suporte)
         agendada = ticket_service.schedule_reply(
             ticket=ticket, actor=agente_suporte, body="oi", scheduled_at=_futuro(),

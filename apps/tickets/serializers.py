@@ -442,7 +442,9 @@ class TicketScheduleReplySerializer(serializers.Serializer):
 
     body = serializers.CharField()
     is_public = serializers.BooleanField(default=True)
-    new_status = serializers.ChoiceField(choices=TicketStatus.choices, required=False, allow_blank=True, default="")
+    new_status = serializers.ChoiceField(
+        choices=TicketStatus.choices, required=False, allow_blank=True, default=""
+    )
     resolution_started_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     resolution_ended_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
     close_note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")

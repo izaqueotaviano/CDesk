@@ -165,7 +165,9 @@ class TestPrivacidade:
 class TestAvisoAoVivo:
     def _avisos(self, acao, django_capture_on_commit_callbacks):
         enviados = []
-        with mock.patch.object(chat_service, "_sala", side_effect=lambda cid, ev: enviados.append((cid, ev))):
+        with mock.patch.object(
+            chat_service, "_sala", side_effect=lambda cid, ev: enviados.append((cid, ev))
+        ):
             with django_capture_on_commit_callbacks(execute=True):
                 acao()
         return [(cid, ev) for cid, ev in enviados if ev["type"] == "chat.queue_position"]
@@ -182,7 +184,9 @@ class TestAvisoAoVivo:
             assert ev["chat_id"] == cid
             assert set(ev) == CAMPOS | {"type", "chat_id"}
 
-    def test_chat_novo_avisa_a_fila_inteira(self, fila_de_tres, django_capture_on_commit_callbacks, acme):
+    def test_chat_novo_avisa_a_fila_inteira(
+        self, fila_de_tres, django_capture_on_commit_callbacks, acme
+    ):
         from apps.accounts.models import User, UserKind
 
         dani = User.objects.create_user(
@@ -203,7 +207,9 @@ class TestAvisoAoVivo:
 
         assert self._avisos(renomear, django_capture_on_commit_callbacks) == []
 
-    def test_fila_vazia_nao_manda_nada(self, agente, chat_da_ana, django_capture_on_commit_callbacks):
+    def test_fila_vazia_nao_manda_nada(
+        self, agente, chat_da_ana, django_capture_on_commit_callbacks
+    ):
         avisos = self._avisos(lambda: chat_service.take_chat(chat=chat_da_ana, agent=agente),
                               django_capture_on_commit_callbacks)
         assert avisos == []

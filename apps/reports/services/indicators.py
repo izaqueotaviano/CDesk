@@ -133,7 +133,9 @@ def custom_window(date_from: dt.date | None, date_to: dt.date | None, now=None) 
     date_from = date_from or (date_to - dt.timedelta(days=29))
 
     start = timezone.make_aware(dt.datetime.combine(date_from, dt.time.min))
-    end_of_day = timezone.make_aware(dt.datetime.combine(date_to + dt.timedelta(days=1), dt.time.min))
+    end_of_day = timezone.make_aware(
+        dt.datetime.combine(date_to + dt.timedelta(days=1), dt.time.min)
+    )
     end = max(start, min(end_of_day, now))
     length = end - start
     return Window(start, end, start - length, start)

@@ -14,7 +14,6 @@ O que precisa ficar provado:
 """
 
 import pytest
-from django.utils import timezone
 
 from apps.tickets.models import SatisfactionSurvey, TicketStatus
 from apps.tickets.services import ticket_service
@@ -43,14 +42,18 @@ class TestEncerrarPelaRota:
         assert ticket.status == TicketStatus.CLOSED
         assert ticket.closed_by == olga
 
-    def test_colega_sem_papel_de_responsavel_nao_encerra(self, api, make_ticket, ana, beto, suporte):
+    def test_colega_sem_papel_de_responsavel_nao_encerra(
+        self, api, make_ticket, ana, beto, suporte
+    ):
         ticket = make_ticket(ana, suporte)
         resp = api(beto).post(f"/api/v1/tickets/{ticket.pk}/close/", {}, format="json")
         assert resp.status_code == 400
         ticket.refresh_from_db()
         assert ticket.status != TicketStatus.CLOSED
 
-    def test_cliente_de_outra_empresa_nem_enxerga_o_ticket(self, api, make_ticket, ana, carla, suporte):
+    def test_cliente_de_outra_empresa_nem_enxerga_o_ticket(
+        self, api, make_ticket, ana, carla, suporte
+    ):
         ticket = make_ticket(ana, suporte)
         resp = api(carla).post(f"/api/v1/tickets/{ticket.pk}/close/", {}, format="json")
         assert resp.status_code == 404
@@ -94,7 +97,9 @@ class TestEfeitosColaterais:
 
     def test_note_chega_ao_evento_de_fechamento(self, make_ticket, ana, suporte):
         ticket = make_ticket(ana, suporte)
-        ticket_service.close_ticket_by_requester(ticket=ticket, actor=ana, note="resolvi por conta própria")
+        ticket_service.close_ticket_by_requester(
+            ticket=ticket, actor=ana, note="resolvi por conta própria"
+        )
         evento = ticket.status_events.filter(to_status=TicketStatus.CLOSED).latest("id")
         assert evento.note == "resolvi por conta própria"
 

@@ -639,7 +639,10 @@ class ScheduledReply(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Resposta agendada #{self.pk} em {self.ticket_id} para {self.scheduled_at:%d/%m %H:%M}"
+        return (
+            f"Resposta agendada #{self.pk} em {self.ticket_id} "
+            f"para {self.scheduled_at:%d/%m %H:%M}"
+        )
 
 
 class ScanStatus(models.TextChoices):

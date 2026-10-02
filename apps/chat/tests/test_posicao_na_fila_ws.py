@@ -29,7 +29,9 @@ def clientes(db):
     plan = Plan.objects.create(slug="gold", name="Gold", default_ticket_limit=10, chat_enabled=True)
     acme = Company.objects.create(name="Acme", slug="acme", plan=plan)
     return [
-        User.objects.create_user(email=f"{n}@acme.test", full_name=n.title(), kind=UserKind.CLIENT, company=acme)
+        User.objects.create_user(
+            email=f"{n}@acme.test", full_name=n.title(), kind=UserKind.CLIENT, company=acme
+        )
         for n in ("ana", "beto")
     ]
 
@@ -41,7 +43,9 @@ async def test_cliente_recebe_a_propria_posicao(clientes):
     chat_ana, _ = await abrir(client=ana)
     chat_beto, _ = await abrir(client=beto)
 
-    comm = WebsocketCommunicator(application, f"/ws/chat/{chat_beto.pk}/?ticket={issue_access_token(beto.id)}")
+    comm = WebsocketCommunicator(
+        application, f"/ws/chat/{chat_beto.pk}/?ticket={issue_access_token(beto.id)}"
+    )
     conectado, _ = await comm.connect()
     assert conectado
 

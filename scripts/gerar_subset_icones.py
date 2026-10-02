@@ -93,7 +93,7 @@ def main() -> int:
     pontos = ",".join(f"U+{codigo_por_nome[n]}" for n in conhecidos)
 
     woff2 = SAIDA / "tabler-subset.woff2"
-    subprocess.run(
+    subprocess.run(  # noqa: S603 — comando e argumentos montados aqui, sem entrada externa
         [sys.executable, "-m", "fontTools.subset", str(PACOTE / "fonts" / "tabler-icons.ttf"),
          f"--unicodes={pontos}", "--flavor=woff2", "--layout-features=",
          "--no-hinting", "--desubroutinize", f"--output-file={woff2}"],

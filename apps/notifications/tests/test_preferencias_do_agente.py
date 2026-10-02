@@ -24,7 +24,9 @@ def _ticket(ana, suporte):
 
 
 class TestSinoDoAgente:
-    def test_desligar_o_sino_de_um_tipo_cala_so_aquele_tipo(self, api, ana, suporte, agente, colega):
+    def test_desligar_o_sino_de_um_tipo_cala_so_aquele_tipo(
+        self, api, ana, suporte, agente, colega
+    ):
         resp = api(colega).put(
             "/api/v1/notification-preferences/",
             {"in_app": {NotificationKind.TICKET_ASSIGNED: False}},

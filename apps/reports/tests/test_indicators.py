@@ -594,7 +594,9 @@ class TestCustomRange:
         _ticket(ana, suporte)
         hoje = timezone.localdate()
 
-        panel = _panel(admin, date_from=hoje - dt.timedelta(days=40), date_to=hoje - dt.timedelta(days=35))
+        panel = _panel(
+            admin, date_from=hoje - dt.timedelta(days=40), date_to=hoje - dt.timedelta(days=35)
+        )
         cells = _scope(_table(panel, "opened"), "total")["cells"]
 
         assert set(cells) == {"today", "week", "month"}

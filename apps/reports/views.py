@@ -169,7 +169,8 @@ class TicketReportExportView(_BaseReportView):
                          description="Janela do painel (padrão: month)"),
         OpenApiParameter("team", OpenApiTypes.INT, description="Id da equipe"),
         OpenApiParameter("from", OpenApiTypes.DATE,
-                         description="Início de um intervalo livre (AAAA-MM-DD); ganha de `period`"),
+                         description="Início de um intervalo livre (AAAA-MM-DD); "
+                                     "ganha de `period`"),
         OpenApiParameter("to", OpenApiTypes.DATE,
                          description="Fim do intervalo livre, dia inteiro (AAAA-MM-DD)"),
     ],

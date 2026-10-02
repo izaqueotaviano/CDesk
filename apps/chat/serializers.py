@@ -128,7 +128,9 @@ class ChatMessageSerializer(serializers.ModelSerializer):
     def _ultimo_id_do_chat(self, chat_id: int) -> int | None:
         cache = self.context.setdefault("_ultimo_id_por_chat", {})
         if chat_id not in cache:
-            cache[chat_id] = ChatMessage.objects.filter(chat_id=chat_id).aggregate(Max("id"))["id__max"]
+            cache[chat_id] = ChatMessage.objects.filter(chat_id=chat_id).aggregate(Max("id"))[
+                "id__max"
+            ]
         return cache[chat_id]
 
 
