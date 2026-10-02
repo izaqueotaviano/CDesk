@@ -1,67 +1,126 @@
 /* ============================================================
-   resolv — tokens
-   Extraído dos 5 protótipos por renderização (Chromium, computed
-   styles, 2 temas × 5 larguras) e normalizado. Ver DESIGN_SYSTEM.md.
+   resolv — tokens do Painel do Cliente (e de tudo que é Tailwind)
 
-   O tema continua no atributo data-tema do <html> ("claro" | "escuro"),
-   como nos arquivos originais. O bloco prefers-color-scheme é novo:
-   os protótipos não tinham nenhum.
+   Os VALORES são os do Convertize Design System v2 (a skill
+   convertize-design-system, 2.0.0): canvas #f5f5f5, superfície #ffffff,
+   cromo #f0efed, tinta #292524, linha #e7e5e4, AÇÃO em carvão #292524 e o
+   laranja #ff5e2c reservado a foco, seleção, item ativo e marca. Inter na
+   interface e Tenor Sans só em título editorial. Os NOMES continuam
+   os do portal (--acento, --superficie, --divisoria…) porque ~50 arquivos
+   Tailwind os consomem — foi por isso que a troca inteira coube na camada
+   de token, sem reescrever tela nenhuma.
+
+   Os mesmos valores vivem em resolv/styles/tokens.scss (console) e
+   cvz/styles/_theme.scss (admin). Mudar um aqui é mudar nos três.
+
+   O tema continua no atributo data-tema do <html> ("claro" | "escuro",
+   ou ausente em "sistema" — stores/prefs.ts), e o bloco
+   prefers-color-scheme cobre o caso ausente.
    ============================================================ */
 
 :root {
-  /* ---------- primitivos: rampa neutra quente ---------- */
+  /* ---------- primitivos: rampa neutra fria ----------
+     Antes era uma rampa quente (#f8f4f1…#262220) que só o portal usava.
+     Agora é a do console: os degraus claros são os três fundos do produto
+     (branco, canvas, cromo) e os escuros são as superfícies da paleta escura
+     do resolv. Prefira os semânticos abaixo; primitivo é só pra quando o
+     valor NÃO pode seguir o tema. */
   --neutro-0:   #ffffff;
-  --neutro-25:  #fffbf8;
-  --neutro-50:  #f8f4f1;
-  --neutro-100: #f1ece8;
-  --neutro-200: #e8e2dd;
-  --neutro-300: #c9c0ba;
-  --neutro-400: #a79e97;
-  --neutro-500: #9a918a;
-  --neutro-600: #79706a;
-  --neutro-700: #635c57;
-  --neutro-800: #3b3532;
-  --neutro-850: #332e2b;
-  --neutro-875: #2c2825;
-  --neutro-900: #262220;
-  --neutro-950: #211e1c;
-  --neutro-975: #1b1917;
+  --neutro-25:  #fafafa;  /* fundo de página (claro) */
+  --neutro-50:  #f5f5f5;  /* canvas (claro) */
+  --neutro-100: #f0efed;  /* cromo / inset (claro) */
+  --neutro-200: #e7e5e4;  /* linha estrutural (claro) */
+  --neutro-300: #d6d3d1;  /* linha reforçada (claro) */
+  --neutro-400: #a8a29e;
+  --neutro-500: #777169;  /* linha de campo (os dois temas) */
+  --neutro-600: #4e4e4e;  /* texto secundário (claro) */
+  --neutro-700: #292524;  /* tinta e ação (claro) */
+  --neutro-800: #1c1917;  /* superfície (escuro) */
+  --neutro-900: #0c0a09;  /* canvas (escuro) */
+  /* Só o escuro precisa de degraus entre 800 e 900, que a rampa do kit não
+     nomeia: são os valores do próprio bloco escuro do v2. */
+  --neutro-850: #231f1d;  /* superfície elevada (escuro) */
+  --neutro-875: #0f0d0c;  /* fundo de página (escuro) */
+  --neutro-950: #3a3532;  /* linha estrutural (escuro) */
+  --neutro-975: #5a5450;  /* linha reforçada (escuro) */
 
-  /* ---------- primitivos: acento e estado ---------- */
-  --acento-escuro: #0b63ce;
-  --acento-claro:  #a8c7fa;
-  --acento-tinta-sobre-claro: #0a2a52;
-  --perigo-claro: #b3261e;  --perigo-escuro: #f2b8b5;
-  --alerta-claro: #8a5d0f;  --alerta-escuro: #e8c26a;
-  --ok-claro:     #1d7a4c;  --ok-escuro:     #84d6a8;
+  /* ---------- primitivos: a marca Convertize ----------
+     A rampa OFICIAL do kit v2 (`--cz-n0`…`--cz-n900`): pedra, não cinza puro
+     — o matiz quente mora nos neutros, e não numa superfície creme. Foi o
+     que a leitura anterior (papel `#fffdf9` sobre pergaminho `#f6f4f1`)
+     errou: no v2 a superfície é BRANCA e o canvas é um cinza claro.
 
-  /* ---------- primitivos: avatar (idêntico nos dois temas) ---------- */
-  --avatar-c1: #3f6dd6; --avatar-c2: #8a5cd4; --avatar-c3: #127f60;
-  --avatar-c4: #b4531f; --avatar-c5: #9a2f52; --avatar-c6: #2f6f86;
+     --laranja       #ff5e2c é a marca. Sobre branco dá 3,05:1 — foco,
+                     seleção, item ativo e grafismo, NUNCA texto corrido nem
+                     fundo com texto claro em cima.
+     --laranja-tinta #b3401b é o `--accent-text` do kit: 5,73:1 sobre a
+                     superfície, 4,98:1 sobre o cromo. É o laranja que pode
+                     ser lido.
+     --grafite       #292524 é a tinta E a ação principal (`--primary`). No
+                     kit v2 o botão primário é carvão; o laranja marcaria
+                     tudo e, marcando tudo, não marcaria nada. */
+  --laranja:       #ff5e2c;
+  --laranja-fundo: #d94d1e;   /* `--cz-orange-deep`: hover do laranja cheio */
+  --laranja-tinta: #b3401b;
+  --laranja-veu:   #fff0e9;
+  --laranja-veu-linha: #ffd7ca;
+  --grafite:       #292524;
 
-  /* ---------- tipografia ---------- */
-  --f-ui: "Segoe UI Variable Text", "Segoe UI", Inter, -apple-system, system-ui, sans-serif;
-  --f-mono: "JetBrains Mono", "SF Mono", ui-monospace, monospace;
+  /* ---------- primitivos: identidade (idêntico nos dois temas) ----------
+     Os mesmos seis tons do console do agente (resolv/styles/tokens.scss e
+     cvz/styles/_theme.scss) — a pessoa tem a mesma cor dos dois lados da
+     conversa. Todos fora dos quatro tons semânticos (azul/verde/âmbar/
+     vermelho) e todos AA com texto branco (6,1:1 a 7,3:1). Terracota e
+     magenta saíram: numa lista, avatar avermelhado lia como alerta. Mudar
+     aqui é mudar lá também; o hash que escolhe entre eles é
+     ui/identidade.ts, e ui/identidade.test.ts confere os três arquivos. */
+  --avatar-c1: #5054C3; --avatar-c2: #0B6C75; --avatar-c3: #396783;
+  --avatar-c4: #6D604F; --avatar-c5: #4B5768; --avatar-c6: #7A4F8F;
 
-  --fs-micro:     9.75px;
-  --fs-legenda:   11px;
-  --fs-pequeno:   12.5px;
+  /* ---------- tipografia ----------
+     INTER na interface inteira, inclusive nos números (tabular) — é a regra
+     de marca do v2, e foi onde a leitura anterior errou: ela trocou Inter
+     por Geist. Tenor Sans SÓ em título editorial (h1 de tela, título de
+     diálogo, saudação da Início): é serifada e decorativa, e número nela
+     fica ilegível — por isso nunca em botão, tabela ou valor.
+     Self-hosted por @fontsource em src/main.tsx, como as demais. */
+  /* INTER, e só. Ela é auto-hospedada (@fontsource em main.tsx), então a
+     tela sai idêntica no Mac, no Windows e no Linux — com "Segoe UI" na
+     frente, quem estivesse no Windows veria outra fonte e outra métrica. */
+  --f-ui: Inter, sans-serif;
+  /* Uma família só. `--f-mono` e `--f-display` continuam existindo porque ~50
+     arquivos os consomem, mas apontam para a MESMA pilha: trocar a fonte de
+     um rótulo pequeno era o que fazia a tela parecer um painel técnico em vez
+     de um documento. Número segue alinhado por `font-variant-numeric`, que é
+     o que realmente importa numa coluna, e não pela largura fixa do glifo. */
+  --f-mono: var(--f-ui);
+  --f-display: var(--f-ui);
+
+  /* QUATRO tamanhos, e só. Os nove nomes continuam para não reescrever tela
+     nenhuma, mas caem em 12 / 14 / 16 / 28: rótulo, interface, leitura e
+     título. Uma escala curta é o que faz a hierarquia vir do PESO e do
+     espaço, não de mais um degrau de tamanho. */
+  --fs-micro:     12px;
+  --fs-legenda:   12px;
+  --fs-pequeno:   12px;
   --fs-corpo:     14px;
-  --fs-corpo-lg:  15.75px;
-  --fs-titulo-sm: 17.75px;
-  --fs-titulo:    20px;
-  --fs-titulo-lg: 22.5px;
-  --fs-display:   25.25px;
+  --fs-corpo-lg:  16px;
+  --fs-titulo-sm: 16px;
+  --fs-titulo:    16px;
+  --fs-titulo-lg: 28px;
+  --fs-display:   28px;
 
   --lh-nenhuma: 1;
-  --lh-justa:   1.25;
-  --lh-normal:  1.45;
-  --lh-solta:   1.6;
+  --lh-justa:   1.2;    /* título */
+  --lh-normal:  1.43;   /* interface */
+  --lh-solta:   1.75;   /* leitura — o respiro é o que dá o tom de documento */
 
-  --ls-titulo:  -0.015em;
-  --ls-display: -0.03em;
+  /* Zero entrelinhamento em tudo. O `--ls-rotulo` era o tracking de CAIXA
+     ALTA; rótulo em versalete sumiu junto com o resto das caixas altas. */
+  --ls-titulo:  0em;
+  --ls-display: -0.01em;
   --ls-nenhum:  0em;
-  --ls-rotulo:  0.05em;
+  --ls-rotulo:  0em;
 
   --fw-normal: 400;
   --fw-medio:  500;
@@ -76,27 +135,41 @@
   --sp-6: 24px;  --sp-8: 32px;
   --sp-10: 40px; --sp-11: 44px; --sp-16: 64px;
 
-  /* ---------- forma ---------- */
-  --r-sm: 4px; --r-md: 6px; --r-lg: 8px; --r-xl: 12px; --r-total: 999px;
+  /* ---------- forma ----------
+     A escala de raio do v2, com os nomes daqui: xs 4 / sm 6 / md 10 / lg 12 /
+     xl 20. É mais fechada que a leitura anterior (8/10/14/18) — o kit usa 6
+     no botão e no campo, e guarda o canto generoso para o que é superfície.
+     Quem precisa de círculo de verdade (avatar, ponto de status, interruptor)
+     continua em `--r-total`: é forma, não estilo. */
+  /* Três raios: 8 no que é controle, 12 no que é superfície, cápsula no que
+     é campo de entrada (busca e composer). */
+  --r-xs: 8px; --r-sm: 8px; --r-md: 12px; --r-lg: 12px; --r-xl: 12px; --r-total: 999px;
+  /* 0,7px é a espessura de TODA linha no v2 (`--hairline`): borda, divisória
+     e contorno. Numa tela comum o navegador resolve para menos de um pixel
+     físico, que é justamente o traço fino que o kit quer. */
   --borda-fina: 1px;
 
   /* ---------- ícone ---------- */
   --icone-sm: 12px; --icone-md: 16px; --icone-lg: 20px; --icone-xl: 24px;
-  --icone-traco: 1.6px;
+  --icone-traco: 1.75px;
 
   /* ---------- movimento ---------- */
-  --dur: 180ms;
-  --ease: cubic-bezier(.33, 0, .67, 1);
+  --dur: 150ms;
+  --ease: cubic-bezier(.2, 0, .38, .9);
 
   /* ---------- camada ---------- */
   --z-suspenso: 100; --z-fixo: 200; --z-cortina: 300;
   --z-modal: 400;    --z-popover: 500; --z-toast: 600;
 
   /* ---------- layout ---------- */
-  --sidebar-larga: 256px;
-  --sidebar-recolhida: 56px;
+  --sidebar-larga: 240px;
+  --sidebar-recolhida: 64px;
   --alvo-minimo: 24px;
-  --altura-controle: 32px;
+  /* As três alturas de controle do v2 (`--h-sm/md/lg`). `--altura-controle`
+     continua sendo o padrão, e passa de 34 para os 36 do kit. */
+  --altura-controle-sm: 28px;
+  --altura-controle: 36px;
+  --altura-controle-lg: 44px;
 }
 
 /* ============================================================
@@ -104,112 +177,262 @@
    ============================================================ */
 :root,
 [data-tema="claro"] {
-  --canvas:             var(--neutro-50);
-  --superficie:         var(--neutro-0);
-  --superficie-sutil:   var(--neutro-25);
-  --superficie-elevada: var(--neutro-0);
-  --navegacao:          var(--neutro-100);
+  /* Superfície BRANCA sobre canvas cinza-pedra, e o cromo um degrau abaixo —
+     a ordem de luminância (cromo < canvas < superfície) é a de sempre, mas
+     os valores agora são os do kit v2. O calor mora nos neutros (pedra, não
+     cinza puro) e no laranja, não numa superfície creme. */
+  /* Sidebar e conteúdo no MESMO plano, divididos por um fio de 1px — como a
+     referência (Copilot). Só o que é superfície de verdade sobe de tom:
+     cartão, campo e composer, em branco. */
+  --canvas:             #f6f5f3;   /* conteúdo */
+  --superficie:         #ffffff;   /* cartão, campo, composer */
+  --superficie-sutil:   #faf9f5;   /* preenchimento discreto dentro do conteúdo */
+  --superficie-elevada: #ffffff;
+  /* A sidebar tem o MESMO fundo do app, não um degrau próprio: o que a
+     separa do conteúdo é o espaço, não um bloco de cor. */
+  --navegacao:          #f6f5f3;
+  /* Estados opacos da navegação e das listas. Separados do `--hover`
+     translúcido lá embaixo, que continua servindo de véu sobre cor. */
+  --fundo-hover:        #f5f5f5;
+  --fundo-selecionado:  #ebebeb;
+  /* Hover e ativo de item SOBRE o plano (sidebar do portal). Os dois acima
+     foram pensados sobre branco: #f5f5f5 some no #f6f5f3. Os mesmos valores
+     de `--sidebar-hover`/`--sidebar-ativo` do console (resolv/tokens.scss). */
+  --navegacao-hover:    #f0efec;
+  --navegacao-ativo:    #eae9e6;
+  /* Campo escuro do login (login.css). Escuro nos DOIS temas, porque o texto
+     em cima dele é claro e fixo — seguir `--primario` o deixava claro no
+     tema escuro, com o texto sumindo. No escuro desce um degrau abaixo do
+     fundo da página, para continuar sendo o campo que se destaca. */
+  --login-painel:       #242424;
 
-  --divisoria:      var(--neutro-200);
-  --borda-controle: var(--neutro-500);
+  /* Duas famílias de linha, de propósito:
+     --divisoria      estrutura (cartão, tabela, divisória) — a `--line`
+     --borda-controle a mesma reforçada (hover) — a `--line-strong`
+     --borda-campo    SÓ campo, botão secundário e chip. */
+  --divisoria:      #e5e4e2;
+  --borda-controle: #d6d3d1;
+  /* DIVERGÊNCIA do briefing, e a única: ele pede `#D6D3D1` na borda de campo,
+     que dá 1,44:1 sobre branco e reprova em 1.4.11 (a norma pede 3:1 para o
+     contorno de um controle). Campo cuja borda não se enxerga não é
+     minimalismo, é campo invisível. Este é o tom mais CLARO da mesma família
+     quente que ainda passa: 3,47:1 sobre branco, 3,26:1 sobre o creme.
+     O `#D6D3D1` do briefing continua valendo no que é fio decorativo. */
+  --borda-campo:    #8e8983;
 
-  --tinta:            var(--neutro-900);
-  --tinta-secundaria: var(--neutro-700);
-  --tinta-terciaria:  var(--neutro-700);  /* alias de --tinta-secundaria: os dois
-                                             níveis colapsaram no tema claro (ΔE 2,97) */
+  --tinta:            #242424;   /* nunca preto puro */
+  --tinta-secundaria: #616161;   /* metadado, apoio */
+  /* O degrau mais silencioso que ainda passa AA onde o texto de fato fica:
+     5,1:1 no plano e 4,6:1 na pílula ativa (#eae9e6). O #767676 de antes só
+     passava sobre branco (4,2:1 no plano, 3,7:1 na pílula). */
+  --tinta-terciaria:  #686868;
+  --texto-cromo:      #242424;
 
-  --acento:       var(--acento-escuro);
-  --acento-tinta: var(--acento-escuro);
-  --acento-sobre: var(--neutro-0);
-  --acento-suave: rgba(11, 99, 206, .10);
+  /* UM acento, e ele é o sólido escuro. Marca duas coisas e só duas: o CTA
+     primário e o estado ativo. Tudo o mais é neutro quente. */
+  --primario:       #242424;
+  --primario-hover: #141414;
+  --primario-sobre: #ffffff;
 
-  --perigo: var(--perigo-claro);  --perigo-suave: rgba(179, 38, 30, .09);
-  --alerta: var(--alerta-claro);  --alerta-suave: rgba(138, 93, 15, .11);
-  --ok:     var(--ok-claro);      --ok-suave:     rgba(29, 122, 76, .11);
+  /* `--acento` deixou de ser o laranja. Ele nomeia o que PUXA a atenção —
+     link, item ativo, ícone de estado — e agora isso é a própria tinta.
+     A consequência é deliberada: sem cor para distinguir, link passa a se
+     anunciar por SUBLINHADO, que é o sinal que funciona também para quem
+     não separa matiz. O laranja da marca não morreu, só saiu da navegação:
+     ele segue em `--laranja`, para a marca e para ícone de conteúdo. */
+  --acento:       #242424;
+  --acento-hover: #141414;
+  --acento-tinta: #242424;
+  --acento-sobre: #ffffff;
+  /* O véu do item ativo e da seleção: neutro, não mais laranja claro. */
+  --acento-suave: #ebebeb;
+  --acento-suave-linha: #e5e4e2;
 
-  --hover: rgba(39, 35, 32, .045);
-  --ativo: rgba(39, 35, 32, .08);
+  /* Foco continua sendo contorno, não véu colorido: a tinta tem 13,9:1
+     sobre a superfície e 13,2:1 sobre o app, então o anel se vê em
+     qualquer fundo do produto sem precisar de cor. */
+  --foco:      #242424;
+  --foco-anel: #d6d3d1;
 
-  --elevacao-1: 0 1px 2px rgba(39, 35, 32, .05);
-  --elevacao-3: 0 12px 32px rgba(39, 35, 32, .12), 0 0 0 1px rgba(39, 35, 32, .06);
-  --esqueleto: linear-gradient(90deg, rgba(39,35,32,.05), rgba(39,35,32,.09), rgba(39,35,32,.05));
+  --perigo: #b13d24;  --perigo-suave: #fff3f0;  --perigo-linha: #f4cfc6;
+  --alerta: #8a5c35;  --alerta-suave: #fbf6ea;  --alerta-linha: #eedfbf;
+  --ok:     #3e6f4e;  --ok-suave:     #edf5ee;  --ok-linha:     #cfe3d4;
+  --info:   #2f6479;  --info-suave:   #edf6fa;  --info-linha:   #cfe4ec;
+
+  --hover: rgba(41, 37, 36, .05);
+  --ativo: rgba(41, 37, 36, .09);
+
+  /* As três sombras do kit. O nível 1 volta a existir (o v2 usa uma sombra
+     de 1px em cartão elevado), mas cartão comum continua se separando do
+     fundo pela LINHA, não por sombra. */
+  /* Sem sombra. O que separa um bloco do fundo é o TOM (branco sobre greige)
+     e o espaço em volta, não uma penumbra — é o que faz a tela ler como
+     documento e não como pilha de cartões flutuando.
+     Os três níveis continuam existindo porque ~16 regras os consomem; só o
+     que flutua DE VERDADE sobre o conteúdo (menu, popover, modal) guarda uma
+     sombra, e bem discreta, porque ali ela informa profundidade real. */
+  --elevacao-1: none;
+  --elevacao-2: 0 4px 12px rgba(36, 36, 36, .06);
+  --elevacao-3: 0 12px 32px rgba(36, 36, 36, .10);
+  --sobreposicao: rgba(12, 10, 9, .44);  /* véu atrás do modal */
+  --esqueleto: linear-gradient(90deg, rgba(0,0,0,.05), rgba(0,0,0,.09), rgba(0,0,0,.05));
 
   --esquema: light;
   color-scheme: light;
 }
-
 /* ============================================================
    Semântica — tema escuro
+   Os mesmos valores da paleta escura do console (resolv/styles/tokens.scss,
+   mixin paleta-escura): off-black de propósito — contra #000 puro a linha
+   de 1px some. A ordem de luminância é a mesma do claro (cromo < canvas <
+   superfície < cartão), só que espelhada.
    ============================================================ */
 [data-tema="escuro"] {
-  --canvas:             var(--neutro-975);
-  --superficie:         var(--neutro-900);
-  --superficie-sutil:   var(--neutro-875);
-  --superficie-elevada: var(--neutro-850);
-  --navegacao:          var(--neutro-950);
+  /* O escuro espelha a mesma ideia: greige QUENTE, não cinza frio nem preto
+     puro — contra #000 a linha de 1px some, e o quente é o que mantém o
+     parentesco com o claro. */
+  --canvas:             #1a1a19;
+  /* Cartão, campo e composer em #2a2a29, o --surface-card do console: o
+     #242423 de antes era um terceiro cinza que só o portal tinha. */
+  --superficie:         #2a2a29;
+  --superficie-sutil:   #1f1f1e;
+  --superficie-elevada: #2a2a29;
+  --navegacao:          #1a1a19;
+  /* Um degrau ACIMA do cartão, para o hover aparecer sobre ele. */
+  --fundo-hover:        #313130;
+  --fundo-selecionado:  #383837;
+  --navegacao-hover:    #252524;
+  --navegacao-ativo:    #2b2b2a;
+  --login-painel:       #0f0f0e;
 
-  --divisoria:      var(--neutro-800);
-  --borda-controle: var(--neutro-600);
+  --divisoria:      #323230;
+  --borda-controle: #3d3d3a;
+  /* Mesma divergência do claro, pelo mesmo motivo: 3,6:1 sobre a superfície
+     escura, contra os 1,4:1 que o valor do briefing daria aqui. */
+  --borda-campo:    #7c7a75;
 
-  --tinta:            #ede6e1;
-  --tinta-secundaria: var(--neutro-300);
-  --tinta-terciaria:  var(--neutro-400);  /* NÃO usar sobre --superficie-elevada:
-                                             cai para 5,09:1 e falha em popover/toast.
-                                             Ali, use --tinta-secundaria. */
+  --tinta:            #f2f1ee;
+  /* Os do console (resolv/styles/tokens.scss). O terciário daqui era
+     #97948f e reprovava sobre o selecionado (4,2:1 no #333332 de antes);
+     este dá 4,6:1 no selecionado atual (#383837) e 5,6:1 na pílula ativa. */
+  --tinta-secundaria: #d6d3d1;
+  --tinta-terciaria:  #a8a29e;
+  --texto-cromo:      #f2f1ee;
 
-  --acento:       var(--acento-claro);
-  --acento-tinta: var(--acento-claro);
-  --acento-sobre: var(--acento-tinta-sobre-claro);
-  --acento-suave: rgba(168, 199, 250, .16);
+  /* A ação inverte: o sólido escuro viraria invisível, então o primário é o
+     sólido CLARO com tinta escura em cima. O papel é o mesmo — um acento só,
+     no CTA e no item ativo. */
+  --primario:       #f2f1ee;
+  --primario-hover: #ffffff;
+  --primario-sobre: #1a1a19;
 
-  --perigo: var(--perigo-escuro);  --perigo-suave: rgba(242, 184, 181, .15);
-  --alerta: var(--alerta-escuro);  --alerta-suave: rgba(232, 194, 106, .14);
-  --ok:     var(--ok-escuro);      --ok-suave:     rgba(132, 214, 168, .15);
+  --acento:       #f2f1ee;
+  --acento-hover: #ffffff;
+  --acento-tinta: #f2f1ee;
+  --acento-sobre: #1a1a19;
+  --acento-suave: #333332;
+  --acento-suave-linha: #3d3d3a;
 
-  --hover: rgba(237, 230, 225, .055);
-  --ativo: rgba(237, 230, 225, .10);
+  --foco:      #f2f1ee;
+  --foco-anel: #3d3d3a;
 
-  --elevacao-1: 0 1px 2px rgba(0, 0, 0, .35);
-  --elevacao-3: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px rgba(237, 230, 225, .07);
-  --esqueleto: linear-gradient(90deg, rgba(237,230,225,.06), rgba(237,230,225,.12), rgba(237,230,225,.06));
+  --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
+  --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;
+  --ok:     #8fc39e;  --ok-suave:     #17241b;  --ok-linha:     #2b4232;
+  --info:   #9cc9da;  --info-suave:   #15242a;  --info-linha:   #284550;
+
+  --hover: rgba(245, 245, 245, .06);
+  --ativo: rgba(245, 245, 245, .10);
+
+  --elevacao-1: 0 1px 2px rgba(0, 0, 0, .4);
+  --elevacao-2: 0 10px 24px rgba(0, 0, 0, .45);
+  --elevacao-3: 0 24px 60px rgba(0, 0, 0, .6);
+  --sobreposicao: rgba(0, 0, 0, .62);
+  --esqueleto: linear-gradient(90deg, rgba(245,245,245,.06), rgba(245,245,245,.12), rgba(245,245,245,.06));
 
   --esquema: dark;
   color-scheme: dark;
 }
-
-/* Respeita a preferência do sistema quando o autor não fixou o tema.
-   NOVO — os protótipos não tinham prefers-color-scheme. */
 @media (prefers-color-scheme: dark) {
+  /* Sem `data-tema` no documento, o escuro vale pelo que o sistema pede.
+     Os MESMOS valores do bloco acima, de propósito: é a única duplicação
+     do arquivo, e ela existe porque `@media` não herda seletor. */
   :root:not([data-tema="claro"]) {
-    --canvas: var(--neutro-975);          --superficie: var(--neutro-900);
-    --superficie-sutil: var(--neutro-875); --superficie-elevada: var(--neutro-850);
-    --navegacao: var(--neutro-950);
-    --divisoria: var(--neutro-800);        --borda-controle: var(--neutro-600);
-    --tinta: #ede6e1;                      --tinta-secundaria: var(--neutro-300);
-    --tinta-terciaria: var(--neutro-400);
-    --acento: var(--acento-claro);         --acento-tinta: var(--acento-claro);
-    --acento-sobre: var(--acento-tinta-sobre-claro);
-    --acento-suave: rgba(168, 199, 250, .16);
-    --perigo: var(--perigo-escuro);  --perigo-suave: rgba(242, 184, 181, .15);
-    --alerta: var(--alerta-escuro);  --alerta-suave: rgba(232, 194, 106, .14);
-    --ok: var(--ok-escuro);          --ok-suave: rgba(132, 214, 168, .15);
-    --hover: rgba(237, 230, 225, .055);    --ativo: rgba(237, 230, 225, .10);
-    --elevacao-1: 0 1px 2px rgba(0, 0, 0, .35);
-    --elevacao-3: 0 12px 32px rgba(0, 0, 0, .45), 0 0 0 1px rgba(237, 230, 225, .07);
-    --esqueleto: linear-gradient(90deg, rgba(237,230,225,.06), rgba(237,230,225,.12), rgba(237,230,225,.06));
+    /* O escuro espelha a mesma ideia: greige QUENTE, não cinza frio nem preto
+       puro — contra #000 a linha de 1px some, e o quente é o que mantém o
+       parentesco com o claro. */
+    --canvas:             #1a1a19;
+    /* Cartão, campo e composer em #2a2a29, o --surface-card do console: o
+       #242423 de antes era um terceiro cinza que só o portal tinha. */
+    --superficie:         #2a2a29;
+    --superficie-sutil:   #1f1f1e;
+    --superficie-elevada: #2a2a29;
+    --navegacao:          #1a1a19;
+    /* Um degrau ACIMA do cartão, para o hover aparecer sobre ele. */
+    --fundo-hover:        #313130;
+    --fundo-selecionado:  #383837;
+    --navegacao-hover:    #252524;
+    --navegacao-ativo:    #2b2b2a;
+    --login-painel:       #0f0f0e;
+
+    --divisoria:      #323230;
+    --borda-controle: #3d3d3a;
+    /* Mesma divergência do claro, pelo mesmo motivo: 3,6:1 sobre a superfície
+       escura, contra os 1,4:1 que o valor do briefing daria aqui. */
+    --borda-campo:    #7c7a75;
+
+    --tinta:            #f2f1ee;
+    --tinta-secundaria: #d6d3d1;
+    --tinta-terciaria:  #a8a29e;
+    --texto-cromo:      #f2f1ee;
+
+    /* A ação inverte: o sólido escuro viraria invisível, então o primário é o
+       sólido CLARO com tinta escura em cima. O papel é o mesmo — um acento só,
+       no CTA e no item ativo. */
+    --primario:       #f2f1ee;
+    --primario-hover: #ffffff;
+    --primario-sobre: #1a1a19;
+
+    --acento:       #f2f1ee;
+    --acento-hover: #ffffff;
+    --acento-tinta: #f2f1ee;
+    --acento-sobre: #1a1a19;
+    --acento-suave: #333332;
+    --acento-suave-linha: #3d3d3a;
+
+    --foco:      #f2f1ee;
+    --foco-anel: #3d3d3a;
+
+    --perigo: #ff9b85;  --perigo-suave: #361b16;  --perigo-linha: #5c2c22;
+    --alerta: #e3b682;  --alerta-suave: #2a2117;  --alerta-linha: #4a3a25;
+    --ok:     #8fc39e;  --ok-suave:     #17241b;  --ok-linha:     #2b4232;
+    --info:   #9cc9da;  --info-suave:   #15242a;  --info-linha:   #284550;
+
+    --hover: rgba(245, 245, 245, .06);
+    --ativo: rgba(245, 245, 245, .10);
+
+    --elevacao-1: 0 1px 2px rgba(0, 0, 0, .4);
+    --elevacao-2: 0 10px 24px rgba(0, 0, 0, .45);
+    --elevacao-3: 0 24px 60px rgba(0, 0, 0, .6);
+    --sobreposicao: rgba(0, 0, 0, .62);
+    --esqueleto: linear-gradient(90deg, rgba(245,245,245,.06), rgba(245,245,245,.12), rgba(245,245,245,.06));
+
     --esquema: dark;
     color-scheme: dark;
   }
 }
 
-/* Foco visível — regra única, herdada dos protótipos. */
+/* Foco visível — regra ÚNICA, a mesma do console (mixin focus-ring do cvz:
+   contorno sólido de 2px com folga). Nenhum componente do portal a
+   sobrescreve: o `ring` com alfa a 30–40% que as primitivas desenhavam dava
+   ~1,9:1 sobre branco e reprovava WCAG 1.4.11. */
 :focus-visible {
   outline: 2px solid var(--acento);
   outline-offset: 2px;
   border-radius: var(--r-sm);
 }
 
-/* NOVO — ausente nos protótipos. WCAG 2.3.3 / boa prática. */
+/* WCAG 2.3.3 / boa prática. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: .01ms !important;

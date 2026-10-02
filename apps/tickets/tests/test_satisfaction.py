@@ -65,6 +65,8 @@ class TestCriacao:
     def test_reabrir_e_fechar_nao_gera_segunda_pesquisa(
         self, fechado, ana, agente_suporte, fechar
     ):
+        # antes de reabrir, a nota (regra de produto — test_reabrir_exige_nota)
+        satisfaction.answer(fechado.survey, score=9)
         ticket_service.add_reply(ticket=fechado, author=ana, body="voltou a falhar")
         fechado.refresh_from_db()
         fechar(fechado, agente_suporte)

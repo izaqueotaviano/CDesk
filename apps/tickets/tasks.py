@@ -78,7 +78,7 @@ def _report_infection(attachment) -> None:
 
     from apps.audit.models import AuditAction, AuditLog
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
 
     ticket = attachment.message.ticket
 
@@ -95,17 +95,37 @@ def _report_infection(attachment) -> None:
     )
 
     if attachment.uploaded_by_id:
+        titulo = f"Anexo bloqueado: {attachment.filename}"
+        corpo = (
+            "A verificação antivírus identificou uma ameaça neste arquivo, "
+            "que não ficará disponível para download."
+        )
+        url = ticket_url(ticket, attachment.uploaded_by)
         notify(
             recipient=attachment.uploaded_by,
             kind=NotificationKind.ATTACHMENT_BLOCKED,
-            title=f"Anexo bloqueado: {attachment.filename}",
-            body=(
-                "A verificação antivírus identificou uma ameaça neste arquivo, "
-                "que não ficará disponível para download."
-            ),
-            url=f"/tickets/{ticket.pk}",
+            title=titulo,
+            body=corpo,
+            url=url,
             ticket=ticket,
         )
+        if attachment.uploaded_by.email and quer_email(
+            attachment.uploaded_by, NotificationKind.ATTACHMENT_BLOCKED
+        ):
+            from django.conf import settings
+
+            queue_email(
+                to=attachment.uploaded_by.email,
+                subject=titulo,
+                template="attachment_blocked",
+                context={
+                    "user_name": attachment.uploaded_by.full_name,
+                    "filename": attachment.filename,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                dedupe_key=f"attachment-blocked:{attachment.pk}",
+            )
 
 
 @shared_task
@@ -135,3 +155,18 @@ def warn_stale_pending() -> int:
     if avisados:
         logger.info("Aviso de fechamento: %s ticket(s) avisado(s).", avisados)
     return avisados
+
+
+@shared_task
+def dispatch_scheduled_replies() -> int:
+    """Dispara as respostas agendadas cuja hora já chegou.
+
+    Granularidade curta de propósito (ver CELERY_BEAT_SCHEDULE) — quem agenda
+    "amanhã 8h" espera que o disparo saia por volta das 8h, não na próxima
+    varredura de hora em hora."""
+    from apps.tickets.services import ticket_service
+
+    enviadas = ticket_service.dispatch_scheduled_replies()
+    if enviadas:
+        logger.info("Respostas agendadas: %s enviada(s).", enviadas)
+    return enviadas

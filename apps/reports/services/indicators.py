@@ -47,6 +47,13 @@ PERIODS = {
     "month": "Este mês",
 }
 
+# Intervalo livre (`?from=&to=`) — não é um dos atalhos acima, e por isso não
+# entra em `PERIODS` (as tabelas de resumo continuam com as três colunas fixas).
+CUSTOM_PERIOD = "custom"
+# Teto do intervalo livre: a linha do tempo tem um ponto por dia, e um ano já
+# é mais do que um gráfico diário consegue mostrar.
+MAX_CUSTOM_DAYS = 366
+
 # campos lidos na consulta única — nada além do que algum widget consome
 ROW_FIELDS = (
     "id",
@@ -109,6 +116,27 @@ def build_windows(now=None) -> dict[str, Window]:
         # inteiro — ver decisão 3 no topo do arquivo
         "month": Window(month, local, prev_month, prev_month + (local - month)),
     }
+
+
+def custom_window(date_from: dt.date | None, date_to: dt.date | None, now=None) -> Window:
+    """Janela de um intervalo livre, com a fatia anterior de MESMO comprimento.
+
+    `to` é o dia inteiro informado (a janela fecha na meia-noite seguinte),
+    mas nunca passa de agora: um intervalo que termina hoje compara o que já
+    aconteceu hoje com o mesmo tanto de tempo antes do início — a mesma regra
+    de "mesma fatia" dos atalhos (decisão 3 no topo do arquivo).
+
+    Sem `to`, vale hoje; sem `from`, os 30 dias que terminam em `to`.
+    """
+    now = timezone.localtime(now or timezone.now())
+    date_to = date_to or now.date()
+    date_from = date_from or (date_to - dt.timedelta(days=29))
+
+    start = timezone.make_aware(dt.datetime.combine(date_from, dt.time.min))
+    end_of_day = timezone.make_aware(dt.datetime.combine(date_to + dt.timedelta(days=1), dt.time.min))
+    end = max(start, min(end_of_day, now))
+    length = end - start
+    return Window(start, end, start - length, start)
 
 
 def variation(current: float | None, previous: float | None) -> float | None:
@@ -249,12 +277,16 @@ def _by_choice(rows, key, choices) -> list[dict]:
 
     Barra que some quando a contagem é zero engana: "não há ticket novo" e "a
     barra não existe" viram a mesma imagem.
+
+    Cada fatia leva a `key` do enum além do rótulo, como os baldes de SLA já
+    levam: é por ela que a tela escolhe a cor da barra (urgente em vermelho,
+    aguardando em âmbar) — rótulo é texto traduzível, chave é contrato.
     """
     counts: dict[str, int] = {}
     for row in rows:
         counts[row[key]] = counts.get(row[key], 0) + 1
     return [
-        {"label": str(label), "value": counts.get(value, 0)}
+        {"key": value, "label": str(label), "value": counts.get(value, 0)}
         for value, label in choices
     ]
 
@@ -323,8 +355,8 @@ def _agent_list(rows, previous_rows, surveys=(), window=None) -> list[dict]:
     for row in rows:
         name = row["assignee__full_name"] or "Sem responsável"
         if row["team__name"]:
-            porAgente = equipes.setdefault(name, {})
-            porAgente[row["team__name"]] = porAgente.get(row["team__name"], 0) + 1
+            por_agente = equipes.setdefault(name, {})
+            por_agente[row["team__name"]] = por_agente.get(row["team__name"], 0) + 1
         if row["sla_resolution_due_at"]:
             prazo.setdefault(name, []).append(0 if row["sla_resolution_breached"] else 1)
         segundos = _seconds_between(row["created_at"], row["first_response_at"])
@@ -386,7 +418,10 @@ def _timeline(rows, window, reopens_by_day) -> list[dict]:
     """
     days: dict[dt.date, dict] = {}
     day = timezone.localtime(window.start).date()
-    last = timezone.localtime(window.end).date()
+    # `end` é exclusivo: num intervalo livre ele cai na meia-noite do dia
+    # seguinte ao último, e sem o recuo de 1µs a série ganhava um dia vazio
+    # a mais no fim
+    last = max(day, timezone.localtime(window.end - dt.timedelta(microseconds=1)).date())
     while day <= last:
         days[day] = {
             "date": day.isoformat(),
@@ -498,14 +533,31 @@ def _satisfaction(surveys, window, closed_count) -> dict:
 # --------------------------------------------------------------------------- #
 
 def build_indicators(queryset, user, *, period: str = "month",
-                     team_id=None, now=None) -> dict:
-    """Monta o painel inteiro. `queryset` já vem de `visible_tickets(user)`."""
+                     team_id=None, date_from: dt.date | None = None,
+                     date_to: dt.date | None = None, now=None) -> dict:
+    """Monta o painel inteiro. `queryset` já vem de `visible_tickets(user)`.
+
+    `date_from`/`date_to` (qualquer um dos dois) trocam o atalho por um
+    intervalo livre: KPIs, distribuições, linha do tempo, SLA, satisfação e a
+    lista por agente passam a olhar para ele. As três tabelas de resumo não —
+    elas SÃO a comparação hoje × semana × mês, e continuam iguais.
+    """
     if period not in PERIODS:
         period = "month"
 
     windows = build_windows(now)
-    window = windows[period]
-    floor = min(w.prev_start for w in windows.values())
+    if date_from or date_to:
+        period = CUSTOM_PERIOD
+        window = custom_window(date_from, date_to, now)
+        inicio = timezone.localtime(window.start).date()
+        # `end` é exclusivo: o último dia coberto é o anterior à meia-noite
+        # de fechamento (ou hoje, quando a janela foi cortada em agora)
+        fim = timezone.localtime(window.end - dt.timedelta(microseconds=1)).date()
+        label = f"{inicio:%d/%m/%Y} a {max(inicio, fim):%d/%m/%Y}"
+    else:
+        window = windows[period]
+        label = PERIODS[period]
+    floor = min([w.prev_start for w in windows.values()] + [window.prev_start])
 
     # o filtro de equipe vale para TODO o painel — inclusive reaberturas e
     # pesquisas, que não passam por `rows`
@@ -544,7 +596,7 @@ def build_indicators(queryset, user, *, period: str = "month",
     return {
         "period": {
             "key": period,
-            "label": PERIODS[period],
+            "label": label,
             "start": window.start,
             "end": window.end,
             "previous_start": window.prev_start,

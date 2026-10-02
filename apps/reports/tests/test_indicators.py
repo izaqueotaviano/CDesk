@@ -35,6 +35,7 @@ from apps.tickets.models import (
     SatisfactionSurvey,
     Ticket,
     TicketCategory,
+    TicketPriority,
     TicketStatus,
     TicketStatusEvent,
 )
@@ -299,6 +300,14 @@ class TestDistributions:
         labels = [b["label"] for b in _panel(admin)["by_status"]]
         assert len(labels) == len(TicketStatus.choices)
 
+    def test_enum_bars_carry_the_enum_key_in_order(self, ana, suporte, admin):
+        # a tela colore a barra pela chave (urgente vermelho, aguardando âmbar),
+        # não pelo rótulo — a chave é o contrato, o rótulo é texto
+        _ticket(ana, suporte)
+        panel = _panel(admin)
+        assert [b["key"] for b in panel["by_status"]] == [v for v, _ in TicketStatus.choices]
+        assert [b["key"] for b in panel["by_priority"]] == [v for v, _ in TicketPriority.choices]
+
     def test_waiting_first_response_is_not_counted_as_on_time(
         self, ana, suporte, admin
     ):
@@ -515,3 +524,99 @@ class TestDirecaoDoKpi:
             "resolution": "down",
             "csat": "up",
         }
+
+
+# --------------------------------------------------------------------------- #
+# intervalo livre (?from=&to=)
+# --------------------------------------------------------------------------- #
+
+class TestCustomRange:
+    """O painel também responde a um intervalo escolhido à mão — a mesma
+    pergunta do relatório detalhado, que já aceitava `from`/`to`."""
+
+    def test_window_covers_whole_days_and_compares_with_the_same_length_before(self):
+        now = timezone.make_aware(dt.datetime(2026, 3, 20, 15, 0))
+        window = indicators.custom_window(dt.date(2026, 3, 1), dt.date(2026, 3, 10), now)
+
+        assert timezone.localtime(window.start) == timezone.make_aware(dt.datetime(2026, 3, 1))
+        # "até dia 10" é o dia 10 inteiro
+        assert timezone.localtime(window.end) == timezone.make_aware(dt.datetime(2026, 3, 11))
+        assert window.prev_end == window.start
+        assert (window.end - window.start) == (window.prev_end - window.prev_start)
+
+    def test_window_that_ends_today_stops_at_now(self):
+        now = timezone.make_aware(dt.datetime(2026, 3, 20, 15, 0))
+        window = indicators.custom_window(dt.date(2026, 3, 18), dt.date(2026, 3, 20), now)
+
+        assert window.end == now
+        assert (window.end - window.start) == (window.prev_end - window.prev_start)
+
+    def test_missing_from_means_the_30_days_up_to_to(self):
+        now = timezone.make_aware(dt.datetime(2026, 3, 20, 15, 0))
+        window = indicators.custom_window(None, dt.date(2026, 3, 10), now)
+
+        assert timezone.localtime(window.start).date() == dt.date(2026, 2, 9)
+
+    def test_panel_counts_only_the_range_and_says_so(self, ana, suporte, admin):
+        _ticket(ana, suporte, days_ago=10)
+        _ticket(ana, suporte, days_ago=9)
+        _ticket(ana, suporte)  # hoje: fora do intervalo pedido
+
+        hoje = timezone.localdate()
+        panel = _panel(
+            admin,
+            date_from=hoje - dt.timedelta(days=12),
+            date_to=hoje - dt.timedelta(days=5),
+        )
+
+        assert panel["period"]["key"] == indicators.CUSTOM_PERIOD
+        assert panel["period"]["label"] == (
+            f"{hoje - dt.timedelta(days=12):%d/%m/%Y} a {hoje - dt.timedelta(days=5):%d/%m/%Y}"
+        )
+        assert next(k for k in panel["kpis"] if k["key"] == "opened")["value"] == 2
+        assert sum(s["value"] for s in panel["by_company"]) == 2
+
+    def test_timeline_has_one_point_per_day_of_the_range(self, ana, suporte, admin):
+        _ticket(ana, suporte, days_ago=3)
+        hoje = timezone.localdate()
+        inicio, fim = hoje - dt.timedelta(days=6), hoje - dt.timedelta(days=1)
+
+        timeline = _panel(admin, date_from=inicio, date_to=fim)["timeline"]
+
+        assert [p["date"] for p in timeline] == [
+            (inicio + dt.timedelta(days=i)).isoformat() for i in range(6)
+        ]
+        assert sum(p["opened"] for p in timeline) == 1
+
+    def test_summary_tables_keep_the_fixed_columns(self, ana, suporte, admin):
+        """Hoje × semana × mês é a comparação que as tabelas existem para fazer;
+        o intervalo livre não as reescreve."""
+        _ticket(ana, suporte)
+        hoje = timezone.localdate()
+
+        panel = _panel(admin, date_from=hoje - dt.timedelta(days=40), date_to=hoje - dt.timedelta(days=35))
+        cells = _scope(_table(panel, "opened"), "total")["cells"]
+
+        assert set(cells) == {"today", "week", "month"}
+        assert cells["today"]["value"] == 1
+
+    def test_endpoint_accepts_from_and_to(self, ana, suporte, admin, api):
+        _ticket(ana, suporte, days_ago=2)
+        hoje = timezone.localdate()
+        response = api(admin).get(reverse("report-indicators"), {
+            "from": (hoje - dt.timedelta(days=3)).isoformat(),
+            "to": (hoje - dt.timedelta(days=1)).isoformat(),
+        })
+
+        assert response.status_code == 200
+        assert response.json()["period"]["key"] == "custom"
+        assert next(k for k in response.json()["kpis"] if k["key"] == "opened")["value"] == 1
+
+    @pytest.mark.parametrize("params", [
+        {"from": "2026-03-10", "to": "2026-03-01"},   # início depois do fim
+        {"from": "2024-01-01", "to": "2026-03-01"},   # mais de um ano
+        {"from": "ontem"},                            # data inválida
+    ])
+    def test_endpoint_rejects_a_bad_range(self, admin, api, params):
+        response = api(admin).get(reverse("report-indicators"), params)
+        assert response.status_code == 400

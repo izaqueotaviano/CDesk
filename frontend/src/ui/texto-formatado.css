@@ -1,0 +1,78 @@
+/* Corpo de mensagem com formatação leve (TextoFormatado.tsx).
+ *
+ * CSS puro, sem token de um lado só: a mesma peça desenha no console (SCSS,
+ * tokens --text-*) e no portal (Tailwind, tokens --tinta-*). Tudo aqui herda
+ * a cor e o tamanho de quem contém — o único tom próprio é o fundo da menção,
+ * derivado da própria cor do texto para acompanhar claro e escuro sozinho.
+ *
+ * O preflight do Tailwind zera `list-style` e margens de ul/ol/p no produto
+ * inteiro; por isso as listas declaram o marcador de volta aqui. */
+
+.texto-formatado {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Sem margem: um texto sem formatação continua desenhado exatamente como
+ * antes — um bloco com as quebras de linha que a pessoa digitou. */
+.texto-formatado > p {
+  margin: 0;
+}
+
+.texto-formatado > ul,
+.texto-formatado > ol {
+  margin: 4px 0;
+  padding-left: 1.4em;
+}
+.texto-formatado > ul {
+  list-style: disc outside;
+}
+.texto-formatado > ol {
+  list-style: decimal outside;
+}
+.texto-formatado > :first-child {
+  margin-top: 0;
+}
+.texto-formatado > :last-child {
+  margin-bottom: 0;
+}
+.texto-formatado li + li {
+  margin-top: 2px;
+}
+
+.texto-formatado strong {
+  font-weight: 600;
+}
+
+/* Link = o próprio texto, sublinhado. O produto tem UMA cor de ação (carvão)
+ * e um link azul seria a segunda. */
+.texto-formatado a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  border-radius: 2px;
+}
+.texto-formatado a:hover {
+  text-decoration-thickness: 2px;
+}
+.texto-formatado a:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 1px;
+}
+
+.texto-formatado__mencao {
+  display: inline;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  font-weight: 500;
+  white-space: nowrap;
+}
+/* Quem foi desativado depois da menção continua legível, sem o destaque. */
+.texto-formatado__mencao--inativa {
+  background: transparent;
+  font-weight: 400;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}

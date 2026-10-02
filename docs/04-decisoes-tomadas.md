@@ -13,7 +13,7 @@ saiu de estimativa e não do negócio — troque o valor sem mexer em nada da ar
 
 | # | Decisão | Consequência no código |
 |---|---|---|
-| **D1** | Agente e supervisor veem os tickets dos departamentos a que estão vinculados; admin vê tudo | `TicketQuerySet.visible_to` filtra por `department__agent_links__user`. Campo `Department.restricted_to_members` foi **removido** — virou redundante |
+| **D1** | Agente e supervisor veem os tickets das equipes a que estão vinculados; admin vê tudo | `TicketQuerySet.visible_to` (`apps/tickets/models.py`) filtra pelo escopo do papel (`rbac.TicketScope`: `ALL`/`TEAMS`/`ASSIGNED`, precedência `User`→`CustomRole`→papel). O model de agrupamento é `Team` (`apps/accounts/models.py`) — `Department` não existe mais no código. Descrição completa e atualizada da regra: `docs/13-rbac.md` §3 |
 | **D2** | Ticket vindo do chat **não** consome cota | `Plan.chat_consumes_quota = False` |
 | **D3** | Cota em período civil (semana ISO / mês calendário), no fuso da empresa | `TicketQuotaConsumption.period_start/period_end` calculados com `Company.timezone` |
 | **D4** | Agente confirma início/término da solução no modal de fechamento, com sugestão do sistema | `close()` exige ambos; valida `ended >= started >= created_at` |
@@ -204,13 +204,17 @@ Levantadas na especificação dos fluxos complexos e fechadas em sequência:
 
 ## Nota sobre o frontend atual
 
-O frontend em `frontend/` é **provisório e descartável** — existe para validar o
-backend visualmente. Aplica a identidade da Anthropic (Poppins/Lora + paleta da
-marca) como andaime.
+Desatualizada: esta nota descrevia o frontend em `frontend/` como
+**provisório e descartável**, andaime com a identidade visual da Anthropic
+(Poppins/Lora). Isso não existe mais — não há `frontend/src/styles.css` no
+repositório, nem "Poppins"/"Lora" em nenhum arquivo. O frontend em
+`frontend/` é hoje o produto real, com dois design systems em uso lado a
+lado (ver `frontend/src/routes.tsx`):
 
-**O design system próprio da Convertize será feito depois** e substitui
-`frontend/src/styles.css`. A estrutura de componentes pode ser reaproveitada ou
-jogada fora; nada no backend depende dela.
+- **`resolv/`** — o design system atual, usado pelas rotas principais
+  (Início, Chamados, Quadro/Kanban, Chat, Conta);
+- **`cvz/`** — o design system anterior, ainda vivo em Clientes, Avisos,
+  Auditoria, Configurações e Relatórios.
 
 ## Regra de ouro da implementação
 

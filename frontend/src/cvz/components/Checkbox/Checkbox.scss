@@ -24,7 +24,9 @@
     flex: 0 0 auto;
     margin-top: 2px;
     border: $stroke-w solid $text;
-    border-radius: $radius;
+    // 4px fixos, não `$radius`: com o raio de controle (8px) uma caixa de
+    // 16px vira círculo e passa por botão de opção (radio).
+    border-radius: 4px;
     background-color: $raised;
     transition: background-color $dur $ease, border-color $dur $ease;
   }
@@ -162,12 +164,18 @@
     }
   }
 
+  // Ligado é VERDE, não cor de marca: é o `cz-switch` do v2
+  // (`input:checked{background:var(--success)}`). Um interruptor diz um
+  // ESTADO — ligado/desligado —, e estado tem cor própria; pintá-lo com o
+  // acento fazia "ligado" competir com "isto é uma ação".
   input:checked + &__track {
-    background-color: $blue;
+    background-color: $success;
 
     &::after { transform: translateX(16px); }
   }
 
+  // Anel de foco no acento, como todo controle do produto (era o laranja
+  // cheio, a última sobra da marca dentro de um controle).
   input:focus-visible + &__track {
     outline: $focus-w solid $blue;
     outline-offset: 2px;

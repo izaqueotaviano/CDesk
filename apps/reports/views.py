@@ -22,7 +22,7 @@ from rest_framework.views import APIView
 from apps.audit.models import AuditLog
 from apps.core.permissions import IsInternal
 from apps.reports.models import ReportExport
-from apps.reports.services import indicators, metrics
+from apps.reports.services import chat_stats, indicators, metrics
 from apps.tickets import selectors
 
 CSV_COLUMNS = [
@@ -80,8 +80,15 @@ class _BaseReportView(APIView):
         if not request.user.is_internal:
             raise PermissionDenied("Relatórios são área interna.")
         params = request.query_params
+        queryset = selectors.visible_tickets(request.user)
+        # mesmo `?team=` do painel (`IndicatorsView`): filtrar aqui, antes de
+        # `build_report`, é o que faz a exportação parar de baixar equipes que
+        # a tela já não está mostrando.
+        team_id = _parse_int(params.get("team"), "team")
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
         return metrics.build_report(
-            selectors.visible_tickets(request.user),
+            queryset,
             date_from=_parse_date(params.get("from"), "from"),
             date_to=_parse_date(params.get("to"), "to"),
             agent_id=params.get("agent"),
@@ -97,6 +104,7 @@ REPORT_FILTERS = [
     OpenApiParameter("agent", OpenApiTypes.INT, description="Id do agente"),
     OpenApiParameter("company", OpenApiTypes.INT, description="Id da empresa"),
     OpenApiParameter("requester", OpenApiTypes.INT, description="Id do solicitante"),
+    OpenApiParameter("team", OpenApiTypes.INT, description="Id da equipe"),
 ]
 
 
@@ -160,25 +168,84 @@ class TicketReportExportView(_BaseReportView):
         OpenApiParameter("period", OpenApiTypes.STR, enum=list(indicators.PERIODS),
                          description="Janela do painel (padrão: month)"),
         OpenApiParameter("team", OpenApiTypes.INT, description="Id da equipe"),
+        OpenApiParameter("from", OpenApiTypes.DATE,
+                         description="Início de um intervalo livre (AAAA-MM-DD); ganha de `period`"),
+        OpenApiParameter("to", OpenApiTypes.DATE,
+                         description="Fim do intervalo livre, dia inteiro (AAAA-MM-DD)"),
     ],
     responses=OpenApiTypes.OBJECT,
 )
 class IndicatorsView(APIView):
-    """GET /api/v1/reports/indicators/?period=&team=
+    """GET /api/v1/reports/indicators/?period=&team=&from=&to=
 
     O painel gerencial. Uma requisição devolve o painel inteiro: são 15 widgets
     sobre a MESMA leitura de tickets, e quinze chamadas repetiriam a consulta
     (e poderiam mostrar números de instantes diferentes lado a lado).
+
+    `from`/`to` são o intervalo livre (os mesmos nomes do relatório detalhado
+    e de `ChatStatsView`); com eles, `period` é ignorado e a resposta volta
+    com `period.key == "custom"`.
     """
 
     permission_classes = [IsInternal]
 
     def get(self, request):
+        params = request.query_params
+        date_from = _parse_date(params.get("from"), "from")
+        date_to = _parse_date(params.get("to"), "to")
+        if date_from and date_to:
+            if date_from > date_to:
+                raise ValidationError({"from": "O início vem depois do fim do intervalo."})
+            if (date_to - date_from).days + 1 > indicators.MAX_CUSTOM_DAYS:
+                raise ValidationError({
+                    "to": f"Escolha um intervalo de até {indicators.MAX_CUSTOM_DAYS} dias.",
+                })
         return Response(indicators.build_indicators(
             selectors.visible_tickets(request.user),
             request.user,
-            period=request.query_params.get("period") or "month",
-            team_id=_parse_int(request.query_params.get("team"), "team"),
+            period=params.get("period") or "month",
+            team_id=_parse_int(params.get("team"), "team"),
+            date_from=date_from,
+            date_to=date_to,
+        ))
+
+
+@extend_schema(
+    parameters=[
+        OpenApiParameter("period", OpenApiTypes.STR, enum=list(indicators.PERIODS),
+                         description="Janela da tabela por agente (padrão: month)"),
+        OpenApiParameter("granularity", OpenApiTypes.STR, enum=["hour", "day", "month", "year"],
+                         description="Bucket da série temporal (padrão: day)"),
+        OpenApiParameter("agent", OpenApiTypes.INT,
+                         description="Recorta a série temporal (não afeta a tabela por agente)"),
+        OpenApiParameter("from", OpenApiTypes.DATE, description="Início da série (AAAA-MM-DD)"),
+        OpenApiParameter("to", OpenApiTypes.DATE, description="Fim da série (AAAA-MM-DD)"),
+    ],
+    responses=OpenApiTypes.OBJECT,
+)
+class ChatStatsView(APIView):
+    """GET /api/v1/reports/chats/?period=&granularity=&agent=&from=&to=
+
+    Quantos chats cada agente atendeu (tabela, com variação vs. o período
+    anterior) e a mesma contagem ao longo do tempo (série, na granularidade
+    pedida). Escopo gerencial — todos os chats do sistema, sem recorte por
+    empresa, o mesmo espírito de `IndicatorsView`.
+
+    "Atendido" e as contagens exatas seguem as regras documentadas em
+    `apps.reports.services.chat_stats` — em especial a limitação sobre chat
+    reaberto (só a última aceitação conta).
+    """
+
+    permission_classes = [IsInternal]
+
+    def get(self, request):
+        params = request.query_params
+        return Response(chat_stats.build_chat_stats(
+            period=params.get("period") or "month",
+            granularity=params.get("granularity") or "day",
+            agent_id=_parse_int(params.get("agent"), "agent"),
+            date_from=_parse_date(params.get("from"), "from"),
+            date_to=_parse_date(params.get("to"), "to"),
         ))
 
 

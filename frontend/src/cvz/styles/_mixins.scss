@@ -92,24 +92,26 @@
 // Mapa EXATO da tabela do DESIGN.md §1 (Tipografia) — tamanho → line-height.
 // "O type() já escolhe o certo pelo tamanho — passe o terceiro argumento só
 // quando o layout exigir."
+// Chaveado pelo VALOR, não pelo nome: com a escala em quatro tamanhos os
+// nomes repetem valor, e um mapa Sass não aceita chave duplicada.
 $_type-lh-map: (
-  $fs-micro:    $lh-snug,
-  $fs-caption:  $lh-snug,
-  $fs-label:    $lh-snug,
-  $fs-meta:     $lh-snug,
-  $fs-ui:       $lh-normal,
-  $fs-body:     $lh-normal,
-  $fs-title:    $lh-tight,
-  $fs-subhead:  $lh-tight,
-  $fs-heading:  $lh-tight,
-  $fs-display:  $lh-tight,
+  12px: $lh-snug,
+  14px: $lh-normal,
+  16px: $lh-tight,
+  28px: $lh-tight,
 );
 
 @mixin type($size, $weight: $w-regular, $lh: null) {
   font-family: $f-ui;
   font-size: $size;
   font-weight: $weight;
-  line-height: if($lh != null, $lh, map.get($_type-lh-map, $size) or $lh-normal);
+  // `@if` e não a função `if()`: a função está depreciada no Sass e enchia
+  // cada build de aviso.
+  @if $lh != null {
+    line-height: $lh;
+  } @else {
+    line-height: map.get($_type-lh-map, $size) or $lh-normal;
+  }
 }
 
 // --- truncamento de uma linha -------------------------------------------------
@@ -128,7 +130,10 @@ $_type-lh-map: (
   @include type($fs-ui);
   height: $control-h;
   padding: 0 $sp-3;
-  border: $border;
+  // `$border-field`, não `$border`: campo tem linha própria, mais escura (ver
+  // _tokens.scss). É este mixin que faz a regra valer em TODO campo do design
+  // system de uma vez — quem escrever borda de input à mão foge do contrato.
+  border: $border-field;
   border-radius: $radius;
   background-color: $raised;
   color: $text;
@@ -138,10 +143,12 @@ $_type-lh-map: (
     color: $text-muted;
   }
 
+  // A borda vira o acento (carvão, 15:1 sobre o campo) e o halo neutro só
+  // engrossa o sinal — o mesmo desenho do foco de campo no console.
   &:focus {
     outline: none;
     border-color: $blue;
-    box-shadow: 0 0 0 $focus-w $blue-tint;
+    box-shadow: 0 0 0 $focus-w $focus-ring;
   }
 }
 

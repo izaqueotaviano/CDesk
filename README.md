@@ -3,9 +3,12 @@
 Sistema de suporte/ticketing interno, inspirado no Zendesk Support, para uso de uma empresa e
 seus clientes B2B.
 
-**Este repositório é só a API.** Não há frontend aqui: o Django expõe
-`/api/v1/` (REST) e `/ws/` (WebSocket), e qualquer outra URL é 404. Quem vai
-escrever a interface começa por **[`docs/10-frontend-novo.md`](docs/10-frontend-novo.md)**
+**Este repositório é um monorepo: backend (Django, na raiz) e frontend
+(`frontend/`, React) — ver "Como rodar" abaixo.** O Django em si expõe só
+`/api/v1/` (REST) e `/ws/` (WebSocket): qualquer outra URL do lado do
+backend é 404 — quem serve a interface é o Vite/frontend, um deploy
+separado que fala com esta API. Quem for mexer na
+interface começa por **[`docs/10-frontend-novo.md`](docs/10-frontend-novo.md)**
 — autenticação, formato das respostas, canais de WebSocket e o que o backend já
 resolve (e o front não deve refazer).
 
@@ -142,12 +145,19 @@ Equivale a `make setup && make migrate && make seed && make seed-demo`.
 | `http://localhost:8000/api/docs/` | o contrato navegável (Swagger) |
 | `http://localhost:8000/admin/` | o admin do Django |
 
-O frontend mora em `frontend/` e o `./resolv` já o sobe junto (porta 5174,
-que vem liberada em CORS/CSRF de fábrica). Para rodá-lo à mão — outra porta,
-outra máquina — aponte-o para `http://localhost:8000` e acrescente a origem
-em `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` (no `.env`): a
-autenticação é por cookie de sessão, então isso não é opcional. O passo a
-passo está em `docs/10-frontend-novo.md`.
+O frontend mora em `frontend/` e o `./resolv` já o sobe junto, na porta 5174.
+Em desenvolvimento **a tela fala só com a 5174**: o Vite faz proxy de `/api/`
+e `/ws/` para o Django (`frontend/vite.config.ts`), do mesmo jeito que o nginx
+faz em produção. As URLs acima continuam valendo para acesso direto à API —
+`curl`, Swagger, admin —, mas o navegador não precisa delas.
+
+Para apontar o front para **outro backend** (outra máquina, uma instância
+remota), defina `VITE_API_BASE_URL` e `VITE_WS_BASE_URL` em `frontend/.env`;
+elas ganham do proxy. Aí a autenticação passa a cruzar origens, e a origem do
+front precisa entrar em `CORS_ALLOWED_ORIGINS` e `CSRF_TRUSTED_ORIGINS` (no
+`.env` do backend) — como a sessão é por cookie, isso não é opcional. O
+`./resolv compartilhar` faz essa configuração sozinho. O passo a passo está em
+`docs/10-frontend-novo.md`.
 
 ### Entrar
 

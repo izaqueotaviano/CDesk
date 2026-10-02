@@ -209,3 +209,168 @@ class TestSerialization:
         _reply_with_file(api, ana, ticket, _upload("fatura.pdf", PDF))
         detail = api(beto).get(f"/api/v1/tickets/{ticket.pk}/").json()
         assert detail["messages"] == []  # nem mensagem, nem anexo
+
+
+class TestRecusaDeAnexoNaoDeixaOrfao:
+    """O 400 do anexo não pode chegar depois do chamado/mensagem existir.
+
+    `create_ticket` e `add_reply` abrem e fecham a própria transação
+    (ATOMIC_REQUESTS=False, config/settings/base.py): quando a recusa do anexo
+    vinha depois deles, o chamado já estava gravado, a tela lia 400 como "não
+    criou" e o reenvio duplicava o chamado. A conferência antecipada em
+    `apps/tickets/views.py` é o que estes testes prendem.
+    """
+
+    def test_arquivo_acima_do_limite_na_abertura_nao_cria_chamado(
+        self, api, ana, suporte, config
+    ):
+        config(attachment_max_bytes=100)
+        from apps.tickets.models import Ticket
+
+        antes = Ticket.objects.count()
+        resp = api(ana).post(
+            "/api/v1/tickets/",
+            {"team_id": suporte.pk, "subject": "Erro", "body": "veja o print",
+             "files": _upload("grande.pdf", PDF + b"0" * 500)},
+            format="multipart",
+        )
+
+        assert resp.status_code == 400
+        assert Ticket.objects.count() == antes  # nenhum chamado órfão
+        assert TicketAttachment.objects.count() == 0
+
+    def test_reenvio_apos_recusa_nao_duplica_chamado(self, api, ana, suporte, config):
+        """A história do bug inteira: recusa, o agente corrige e manda de novo."""
+        config(attachment_max_bytes=100)
+        from apps.tickets.models import Ticket
+
+        def abrir(upload):
+            return api(ana).post(
+                "/api/v1/tickets/",
+                {"team_id": suporte.pk, "subject": "Erro", "body": "veja o print",
+                 "files": upload},
+                format="multipart",
+            )
+
+        assert abrir(_upload("grande.pdf", PDF + b"0" * 500)).status_code == 400
+        assert abrir(_upload("grande.pdf", PDF + b"0" * 500)).status_code == 400
+        assert abrir(_upload("pequeno.pdf", PDF)).status_code == 201
+
+        assert Ticket.objects.count() == 1
+
+    def test_arquivo_acima_do_limite_na_resposta_nao_grava_mensagem(
+        self, api, make_ticket, ana, suporte, config
+    ):
+        config(attachment_max_bytes=100)
+        ticket = make_ticket(ana, suporte)
+        antes = ticket.messages.count()
+
+        resp = _reply_with_file(
+            api, ana, ticket, _upload("grande.pdf", PDF + b"0" * 500)
+        )
+
+        assert resp.status_code == 400
+        assert ticket.messages.count() == antes  # a resposta não saiu pela metade
+        assert TicketAttachment.objects.count() == 0
+
+    def test_abertura_com_anexo_valido_continua_criando_chamado_e_anexo(
+        self, api, ana, suporte
+    ):
+        """A dupla conferência lê o arquivo duas vezes; o conteúdo tem de sobrar
+        inteiro para quem grava (o `checksum` é do arquivo, não do que sobrou)."""
+        import hashlib
+
+        from apps.tickets.models import Ticket
+
+        resp = api(ana).post(
+            "/api/v1/tickets/",
+            {"team_id": suporte.pk, "subject": "Erro", "body": "veja o print",
+             "files": _upload("recibo.pdf", PDF)},
+            format="multipart",
+        )
+
+        assert resp.status_code == 201
+        assert Ticket.objects.count() == 1
+        anexo = TicketAttachment.objects.get()
+        assert anexo.size_bytes == len(PDF)
+        assert anexo.checksum == hashlib.sha256(PDF).hexdigest()
+        assert anexo.file.read() == PDF
+
+    def test_resposta_com_anexo_valido_continua_gravando_o_anexo(
+        self, api, make_ticket, ana, suporte
+    ):
+        ticket = make_ticket(ana, suporte)
+        antes = ticket.messages.count()
+
+        resp = _reply_with_file(api, ana, ticket, _upload("recibo.pdf", PDF))
+
+        assert resp.status_code == 201
+        assert ticket.messages.count() == antes + 1
+        assert TicketAttachment.objects.get().filename == "recibo.pdf"
+
+    def test_attach_to_message_continua_recusando_lote_invalido(
+        self, make_ticket, ana, suporte, config
+    ):
+        """A view antecipa a conferência, mas quem grava continua sendo dono da
+        regra: chamado direto (importação, testes), o serviço ainda recusa."""
+        import pytest as _pytest
+
+        from apps.tickets.services.attachments import (
+            AttachmentRejected,
+            attach_to_message,
+        )
+
+        config(attachment_max_files_per_message=1)
+        ticket = make_ticket(ana, suporte)
+        mensagem = ticket.messages.order_by("id").first()
+
+        with _pytest.raises(AttachmentRejected):
+            attach_to_message(
+                message=mensagem,
+                uploads=[_upload("a.pdf", PDF), _upload("b.pdf", PDF)],
+                uploaded_by=ana,
+            )
+        assert TicketAttachment.objects.count() == 0
+
+    def test_mensagem_de_recusa_diz_o_tamanho_enviado_e_o_limite(
+        self, api, make_ticket, ana, suporte, config
+    ):
+        """A tela mostra este texto cru; sem os dois números ele não ajuda a
+        pessoa a decidir o que fazer com o arquivo."""
+        config(attachment_max_bytes=2 * 1024 * 1024)
+        ticket = make_ticket(ana, suporte)
+
+        resp = _reply_with_file(
+            # exatamente 3 MB: com o cabeçalho somado por cima o arquivo teria
+            # 3 MB "e um tiquinho", e o texto (que arredonda para cima) diria
+            # 3,1 — verdade, mas ruído para o que este teste afirma
+            api, ana, ticket, _upload("manual.pdf", PDF + b"0" * (3 * 1024 * 1024 - len(PDF)))
+        )
+
+        assert resp.status_code == 400
+        recusa = resp.json()["files"]
+        assert "3 MB" in recusa            # o que foi enviado
+        assert "2 MB" in recusa            # o teto vigente
+        assert "limite por arquivo" in recusa
+
+    def test_recusa_por_pouco_nao_repete_o_mesmo_numero_dos_dois_lados(
+        self, api, make_ticket, ana, suporte, config
+    ):
+        """Quem estoura o limite normalmente estoura por POUCO, e é justamente
+        aí que a frase se contradizia: um arquivo de 10 MB + 1 byte contra um
+        limite de 10 MB saía como "tem 10 MB; o limite por arquivo é 10 MB".
+        O tamanho enviado arredonda para cima e o limite para baixo."""
+        limite = 10 * 1024 * 1024
+        config(attachment_max_bytes=limite)
+        ticket = make_ticket(ana, suporte)
+
+        resp = _reply_with_file(
+            api, ana, ticket, _upload("contrato.pdf", PDF + b"0" * (limite + 1 - len(PDF)))
+        )
+
+        assert resp.status_code == 400
+        recusa = resp.json()["files"]
+        assert "10,1 MB" in recusa         # o arquivo, para cima
+        assert "é 10 MB" in recusa         # o teto, para baixo
+        # o defeito era exatamente os dois lados dizerem o mesmo número
+        assert "tem 10 MB;" not in recusa

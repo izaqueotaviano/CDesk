@@ -13,6 +13,20 @@
     gap: $sp-2;
   }
 
+  // A busca é quem mais precisa de largura: cresce até um teto, e os
+  // selects ficam do tamanho do próprio texto.
+  &__controls > .search-input {
+    flex: 1 1 280px;
+    max-width: 420px;
+  }
+
+  &__end {
+    display: flex;
+    align-items: center;
+    gap: $sp-2;
+    margin-left: auto;
+  }
+
   &__applied {
     display: flex;
     align-items: center;
@@ -33,5 +47,7 @@
 
   @include mobile {
     &__controls { flex-direction: column; align-items: stretch; }
+    &__controls > .search-input { flex: 0 0 auto; max-width: none; }
+    &__end { margin-left: 0; justify-content: flex-end; }
   }
 }

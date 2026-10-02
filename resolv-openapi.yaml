@@ -21,8 +21,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -46,8 +44,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Announcement'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -67,8 +63,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -99,8 +93,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Announcement'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -130,8 +122,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedAnnouncement'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -150,8 +140,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -186,14 +174,42 @@ paths:
             schema:
               $ref: '#/components/schemas/Announcement'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Announcement'
+          description: ''
+  /api/v1/assinaturas/{nome}:
+    get:
+      operationId: v1_assinaturas_retrieve
+      description: |-
+        Serve a imagem da assinatura. SEM sessão, ao contrário do avatar.
+
+        Ela vai dentro do e-mail que o cliente recebe, e caixa de entrada não
+        tem sessão nossa — exigir login aqui renderizaria um ícone de imagem
+        quebrada em toda resposta assinada. O que protege o arquivo é o nome:
+        32 bytes aleatórios em hexa, que não se adivinha nem se enumera. E o
+        conteúdo é o logotipo que a empresa põe no rodapé de e-mail — feito
+        para ser visto por quem recebe.
+      parameters:
+      - in: path
+        name: nome
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
           description: ''
   /api/v1/attachments/{id}/:
     get:
@@ -207,8 +223,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -240,8 +254,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -270,8 +282,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -296,8 +306,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -332,8 +340,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedDataSubjectRequest'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -353,8 +359,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -388,8 +392,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -422,8 +424,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -448,8 +448,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -482,8 +480,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -520,8 +516,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -547,8 +541,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -568,8 +560,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -600,8 +590,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -626,8 +614,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -661,8 +647,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/RetentionRun'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -687,8 +671,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/RetentionRun'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -715,8 +697,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -737,8 +717,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -767,7 +745,6 @@ paths:
               type: object
               additionalProperties: {}
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -796,8 +773,6 @@ paths:
             schema:
               type: object
               additionalProperties: {}
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -831,8 +806,6 @@ paths:
             schema:
               type: object
               additionalProperties: {}
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -849,8 +822,6 @@ paths:
         Quem usa TOTP não precisa: o aplicativo já gera o código.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -866,7 +837,6 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -898,8 +868,6 @@ paths:
             schema:
               type: object
               additionalProperties: {}
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -914,8 +882,6 @@ paths:
       description: Estado da verificação do PRÓPRIO usuário — a tela 'Minha conta'.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -935,7 +901,6 @@ paths:
       tags:
       - v1
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -975,7 +940,6 @@ paths:
               $ref: '#/components/schemas/DefinirSenha'
         required: true
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -1002,7 +966,6 @@ paths:
               $ref: '#/components/schemas/LoginRequest'
         required: true
       security:
-      - cookieAuth: []
       - {}
       responses:
         '200':
@@ -1016,8 +979,6 @@ paths:
       operationId: v1_auth_logout_create
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -1027,8 +988,6 @@ paths:
       description: A conta de quem está pedindo. GET lê; PATCH edita o próprio perfil.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1052,14 +1011,105 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedProfileUpdate'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/auth/recuperar-senha/:
+    post:
+      operationId: v1_auth_recuperar_senha_create
+      description: |-
+        POST `auth/recuperar-senha/` — pede o link por e-mail.
+
+        Sempre 200 com o mesmo texto quando o e-mail é bem formado. O único
+        outro resultado é o 400 de e-mail malformado, que depende só do que foi
+        digitado — nunca de existir conta.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PedidoRecuperacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PedidoRecuperacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PedidoRecuperacao'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/auth/redefinir-senha/:
+    get:
+      operationId: v1_auth_redefinir_senha_retrieve
+      description: |-
+        GET confere o link antes de desenhar o formulário; POST troca a senha.
+
+        A troca NÃO cria sessão (ver o cabeçalho do módulo): a resposta diz só
+        para qual login mandar a pessoa, e o 2FA dela continua valendo lá.
+      parameters:
+      - in: query
+        name: token
+        schema:
+          type: string
+      - in: query
+        name: uid
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    post:
+      operationId: v1_auth_redefinir_senha_create
+      description: |-
+        GET confere o link antes de desenhar o formulário; POST troca a senha.
+
+        A troca NÃO cria sessão (ver o cabeçalho do módulo): a resposta diz só
+        para qual login mandar a pessoa, e o 2FA dela continua valendo lá.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RedefinirSenha'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RedefinirSenha'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RedefinirSenha'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/avatars/{nome}:
     get:
@@ -1073,12 +1123,50 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             image/png:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/branding/login/:
+    get:
+      operationId: v1_branding_login_retrieve
+      description: Textos e imagem da tela de login. Público.
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/branding/login-image/{audience}/:
+    get:
+      operationId: v1_branding_login_image_retrieve
+      description: |-
+        Serve a imagem do painel. Pública, como a tela; sempre JPEG gerado
+        por nós (ver branding.py).
+      parameters:
+      - in: path
+        name: audience
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            image/jpeg:
               schema:
                 type: string
                 format: binary
@@ -1104,8 +1192,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1128,8 +1214,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1156,8 +1240,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1182,8 +1264,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BannedWord'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -1204,8 +1284,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1237,8 +1315,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BannedWord'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1269,8 +1345,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedBannedWord'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1290,8 +1364,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -1300,10 +1372,35 @@ paths:
       operationId: v1_chat_chats_list
       parameters:
       - in: query
+        name: agent
+        schema:
+          type: integer
+        description: 'finalizados: quem atendeu'
+      - in: query
+        name: ate
+        schema:
+          type: string
+        description: 'finalizados: encerrados até (AAAA-MM-DD)'
+      - in: query
+        name: category
+        schema:
+          type: integer
+        description: 'finalizados: id do assunto/categoria'
+      - in: query
         name: client
         schema:
           type: integer
         description: id do cliente — as conversas dele
+      - in: query
+        name: company
+        schema:
+          type: integer
+        description: id da empresa — as conversas dela
+      - in: query
+        name: desde
+        schema:
+          type: string
+        description: 'finalizados: encerrados a partir de (AAAA-MM-DD)'
       - in: path
         name: id
         schema:
@@ -1327,19 +1424,39 @@ paths:
         schema:
           type: integer
       - in: query
+        name: ordering
+        schema:
+          type: string
+        description: recentes | antigos | duracao | duracao_asc | espera | nota |
+          nota_asc
+      - in: query
         name: q
         schema:
           type: string
-        description: busca por cliente, empresa ou nome do chat
+        description: busca por cliente, empresa, nome do chat, e-mail, telefone, protocolo
+          (#id) ou conteúdo das mensagens
+      - in: query
+        name: rating
+        schema:
+          type: string
+        description: 'finalizados: ''sem'' (não avaliados), ou nota mínima 0-10'
+      - in: query
+        name: reason
+        schema:
+          type: integer
+        description: 'finalizados: id do motivo de encerramento'
       - in: query
         name: status
         schema:
           type: string
         description: queued | active | closed
+      - in: query
+        name: tag
+        schema:
+          type: integer
+        description: 'finalizados: id da etiqueta'
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1371,8 +1488,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -1391,8 +1506,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1424,8 +1537,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedChat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1455,8 +1566,36 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/{id}/assume/:
+    post:
+      operationId: v1_chat_chats_assume_create
+      description: Supervisor assume o atendimento — a conversa passa a ser dele.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Chat'
       responses:
         '200':
           content:
@@ -1486,8 +1625,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1518,8 +1655,36 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/{id}/export/:
+    get:
+      operationId: v1_chat_chats_export_retrieve
+      description: |-
+        PDF de UM atendimento, para quem atende.
+
+        `?notes=1` leva as notas internas junto — e só para quem é interno,
+        porque é a mesma regra do resto: o cliente não vê nota nem por esta
+        porta. Com notas, o documento se identifica como interno no rodapé e
+        cada nota leva o selo escrito; o arquivo sai do sistema e ninguém
+        controla para onde vai depois.
+
+        Fica na trilha de auditoria (`AuditAction.EXPORT`) porque exportar
+        uma conversa inteira é justamente o que alguém quer poder revisar
+        depois — inclusive se as notas foram junto.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
       responses:
         '200':
           content:
@@ -1552,8 +1717,85 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/{id}/join/:
+    post:
+      operationId: v1_chat_chats_join_create
+      description: Supervisor entra na conversa de outro agente, sem tirá-la dele.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Chat'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/{id}/leave/:
+    post:
+      operationId: v1_chat_chats_leave_create
+      description: Quem entrou sai; o atendimento segue com o dono.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Chat'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Chat'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/{id}/media/:
+    get:
+      operationId: v1_chat_chats_media_retrieve
+      description: Anexos e links DESTE atendimento — o painel lateral da conversa.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
       responses:
         '200':
           content:
@@ -1604,8 +1846,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1646,8 +1886,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedChat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1676,8 +1914,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -1703,8 +1939,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1734,8 +1968,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1765,8 +1997,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1797,8 +2027,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1828,8 +2056,57 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/Chat'
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/clients/:
+    get:
+      operationId: v1_chat_chats_clients_retrieve
+      description: |-
+        A caixa de entrada do console, agrupada POR CLIENTE.
+
+        Uma linha por pessoa em vez de uma por abertura — com cinquenta
+        clientes e várias aberturas cada, a lista por abertura é a que
+        ninguém navega. O agrupamento é de apresentação: cada `Chat`
+        continua sendo uma linha no banco, com o próprio SLA e a própria
+        avaliação.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+          description: ''
+  /api/v1/chat/chats/metrics/:
+    get:
+      operationId: v1_chat_chats_metrics_retrieve
+      description: |-
+        Como foram os atendimentos do período — espera, duração, desfecho
+        e nota. Só interno: são números de operação, não do titular.
+
+        O recorte é por ENCERRAMENTO, não por abertura: as medidas só existem
+        depois que o chat fecha, e contar pela abertura deixaria o mês passado
+        mudando de valor conforme conversas antigas vão terminando.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
       responses:
         '200':
           content:
@@ -1849,8 +2126,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1858,6 +2133,194 @@ paths:
               schema:
                 $ref: '#/components/schemas/Chat'
           description: ''
+  /api/v1/chat/close-reasons/:
+    get:
+      operationId: v1_chat_close_reasons_list
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Número de resultados a serem retornados por página.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: O índice inicial a partir do qual retornar os resultados.
+        schema:
+          type: integer
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedChatCloseReasonList'
+          description: ''
+    post:
+      operationId: v1_chat_close_reasons_create
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCloseReason'
+          description: ''
+  /api/v1/chat/close-reasons/{id}/:
+    get:
+      operationId: v1_chat_close_reasons_retrieve
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este motivo de encerramento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCloseReason'
+          description: ''
+    put:
+      operationId: v1_chat_close_reasons_update
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este motivo de encerramento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatCloseReason'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCloseReason'
+          description: ''
+    patch:
+      operationId: v1_chat_close_reasons_partial_update
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este motivo de encerramento.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedChatCloseReason'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedChatCloseReason'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedChatCloseReason'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCloseReason'
+          description: ''
+    delete:
+      operationId: v1_chat_close_reasons_destroy
+      description: |-
+        Motivos de encerramento — o agente LÊ (para escolher ao encerrar), o
+        admin gerencia. Mesma divisão do resto do cadastro do chat.
+
+        A listagem devolve tudo, inclusive desativados: a aba Finalizados precisa
+        do motivo antigo para filtrar e para escrever a legenda de um atendimento
+        que o usou. Quem esconde o desativado do seletor de encerramento é a tela
+        — e o backend recusa encerrar com motivo inativo (ver `close`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este motivo de encerramento.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
   /api/v1/chat/config/:
     get:
       operationId: v1_chat_config_retrieve
@@ -1875,8 +2338,6 @@ paths:
         de chats por agente são operação interna e ficam de fora da resposta dele.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1911,8 +2372,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/ChatConfig'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1933,8 +2392,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1967,8 +2424,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -1998,8 +2453,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketMacro'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2025,8 +2478,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2063,8 +2514,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketMacro'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2100,8 +2549,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTicketMacro'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2126,8 +2573,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -2159,8 +2604,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2194,8 +2637,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientQuickReply'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2224,8 +2665,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2265,8 +2704,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ClientQuickReply'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2305,8 +2742,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedClientQuickReply'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2334,8 +2769,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -2351,8 +2784,6 @@ paths:
         description: company | client | agent | score
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2394,8 +2825,6 @@ paths:
         description: busca no corpo das mensagens
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2416,11 +2845,14 @@ paths:
         um interno, que atende várias pessoas.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+          description: ''
   /api/v1/chat/timeline/media/:
     get:
       operationId: v1_chat_timeline_media_retrieve
@@ -2432,8 +2864,6 @@ paths:
         até a tela.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2461,8 +2891,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2484,8 +2912,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2493,6 +2919,301 @@ paths:
               schema:
                 $ref: '#/components/schemas/Company'
           description: ''
+  /api/v1/ferramentas/backups/:
+    get:
+      operationId: v1_ferramentas_backups_retrieve
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+    post:
+      operationId: v1_ferramentas_backups_create
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/backups/{nome}/:
+    delete:
+      operationId: v1_ferramentas_backups_destroy
+      parameters:
+      - in: path
+        name: nome
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/ferramentas/backups/{nome}/download/:
+    get:
+      operationId: v1_ferramentas_backups_download_retrieve
+      parameters:
+      - in: path
+        name: nome
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/backups/{nome}/restaurar/:
+    post:
+      operationId: v1_ferramentas_backups_restaurar_create
+      parameters:
+      - in: path
+        name: nome
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/backups/agendamento/:
+    get:
+      operationId: v1_ferramentas_backups_agendamento_retrieve
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+    put:
+      operationId: v1_ferramentas_backups_agendamento_update
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Agendamento'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Agendamento'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Agendamento'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/backups/trabalhos/{id}/:
+    get:
+      operationId: v1_ferramentas_backups_trabalhos_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-movidesk/:
+    get:
+      operationId: v1_ferramentas_importacao_movidesk_list
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImportacaoMovidesk'
+          description: ''
+    post:
+      operationId: v1_ferramentas_importacao_movidesk_create
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovaImportacao'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NovaImportacao'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NovaImportacao'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportacaoMovidesk'
+          description: ''
+  /api/v1/ferramentas/importacao-movidesk/{id}/:
+    get:
+      operationId: v1_ferramentas_importacao_movidesk_retrieve
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-movidesk/{id}/arquivo/:
+    get:
+      operationId: v1_ferramentas_importacao_movidesk_arquivo_retrieve
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-movidesk/{id}/cancelar/:
+    post:
+      operationId: v1_ferramentas_importacao_movidesk_cancelar_create
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-pessoas/:
+    get:
+      operationId: v1_ferramentas_importacao_pessoas_list
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ImportacaoPessoas'
+          description: ''
+    post:
+      operationId: v1_ferramentas_importacao_pessoas_create
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NovaImportacaoPessoas'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/NovaImportacaoPessoas'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NovaImportacaoPessoas'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportacaoPessoas'
+          description: ''
+  /api/v1/ferramentas/importacao-pessoas/{id}/:
+    get:
+      operationId: v1_ferramentas_importacao_pessoas_retrieve
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-pessoas/{id}/arquivo/:
+    get:
+      operationId: v1_ferramentas_importacao_pessoas_arquivo_retrieve
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
+  /api/v1/ferramentas/importacao-pessoas/{id}/cancelar/:
+    post:
+      operationId: v1_ferramentas_importacao_pessoas_cancelar_create
+      description: |-
+        O que as duas importações têm em comum: listar, disparar, ver, cancelar,
+        baixar o JSON. As subclasses dizem o modelo, o serializer, a task e como
+        montar o registro a partir do pedido.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          description: No response body
   /api/v1/kanban/boards/:
     get:
       operationId: v1_kanban_boards_list
@@ -2502,6 +3223,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       parameters:
       - name: limit
         required: false
@@ -2517,8 +3242,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2534,6 +3257,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       tags:
       - v1
       requestBody:
@@ -2548,8 +3275,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Board'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2566,6 +3291,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       parameters:
       - in: path
         name: id
@@ -2575,8 +3304,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2592,6 +3319,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       parameters:
       - in: path
         name: id
@@ -2613,8 +3344,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Board'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2630,6 +3359,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       parameters:
       - in: path
         name: id
@@ -2650,8 +3383,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedBoard'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2667,6 +3398,10 @@ paths:
         `place` e `entry` moram no BoardViewSet por serem operações sobre um
         quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
         Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+        `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+        interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+        nem toca em ticket), então errar custa zero.
       parameters:
       - in: path
         name: id
@@ -2676,8 +3411,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -2694,8 +3427,47 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Board'
+          description: ''
+  /api/v1/kanban/boards/{id}/columns/{column_key}/:
+    patch:
+      operationId: v1_kanban_boards_columns_partial_update
+      description: |-
+        PATCH `{"wip_limit": n | null}`: limite de WIP da coluna.
+
+        A chave é a mesma de `columns[].key` no quadro montado — status
+        (`"3"`) ou organização (`"lane-9"`) —, e a resposta é o quadro
+        inteiro, como em `place/` e `entry/`: a tela troca o cache de uma vez.
+      parameters:
+      - in: path
+        name: column_key
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este quadro.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedBoard'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedBoard'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedBoard'
       responses:
         '200':
           content:
@@ -2733,8 +3505,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedBoard'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2767,8 +3537,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Board'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2801,8 +3569,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2833,8 +3599,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BoardLane'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -2861,8 +3625,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2900,8 +3662,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BoardLane'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2938,8 +3698,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedBoardLane'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -2965,8 +3723,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -2988,8 +3744,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3009,8 +3763,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3045,8 +3797,55 @@ paths:
             schema:
               $ref: '#/components/schemas/ArticleList'
         required: true
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleList'
+          description: ''
+  /api/v1/knowledge/articles/categories/:
+    get:
+      operationId: v1_knowledge_articles_categories_retrieve
+      description: |-
+        As categorias existentes, com quantos artigos cada uma tem.
+
+        A Central de Ajuda navega por categoria antes de buscar, e a lista
+        de artigos vem PAGINADA — derivar as categorias de uma página só
+        mostraria um subconjunto que muda conforme a pessoa navega. Aqui a
+        contagem é do acervo inteiro, numa consulta agregada.
+
+        Artigo sem categoria (taxonomia não confirmada no WordPress — ver
+        `wordpress_sync`) fica fora: uma entrada "" na navegação não diz
+        nada a quem lê.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleList'
+          description: ''
+  /api/v1/knowledge/articles/suggest/:
+    get:
+      operationId: v1_knowledge_articles_suggest_retrieve
+      description: |-
+        Até 3 artigos que PODEM resolver o que a pessoa está escrevendo.
+
+        É a busca da abertura de chamado ("Isso pode resolver"), e é outra
+        pergunta que o `?q=` da lista: lá a pessoa digita uma palavra-chave e
+        espera a substring exata; aqui ela escreve uma frase ("Nota fiscal do
+        pedido saiu com CNPJ errado") e nenhum artigo contém a frase inteira.
+        Então a frase vira palavras (`termos_da_busca`) e cada artigo soma
+        pontos por palavra encontrada — título vale mais que resumo, que vale
+        mais que corpo. Sem acento dos dois lados (`unaccent`): quem digita
+        "emissao" também procura "emissão".
+
+        Nada casou = lista vazia, e a tela simplesmente não mostra o bloco:
+        sugestão é ajuda, nunca obstáculo para abrir o chamado.
+      tags:
+      - v1
       responses:
         '200':
           content:
@@ -3065,8 +3864,6 @@ paths:
         a tela ter de adivinhar a qual período cada número pertence.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3096,8 +3893,6 @@ paths:
         `apps.accounts.sessions`) — só muda de quem é a conta.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3106,6 +3901,39 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/me/assinatura-imagem/:
+    post:
+      operationId: v1_me_assinatura_imagem_create
+      description: |-
+        POST: envia a imagem da assinatura. DELETE: remove.
+
+        Igual ao avatar (o arquivo é recodificado antes de ser gravado), com uma
+        diferença: mandar a imagem também LIGA a forma "imagem", porque enviar
+        uma assinatura e ela não aparecer seria o resultado mais surpreendente
+        possível de um botão chamado "Enviar imagem".
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    delete:
+      operationId: v1_me_assinatura_imagem_destroy
+      description: |-
+        POST: envia a imagem da assinatura. DELETE: remove.
+
+        Igual ao avatar (o arquivo é recodificado antes de ser gravado), com uma
+        diferença: mandar a imagem também LIGA a forma "imagem", porque enviar
+        uma assinatura e ela não aparecer seria o resultado mais surpreendente
+        possível de um botão chamado "Enviar imagem".
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
   /api/v1/me/avatar/:
     post:
       operationId: v1_me_avatar_create
@@ -3115,8 +3943,6 @@ paths:
         O arquivo é sempre recodificado antes de ser gravado — ver `avatars.py`.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3132,19 +3958,158 @@ paths:
         O arquivo é sempre recodificado antes de ser gravado — ver `avatars.py`.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/v1/me/company/:
+    get:
+      operationId: v1_me_company_retrieve
+      description: |-
+        GET/PATCH /api/v1/me/company/ — a empresa de quem está pedindo.
+
+        Self-service do portal: sempre `request.user.company`, nunca um id na
+        URL — não existe como pedir a de outra empresa. Interno não tem empresa
+        cliente (403). Editar exige `portal.company_edit` (o responsável tem;
+        um membro comum só lê), e toda mudança vai para a trilha de auditoria:
+        CNPJ e razão social são dado fiscal, precisa dar para saber quem mexeu.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyCompany'
+          description: ''
+    patch:
+      operationId: v1_me_company_partial_update
+      description: |-
+        GET/PATCH /api/v1/me/company/ — a empresa de quem está pedindo.
+
+        Self-service do portal: sempre `request.user.company`, nunca um id na
+        URL — não existe como pedir a de outra empresa. Interno não tem empresa
+        cliente (403). Editar exige `portal.company_edit` (o responsável tem;
+        um membro comum só lê), e toda mudança vai para a trilha de auditoria:
+        CNPJ e razão social são dado fiscal, precisa dar para saber quem mexeu.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMyCompany'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMyCompany'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMyCompany'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyCompany'
+          description: ''
+  /api/v1/me/company/users/:
+    get:
+      operationId: v1_me_company_users_list
+      description: GET lista; POST convida — `me/company/users/`.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PessoaEmpresa'
+          description: ''
+    post:
+      operationId: v1_me_company_users_create
+      description: GET lista; POST convida — `me/company/users/`.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConvitePessoa'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ConvitePessoa'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ConvitePessoa'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PessoaEmpresa'
+          description: ''
+  /api/v1/me/company/users/{id}/:
+    patch:
+      operationId: v1_me_company_users_partial_update
+      description: PATCH `me/company/users/<id>/` — ativa/desativa e troca o papel.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAlteracaoPessoa'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAlteracaoPessoa'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAlteracaoPessoa'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PessoaEmpresa'
+          description: ''
+  /api/v1/me/company/users/{id}/invite/:
+    post:
+      operationId: v1_me_company_users_invite_create
+      description: |-
+        POST `me/company/users/<id>/invite/` — reenvia o convite pendente.
+
+        O link do convite vence em 3 dias; sem reenvio, o responsável teria de
+        pedir ao suporte algo que ele mesmo pode resolver.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/me/data-requests/:
     get:
       operationId: v1_me_data_requests_list
       description: 'Self-service do titular: exportação dos próprios dados.'
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3171,8 +4136,6 @@ paths:
             schema:
               $ref: '#/components/schemas/DataSubjectRequest'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3188,10 +4151,9 @@ paths:
       description: |-
         Trocar a PRÓPRIA senha, provando a identidade com a senha atual.
 
-        Isto não contradiz a decisão de não existir "esqueci minha senha"
-        self-service (ver `DefinirSenhaView` e o cabeçalho de api/account.ts): a
-        recusa lá é sobre provar "sou eu" SEM a senha, que exige alguém
-        verificando por outro canal. Aqui a senha atual é a prova.
+        Quem NÃO tem a senha atual usa "Esqueci minha senha"
+        (apps/accounts/recuperacao.py), que prova a identidade pela caixa de
+        e-mail. Aqui a senha atual é a prova.
 
         As sessões abertas continuam abertas de propósito — trocar a senha por
         higiene não deveria derrubar a pessoa dos outros aparelhos dela. Quem
@@ -3211,8 +4173,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TrocarSenha'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3248,8 +4208,6 @@ paths:
             schema:
               type: object
               additionalProperties: {}
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3284,8 +4242,6 @@ paths:
         impossível de reaparecer.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3307,19 +4263,236 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
+  /api/v1/notes/:
+    get:
+      operationId: v1_notes_list
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      parameters:
+      - name: limit
+        required: false
+        in: query
+        description: Número de resultados a serem retornados por página.
+        schema:
+          type: integer
+      - name: offset
+        required: false
+        in: query
+        description: O índice inicial a partir do qual retornar os resultados.
+        schema:
+          type: integer
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedNoteListList'
+          description: ''
+    post:
+      operationId: v1_notes_create
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Note'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Note'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+          description: ''
+  /api/v1/notes/{id}/:
+    get:
+      operationId: v1_notes_retrieve
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+          description: ''
+    put:
+      operationId: v1_notes_update
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Note'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Note'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+          description: ''
+    patch:
+      operationId: v1_notes_partial_update
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedNote'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedNote'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedNote'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+          description: ''
+    delete:
+      operationId: v1_notes_destroy
+      description: As notas pessoais de quem está autenticado — dele e de mais ninguém.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
+  /api/v1/notes/{id}/restore/:
+    post:
+      operationId: v1_notes_restore_create
+      description: |-
+        Tira da lixeira. `get_queryset` já recorta para as apagadas do
+        dono, então restaurar a nota de outra pessoa é 404 aqui.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Note'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Note'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Note'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Note'
+          description: ''
+  /api/v1/notes/tags/:
+    get:
+      operationId: v1_notes_tags_list
+      description: |-
+        As etiquetas de quem está autenticado — para o autocomplete da edição
+        e para o filtro da lista.
+
+        Somente leitura: etiqueta nasce ao ser digitada dentro de uma nota
+        (`tag_names`), não por um cadastro à parte. Um POST aqui criaria etiqueta
+        solta, que nunca apareceria em lugar nenhum da tela.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NoteTag'
+          description: ''
+  /api/v1/notes/tags/{id}/:
+    get:
+      operationId: v1_notes_tags_retrieve
+      description: |-
+        As etiquetas de quem está autenticado — para o autocomplete da edição
+        e para o filtro da lista.
+
+        Somente leitura: etiqueta nasce ao ser digitada dentro de uma nota
+        (`tag_names`), não por um cadastro à parte. Um POST aqui criaria etiqueta
+        solta, que nunca apareceria em lugar nenhum da tela.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NoteTag'
+          description: ''
   /api/v1/notification-preferences/:
     get:
       operationId: v1_notification_preferences_retrieve
       description: GET/PUT das preferências do próprio usuário.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3343,8 +4516,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/NotificationPreference'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3370,8 +4541,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3403,8 +4572,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Notification'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3429,8 +4596,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Notification'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3444,14 +4609,73 @@ paths:
       description: GET /api/v1/quota/ — uso do período corrente (docs/05 §2.5).
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Quota'
+          description: ''
+  /api/v1/reports/chats/:
+    get:
+      operationId: v1_reports_chats_retrieve
+      description: |-
+        GET /api/v1/reports/chats/?period=&granularity=&agent=&from=&to=
+
+        Quantos chats cada agente atendeu (tabela, com variação vs. o período
+        anterior) e a mesma contagem ao longo do tempo (série, na granularidade
+        pedida). Escopo gerencial — todos os chats do sistema, sem recorte por
+        empresa, o mesmo espírito de `IndicatorsView`.
+
+        "Atendido" e as contagens exatas seguem as regras documentadas em
+        `apps.reports.services.chat_stats` — em especial a limitação sobre chat
+        reaberto (só a última aceitação conta).
+      parameters:
+      - in: query
+        name: agent
+        schema:
+          type: integer
+        description: Recorta a série temporal (não afeta a tabela por agente)
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Início da série (AAAA-MM-DD)
+      - in: query
+        name: granularity
+        schema:
+          type: string
+          enum:
+          - day
+          - hour
+          - month
+          - year
+        description: 'Bucket da série temporal (padrão: day)'
+      - in: query
+        name: period
+        schema:
+          type: string
+          enum:
+          - month
+          - today
+          - week
+        description: 'Janela da tabela por agente (padrão: month)'
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fim da série (AAAA-MM-DD)
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/reports/exports/:
     get:
@@ -3472,8 +4696,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3498,8 +4720,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ReportExport'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -3520,8 +4740,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3542,8 +4760,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3555,12 +4771,22 @@ paths:
     get:
       operationId: v1_reports_indicators_retrieve
       description: |-
-        GET /api/v1/reports/indicators/?period=&team=
+        GET /api/v1/reports/indicators/?period=&team=&from=&to=
 
         O painel gerencial. Uma requisição devolve o painel inteiro: são 15 widgets
         sobre a MESMA leitura de tickets, e quinze chamadas repetiriam a consulta
         (e poderiam mostrar números de instantes diferentes lado a lado).
+
+        `from`/`to` são o intervalo livre (os mesmos nomes do relatório detalhado
+        e de `ChatStatsView`); com eles, `period` é ignorado e a resposta volta
+        com `period.key == "custom"`.
       parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Início de um intervalo livre (AAAA-MM-DD); ganha de `period`
       - in: query
         name: period
         schema:
@@ -3575,10 +4801,14 @@ paths:
         schema:
           type: integer
         description: Id da equipe
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Fim do intervalo livre, dia inteiro (AAAA-MM-DD)
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3614,6 +4844,11 @@ paths:
           type: integer
         description: Id do solicitante
       - in: query
+        name: team
+        schema:
+          type: integer
+        description: Id da equipe
+      - in: query
         name: to
         schema:
           type: string
@@ -3621,8 +4856,6 @@ paths:
         description: Fim do período
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3658,6 +4891,11 @@ paths:
           type: integer
         description: Id do solicitante
       - in: query
+        name: team
+        schema:
+          type: integer
+        description: Id da equipe
+      - in: query
         name: to
         schema:
           type: string
@@ -3665,8 +4903,6 @@ paths:
         description: Fim do período
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3678,10 +4914,10 @@ paths:
   /api/v1/search/:
     get:
       operationId: v1_search_retrieve
-      description: Busca através de chamados, empresas e solicitantes — recurso interno
+      description: Busca através de tickets, empresas e solicitantes — recurso interno
         (a tela que consome isto, o cabeçalho, só existe do lado do agente). Cada
         grupo é uma PRÉVIA (até 8 linhas), não uma listagem paginada; quem quer a
-        lista completa de um grupo já tem tela própria (Chamados, Empresas, settings/users/).
+        lista completa de um grupo já tem tela própria (Tickets, Empresas, settings/users/).
       parameters:
       - in: query
         name: q
@@ -3690,11 +4926,14 @@ paths:
         description: termo buscado
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/services/:
     get:
       operationId: v1_services_list
@@ -3718,8 +4957,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3744,8 +4981,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3753,6 +4988,140 @@ paths:
               schema:
                 $ref: '#/components/schemas/Service'
           description: ''
+  /api/v1/settings/branding/login/:
+    get:
+      operationId: v1_settings_branding_login_retrieve
+      description: |-
+        GET: os dois públicos + os padrões de fábrica (para "restaurar").
+        PUT /<audience>/: os textos. Interno lê, admin escreve.
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: v1_settings_branding_login_update
+      description: |-
+        GET: os dois públicos + os padrões de fábrica (para "restaurar").
+        PUT /<audience>/: os textos. Interno lê, admin escreve.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/settings/branding/login/{audience}/:
+    get:
+      operationId: v1_settings_branding_login_retrieve_2
+      description: |-
+        GET: os dois públicos + os padrões de fábrica (para "restaurar").
+        PUT /<audience>/: os textos. Interno lê, admin escreve.
+      parameters:
+      - in: path
+        name: audience
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    put:
+      operationId: v1_settings_branding_login_update_2
+      description: |-
+        GET: os dois públicos + os padrões de fábrica (para "restaurar").
+        PUT /<audience>/: os textos. Interno lê, admin escreve.
+      parameters:
+      - in: path
+        name: audience
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginBranding'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/settings/branding/login/{audience}/image/:
+    post:
+      operationId: v1_settings_branding_login_image_create
+      description: |-
+        POST: envia a imagem do painel (multipart, campo `file`). DELETE: volta
+        ao painel azul.
+      parameters:
+      - in: path
+        name: audience
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+    delete:
+      operationId: v1_settings_branding_login_image_destroy
+      description: |-
+        POST: envia a imagem do painel (multipart, campo `file`). DELETE: volta
+        ao painel azul.
+      parameters:
+      - in: path
+        name: audience
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
   /api/v1/settings/calendars/:
     get:
       operationId: v1_settings_calendars_list
@@ -3771,8 +5140,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3796,8 +5163,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessCalendar'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -3817,8 +5182,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3849,8 +5212,6 @@ paths:
             schema:
               $ref: '#/components/schemas/BusinessCalendar'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3880,8 +5241,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedBusinessCalendar'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3900,8 +5259,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -3923,8 +5280,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -3948,8 +5303,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketCategoryAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -3969,8 +5322,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4001,8 +5352,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketCategoryAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4032,8 +5381,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTicketCategoryAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4052,8 +5399,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -4065,8 +5410,6 @@ paths:
         rótulos no frontend e desalinhar do backend.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4093,8 +5436,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4118,8 +5459,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CompanyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -4139,8 +5478,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4171,8 +5508,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CompanyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4202,8 +5537,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedCompanyAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4222,8 +5555,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -4243,8 +5574,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4278,8 +5607,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedCompanyAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4317,8 +5644,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CompanyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4338,8 +5663,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4378,8 +5701,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4429,8 +5750,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CompanyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4456,8 +5775,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4481,8 +5798,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Holiday'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -4502,8 +5817,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4534,8 +5847,6 @@ paths:
             schema:
               $ref: '#/components/schemas/Holiday'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4565,8 +5876,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedHoliday'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4585,8 +5894,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -4608,8 +5915,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4633,8 +5938,6 @@ paths:
             schema:
               $ref: '#/components/schemas/PlanAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -4654,8 +5957,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4686,8 +5987,6 @@ paths:
             schema:
               $ref: '#/components/schemas/PlanAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4717,8 +6016,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedPlanAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4737,8 +6034,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -4768,8 +6063,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4801,8 +6094,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CustomRole'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -4830,8 +6121,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4870,8 +6159,6 @@ paths:
             schema:
               $ref: '#/components/schemas/CustomRole'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4909,8 +6196,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedCustomRole'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4937,8 +6222,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -4962,8 +6245,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -4989,8 +6270,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5012,8 +6291,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5046,8 +6323,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ServiceAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5079,8 +6354,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedServiceAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5101,8 +6374,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -5124,8 +6395,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5149,8 +6418,6 @@ paths:
             schema:
               $ref: '#/components/schemas/SLAPolicyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5170,8 +6437,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5202,8 +6467,6 @@ paths:
             schema:
               $ref: '#/components/schemas/SLAPolicyAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5233,8 +6496,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedSLAPolicyAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5253,8 +6514,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -5282,8 +6541,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5313,8 +6570,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketStage'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5340,8 +6595,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5378,8 +6631,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketStage'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5415,8 +6666,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTicketStage'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5441,8 +6690,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -5452,8 +6699,6 @@ paths:
       description: Parâmetros operacionais (anexos, chat). Interno lê, admin escreve.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5477,14 +6722,38 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/SystemConfig'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemConfig'
+          description: ''
+  /api/v1/settings/system/test-email/:
+    post:
+      operationId: v1_settings_system_test_email_create
+      description: Envia um e-mail de teste pela configuração atual. Só admin.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TestEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TestEmail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/settings/tags/:
     get:
@@ -5504,8 +6773,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5529,8 +6796,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketTag'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5550,8 +6815,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5582,8 +6845,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketTag'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5613,8 +6874,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTicketTag'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5633,8 +6892,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -5656,8 +6913,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5681,8 +6936,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TeamAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5702,8 +6955,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5734,8 +6985,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TeamAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5765,8 +7014,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTeamAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5785,8 +7032,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -5823,8 +7068,6 @@ paths:
             schema:
               type: object
               additionalProperties: {}
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5848,8 +7091,6 @@ paths:
         inventar a sua.
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5880,8 +7121,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5909,8 +7148,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketMacro'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -5934,8 +7171,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -5970,8 +7205,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketMacro'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6005,8 +7238,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedTicketMacro'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6029,8 +7260,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -6052,8 +7281,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6077,8 +7304,6 @@ paths:
             schema:
               $ref: '#/components/schemas/UserAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -6098,8 +7323,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6130,8 +7353,6 @@ paths:
             schema:
               $ref: '#/components/schemas/UserAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6161,8 +7382,6 @@ paths:
           multipart/form-data:
             schema:
               $ref: '#/components/schemas/PatchedUserAdmin'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6181,8 +7400,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -6217,8 +7434,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6227,6 +7442,42 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/settings/users/{id}/assinatura-imagem/:
+    post:
+      operationId: v1_settings_users_assinatura_imagem_create
+      description: |-
+        Imagem da assinatura de OUTRA pessoa — gêmeo de
+        `POST me/assinatura-imagem/`, pelo mesmo motivo do avatar acima.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este usuário.
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserAdmin'
+          description: ''
+    delete:
+      operationId: v1_settings_users_assinatura_imagem_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: Um valor inteiro único que identifica este usuário.
+        required: true
+      tags:
+      - v1
+      responses:
+        '204':
+          description: No response body
   /api/v1/settings/users/{id}/avatar/:
     post:
       operationId: v1_settings_users_avatar_create
@@ -6248,8 +7499,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6269,8 +7518,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -6304,8 +7551,6 @@ paths:
             schema:
               $ref: '#/components/schemas/UserAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6335,8 +7580,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6353,15 +7596,13 @@ paths:
         senha atual.
 
         Caso de uso real: cliente esquece a senha e liga pedindo pro
-        atendimento trocar. O autoatendimento não tem "esqueci minha senha"
-        nenhum (`accountApi` não expõe troca de senha — não existe self-
-        service pra isso, ver GAPS.md), e a única porta administrativa que já
-        existia (reenviar o CONVITE, `invite` acima) resolve um problema
-        DIFERENTE: manda um e-mail com link pra pessoa escolher a própria
-        senha — útil pra quem nunca acessou, mas exige e-mail acessível
-        naquele instante, e não serve pro atendimento por telefone/chat que
-        precisa resolver na hora. Este endpoint é direto: o admin aciona, o
-        sistema já troca, sem passar por caixa de entrada nenhuma.
+        atendimento trocar. Hoje existe "Esqueci minha senha" self-service
+        (apps/accounts/recuperacao.py), mas ele exige a caixa de e-mail
+        acessível naquele instante — e o convite (`invite` acima) também.
+        Nenhum dos dois serve pro atendimento por telefone/chat que precisa
+        resolver na hora, nem pra quem perdeu o acesso ao próprio e-mail.
+        Este endpoint é direto: o admin aciona, o sistema já troca, sem
+        passar por caixa de entrada nenhuma.
 
         Mesmo espírito do `reset_2fa`: o próprio acesso administrativo já é
         a prova de identidade exigida — ninguém confirma a senha antiga pra
@@ -6379,8 +7620,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6407,8 +7646,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -6437,8 +7674,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '204':
           description: No response body
@@ -6467,8 +7702,6 @@ paths:
             schema:
               $ref: '#/components/schemas/UserAdmin'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6495,8 +7728,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6517,14 +7748,203 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Team'
+          description: ''
+  /api/v1/ticket-views/:
+    get:
+      operationId: v1_ticket_views_list
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      tags:
+      - tickets
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavedTicketView'
+          description: ''
+    post:
+      operationId: v1_ticket_views_create
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      tags:
+      - tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedTicketView'
+          description: ''
+  /api/v1/ticket-views/{id}/:
+    get:
+      operationId: v1_ticket_views_retrieve
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tickets
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedTicketView'
+          description: ''
+    put:
+      operationId: v1_ticket_views_update
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavedTicketView'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedTicketView'
+          description: ''
+    patch:
+      operationId: v1_ticket_views_partial_update
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedSavedTicketView'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedSavedTicketView'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedSavedTicketView'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedTicketView'
+          description: ''
+    delete:
+      operationId: v1_ticket_views_destroy
+      description: |-
+        CRUD das visualizações pessoais de quem está logado.
+
+        Só interno: a fila é do agente; o cliente tem as telas dele no portal.
+        Sem paginação — a lista inteira é o contrato (a barra lateral desenha
+        todas) e ela tem teto (`MAX_VISOES_POR_PESSOA`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+        required: true
+      tags:
+      - tickets
+      responses:
+        '204':
+          description: No response body
+  /api/v1/ticket-views/reorder/:
+    post:
+      operationId: v1_ticket_views_reorder_create
+      description: |-
+        Nova ordem da barra lateral: a lista COMPLETA de ids, na ordem
+        desejada. Parcial é recusado — reordenar metade deixaria duas visões
+        disputando a mesma posição sem ninguém ter pedido.
+      tags:
+      - tickets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReordenarVisoes'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReordenarVisoes'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReordenarVisoes'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SavedTicketView'
           description: ''
   /api/v1/tickets/:
     get:
@@ -6586,15 +8006,26 @@ paths:
           | cliente | responsavel | categoria | urgencia | status | justificativa
           | sla — com `-` na frente pra decrescente (ex.: `-criado`).'
       - in: query
+        name: periodo
+        schema:
+          type: string
+        description: 'abertura relativa a hoje: hoje | 7d | 30d | 90d (dias de calendário,
+          hoje incluso).'
+      - in: query
         name: priority
         schema:
           type: string
-        description: low | normal | high | urgent
+        description: low | normal | high | urgent — ou uma LISTA separada por vírgula.
       - in: query
         name: q
         schema:
           type: string
         description: busca por assunto ou referência
+      - in: query
+        name: requester
+        schema:
+          type: integer
+        description: id do solicitante
       - in: query
         name: resolucao
         schema:
@@ -6633,8 +8064,6 @@ paths:
           | internos | mencionam-voce | aguardando-voce'
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6664,8 +8093,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '201':
           content:
@@ -6684,8 +8111,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6718,8 +8143,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedTicketReclassify'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6755,8 +8178,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6787,8 +8208,35 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+          description: ''
+  /api/v1/tickets/{id}/assignable-agents/:
+    get:
+      operationId: v1_tickets_assignable_agents_retrieve
+      description: |-
+        Quem os seletores de Responsável e Dono técnico podem oferecer.
+
+        Pergunta DIFERENTE da de `mention_targets` — ver o porquê completo em
+        `services/atribuicao.py`. Resumo: aqui o requester PRECISA aparecer
+        (é o "Assumir" pelo seletor) e agente leve NÃO aparece (não passa em
+        `assign()`/`set_owner()`, que exigem `Perm.TICKET_BE_ASSIGNED`).
+
+        `self.get_object()` só para 404 fora do escopo — igual a
+        `mention_targets`, a lista em si não depende do ticket (nem tem
+        recorte por equipe: `services/atribuicao.agentes_atribuiveis`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
       responses:
         '200':
           content:
@@ -6799,6 +8247,12 @@ paths:
   /api/v1/tickets/{id}/close/:
     post:
       operationId: v1_tickets_close_create
+      description: |-
+        Fecha o ticket — o agente com o registro de trabalho técnico
+        (D4), o cliente sem ele (`close_ticket_by_requester`). É a MESMA
+        rota pros dois lados; quem decide qual caminho seguir é
+        `request.user.is_internal`, não um endpoint separado por papel —
+        mesma forma da rota de chat (`ChatViewSet.close`).
       parameters:
       - in: path
         name: id
@@ -6819,8 +8273,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6847,8 +8299,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6883,8 +8333,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6910,8 +8358,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6953,8 +8399,6 @@ paths:
           application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/PatchedTicketDetail'
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -6984,8 +8428,70 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/tickets/{id}/presenca/:
+    post:
+      operationId: v1_tickets_presenca_create
+      description: |-
+        Quem mais está com este ticket aberto — detecção de colisão.
+
+        POST é o batimento (ao abrir, a cada `BATIMENTO_S` e quando começa ou
+        para de digitar); DELETE é "fechei a tela". Os dois devolvem a lista
+        atual. Estado só em cache, com TTL: ver apps/tickets/services/presenca.py.
+
+        Só interno, e o 403 sai ANTES de olhar o ticket: para cliente a
+        resposta é a mesma exista o ticket ou não. Para interno, `get_object`
+        aplica o escopo de sempre (`visible_tickets`) — fora dele, 404 — então
+        só entra na lista, e só recebe a lista, quem enxerga o chamado.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PresencaBatimento'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PresencaBatimento'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PresencaBatimento'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Presenca'
+          description: ''
+    delete:
+      operationId: v1_tickets_presenca_destroy
+      description: |-
+        Quem mais está com este ticket aberto — detecção de colisão.
+
+        POST é o batimento (ao abrir, a cada `BATIMENTO_S` e quando começa ou
+        para de digitar); DELETE é "fechei a tela". Os dois devolvem a lista
+        atual. Estado só em cache, com TTL: ver apps/tickets/services/presenca.py.
+
+        Só interno, e o 403 sai ANTES de olhar o ticket: para cliente a
+        resposta é a mesma exista o ticket ou não. Para interno, `get_object`
+        aplica o escopo de sempre (`visible_tickets`) — fora dele, 404 — então
+        só entra na lista, e só recebe a lista, quem enxerga o chamado.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
       responses:
         '204':
           description: No response body
@@ -7012,8 +8518,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7044,8 +8548,72 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+          description: ''
+  /api/v1/tickets/{id}/schedule-reply/:
+    post:
+      operationId: v1_tickets_schedule_reply_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+          description: ''
+  /api/v1/tickets/{id}/schedule-reply/{schedule_id}/cancel/:
+    post:
+      operationId: v1_tickets_schedule_reply_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: schedule_id
+        schema:
+          type: string
+          pattern: ^\d+$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+        required: true
       responses:
         '200':
           content:
@@ -7080,8 +8648,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7112,8 +8678,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7145,8 +8709,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7177,8 +8739,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7209,8 +8769,6 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7241,8 +8799,41 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketDetail'
         required: true
-      security:
-      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
+          description: ''
+  /api/v1/tickets/bulk-status/:
+    post:
+      operationId: v1_tickets_bulk_status_create
+      description: |-
+        Muda o status (coluna) de vários chamados — mesma porta e mesma
+        forma de resposta das outras três ações em lote. O stage é o mesmo
+        para o lote inteiro, então um stage inválido é 400 no pedido todo
+        (não uma falha repetida em cada linha de `failed`).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TicketDetail'
+        required: true
       responses:
         '200':
           content:
@@ -7275,8 +8866,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7298,8 +8887,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7326,8 +8913,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7362,8 +8947,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7388,8 +8971,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7425,14 +9006,44 @@ paths:
             schema:
               $ref: '#/components/schemas/TicketList'
         required: true
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/TicketList'
+          description: ''
+  /api/v1/tickets/take-next/:
+    post:
+      operationId: v1_tickets_take_next_create
+      description: |-
+        "Pegar o próximo" do Início: escolhe E atribui numa transação só.
+
+        Antes a tela escolhia pela listagem e atribuía com `assign/` em dois
+        pedidos — dois agentes clicando no mesmo segundo pegavam o MESMO
+        chamado, e o segundo passava por cima do primeiro. Aqui a linha
+        escolhida fica travada (`select_for_update`) até a atribuição gravar,
+        e `skip_locked` faz o segundo clique pular para o próximo da fila em
+        vez de esperar pelo mesmo.
+
+        A ordem é a da tela (resolv/inicio/pegarProximo.ts): o prazo de SLA de
+        resolução que vence primeiro (sem prazo por último), depois a
+        prioridade mais alta, depois o mais antigo. "Aguardando o cliente"
+        fica de fora — ali a bola está com o cliente.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - v1
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketDetail'
           description: ''
   /api/v1/users/:
     get:
@@ -7453,8 +9064,6 @@ paths:
           type: integer
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7475,8 +9084,6 @@ paths:
         required: true
       tags:
       - v1
-      security:
-      - cookieAuth: []
       responses:
         '200':
           content:
@@ -7510,6 +9117,25 @@ components:
         * `export` - Exportação
         * `anonymize` - Anonimização
         * `scan_blocked` - Anexo bloqueado pelo antivírus
+    Agendamento:
+      type: object
+      properties:
+        ativo:
+          type: boolean
+        frequencia:
+          $ref: '#/components/schemas/FrequenciaEnum'
+        hora:
+          type: string
+          pattern: ^([01]\d|2[0-3]):[0-5]\d$
+        dia_da_semana:
+          type: integer
+          maximum: 6
+          minimum: 0
+          nullable: true
+      required:
+      - ativo
+      - frequencia
+      - hora
     Announcement:
       type: object
       properties:
@@ -7629,6 +9255,20 @@ components:
           readOnly: true
         body_html:
           type: string
+          description: |-
+            O HTML do WordPress, higienizado na SAÍDA.
+
+            O corpo é gravado cru pela sincronização (é o `content.rendered` do
+            WordPress) e agora é renderizado no navegador — inclusive no portal
+            do cliente. Um WordPress comprometido é o jeito mais comum de um
+            site desses virar vetor: bastaria um `<script>` num artigo para
+            rodar código na sessão de quem lê.
+
+            A limpeza mora aqui, e não na sincronização, de propósito: assim
+            vale também para as linhas que já estavam no banco antes desta
+            regra existir, sem depender de uma re-sincronização ter acontecido.
+            `nh3` é Rust (microssegundos) — o custo por request é irrelevante
+            perto da garantia.
           readOnly: true
         related:
           type: array
@@ -7700,6 +9340,14 @@ components:
       - slug
       - title
       - wp_url
+    AudienceEnum:
+      enum:
+      - cliente
+      - equipe
+      type: string
+      description: |-
+        * `cliente` - Portal do cliente
+        * `equipe` - Painel da equipe
     AudienceKindEnum:
       enum:
       - all
@@ -7736,6 +9384,9 @@ components:
         target_type:
           type: string
           readOnly: true
+        target_label:
+          type: string
+          readOnly: true
         object_id:
           type: string
           maxLength: 40
@@ -7756,7 +9407,22 @@ components:
       - created_at
       - id
       - object_id
+      - target_label
       - target_type
+    AutoAwayMinutesEnum:
+      enum:
+      - 0
+      - 5
+      - 10
+      - 15
+      - 30
+      type: integer
+      description: |-
+        * `0` - Nunca
+        * `5` - 5 minutos
+        * `10` - 10 minutos
+        * `15` - 15 minutos
+        * `30` - 30 minutos
     BannedWord:
       type: object
       properties:
@@ -7812,6 +9478,12 @@ components:
           type: integer
           maximum: 32767
           minimum: 0
+        wip_limit:
+          type: integer
+          maximum: 32767
+          minimum: 1
+          nullable: true
+          description: Limite de tickets na coluna (aviso, não bloqueia).
       required:
       - board
       - id
@@ -7925,6 +9597,27 @@ components:
         reopen_count:
           type: integer
           readOnly: true
+        close_reason:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Motivo do encerramento
+        close_reason_name:
+          type: string
+          readOnly: true
+        close_note:
+          type: string
+          readOnly: true
+          title: Observação do encerramento
+          description: 'Interna: o cliente nunca vê.'
+        closed_automatically:
+          type: boolean
+          readOnly: true
+          title: Encerrado automaticamente
+        closed_by_name:
+          type: string
+          nullable: true
+          readOnly: true
         agent_score:
           type: integer
           readOnly: true
@@ -7938,6 +9631,12 @@ components:
         last_message_preview:
           type: string
           nullable: true
+          readOnly: true
+        client_presence:
+          type: string
+          readOnly: true
+        agent_presence:
+          type: string
           readOnly: true
         rating:
           allOf:
@@ -7957,23 +9656,64 @@ components:
         ws_url:
           type: string
           readOnly: true
+        queue_position:
+          type: object
+          nullable: true
+          properties:
+            position:
+              type: integer
+            ahead:
+              type: integer
+            estimated_wait_minutes:
+              type: integer
+              nullable: true
+            queue_open:
+              type: boolean
+            queue_opens_at:
+              type: string
+              format: date-time
+              nullable: true
+          readOnly: true
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              full_name:
+                type: string
+          readOnly: true
+        can_supervise:
+          type: boolean
+          readOnly: true
       required:
       - accepted_at
       - agent_avatar
       - agent_id
       - agent_name
+      - agent_presence
       - agent_score
       - assignee_name
+      - can_supervise
       - category_name
       - client_avatar
       - client_email
       - client_id
       - client_name
       - client_phone
+      - client_presence
+      - close_note
+      - close_reason
+      - close_reason_name
       - closed_at
+      - closed_automatically
+      - closed_by_name
       - company_name
       - id
       - last_message_preview
+      - participants
+      - queue_position
       - queued_at
       - rating
       - rating_pending
@@ -7985,6 +9725,41 @@ components:
       - timeout_converted
       - unread_count
       - ws_url
+    ChatCloseReason:
+      type: object
+      description: |-
+        O cadastro de motivos. `slug` é gerado do nome quando não vem — quem
+        cadastra escreve "Sem resposta", não "sem-resposta".
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Motivo
+          maxLength: 60
+        slug:
+          oneOf:
+          - type: string
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+        requires_note:
+          type: boolean
+          title: Exige observação
+          description: O agente precisa escrever uma observação interna ao escolher
+            este motivo.
+        is_active:
+          type: boolean
+          title: Ativo
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Ordem
+      required:
+      - id
+      - name
     ChatConfig:
       type: object
       properties:
@@ -8030,6 +9805,19 @@ components:
           format: date-time
           nullable: true
           readOnly: true
+        inactivity_warning_minutes:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Sem mensagem nenhuma por esse tempo, o chat avisa que vai encerrar.
+            0 desliga o aviso.
+        inactivity_close_minutes:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          description: Sem mensagem nenhuma por esse tempo, o chat encerra sozinho
+            (contado desde a última mensagem, não desde o aviso). 0 desliga o encerramento
+            automático.
       required:
       - default_team_name
       - queue_open
@@ -8109,11 +9897,17 @@ components:
           readOnly: true
         is_system:
           type: boolean
+        is_internal_note:
+          type: boolean
         sent_at:
           type: string
           format: date-time
           readOnly: true
         read_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivered_at:
           type: string
           format: date-time
           nullable: true
@@ -8132,13 +9926,35 @@ components:
         can_edit:
           type: boolean
           description: |-
-            Mesma regra de `chat_service._pode_mexer_na_mensagem` — quem vê o
-            botão é quem a API deixaria usar, não uma segunda verdade no front.
+            Mesma regra de `chat_service._pode_mexer_na_mensagem` +
+            `is_last_message` (autor + não apagada + é a última da sessão), mas
+            sem repetir a consulta de "é a última" por mensagem: `many=True`
+            reusa este mesmo serializer pra cada item de um histórico de até 100
+            mensagens, e cada uma pagaria uma query só pra descobrir o id mais
+            recente do MESMO chat — cacheado abaixo.
 
             `context["user"]` é o atalho para quem serializa fora de uma view
             REST — o ChatConsumer (WebSocket) tem `self.user`, não um `request`
             do DRF; inventar um `request` falso ali seria mais frágil do que
             aceitar as duas formas aqui, uma vez, no único lugar que decide.
+          readOnly: true
+        reply_to:
+          type: integer
+          nullable: true
+        reply_preview:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            author_name:
+              type: string
+            excerpt:
+              type: string
+            is_deleted:
+              type: boolean
+            has_files:
+              type: boolean
           readOnly: true
       required:
       - author_is_internal
@@ -8148,6 +9964,7 @@ components:
       - files
       - id
       - is_deleted
+      - reply_preview
       - sent_at
     ChatRating:
       type: object
@@ -8341,11 +10158,17 @@ components:
           readOnly: true
         is_system:
           type: boolean
+        is_internal_note:
+          type: boolean
         sent_at:
           type: string
           format: date-time
           readOnly: true
         read_at:
+          type: string
+          format: date-time
+          nullable: true
+        delivered_at:
           type: string
           format: date-time
           nullable: true
@@ -8364,13 +10187,35 @@ components:
         can_edit:
           type: boolean
           description: |-
-            Mesma regra de `chat_service._pode_mexer_na_mensagem` — quem vê o
-            botão é quem a API deixaria usar, não uma segunda verdade no front.
+            Mesma regra de `chat_service._pode_mexer_na_mensagem` +
+            `is_last_message` (autor + não apagada + é a última da sessão), mas
+            sem repetir a consulta de "é a última" por mensagem: `many=True`
+            reusa este mesmo serializer pra cada item de um histórico de até 100
+            mensagens, e cada uma pagaria uma query só pra descobrir o id mais
+            recente do MESMO chat — cacheado abaixo.
 
             `context["user"]` é o atalho para quem serializa fora de uma view
             REST — o ChatConsumer (WebSocket) tem `self.user`, não um `request`
             do DRF; inventar um `request` falso ali seria mais frágil do que
             aceitar as duas formas aqui, uma vez, no único lugar que decide.
+          readOnly: true
+        reply_to:
+          type: integer
+          nullable: true
+        reply_preview:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            author_name:
+              type: string
+            excerpt:
+              type: string
+            is_deleted:
+              type: boolean
+            has_files:
+              type: boolean
           readOnly: true
         chat_id:
           type: integer
@@ -8384,6 +10229,7 @@ components:
       - files
       - id
       - is_deleted
+      - reply_preview
       - sent_at
     ChatTimelineSession:
       type: object
@@ -8411,9 +10257,18 @@ components:
           allOf:
           - $ref: '#/components/schemas/ChatRating'
           readOnly: true
+        close_reason_name:
+          type: string
+          readOnly: true
+        ticket_reference:
+          type: string
+          nullable: true
+          readOnly: true
       required:
+      - close_reason_name
       - id
       - rating
+      - ticket_reference
     ClientQuickReply:
       type: object
       description: Atalhos de mensagem do cliente. O portal só lê; o admin gerencia.
@@ -8427,10 +10282,10 @@ components:
           default: chat
           title: Onde aparece
           description: |-
-            No chat (frases que ABREM a conversa) ou no chamado (frases que RESPONDEM ao atendimento).
+            No chat (frases que ABREM a conversa) ou no ticket (frases que RESPONDEM ao atendimento).
 
             * `chat` - chat
-            * `ticket` - chamado
+            * `ticket` - ticket
         rotulo:
           type: string
           title: Rótulo do atalho
@@ -8533,6 +10388,9 @@ components:
         account_manager:
           type: integer
           nullable: true
+        account_manager_name:
+          type: string
+          readOnly: true
         contract_started_at:
           type: string
           format: date
@@ -8582,7 +10440,13 @@ components:
           additionalProperties: {}
           description: Horas do mês — a mesma barra que o cliente vê, do nosso lado.
           readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
       required:
+      - account_manager_name
+      - created_at
       - effective_limit
       - effective_maintenance_minutes
       - effective_period
@@ -8601,7 +10465,31 @@ components:
       type: string
       description: |-
         * `chat` - chat
-        * `ticket` - chamado
+        * `ticket` - ticket
+    ConvitePessoa:
+      type: object
+      properties:
+        full_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 32
+        job_title:
+          type: string
+          maxLength: 100
+        client_role:
+          allOf:
+          - $ref: '#/components/schemas/ClientRoleEnum'
+          default: member
+      required:
+      - email
+      - full_name
+      - phone
     CustomRole:
       type: object
       properties:
@@ -8777,6 +10665,14 @@ components:
       - password
       - token
       - uid
+    DigitandoEnum:
+      enum:
+      - resposta
+      - nota
+      type: string
+      description: |-
+        * `resposta` - resposta
+        * `nota` - nota
     FormatEnum:
       enum:
       - csv
@@ -8787,6 +10683,14 @@ components:
         * `csv` - CSV
         * `xlsx` - Excel
         * `pdf` - PDF
+    FrequenciaEnum:
+      enum:
+      - diaria
+      - semanal
+      type: string
+      description: |-
+        * `diaria` - diaria
+        * `semanal` - semanal
     GroupEnum:
       enum:
       - ticket
@@ -8826,6 +10730,228 @@ components:
       - date
       - id
       - name
+    ImportacaoMovidesk:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status512Enum'
+          readOnly: true
+        status_label:
+          type: string
+          readOnly: true
+        etapa:
+          type: string
+          readOnly: true
+        progresso:
+          type: integer
+          readOnly: true
+          nullable: true
+        log:
+          readOnly: true
+        erro:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        requested_by_name:
+          type: string
+          readOnly: true
+        team:
+          type: integer
+          readOnly: true
+        team_name:
+          type: string
+          readOnly: true
+        plan:
+          type: integer
+          readOnly: true
+        plan_name:
+          type: string
+          readOnly: true
+        limite:
+          type: integer
+          readOnly: true
+          nullable: true
+        apenas_baixar:
+          type: boolean
+          readOnly: true
+        arquivo_url:
+          type: string
+          nullable: true
+          readOnly: true
+        tickets_baixados:
+          type: integer
+          readOnly: true
+        tickets_criados:
+          type: integer
+          readOnly: true
+        tickets_atualizados:
+          type: integer
+          readOnly: true
+        tickets_ignorados:
+          type: integer
+          readOnly: true
+        mensagens_importadas:
+          type: integer
+          readOnly: true
+        avisos:
+          readOnly: true
+      required:
+      - apenas_baixar
+      - arquivo_url
+      - avisos
+      - created_at
+      - erro
+      - etapa
+      - finished_at
+      - id
+      - limite
+      - log
+      - mensagens_importadas
+      - plan
+      - plan_name
+      - progresso
+      - requested_by_name
+      - started_at
+      - status
+      - status_label
+      - team
+      - team_name
+      - tickets_atualizados
+      - tickets_baixados
+      - tickets_criados
+      - tickets_ignorados
+    ImportacaoPessoas:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/Status512Enum'
+          readOnly: true
+        status_label:
+          type: string
+          readOnly: true
+        etapa:
+          type: string
+          readOnly: true
+        progresso:
+          type: integer
+          readOnly: true
+          nullable: true
+        log:
+          readOnly: true
+        erro:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        finished_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        requested_by_name:
+          type: string
+          readOnly: true
+        plan:
+          type: integer
+          readOnly: true
+        plan_name:
+          type: string
+          readOnly: true
+        criar_agentes:
+          type: boolean
+          readOnly: true
+        limite:
+          type: integer
+          readOnly: true
+          nullable: true
+        apenas_baixar:
+          type: boolean
+          readOnly: true
+        arquivo_url:
+          type: string
+          nullable: true
+          readOnly: true
+        pessoas_baixadas:
+          type: integer
+          readOnly: true
+        empresas_criadas:
+          type: integer
+          readOnly: true
+        empresas_atualizadas:
+          type: integer
+          readOnly: true
+        contatos_criados:
+          type: integer
+          readOnly: true
+        contatos_atualizados:
+          type: integer
+          readOnly: true
+        agentes_criados:
+          type: integer
+          readOnly: true
+        agentes_atualizados:
+          type: integer
+          readOnly: true
+        ignorados:
+          type: integer
+          readOnly: true
+        avisos:
+          readOnly: true
+      required:
+      - agentes_atualizados
+      - agentes_criados
+      - apenas_baixar
+      - arquivo_url
+      - avisos
+      - contatos_atualizados
+      - contatos_criados
+      - created_at
+      - criar_agentes
+      - empresas_atualizadas
+      - empresas_criadas
+      - erro
+      - etapa
+      - finished_at
+      - id
+      - ignorados
+      - limite
+      - log
+      - pessoas_baixadas
+      - plan
+      - plan_name
+      - progresso
+      - requested_by_name
+      - started_at
+      - status
+      - status_label
     InternalRoleEnum:
       enum:
       - admin
@@ -8887,6 +11013,46 @@ components:
       - key
       - started_at
       - user_agent
+    LoginBranding:
+      type: object
+      description: |-
+        Os textos do painel. `image_url` aponta para a rota PÚBLICA da imagem,
+        com a data de alteração na query para o navegador trocar o cache.
+      properties:
+        audience:
+          allOf:
+          - $ref: '#/components/schemas/AudienceEnum'
+          readOnly: true
+        brand_name:
+          type: string
+          title: Nome da marca
+          maxLength: 80
+        headline:
+          type: string
+          title: Chamada
+          maxLength: 160
+        subtitle:
+          type: string
+          title: Subtítulo
+          maxLength: 240
+        highlights:
+          type: array
+          items:
+            type: string
+            maxLength: 160
+          maxItems: 3
+        image_url:
+          type: string
+          nullable: true
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - audience
+      - image_url
+      - updated_at
     LoginRequest:
       type: object
       properties:
@@ -8992,6 +11158,18 @@ components:
           maxLength: 32
         signature:
           type: string
+        signature_kind:
+          oneOf:
+          - $ref: '#/components/schemas/SignatureKindEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        signature_html:
+          type: string
+        signature_image_url:
+          type: string
+          maxLength: 300
+        signature_render:
+          type: string
+          readOnly: true
         ui_language:
           type: string
           maxLength: 10
@@ -9000,6 +11178,17 @@ components:
           - $ref: '#/components/schemas/UiDensityEnum'
           - $ref: '#/components/schemas/BlankEnum'
         personal_hours: {}
+        ui_text_size:
+          oneOf:
+          - $ref: '#/components/schemas/UiTextSizeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notification_sound:
+          type: boolean
+        auto_away_minutes:
+          allOf:
+          - $ref: '#/components/schemas/AutoAwayMinutesEnum'
+          minimum: 0
+          maximum: 32767
       required:
       - company_name
       - custom_role_name
@@ -9011,6 +11200,7 @@ components:
       - kind
       - permissions
       - plan_name
+      - signature_render
       - teams
       - ticket_scope
     Mention:
@@ -9066,6 +11256,212 @@ components:
       - id
       - name
       - type
+    MyCompany:
+      type: object
+      description: |-
+        A empresa como o PRÓPRIO cliente a vê — Configurações → Empresa.
+
+        Só razão social e CNPJ são editáveis, e só pelo responsável da conta:
+        nome fantasia, plano, fuso e gerente de conta são decisão da
+        administração — o cliente vê, não muda. Cota e limites já saem em
+        `/auth/me/` (`quota`), não se repetem aqui.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        legal_name:
+          type: string
+          maxLength: 200
+        tax_id:
+          type: string
+          nullable: true
+          maxLength: 20
+        plan_name:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        account_manager_name:
+          type: string
+          readOnly: true
+        contract_started_at:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        members:
+          type: integer
+          description: Quantas pessoas da empresa têm acesso — dá contexto ao responsável.
+          readOnly: true
+        domains:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - account_manager_name
+      - contract_started_at
+      - domains
+      - id
+      - members
+      - name
+      - plan_name
+      - timezone
+    Note:
+      type: object
+      description: Leitura e escrita de uma nota.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        excerpt:
+          type: string
+          readOnly: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoteTag'
+          readOnly: true
+        ticket:
+          type: integer
+          nullable: true
+        ticket_reference:
+          type: string
+          nullable: true
+          readOnly: true
+        ticket_subject:
+          type: string
+          nullable: true
+          description: |-
+            O assunto do chamado, para a nota poder dizer a que ela se refere
+            sem exigir uma segunda chamada. `None` quando o chamado saiu do
+            alcance da pessoa — o `ticket` (id) fica, para a tela poder oferecer
+            "desvincular", mas nem uma palavra do chamado sai daqui.
+          readOnly: true
+        is_pinned:
+          type: boolean
+        is_archived:
+          type: boolean
+        is_deleted:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        content:
+          type: string
+          maxLength: 50000
+        tag_names:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          writeOnly: true
+          maxItems: 20
+      required:
+      - created_at
+      - excerpt
+      - id
+      - is_deleted
+      - tags
+      - ticket_reference
+      - ticket_subject
+      - title
+      - updated_at
+    NoteList:
+      type: object
+      description: 'A linha da lista: sem o corpo inteiro, com o que a tela desenha.'
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        excerpt:
+          type: string
+          readOnly: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoteTag'
+          readOnly: true
+        ticket:
+          type: integer
+          readOnly: true
+          nullable: true
+        ticket_reference:
+          type: string
+          nullable: true
+          readOnly: true
+        ticket_subject:
+          type: string
+          nullable: true
+          description: |-
+            O assunto do chamado, para a nota poder dizer a que ela se refere
+            sem exigir uma segunda chamada. `None` quando o chamado saiu do
+            alcance da pessoa — o `ticket` (id) fica, para a tela poder oferecer
+            "desvincular", mas nem uma palavra do chamado sai daqui.
+          readOnly: true
+        is_pinned:
+          type: boolean
+          readOnly: true
+        is_archived:
+          type: boolean
+          readOnly: true
+        is_deleted:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - excerpt
+      - id
+      - is_archived
+      - is_deleted
+      - is_pinned
+      - tags
+      - ticket
+      - ticket_reference
+      - ticket_subject
+      - title
+      - updated_at
+    NoteTag:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 40
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+      required:
+      - id
+      - name
+      - slug
     Notification:
       type: object
       properties:
@@ -9113,11 +11509,13 @@ components:
       - ticket_owner_set
       - ticket_replied
       - ticket_reopened
+      - ticket_closed
       - mention
       - sla_warning
       - sla_breached
       - chat_incoming
       - chat_converted
+      - chat_closed
       - announcement
       - attachment_blocked
       - lgpd_deadline
@@ -9129,11 +11527,13 @@ components:
         * `ticket_owner_set` - Dono técnico definido
         * `ticket_replied` - Ticket respondido
         * `ticket_reopened` - Ticket reaberto
+        * `ticket_closed` - Ticket encerrado
         * `mention` - Menção
         * `sla_warning` - SLA próximo do limite
         * `sla_breached` - SLA estourado
         * `chat_incoming` - Chat na fila
-        * `chat_converted` - Chat virou chamado
+        * `chat_converted` - Chat virou ticket
+        * `chat_closed` - Chat encerrado
         * `announcement` - Aviso
         * `attachment_blocked` - Anexo bloqueado
         * `lgpd_deadline` - Prazo de pedido LGPD
@@ -9149,6 +11549,45 @@ components:
           type: object
           additionalProperties:
             type: boolean
+    NovaImportacao:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+        plan:
+          type: integer
+        limite:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          nullable: true
+        apenas_baixar:
+          type: boolean
+          default: false
+        team:
+          type: integer
+      required:
+      - team
+    NovaImportacaoPessoas:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+        plan:
+          type: integer
+        limite:
+          type: integer
+          maximum: 100000
+          minimum: 1
+          nullable: true
+        apenas_baixar:
+          type: boolean
+          default: false
+        criar_agentes:
+          type: boolean
+          default: true
     NullEnum:
       enum:
       - null
@@ -9313,6 +11752,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BusinessCalendar'
+    PaginatedChatCloseReasonList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatCloseReason'
     PaginatedChatList:
       type: object
       required:
@@ -9497,6 +11959,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Holiday'
+    PaginatedNoteListList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=400&limit=100
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?offset=200&limit=100
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoteList'
     PaginatedNotificationList:
       type: object
       required:
@@ -9911,6 +12396,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/User'
+    PatchedAlteracaoPessoa:
+      type: object
+      properties:
+        is_active:
+          type: boolean
+        client_role:
+          $ref: '#/components/schemas/ClientRoleEnum'
     PatchedAnnouncement:
       type: object
       properties:
@@ -10007,6 +12499,12 @@ components:
           type: integer
           maximum: 32767
           minimum: 0
+        wip_limit:
+          type: integer
+          maximum: 32767
+          minimum: 1
+          nullable: true
+          description: Limite de tickets na coluna (aviso, não bloqueia).
     PatchedBusinessCalendar:
       type: object
       properties:
@@ -10112,6 +12610,27 @@ components:
         reopen_count:
           type: integer
           readOnly: true
+        close_reason:
+          type: integer
+          readOnly: true
+          nullable: true
+          title: Motivo do encerramento
+        close_reason_name:
+          type: string
+          readOnly: true
+        close_note:
+          type: string
+          readOnly: true
+          title: Observação do encerramento
+          description: 'Interna: o cliente nunca vê.'
+        closed_automatically:
+          type: boolean
+          readOnly: true
+          title: Encerrado automaticamente
+        closed_by_name:
+          type: string
+          nullable: true
+          readOnly: true
         agent_score:
           type: integer
           readOnly: true
@@ -10125,6 +12644,12 @@ components:
         last_message_preview:
           type: string
           nullable: true
+          readOnly: true
+        client_presence:
+          type: string
+          readOnly: true
+        agent_presence:
+          type: string
           readOnly: true
         rating:
           allOf:
@@ -10144,6 +12669,69 @@ components:
         ws_url:
           type: string
           readOnly: true
+        queue_position:
+          type: object
+          nullable: true
+          properties:
+            position:
+              type: integer
+            ahead:
+              type: integer
+            estimated_wait_minutes:
+              type: integer
+              nullable: true
+            queue_open:
+              type: boolean
+            queue_opens_at:
+              type: string
+              format: date-time
+              nullable: true
+          readOnly: true
+        participants:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              full_name:
+                type: string
+          readOnly: true
+        can_supervise:
+          type: boolean
+          readOnly: true
+    PatchedChatCloseReason:
+      type: object
+      description: |-
+        O cadastro de motivos. `slug` é gerado do nome quando não vem — quem
+        cadastra escreve "Sem resposta", não "sem-resposta".
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          title: Motivo
+          maxLength: 60
+        slug:
+          oneOf:
+          - type: string
+            pattern: ^[-a-zA-Z0-9_]+$
+          - type: string
+            maxLength: 0
+        requires_note:
+          type: boolean
+          title: Exige observação
+          description: O agente precisa escrever uma observação interna ao escolher
+            este motivo.
+        is_active:
+          type: boolean
+          title: Ativo
+        order:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          title: Ordem
     PatchedClientQuickReply:
       type: object
       description: Atalhos de mensagem do cliente. O portal só lê; o admin gerencia.
@@ -10157,10 +12745,10 @@ components:
           default: chat
           title: Onde aparece
           description: |-
-            No chat (frases que ABREM a conversa) ou no chamado (frases que RESPONDEM ao atendimento).
+            No chat (frases que ABREM a conversa) ou no ticket (frases que RESPONDEM ao atendimento).
 
             * `chat` - chat
-            * `ticket` - chamado
+            * `ticket` - ticket
         rotulo:
           type: string
           title: Rótulo do atalho
@@ -10228,6 +12816,9 @@ components:
         account_manager:
           type: integer
           nullable: true
+        account_manager_name:
+          type: string
+          readOnly: true
         contract_started_at:
           type: string
           format: date
@@ -10276,6 +12867,10 @@ components:
           type: object
           additionalProperties: {}
           description: Horas do mês — a mesma barra que o cliente vê, do nosso lado.
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
           readOnly: true
     PatchedCustomRole:
       type: object
@@ -10409,6 +13004,111 @@ components:
           type: string
           format: time
           nullable: true
+    PatchedMyCompany:
+      type: object
+      description: |-
+        A empresa como o PRÓPRIO cliente a vê — Configurações → Empresa.
+
+        Só razão social e CNPJ são editáveis, e só pelo responsável da conta:
+        nome fantasia, plano, fuso e gerente de conta são decisão da
+        administração — o cliente vê, não muda. Cota e limites já saem em
+        `/auth/me/` (`quota`), não se repetem aqui.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        legal_name:
+          type: string
+          maxLength: 200
+        tax_id:
+          type: string
+          nullable: true
+          maxLength: 20
+        plan_name:
+          type: string
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        account_manager_name:
+          type: string
+          readOnly: true
+        contract_started_at:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        members:
+          type: integer
+          description: Quantas pessoas da empresa têm acesso — dá contexto ao responsável.
+          readOnly: true
+        domains:
+          type: array
+          items:
+            type: string
+          readOnly: true
+    PatchedNote:
+      type: object
+      description: Leitura e escrita de uma nota.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        title:
+          type: string
+          maxLength: 200
+        excerpt:
+          type: string
+          readOnly: true
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/NoteTag'
+          readOnly: true
+        ticket:
+          type: integer
+          nullable: true
+        ticket_reference:
+          type: string
+          nullable: true
+          readOnly: true
+        ticket_subject:
+          type: string
+          nullable: true
+          description: |-
+            O assunto do chamado, para a nota poder dizer a que ela se refere
+            sem exigir uma segunda chamada. `None` quando o chamado saiu do
+            alcance da pessoa — o `ticket` (id) fica, para a tela poder oferecer
+            "desvincular", mas nem uma palavra do chamado sai daqui.
+          readOnly: true
+        is_pinned:
+          type: boolean
+        is_archived:
+          type: boolean
+        is_deleted:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        content:
+          type: string
+          maxLength: 50000
+        tag_names:
+          type: array
+          items:
+            type: string
+            maxLength: 40
+          writeOnly: true
+          maxItems: 20
     PatchedPlanAdmin:
       type: object
       properties:
@@ -10475,6 +13175,15 @@ components:
           maxLength: 32
         signature:
           type: string
+        signature_kind:
+          oneOf:
+          - $ref: '#/components/schemas/SignatureKindEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        signature_html:
+          type: string
+        signature_image_url:
+          type: string
+          maxLength: 300
         ui_language:
           type: string
           maxLength: 10
@@ -10483,6 +13192,17 @@ components:
           - $ref: '#/components/schemas/UiDensityEnum'
           - $ref: '#/components/schemas/BlankEnum'
         personal_hours: {}
+        ui_text_size:
+          oneOf:
+          - $ref: '#/components/schemas/UiTextSizeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        notification_sound:
+          type: boolean
+        auto_away_minutes:
+          allOf:
+          - $ref: '#/components/schemas/AutoAwayMinutesEnum'
+          minimum: 0
+          maximum: 32767
     PatchedSLAPolicyAdmin:
       type: object
       properties:
@@ -10516,6 +13236,30 @@ components:
           type: boolean
         is_active:
           type: boolean
+    PatchedSavedTicketView:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 60
+        filters: {}
+        position:
+          type: integer
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedServiceAdmin:
       type: object
       properties:
@@ -10635,7 +13379,7 @@ components:
         stage:
           type: integer
           nullable: true
-          description: Coluna do quadro. Nulo só em chamado antigo, antes da migração.
+          description: Coluna do quadro. Nulo só em ticket antigo, antes da migração.
         stage_name:
           type: string
           readOnly: true
@@ -10797,6 +13541,11 @@ components:
           - $ref: '#/components/schemas/Requester'
           nullable: true
           readOnly: true
+        scheduled_replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduledReply'
+          readOnly: true
     PatchedTicketMacro:
       type: object
       description: A macro, cadastro único de chamado e chat (ver `TicketMacro`).
@@ -10815,7 +13564,7 @@ components:
         chat_name:
           type: string
           title: Nome do chat
-          description: Ao aplicar num chat, nomeia a conversa. Ignorado em chamado.
+          description: Ao aplicar num chat, nomeia a conversa. Ignorado em ticket.
           maxLength: 200
         category:
           type: integer
@@ -10986,7 +13735,7 @@ components:
         invite_status:
           type: string
           description: |-
-            `pendente` | `aceito` | `` (só quem entra por Google fica sem status).
+            `pendente` | `aceito` | `visitante` | `` (só quem entra por Google fica sem status).
 
             Vale para o AGENTE também: enquanto ele não abre o convite não tem
             senha, e "pendente" na lista é o que avisa o admin de que aquela conta
@@ -11005,6 +13754,24 @@ components:
         avatar_url:
           type: string
           maxLength: 300
+        signature:
+          type: string
+        signature_kind:
+          oneOf:
+          - $ref: '#/components/schemas/SignatureKindEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        signature_html:
+          type: string
+        signature_image_url:
+          type: string
+          maxLength: 300
+        signature_render:
+          type: string
+          description: |-
+            A assinatura montada — o mesmo HTML que o cliente vê. É o que a
+            prévia da tela desenha, e vir do servidor é o que garante que a
+            prévia mostre o resultado DEPOIS da higienização.
+          readOnly: true
         custom_role:
           type: integer
           nullable: true
@@ -11015,6 +13782,75 @@ components:
           oneOf:
           - $ref: '#/components/schemas/TicketScopeEnum'
           - $ref: '#/components/schemas/BlankEnum'
+    PedidoRecuperacao:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PessoaEmpresa:
+      type: object
+      description: |-
+        Uma pessoa da empresa como o responsável a vê.
+
+        Menos que o `UserAdminSerializer` de propósito: nada de 2FA, papel
+        interno, equipes ou avatar de terceiros — o responsável decide QUEM tem
+        acesso, não como a conta de cada um está configurada.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        full_name:
+          type: string
+          maxLength: 150
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        phone:
+          type: string
+          maxLength: 32
+        job_title:
+          type: string
+          maxLength: 100
+        avatar_url:
+          type: string
+          maxLength: 300
+        client_role:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/ClientRoleEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        client_role_label:
+          type: string
+          readOnly: true
+        is_active:
+          type: boolean
+        invite_status:
+          type: string
+          description: |-
+            `pendente` enquanto a pessoa não abriu o convite; `aceito` depois.
+
+            A mesma derivação da tela do admin: ter senha utilizável É ter
+            aceitado o convite, sem uma flag paralela para dessincronizar.
+          readOnly: true
+        last_access:
+          type: string
+          readOnly: true
+        is_me:
+          type: boolean
+          readOnly: true
+      required:
+      - client_role_label
+      - email
+      - full_name
+      - id
+      - invite_status
+      - is_me
+      - last_access
     PlanAdmin:
       type: object
       properties:
@@ -11072,6 +13908,35 @@ components:
       required:
       - name
       - slug
+    Presenca:
+      type: object
+      description: |-
+        Resposta do batimento: todo mundo presente (inclusive quem pediu — a
+        tela filtra a si mesma) e o intervalo que o servidor espera entre
+        batimentos, para o front não ter um número próprio que divirja do TTL.
+      properties:
+        presentes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Presente'
+        batimento_segundos:
+          type: integer
+      required:
+      - batimento_segundos
+      - presentes
+    PresencaBatimento:
+      type: object
+      description: |-
+        Corpo do `POST /tickets/{id}/presenca/` — o batimento de quem está com
+        o detalhe aberto (apps/tickets/services/presenca.py). `digitando` diz O QUE
+        a pessoa está escrevendo agora: resposta ao cliente ou nota interna. Nulo
+        (ou ausente) é "só vendo".
+      properties:
+        digitando:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DigitandoEnum'
+          - $ref: '#/components/schemas/NullEnum'
     PresenceEnum:
       enum:
       - available
@@ -11082,6 +13947,26 @@ components:
         * `available` - Disponível
         * `away` - Ausente
         * `offline` - Offline
+    Presente:
+      type: object
+      properties:
+        user_id:
+          type: integer
+        nome:
+          type: string
+        avatar_url:
+          type: string
+          nullable: true
+        digitando:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/DigitandoEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - avatar_url
+      - digitando
+      - nome
+      - user_id
     PriorityEnum:
       enum:
       - low
@@ -11113,6 +13998,29 @@ components:
       - period_end
       - period_start
       - used
+    RedefinirSenha:
+      type: object
+      properties:
+        uid:
+          type: string
+        token:
+          type: string
+        new_password:
+          type: string
+          writeOnly: true
+      required:
+      - new_password
+      - token
+      - uid
+    ReordenarVisoes:
+      type: object
+      properties:
+        ids:
+          type: array
+          items:
+            type: integer
+      required:
+      - ids
     ReportExport:
       type: object
       properties:
@@ -11178,7 +14086,13 @@ components:
         já existiam (User.email, User.ui_language; o fuso vem da empresa do
         chamado) — só não havia exposição. Aparece SÓ quando o conteúdo é visível
         a quem pede (mesma regra de `requester_display`); mascarado, vem null.
+
+        `id` existe para a tela perguntar "que outros chamados esta pessoa
+        abriu?" (`?requester=<id>` na listagem, painel do cliente no detalhe).
+        Não amplia nada: quem recebe o objeto já recebe nome e e-mail.
       properties:
+        id:
+          type: integer
         name:
           type: string
         email:
@@ -11191,6 +14105,7 @@ components:
           nullable: true
       required:
       - email
+      - id
       - name
       - timezone
       - ui_language
@@ -11336,6 +14251,37 @@ components:
       - plan_name
       - resolution_minutes
       - team_name
+    SavedTicketView:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 60
+        filters: {}
+        position:
+          type: integer
+          readOnly: true
+        count:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - count
+      - created_at
+      - id
+      - name
+      - position
+      - updated_at
     ScanStatusEnum:
       enum:
       - pending
@@ -11350,6 +14296,60 @@ components:
         * `infected` - Infectado
         * `error` - Falha na verificação
         * `skipped` - Não verificado
+    ScheduledReply:
+      type: object
+      description: |-
+        Uma resposta agendada, para a lista no detalhe do ticket — só o que a
+        tela precisa mostrar/cancelar, não os campos de `add_reply` que só o
+        disparo usa (`with_signature`, `close_note`...).
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        body:
+          type: string
+        is_public:
+          type: boolean
+        new_status:
+          oneOf:
+          - $ref: '#/components/schemas/TicketStatusEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/ScheduledReplyStatusEnum'
+        sent_at:
+          type: string
+          format: date-time
+          nullable: true
+        error:
+          type: string
+        author_name:
+          type: string
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - author_name
+      - body
+      - created_at
+      - id
+      - scheduled_at
+    ScheduledReplyStatusEnum:
+      enum:
+      - pending
+      - sent
+      - failed
+      - cancelled
+      type: string
+      description: |-
+        * `pending` - Pendente
+        * `sent` - Enviada
+        * `failed` - Falhou
+        * `cancelled` - Cancelada
     Service:
       type: object
       description: |-
@@ -11400,6 +14400,17 @@ components:
       - category_count
       - id
       - name
+    SignatureKindEnum:
+      enum:
+      - texto
+      - html
+      - imagem
+      type: string
+      description: |-
+        * `` - Sem assinatura
+        * `texto` - Texto
+        * `html` - HTML
+        * `imagem` - Imagem
     StateEnum:
       enum:
       - none
@@ -11414,6 +14425,20 @@ components:
         * `ok` - ok
         * `at_risk` - at_risk
         * `breached` - breached
+    Status512Enum:
+      enum:
+      - pendente
+      - rodando
+      - concluido
+      - erro
+      - cancelado
+      type: string
+      description: |-
+        * `pendente` - Na fila
+        * `rodando` - Em andamento
+        * `concluido` - Concluído
+        * `erro` - Falhou
+        * `cancelado` - Cancelado
     SystemConfig:
       type: object
       description: |-
@@ -11455,7 +14480,7 @@ components:
         auto_close_message:
           type: string
           title: Mensagem enviada ao fechar por falta de resposta
-          description: O cliente vê este texto no chamado quando ele fecha sozinho.
+          description: O cliente vê este texto no ticket quando ele fecha sozinho.
         auto_close_warning_hours:
           type: integer
           maximum: 32767
@@ -11477,6 +14502,52 @@ components:
           title: Dias de validade do link da pesquisa
           description: Depois disso o link para de aceitar resposta. Prazo curto demais
             derruba a taxa de resposta; longo demais deixa um link vivo à toa.
+        two_factor_required:
+          type: boolean
+          title: Exigir verificação em duas etapas de todos os usuários
+        email_enabled:
+          type: boolean
+          title: Enviar e-mails
+        smtp_host:
+          type: string
+          title: Servidor SMTP
+          maxLength: 200
+        smtp_port:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+          title: Porta
+        smtp_username:
+          type: string
+          title: Usuário
+          maxLength: 200
+        smtp_password:
+          type: string
+          writeOnly: true
+          maxLength: 200
+        smtp_password_set:
+          type: boolean
+          readOnly: true
+        smtp_use_tls:
+          type: boolean
+          title: STARTTLS
+        smtp_use_ssl:
+          type: boolean
+          title: SSL
+        email_from:
+          type: string
+          title: Remetente
+          description: 'Ex.: Suporte Acme <suporte@acme.com.br>. Vazio usa o das settings.'
+          maxLength: 200
+        email_html_template:
+          type: string
+          title: Modelo HTML dos e-mails
+          description: 'Vazio manda só o texto. Marcadores: {{assunto}}, {{conteudo}},
+            {{ano}}.'
+        email_html_template_default:
+          type: string
+          description: O modelo de fábrica, para o botão "restaurar padrão" da tela.
+          readOnly: true
         updated_at:
           type: string
           format: date-time
@@ -11484,6 +14555,8 @@ components:
       required:
       - attachment_max_mb
       - attachment_max_mb_per_message
+      - email_html_template_default
+      - smtp_password_set
       - updated_at
     Team:
       type: object
@@ -11509,6 +14582,9 @@ components:
           type: integer
           maximum: 32767
           minimum: 0
+        internal_only:
+          type: boolean
+          description: 'Equipe interna: o cliente não abre nem enxerga estes tickets.'
       required:
       - id
       - name
@@ -11568,6 +14644,14 @@ components:
       - name
       - supervisor_name
       - ticket_count
+    TestEmail:
+      type: object
+      properties:
+        to:
+          type: string
+          format: email
+      required:
+      - to
     TicketAccessLog:
       type: object
       properties:
@@ -11724,7 +14808,7 @@ components:
         stage:
           type: integer
           nullable: true
-          description: Coluna do quadro. Nulo só em chamado antigo, antes da migração.
+          description: Coluna do quadro. Nulo só em ticket antigo, antes da migração.
         stage_name:
           type: string
           readOnly: true
@@ -11886,6 +14970,11 @@ components:
           - $ref: '#/components/schemas/Requester'
           nullable: true
           readOnly: true
+        scheduled_replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScheduledReply'
+          readOnly: true
       required:
       - assignee_avatar
       - assignee_id
@@ -11907,6 +14996,7 @@ components:
       - requester_display
       - restriction_reason
       - satisfaction
+      - scheduled_replies
       - service_name
       - sla
       - stage_color
@@ -11973,7 +15063,7 @@ components:
         stage:
           type: integer
           nullable: true
-          description: Coluna do quadro. Nulo só em chamado antigo, antes da migração.
+          description: Coluna do quadro. Nulo só em ticket antigo, antes da migração.
         stage_name:
           type: string
           readOnly: true
@@ -12147,7 +15237,7 @@ components:
         chat_name:
           type: string
           title: Nome do chat
-          description: Ao aplicar num chat, nomeia a conversa. Ignorado em chamado.
+          description: Ao aplicar num chat, nomeia a conversa. Ignorado em ticket.
           maxLength: 200
         category:
           type: integer
@@ -12237,6 +15327,16 @@ components:
             Quem vê o botão é quem o backend deixaria usar — a MESMA regra de
             `_pode_mexer_na_mensagem`, para a tela não oferecer o que a API nega.
           readOnly: true
+        signature_html:
+          type: string
+          description: |-
+            A assinatura do autor, ou vazio.
+
+            Vem montada do servidor porque é ela que carrega HTML: a tela só
+            precisa desenhar, e o que ela desenha já passou pelo higienizador
+            (`apps/accounts/assinatura.py`). Nota interna não leva assinatura —
+            ninguém assina um bilhete para a própria equipe.
+          readOnly: true
       required:
       - attachments
       - author_avatar
@@ -12248,6 +15348,7 @@ components:
       - id
       - is_deleted
       - mentions
+      - signature_html
     TicketMessageSourceEnum:
       enum:
       - web
@@ -12417,6 +15518,15 @@ components:
         * `` - Automático
         * `comfortable` - Confortável
         * `compact` - Compacto
+    UiTextSizeEnum:
+      enum:
+      - large
+      - larger
+      type: string
+      description: |-
+        * `` - Padrão
+        * `large` - Grande
+        * `larger` - Maior
     User:
       type: object
       properties:
@@ -12511,7 +15621,7 @@ components:
         invite_status:
           type: string
           description: |-
-            `pendente` | `aceito` | `` (só quem entra por Google fica sem status).
+            `pendente` | `aceito` | `visitante` | `` (só quem entra por Google fica sem status).
 
             Vale para o AGENTE também: enquanto ele não abre o convite não tem
             senha, e "pendente" na lista é o que avisa o admin de que aquela conta
@@ -12530,6 +15640,24 @@ components:
         avatar_url:
           type: string
           maxLength: 300
+        signature:
+          type: string
+        signature_kind:
+          oneOf:
+          - $ref: '#/components/schemas/SignatureKindEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        signature_html:
+          type: string
+        signature_image_url:
+          type: string
+          maxLength: 300
+        signature_render:
+          type: string
+          description: |-
+            A assinatura montada — o mesmo HTML que o cliente vê. É o que a
+            prévia da tela desenha, e vir do servidor é o que garante que a
+            prévia mostre o resultado DEPOIS da higienização.
+          readOnly: true
         custom_role:
           type: integer
           nullable: true
@@ -12551,6 +15679,7 @@ components:
       - kind
       - last_login
       - last_seen_at
+      - signature_render
       - team_ids
       - two_factor_method
     UserKindEnum:
@@ -12586,8 +15715,3 @@ components:
       required:
       - id
       - name
-  securitySchemes:
-    cookieAuth:
-      type: apiKey
-      in: cookie
-      name: sessionid

@@ -5,9 +5,9 @@ monta as colunas a partir do status de cada ticket visível, sem exigir que
 alguém tenha "adicionado" nada. Ver `services/board_view.py`.
 
 O que se manipula aqui é o TICKET dentro do quadro (`place/` o move de coluna,
-`entry/` guarda prazo e proprietário) e as colunas de ORGANIZAÇÃO (`lanes`),
-que são do quadro e só visuais. A coluna de STATUS se administra em
-`settings/statuses/` (tickets/admin_api.py).
+`entry/` guarda prazo e proprietário, `columns/{key}/` o limite de WIP da
+coluna) e as colunas de ORGANIZAÇÃO (`lanes`), que são do quadro e só visuais.
+A coluna de STATUS se administra em `settings/statuses/` (tickets/admin_api.py).
 """
 
 from rest_framework import viewsets
@@ -22,10 +22,16 @@ from apps.kanban.models import Board, BoardLane, Card
 from apps.kanban.serializers import (
     BoardLaneSerializer,
     BoardSerializer,
+    ColumnLimitSerializer,
     EntryUpdateSerializer,
     PlaceSerializer,
 )
-from apps.kanban.services import CloseDialogRequired, KanbanRuleViolation, board_view
+from apps.kanban.services import (
+    CloseDialogRequired,
+    ColunaInexistente,
+    KanbanRuleViolation,
+    board_view,
+)
 from apps.tickets.models import TicketStage
 from apps.tickets.services.ticket_service import TicketRuleViolation, set_owner
 
@@ -43,9 +49,13 @@ class AdminWriteMixin(InternalOnlyMixin):
     `place` e `entry` moram no BoardViewSet por serem operações sobre um
     quadro, mas são trabalho do dia a dia — arrastar um card e anotar um prazo.
     Exigir admin ali travaria a tela para o agente, que é quem mais a usa.
+
+    `column` (limite de WIP) entra pelo mesmo motivo da lane ser de qualquer
+    interno: é um acordo de trabalho da equipe, só AVISA (não trava arraste
+    nem toca em ticket), então errar custa zero.
     """
 
-    ACOES_DE_USO = {"cards", "place", "entry"}
+    ACOES_DE_USO = {"cards", "place", "entry", "column"}
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
@@ -161,6 +171,31 @@ class BoardViewSet(AdminWriteMixin, viewsets.ModelViewSet):
                 set_owner(ticket=ticket, owner=owner, actor=request.user)
             except TicketRuleViolation as exc:
                 raise ValidationError({"detail": str(exc)}) from exc
+
+        agrupar = request.query_params.get("agrupar", "status")
+        return Response(board_view.entries(board, request.user, agrupar))
+
+    @action(detail=True, methods=["patch"],
+            url_path=r"columns/(?P<column_key>[^/.]+)")
+    def column(self, request, pk=None, column_key=None):
+        """PATCH `{"wip_limit": n | null}`: limite de WIP da coluna.
+
+        A chave é a mesma de `columns[].key` no quadro montado — status
+        (`"3"`) ou organização (`"lane-9"`) —, e a resposta é o quadro
+        inteiro, como em `place/` e `entry/`: a tela troca o cache de uma vez.
+        """
+        board = self._board()
+        ser = ColumnLimitSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        try:
+            kanban_service.set_wip_limit(
+                board=board, column_key=column_key,
+                wip_limit=ser.validated_data["wip_limit"],
+            )
+        except ColunaInexistente as exc:
+            raise NotFound("Coluna não encontrada neste quadro.") from exc
+        except KanbanRuleViolation as exc:
+            raise ValidationError({"detail": str(exc)}) from exc
 
         agrupar = request.query_params.get("agrupar", "status")
         return Response(board_view.entries(board, request.user, agrupar))

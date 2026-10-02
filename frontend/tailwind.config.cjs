@@ -28,55 +28,95 @@ module.exports = {
           sutil:   'var(--superficie-sutil)',
           elevada: 'var(--superficie-elevada)',
         },
-        navegacao:   'var(--navegacao)',
+        navegacao: {
+          DEFAULT: 'var(--navegacao)',
+          hover:   'var(--navegacao-hover)',
+          ativo:   'var(--navegacao-ativo)',
+        },
+        // Véus translúcidos de estado (sobre qualquer fundo). `bg-hover` e
+        // `bg-ativo` eram usados sem existir aqui — o Tailwind não gerava
+        // nada e o hover do Botao secundário/fantasma estava morto.
+        hover: 'var(--hover)',
+        ativo: 'var(--ativo)',
         divisoria:   'var(--divisoria)',
         'borda-controle': 'var(--borda-controle)',
+        // Linha de CAMPO (input/select/textarea) — mais escura que a
+        // estrutural, como no console (`--borda-campo` / `$border-field`).
+        'borda-campo': 'var(--borda-campo)',
         tinta: {
           DEFAULT:     'var(--tinta)',
           secundaria:  'var(--tinta-secundaria)',
           terciaria:   'var(--tinta-terciaria)',
+          cromo:       'var(--texto-cromo)',
         },
+        // A AÇÃO do produto (botão primário) — carvão no claro, claro no
+        // escuro. Regra de marca do v2: laranja não preenche ação.
+        primario: {
+          DEFAULT: 'var(--primario)',
+          hover:   'var(--primario-hover)',
+          sobre:   'var(--primario-sobre)',
+        },
+        // `acento` é o laranja LEGÍVEL (link, item ativo, ícone de estado).
+        // O laranja cheio é `laranja`, e só marca foco, seleção e marca.
         acento: {
           DEFAULT: 'var(--acento)',
+          hover:   'var(--acento-hover)',
           suave:   'var(--acento-suave)',
           sobre:   'var(--acento-sobre)',
         },
+        foco: { DEFAULT: 'var(--foco)', anel: 'var(--foco-anel)' },
         perigo: { DEFAULT: 'var(--perigo)', suave: 'var(--perigo-suave)' },
         alerta: { DEFAULT: 'var(--alerta)', suave: 'var(--alerta-suave)' },
         ok:     { DEFAULT: 'var(--ok)',     suave: 'var(--ok-suave)' },
+        sobreposicao: 'var(--sobreposicao)',
 
-        // primitivos — use só quando o valor não puder seguir o tema
+        // Primitivos de MARCA do Convertize: fixos nos dois temas. `laranja`
+        // é o laranja cheio (#ff5e2c) — preenchimento e grafismo só, nunca
+        // texto — e `grafite` é a tinta do kit, o fundo do `.button` de tela
+        // de marca. Quem segue o tema usa `acento`/`tinta`, não estes.
+        laranja: 'var(--laranja)',
+        grafite: 'var(--grafite)',
+
+        // primitivos — use só quando o valor não puder seguir o tema.
+        // A rampa é a do console (ver tokens.css); a quente antiga saiu.
+        // 800/850/875/950/975 (degraus escuros) pelos roles de escala do
+        // Material 3 — têm que ficar IDÊNTICOS aos mesmos primitivos em
+        // src/styles/tokens.css (--neutro-*), que é quem documenta o porquê.
         neutro: {
-          0: '#ffffff', 25: '#fffbf8', 50: '#f8f4f1', 100: '#f1ece8',
-          200: '#e8e2dd', 300: '#c9c0ba', 400: '#a79e97', 500: '#9a918a',
-          600: '#79706a', 700: '#635c57', 800: '#3b3532', 850: '#332e2b',
-          875: '#2c2825', 900: '#262220', 950: '#211e1c', 975: '#1b1917',
-        },
-        avatar: {
-          c1: '#3f6dd6', c2: '#8a5cd4', c3: '#127f60',
-          c4: '#b4531f', c5: '#9a2f52', c6: '#2f6f86',
+          0: '#ffffff', 25: '#fafafa', 50: '#f8f8f7', 100: '#f0f0f0',
+          200: '#e6e6e6', 300: '#cfcfcf', 400: '#a8a8a8', 500: '#8d8d8d',
+          600: '#7d7d7d', 700: '#4d4d4d', 800: '#50453a', 850: '#241f1a',
+          875: '#201b16', 900: '#1a1a1a', 950: '#120d09', 975: '#17130e',
         },
       },
 
+      // UMA família. As três chaves continuam porque ~50 arquivos usam
+      // `font-mono`/`font-display`, mas apontam para a mesma pilha — a
+      // troca de fonte num rótulo pequeno era o que dava cara de painel
+      // técnico a uma tela que deveria parecer documento.
+      //
+      // Estas pilhas são LITERAIS: o Tailwind não lê `--f-ui`, então mudar
+      // só o token não muda `font-ui` coisa nenhuma. Já mordeu uma vez.
       fontFamily: {
-        ui:   ['Segoe UI Variable Text', 'Segoe UI', 'Inter', '-apple-system', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'SF Mono', 'ui-monospace', 'monospace'],
+        ui:      ['Inter', 'sans-serif'],
+        mono:    ['Inter', 'sans-serif'],
+        display: ['Inter', 'sans-serif'],
       },
 
       // escala base 14px razão 1,125
       fontSize: {
-        micro:       ['9.75px',  { lineHeight: '1' }],
-        legenda:     ['11px',    { lineHeight: '1.45' }],
-        pequeno:     ['12.5px',  { lineHeight: '1.45' }],
-        corpo:       ['14px',    { lineHeight: '1.45' }],
-        'corpo-lg':  ['15.75px', { lineHeight: '1.45' }],
-        'titulo-sm': ['17.75px', { lineHeight: '1.25', letterSpacing: '-0.015em' }],
-        titulo:      ['20px',    { lineHeight: '1.25', letterSpacing: '-0.015em' }],
-        'titulo-lg': ['22.5px',  { lineHeight: '1.25', letterSpacing: '-0.03em' }],
-        display:     ['25.25px', { lineHeight: '1.25', letterSpacing: '-0.03em' }],
+        micro:       ['12px',  { lineHeight: '1' }],
+        legenda:     ['12px',    { lineHeight: '1.43' }],
+        pequeno:     ['12px',  { lineHeight: '1.43' }],
+        corpo:       ['14px',    { lineHeight: '1.43' }],
+        'corpo-lg':  ['16px', { lineHeight: '1.75' }],
+        'titulo-sm': ['16px', { lineHeight: '1.2' }],
+        titulo:      ['16px',    { lineHeight: '1.2' }],
+        'titulo-lg': ['28px',  { lineHeight: '1.2', letterSpacing: '-0.01em' }],
+        display:     ['28px', { lineHeight: '1.2', letterSpacing: '-0.01em' }],
       },
       fontWeight: { normal: '400', medio: '500', forte: '600' },
-      lineHeight: { nenhuma: '1', justa: '1.25', normal: '1.45', solta: '1.6' },
+      lineHeight: { nenhuma: '1', justa: '1.2', normal: '1.43', solta: '1.75' },
       letterSpacing: { titulo: '-0.015em', display: '-0.03em', nenhum: '0em', rotulo: '0.05em' },
 
       // grade de 4px com meio-degrau de 2px
@@ -85,11 +125,17 @@ module.exports = {
         3: '12px', 3.5: '14px', 4: '16px', 5: '20px', 6: '24px',
         8: '32px', 10: '40px', 11: '44px', 16: '64px',
         'icone-sm': '12px', 'icone-md': '16px', 'icone-lg': '20px', 'icone-xl': '24px',
-        'sidebar-larga': '256px', 'sidebar-recolhida': '56px',
-        'alvo-minimo': '24px', 'altura-controle': '32px',
+        'sidebar-larga': '240px', 'sidebar-recolhida': '64px',
+        'alvo-minimo': '24px', 'altura-controle': '34px',
       },
 
-      borderRadius: { sm: '4px', md: '6px', lg: '8px', xl: '12px', total: '999px' },
+      // Um raio só (2px) — sm/md/lg/xl continuam existindo por NOME porque
+      // 50 arquivos os usam, mas todos resolvem pro mesmo valor (tokens.css).
+      // `total` é forma (avatar, interruptor, ponto), não estilo.
+      borderRadius: {
+        sm: 'var(--r-sm)', md: 'var(--r-md)', lg: 'var(--r-lg)', xl: 'var(--r-xl)',
+        total: 'var(--r-total)',
+      },
       borderWidth:  { DEFAULT: '1px', fina: '1px' },
 
       boxShadow: {
@@ -100,8 +146,8 @@ module.exports = {
         interno: 'inset 0 0 0 1px currentColor',
       },
 
-      transitionDuration:       { DEFAULT: '180ms', padrao: '180ms' },
-      transitionTimingFunction: { DEFAULT: 'cubic-bezier(.33,0,.67,1)', padrao: 'cubic-bezier(.33,0,.67,1)' },
+      transitionDuration:       { DEFAULT: '150ms', padrao: '150ms' },
+      transitionTimingFunction: { DEFAULT: 'cubic-bezier(.2,0,.38,.9)', padrao: 'cubic-bezier(.2,0,.38,.9)' },
 
       zIndex: {
         suspenso: '100', fixo: '200', cortina: '300',

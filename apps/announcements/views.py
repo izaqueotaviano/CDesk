@@ -1,7 +1,10 @@
 """API do mural.
 
 Leitura: qualquer usuário autenticado, filtrada pela audiência no service.
-Escrita: só admin (requisito 2/4) — supervisor e agente não publicam avisos.
+Escrita: quem tem `Perm.ANNOUNCEMENT_MANAGE` — admin sempre (`_ADMIN_PERMS`
+é "tudo que existe", `apps/accounts/rbac.py`), supervisor por concessão
+explícita (`_SUPERVISOR_PERMS`, mesmo arquivo: "por poder mexer em aviso").
+Agente comum não entra nas duas listas — segue de fora.
 """
 
 from django.db.models import Exists, OuterRef, Q
@@ -11,6 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 
+from apps.accounts.rbac import Perm
 from apps.announcements.models import Announcement, AnnouncementRead
 from apps.announcements.serializers import AnnouncementSerializer
 from apps.announcements.services import announcements_for
@@ -26,16 +30,16 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if self.action in ("list", "retrieve"):
-            is_admin = user.is_internal and user.is_admin
+            pode_gerenciar = user.can(Perm.ANNOUNCEMENT_MANAGE)
             history = self.request.query_params.get("history") == "1"
-            # `manage=1`: tela de administração — o admin gerencia TODOS os avisos,
-            # inclusive os que mira em outros públicos (senão não consegue editar
-            # um aviso feito para clientes) e os que ele mesmo desativou.
-            manage = is_admin and self.request.query_params.get("manage") == "1"
+            # `manage=1`: tela de administração — quem gerencia vê TODOS os
+            # avisos, inclusive os que miram em outros públicos (senão não dá
+            # para editar um aviso feito para clientes) e os já desativados.
+            manage = pode_gerenciar and self.request.query_params.get("manage") == "1"
             if manage:
                 qs = self._manage_queryset(include_inactive=history)
             else:
-                qs = announcements_for(user, include_expired=is_admin and history)
+                qs = announcements_for(user, include_expired=pode_gerenciar and history)
             return qs.annotate(
                 user_dismissed=Exists(
                     AnnouncementRead.objects.filter(
@@ -47,7 +51,7 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
 
     @staticmethod
     def _manage_queryset(*, include_inactive):
-        """Visão do administrador, sem filtro de audiência.
+        """Visão de quem gerencia avisos, sem filtro de audiência.
 
         Histórico traz tudo (desativados e expirados); vigentes traz só o que
         está no ar agora — ativo e dentro da vigência.
@@ -60,22 +64,21 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
             )
         return qs.order_by("-is_pinned", "-starts_at")
 
-    def _require_admin(self):
-        user = self.request.user
-        if not (user.is_internal and user.is_admin):
-            raise PermissionDenied("Apenas administradores gerenciam avisos.")
+    def _require_manage_permission(self):
+        if not self.request.user.can(Perm.ANNOUNCEMENT_MANAGE):
+            raise PermissionDenied("Você não tem permissão para gerenciar avisos.")
 
     def perform_create(self, serializer):
-        self._require_admin()
+        self._require_manage_permission()
         serializer.save(created_by=self.request.user)
 
     def perform_update(self, serializer):
-        self._require_admin()
+        self._require_manage_permission()
         serializer.save()
 
     def perform_destroy(self, instance):
         # histórico é requisito: aviso não é apagado, é desativado
-        self._require_admin()
+        self._require_manage_permission()
         instance.is_active = False
         instance.save(update_fields=["is_active"])
 

@@ -1,0 +1,736 @@
+// ============================================================================
+// Abrir chamado — design system Resolv.
+//
+// É "o detalhe antes de o ticket existir": cabeçalho (.ticket-cab), painel de
+// triagem à esquerda (.props) e, no lugar da conversa, a mensagem de abertura
+// (controles do .compositor). Tudo isso vem de detalhe.scss; aqui só o que é
+// próprio da abertura. Os tons (--tom-*, --anel-foco, --sombra-flutuante) eram
+// oito declarações copiadas de detalhe.scss em rgba() cru; agora são um bloco
+// só em tokens.scss, derivado das semânticas e portanto vivo nos dois temas.
+// ============================================================================
+
+.novo {
+  // Só o que é geometria desta tela; a cor mora nos tokens.
+  --largura-props: 288px;
+
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+
+  button:focus-visible,
+  a:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    outline: none;
+  }
+
+  // ---- cabeçalho ----
+  &__identidade {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  &__cab-sub {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  // ---- colunas ----
+  &__colunas {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  &__props {
+    width: var(--largura-props);
+  }
+  &__compor {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px 24px 28px;
+    background: var(--surface);
+  }
+
+  // ---- campos da mensagem ----
+  &__bloco {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    &--mensagem {
+      flex: 1;
+    }
+  }
+  &__rotulo-linha {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 20px;
+  }
+  &__rotulo {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__obrig {
+    color: var(--accent);
+    text-decoration: none;
+    margin-left: 1px;
+    font-weight: 600;
+  }
+  &__dica {
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    &--anexo {
+      margin-left: 4px;
+    }
+  }
+  &__filtro {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  // O select sem a cara do navegador (`appearance: none`) e com a seta do
+  // conjunto de ícones — o mesmo par dos seletores do painel ao lado
+  // (`.props__seletor`), só que compacto, porque mora na linha do rótulo.
+  &__filtro-campo {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    select {
+      height: 28px;
+      max-width: 220px;
+      padding: 0 28px 0 10px;
+      appearance: none;
+      border: 1px solid var(--borda-campo);
+      border-radius: var(--raio);
+      background: var(--surface-card);
+      font-family: var(--f-ui);
+      font-size: 12px;
+      color: var(--text-primary);
+      text-overflow: ellipsis;
+      cursor: pointer;
+      &:focus-visible {
+        outline: 2px solid var(--foco);
+        outline-offset: 1px;
+      }
+    }
+    i {
+      position: absolute;
+      right: 8px;
+      font-size: 14px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+  }
+
+  // Os campos do formulário levam a linha de CAMPO (`--borda-campo`, 3:1 com
+  // o fundo), como o "Para": o fio de divisória (`--stroke`) some no plano
+  // claro e a pessoa não vê onde digitar.
+  // Especificidade (0,2,0) de propósito: vence a base do compositor e do
+  // painel (`.compositor__texto`, `.props__seletor`) sem depender da ordem
+  // dos arquivos; cada estado abaixo repete o do campo original.
+  & &__input,
+  & &__assunto,
+  & &__texto,
+  & .props__seletor {
+    border-color: var(--borda-campo);
+    &:hover {
+      border-color: var(--text-muted);
+    }
+    &:focus,
+    &:focus-within {
+      border-color: var(--accent);
+    }
+    &[aria-invalid='true'],
+    &.novo__seletor--invalido {
+      border-color: var(--danger);
+    }
+  }
+  &__input,
+  &__assunto {
+    width: 100%;
+    height: 34px;
+    padding: 0 10px;
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-family: var(--f-ui);
+    font-size: 13px;
+    color: var(--text-primary);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+    &::placeholder {
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    &:focus {
+      border-color: var(--accent);
+      box-shadow: var(--anel-foco);
+    }
+    &[aria-invalid='true'] {
+      border-color: var(--danger);
+    }
+  }
+  // Assunto é o título do chamado — sobe de tamanho para ficar claro que
+  // não é mais um campo qualquer.
+  &__assunto {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  &__texto {
+    min-height: 220px;
+    max-height: none;
+    resize: vertical;
+    &[aria-invalid='true'] {
+      border-color: var(--danger);
+    }
+  }
+  // Seletor do painel com erro: borda vermelha no controle (o .props__seletor
+  // não tem estado de erro — o detalhe salva campo a campo e não precisa).
+  &__seletor--invalido {
+    border-color: var(--danger);
+  }
+
+  &__erro {
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 4px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--danger);
+    i {
+      font-size: 13px;
+      margin-top: 1px;
+      flex-shrink: 0;
+    }
+  }
+  // Erro de CONSULTA (equipe/categoria/clientes que não carregaram) — mesma
+  // cor de `&__erro`, mas com o "Tentar de novo" embutido: sem ele a pessoa
+  // só tinha o F5, que apaga o que já escreveu no resto do formulário.
+  &__erro-consulta {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--danger);
+    i {
+      font-size: 13px;
+    }
+  }
+
+  // ---- "sem equipe": beco sem saída, não erro do sistema — mesma ideia de
+  // `lista.scss` `__estado` (ícone grande, frase, botão), mas centralizado
+  // porque aqui troca a TELA inteira, não uma lista dentro dela ----
+  &__estado {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--text-secondary);
+    &:focus {
+      // foco vem por código (a árvore trocou), não por tabulação
+      outline: none;
+    }
+    > i {
+      // decorativo (aria-hidden) — contraste de texto não se aplica aqui
+      font-size: 32px;
+      color: var(--text-muted);
+    }
+    p {
+      max-width: 46ch;
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.5;
+      &:first-of-type {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+    }
+    .novo__cancelar {
+      margin-top: 6px;
+    }
+  }
+
+  // ---- cartão do cliente escolhido ----
+  &__cliente {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+  }
+  &__cliente-id {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  &__cliente-nome {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  &__cliente-meta {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow-wrap: anywhere;
+  }
+  &__cliente-quota {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    border-radius: var(--raio);
+    background: var(--tom-ok);
+    font-size: 11px;
+    color: var(--ok);
+    white-space: nowrap;
+    i {
+      font-size: 13px;
+    }
+  }
+
+  // ---- aviso de possível duplicata: chamado(s) aberto(s) do mesmo cliente —
+  // tom de alerta como `__feito-pendencia`, mas fora do fluxo de confirmação
+  // (aparece já na escolha do solicitante, sem bloquear nada) ----
+  &__duplicidade {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    background: var(--tom-alerta);
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    i {
+      flex-shrink: 0;
+      margin-top: 1px;
+      font-size: 14px;
+      color: var(--away);
+    }
+  }
+
+  // ---- etiquetas como chips que ligam/desligam ----
+  &__chip {
+    cursor: pointer;
+    font-family: var(--f-ui);
+    transition:
+      border-color 0.15s ease,
+      background 0.15s ease;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &--ligada {
+      background: var(--tom-acento);
+      border-color: var(--tom-acento-borda);
+      color: var(--accent);
+    }
+  }
+
+  // ---- assinatura ----
+  &__assinatura {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  &__assinatura-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    input {
+      accent-color: var(--accent);
+      width: 14px;
+      height: 14px;
+      cursor: pointer;
+    }
+  }
+  &__assinatura-previa {
+    margin: 0;
+    padding: 8px 10px;
+    border-left: 2px solid var(--stroke-hover);
+    background: var(--surface-alt);
+    font-family: var(--f-ui);
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    white-space: pre-wrap;
+  }
+
+  // ---- rodapé ----
+  &__rodape {
+    margin-top: 4px;
+  }
+  &__cancelar {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    cursor: pointer;
+    &:hover {
+      border-color: var(--stroke-hover);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+  }
+  // ---- aviso de rascunho recuperado ----
+  &__rascunho {
+    align-items: flex-start;
+    span {
+      flex: 1;
+    }
+  }
+  &__fechar {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+
+  // ---- confirmação: o chamado existe, o formulário saiu ----
+  &__feito {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 28px 24px;
+    background: var(--surface);
+    &:focus {
+      // o foco vem por código (a tela trocou), não por tabulação: o anel
+      // roubaria a atenção do texto que a pessoa precisa ler
+      outline: none;
+    }
+  }
+  &__feito-linha,
+  &__feito-pendencia {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    max-width: 62ch;
+    line-height: 1.5;
+    i {
+      font-size: 18px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+  &__feito-linha {
+    font-size: 15px;
+    color: var(--text-primary);
+    i {
+      color: var(--ok);
+    }
+  }
+  &__feito-pendencia {
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    background: var(--tom-alerta);
+    font-size: 13px;
+    color: var(--text-primary);
+    i {
+      font-size: 15px;
+      color: var(--away);
+    }
+  }
+  &__feito-acoes {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  &__link {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+}
+
+// ============================================================================
+// Combobox de pessoa
+// ============================================================================
+.busca-pessoa {
+  position: relative;
+
+  &__campo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding-left: 10px;
+    // Linha de CAMPO (`--borda-campo`): é ela que anuncia "digite aqui".
+    border: 1px solid var(--borda-campo);
+    border-radius: var(--raio);
+    background: var(--surface-card);
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease;
+    > i:first-child {
+      font-size: 16px;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      padding: 0 34px 0 8px;
+      border: none;
+      background: transparent;
+      font-family: var(--f-ui);
+      font-size: 14px;
+      color: var(--text-primary);
+      &::placeholder {
+        color: var(--text-muted);
+      }
+      &:disabled {
+        color: var(--text-secondary);
+      }
+    }
+    &:focus-within {
+      outline: 2px solid var(--foco);
+      outline-offset: 1px;
+    }
+  }
+  &--escolhido &__campo > i:first-child {
+    color: var(--ok);
+  }
+  .novo & input[aria-invalid='true'] {
+    // o anel de erro fica na moldura, não no input sem borda
+    ~ .busca-pessoa__limpar {
+      color: var(--danger);
+    }
+  }
+  &__campo:has(input[aria-invalid='true']) {
+    border-color: var(--danger);
+  }
+
+  &__limpar {
+    position: absolute;
+    right: 6px;
+    width: 24px;
+    height: 24px;
+    display: grid;
+    place-items: center;
+    border: none;
+    background: transparent;
+    border-radius: var(--raio);
+    color: var(--text-secondary);
+    cursor: pointer;
+    i {
+      font-size: 14px;
+    }
+    &:hover {
+      background: var(--surface-alt);
+      color: var(--text-primary);
+    }
+  }
+
+  // A lista é um POPOVER: flutua sobre o que vem embaixo (Assunto,
+  // Mensagem) com superfície, fio e sombra próprios — é o único lugar da
+  // tela onde sombra entra, porque ali ela diz "isto está por cima".
+  // `isolation` e o z-index alto garantem que nada do formulário que vem
+  // depois no DOM (o editor da mensagem cria camadas próprias) passe na
+  // frente dela.
+  &__lista {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 500;
+    isolation: isolate;
+    max-height: 288px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    list-style: none;
+    margin: 0;
+    padding: 4px;
+    background: var(--surface-card);
+    border: 1px solid var(--stroke);
+    border-radius: var(--raio-cartao);
+    box-shadow: 0 8px 24px var(--sombra-forte);
+    &[hidden] {
+      display: none;
+    }
+  }
+  &__opcao {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 10px;
+    border-radius: var(--raio);
+    cursor: pointer;
+    &--ativa {
+      background: var(--sidebar-ativo);
+    }
+  }
+  &__nome {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  &__desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  // Com a lista aberta, a linha de ajuda logo abaixo do campo fica coberta
+  // por ela — mas o canto arredondado deixava a primeira letra da ajuda
+  // espiando pela quina. Some enquanto a lista está aberta (continua no
+  // `aria-describedby` do campo, que lê o texto mesmo invisível).
+  &:has(.busca-pessoa__lista:not([hidden])) + .props__ajuda {
+    visibility: hidden;
+  }
+
+  // A dica de termo curto: no fluxo, logo abaixo do campo (empurra a ajuda
+  // uma linha para baixo em vez de cobrir o campo seguinte).
+  &__dica {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--text-secondary);
+    i {
+      font-size: 14px;
+    }
+  }
+  &__vazio {
+    padding: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    &--erro {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      color: var(--danger);
+      i {
+        font-size: 14px;
+      }
+    }
+  }
+  &__retentar {
+    border: none;
+    background: transparent;
+    padding: 0;
+    font: inherit;
+    font-weight: 500;
+    color: var(--accent);
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  &__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}
+
+// ============================================================================
+// Responsivo — abaixo de 900px as colunas empilham; o painel de triagem vai
+// para baixo da mensagem (a tarefa principal primeiro).
+// ============================================================================
+@media (max-width: 900px) {
+  .novo {
+    &__colunas {
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    &__props {
+      order: 2;
+      width: auto;
+      border-right: 0;
+      border-top: 1px solid var(--stroke);
+      overflow: visible;
+    }
+    &__compor {
+      overflow: visible;
+      padding: 16px;
+    }
+    &__cliente-quota {
+      margin-left: 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novo *,
+  .novo *::before,
+  .novo *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

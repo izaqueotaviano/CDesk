@@ -43,9 +43,11 @@ configurações — essas telas mostram um aviso "melhor no computador".
 
 - `AppShell`: sidebar vira gaveta (off-canvas) atrás de um botão ☰; o `grid`
   fixo passa a ser condicional por breakpoint.
-- Abas: no celular some a barra de abas e vale **uma tela por vez** (o histórico
-  do navegador já é a navegação). A store de abas continua igual — só não
-  renderiza a barra abaixo de `sm`.
+- Abas: na árvore antiga (`/app`, `AppShell`) some a barra de abas no celular e
+  vale **uma tela por vez** (o histórico do navegador já é a navegação); a store
+  de abas continua igual, só não renderiza a barra abaixo de `sm`. No console
+  novo (`NovoShell`) a faixa de abas **fica** na barra superior, entre o botão de
+  menu e os dois ícones da direita, e rola na horizontal (docs/06).
 - Ticket: já é uma coluna só, precisa de ajuste fino nos filtros (mesmo padrão
   de `min-w-` que causou o estouro no portal, ver commit do cabeçalho).
 - Telas fora de escopo: um `EmptyState` honesto em vez de layout quebrado.

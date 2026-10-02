@@ -1,125 +1,341 @@
-// Material Web compacto: rail discreto, com ícones e foco nativo do componente.
+// Sidebar do shell — expandida (248px), recolhida (52px) e gaveta (tela
+// pequena).
+//
+// A LARGURA não é decidida aqui: `--largura-sidebar` é declarada em
+// shell.scss, na raiz, porque quem se mexe junto é o conteúdo — o corpo lê a
+// mesma variável para o próprio recuo e nunca fica por baixo da barra em
+// nenhum dos dois estados. Aqui ficam só a aparência e o layout interno.
+// (O fallback de 248px cobre a barra renderizada fora do shell, como no teste.)
+//
+// As medidas saem da referência (Copilot): mesmo fundo do conteúdo, um fio
+// vertical de 1px na borda, linhas de 32px em 14px regular, e nenhuma linha
+// horizontal separando zonas: o vão antes do rodapé já diz onde a navegação
+// acaba.
 .sidebar-rail {
   position: fixed;
   top: 0;
   left: 0;
   bottom: 0;
-  width: 64px;
-  background: var(--surface-card);
-  border-right: 1px solid var(--stroke);
+  z-index: 100;
+  width: var(--largura-sidebar, 248px);
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 14px 0;
-  z-index: 100;
-  gap: 4px;
+  background: var(--shell-fundo, var(--surface-alt));
+  border-right: 1px solid var(--shell-borda, var(--stroke));
+  color: var(--text-primary);
+  transition: width 0.15s ease;
 
-  &__logo {
-    width: 36px;
-    height: 36px;
+  // ── Topo: marca + recolher ────────────────────────────────────────────────
+  &__topo {
     display: flex;
     align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    cursor: pointer;
-    border-radius: 8px;
-
-    &-mark {
-      width: 22px;
-      height: auto;
-      color: var(--text-primary);
-      transition: color 0.15s ease;
-    }
-    &:hover &-mark {
-      color: #0c0a09;
-    }
-  }
-
-  &__sep {
-    width: 28px;
-    height: 1px;
-    background: var(--stroke);
-    margin: 8px 0;
+    justify-content: space-between;
+    gap: 4px;
+    border-bottom: 1px solid var(--shell-borda, var(--stroke));
+    height: 52px;
+    padding: 0 8px;
     flex-shrink: 0;
   }
 
+  // A marca é texto, como o "Copilot" da referência — o logo ao lado é
+  // pequeno de propósito, para o nome ser o que se lê.
+  &__marca {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 32px;
+    padding: 0 8px 0 6px;
+    border: none;
+    border-radius: var(--shell-raio, var(--raio));
+    background: transparent;
+    color: inherit;
+    font-family: var(--f-ui);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--shell-hover, var(--sidebar-hover));
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+
+  &__logo {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__logo-mark {
+    width: 15px;
+    height: auto;
+    color: var(--text-primary);
+  }
+
+  &__marca-nome {
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    white-space: nowrap;
+  }
+
+  &__alternar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: var(--shell-raio, var(--raio));
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+
+    i {
+      font-size: 18px;
+    }
+    &:hover {
+      background: var(--shell-hover, var(--sidebar-hover));
+      color: var(--text-primary);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
+    }
+  }
+
+  // ── Navegação ─────────────────────────────────────────────────────────────
+  // Não cresce: a navegação tem altura fixa, e o rodapé da conta é empurrado
+  // para baixo pelo `margin-top: auto` dele.
   &__nav {
     display: flex;
     flex-direction: column;
-    align-items: center;
     gap: 4px;
-    flex: 1;
+    flex-shrink: 0;
+    padding: 16px 12px;
   }
 
   &__item {
     position: relative;
-    --md-icon-button-state-layer-width: 38px;
-    --md-icon-button-state-layer-height: 38px;
-    --md-icon-button-icon-size: 18px;
-    --md-icon-button-icon-color: var(--text-secondary);
-    --md-icon-button-hover-icon-color: #0c0a09;
-    --md-icon-button-hover-state-layer-color: #f0efed;
-    --md-icon-button-pressed-icon-color: #0c0a09;
-    --md-icon-button-pressed-state-layer-color: #f0efed;
-    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 36px;
+    padding: 0 10px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: var(--shell-raio, var(--raio));
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--f-ui);
+    font-size: 14px;
+    font-weight: 400;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease;
 
-    i {
-      font-size: 17px;
-      line-height: 1;
+    &:hover {
+      background: var(--shell-hover, var(--sidebar-hover));
     }
-
-    &--ativo {
-      --md-icon-button-icon-color: #0c0a09;
-      --md-icon-button-state-layer-color: #f0efed;
-      background: #f0efed;
-      border-radius: 8px;
+    // Ativo: o pill claro e um degrau de peso. Um ativo por vez na sidebar
+    // inteira.
+    &--ativo,
+    &--ativo:hover {
+      background: var(--shell-selecao, var(--sidebar-ativo));
+      color: var(--shell-acento, var(--text-primary));
+      box-shadow: inset 3px 0 0 var(--shell-acento, var(--foco));
+      font-weight: 600;
+      .sidebar-rail__icone i {
+        color: inherit;
+      }
     }
-    &--inerte {
-      opacity: 0.55;
-      cursor: default;
-      pointer-events: none;
-    }
-
-    // tooltip CSS puro
-    &::after {
-      content: attr(data-tooltip);
-      position: absolute;
-      left: calc(100% + 10px);
-      top: 50%;
-      background: var(--text-primary);
-      color: #fff;
-      font-family: var(--f-ui);
-      font-size: 12px;
-      font-weight: 500;
-      line-height: 1;
-      padding: 6px 10px;
-      border-radius: 2px;
-      white-space: nowrap;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(-50%) translateX(-4px);
-      transition: opacity 0.15s ease, transform 0.15s ease;
-      z-index: 200;
-    }
-    &::before {
-      content: '';
-      position: absolute;
-      left: calc(100% + 5px);
-      top: 50%;
-      transform: translateY(-50%);
-      border: 5px solid transparent;
-      border-right-color: var(--text-primary);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.15s ease;
-      z-index: 200;
-    }
-    &:hover::after,
-    &:hover::before {
-      opacity: 1;
-    }
-    &:hover::after {
-      transform: translateY(-50%) translateX(0);
+    &:focus-visible {
+      outline: 2px solid var(--foco);
+      outline-offset: -2px;
     }
   }
+
+  // Caixa do ícone: tamanho fixo para os rótulos alinharem numa coluna só, e
+  // é ela (não o botão inteiro) que ancora o selo de conversas.
+  &__icone {
+    position: relative;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    i {
+      font-size: 18px;
+      line-height: 1;
+      color: var(--text-primary);
+    }
+  }
+
+  // O círculo cheio da ação primária — o "Novo chat" da referência. Sai dos
+  // tokens de ação, então inverte sozinho no tema escuro (círculo claro,
+  // sinal escuro).
+  &__novo {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--primario);
+
+    i {
+      font-size: 12px;
+      color: var(--primario-sobre);
+    }
+  }
+
+  &__rotulo {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Selo de conversas sobre o ícone de Chats — a contagem vive onde a pessoa
+  // olha para achar o chat, sem ocupar uma linha própria.
+  &__badge {
+    position: absolute;
+    top: -5px;
+    right: -8px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--primario);
+    color: var(--primario-sobre);
+    font-family: var(--f-ui);
+    font-size: 9px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  // ── Conta (rodapé) ────────────────────────────────────────────────────────
+  &__conta {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding: 12px 8px;
+    border-top: 1px solid var(--shell-borda, var(--stroke));
+
+    // O menu da conta nasce pensado para abrir PARA BAIXO (Popover.scss).
+    // Colado no rodapé da janela, isso o jogaria para fora da tela; aqui ele
+    // abre à direita e cresce para CIMA, o único sentido que nunca estoura.
+    .popover {
+      display: block;
+      width: 100%;
+    }
+    .popover__panel {
+      top: auto;
+      bottom: 0;
+      left: calc(100% + 4px);
+      right: auto;
+    }
+  }
+
+  // ── Recolhida ─────────────────────────────────────────────────────────────
+  // Como na referência: o topo vira só o botão de expandir, a coluna vira só
+  // ícones, e o rodapé fica só com o avatar. O nome de cada ícone vem do
+  // `title` nativo (fora do documento, não cobre conteúdo).
+  &--recolhida {
+    .sidebar-rail__topo {
+      justify-content: center;
+      padding: 0;
+    }
+    .sidebar-rail__rotulo,
+    .menu-presenca__nome {
+      display: none;
+    }
+    .sidebar-rail__nav {
+      align-items: center;
+      padding: 4px 0;
+    }
+    .sidebar-rail__item,
+    .menu-presenca__gatilho {
+      width: 36px;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+    }
+    .sidebar-rail__conta {
+      display: flex;
+      justify-content: center;
+      padding: 8px 0;
+    }
+  }
+}
+
+// ── Gaveta (tela pequena) ───────────────────────────────────────────────────
+// Abaixo de 768px a barra sai do fluxo de vez: o corpo não recua (shell.scss
+// zera `--largura-sidebar`) e ela entra por cima do conteúdo, com véu, quando
+// o botão de menu da barra superior pede. Fechada, fica fora da tela E
+// `visibility: hidden` — some da ordem de tabulação sem precisar desmontar.
+.sidebar-veu {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: var(--veu);
+}
+
+@media (max-width: 767px) {
+  .sidebar-rail--gaveta {
+    width: min(288px, 85vw);
+    border-right: none;
+    transform: translateX(-100%);
+    visibility: hidden;
+    box-shadow: var(--sombra-flutuante);
+    transition:
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
+
+    &.sidebar-rail--gaveta-aberta {
+      transform: none;
+      visibility: visible;
+      transition:
+        transform 0.2s ease,
+        visibility 0s;
+    }
+  }
+}
+
+// Uma ação de criação consistente com os botões do sistema.
+.sidebar-rail__item--primaria {
+  margin-bottom: 8px;
+  background: var(--shell-superficie, var(--surface-card));
+  border: 1px solid var(--shell-borda, var(--stroke));
+  font-weight: 600;
+  &:hover {
+    background: var(--shell-hover, var(--sidebar-hover));
+  }
+}
+.sidebar-rail__item--ativo .sidebar-rail__icone {
+  color: var(--shell-acento, var(--foco));
+}
+.sidebar-rail__novo {
+  background: transparent;
+  border-radius: 0;
+}
+.sidebar-rail__novo i {
+  color: var(--text-primary);
+  font-size: 18px;
+}
+.sidebar-rail--recolhida .sidebar-rail__item {
+  height: 36px;
 }

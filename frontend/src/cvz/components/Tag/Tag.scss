@@ -1,3 +1,4 @@
+@use 'sass:map';
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
@@ -50,9 +51,21 @@
   }
 
   // Tons: fundo tint + texto na cor cheia, para o contraste não depender do dot.
-  &--neutral { background-color: $chrome; border-color: $stroke; color: $text-secondary; }
+  // O neutro é a mesma pílula quente do item ativo, sem contorno: sobre o
+  // branco da tabela o #f6f5f3 de antes só aparecia por causa da linha.
+  &--neutral { background-color: $blue-tint; color: $text-secondary; }
   &--blue    { background-color: $blue-tint;    color: $blue-active; }
   &--success { background-color: $success-tint; color: $success; }
   &--away    { background-color: $away-tint;    color: $away; }
   &--danger  { background-color: $danger-tint;  color: $danger; }
+
+  // Identidade: tint derivado da própria cor (não há hex de tint por tom —
+  // 14% sobre qualquer superfície é o mesmo "lavado" que $blue-tint faz para
+  // o azul), e o texto clareia sozinho no escuro via $identity-text.
+  @each $i, $cor in $identity-fill {
+    &--identity-#{$i} {
+      background-color: color-mix(in srgb, #{$cor} 14%, transparent);
+      color: map.get($identity-text, $i);
+    }
+  }
 }

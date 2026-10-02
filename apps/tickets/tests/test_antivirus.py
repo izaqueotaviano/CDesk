@@ -16,6 +16,7 @@ import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 
+from apps.notifications.models import NotificationPreference, OutboundEmail
 from apps.tickets.models import ScanStatus, TicketAttachment
 from apps.tickets.services import antivirus
 from apps.tickets.services.attachments import attach_to_message
@@ -175,6 +176,23 @@ class TestScanTask:
         assert ana.notifications.filter(kind="attachment_blocked").exists()
         log = AuditLog.objects.get(action=AuditAction.SCAN_BLOCKED)
         assert "Win.Trojan.Fake" in log.summary
+
+    def test_infection_emails_the_uploader(self, attachment, ana):
+        """ATTACHMENT_BLOCKED só avisava in-app — o toggle de e-mail da tela
+        de Notificações não tinha efeito nenhum para este tipo."""
+        with scanner((antivirus.INFECTED, "Win.Trojan.Fake")):
+            scan_attachment(attachment.pk)
+
+        email = OutboundEmail.objects.get(to_email=ana.email, template="attachment_blocked")
+        assert attachment.filename in email.subject
+
+    def test_infection_email_desligado_nao_envia(self, attachment, ana):
+        NotificationPreference.objects.create(user=ana, email={"attachment_blocked": False})
+        with scanner((antivirus.INFECTED, "Win.Trojan.Fake")):
+            scan_attachment(attachment.pk)
+
+        assert ana.notifications.filter(kind="attachment_blocked").exists()  # sino continua ligado
+        assert not OutboundEmail.objects.filter(template="attachment_blocked").exists()
 
     def test_daemon_down_never_becomes_approval(self, attachment):
         """Retry, não aprovação. O anexo continua bloqueado no meio-tempo."""

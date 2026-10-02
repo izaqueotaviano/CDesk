@@ -18,6 +18,10 @@ export interface Equipe {
   slug: string
   visibility: string
   order: number
+  /** Equipe de uso interno: NUNCA pode receber chamado de cliente
+   *  (`ticket_service.update_fields`). Quem oferece transferência de equipe
+   *  precisa omiti-las, senão a recusa só aparece depois da confirmação. */
+  internal_only: boolean
 }
 
 /** `ServiceSerializer` — o nível acima de categoria. */
@@ -110,6 +114,9 @@ export interface NovoTicket {
   assignee_id?: number | null
   /** Aplicado depois via `PATCH /tickets/{id}/` (a lista SUBSTITUI o conjunto). */
   tag_ids?: number[]
+  /** A assinatura de quem abre entra no rodapé da primeira mensagem? Ela não
+   *  vai no `body` — o servidor a desenha do perfil (apps/accounts/assinatura.py). */
+  with_signature?: boolean
 }
 
 /** O POST devolve o TicketDetail inteiro; aqui só o que a navegação precisa. */
@@ -178,7 +185,8 @@ export function useEmpresasOpcoes() {
  * mantém a lista curta quando a base cresce, em vez de trazer tudo e cortar aqui.
  */
 export function useClientes(empresaId: number | null) {
-  const params = new URLSearchParams({ kind: 'client' })
+  // `limit`: a listagem é paginada (25) — sem isto o seletor só via a 1ª página
+  const params = new URLSearchParams({ kind: 'client', limit: '500' })
   if (empresaId != null) params.set('company', String(empresaId))
   return useQuery({
     queryKey: ['clientes', empresaId],
@@ -196,7 +204,7 @@ export function useClientes(empresaId: number | null) {
 export function useAgentes() {
   return useQuery({
     queryKey: ['agentes'],
-    queryFn: () => api.get<Paginado<UsuarioDiretorio> | UsuarioDiretorio[]>('/api/v1/users/'),
+    queryFn: () => api.get<Paginado<UsuarioDiretorio> | UsuarioDiretorio[]>('/api/v1/users/?limit=500'),
     staleTime: 300_000,
     select: lista,
   })
@@ -267,6 +275,7 @@ export function useAbrirTicket() {
         form.append('requester_id', String(dados.requester_id))
         if (dados.category_id != null) form.append('category_id', String(dados.category_id))
         if (dados.order_number) form.append('order_number', dados.order_number)
+        if (dados.with_signature) form.append('with_signature', 'true')
         arquivos.forEach((f) => form.append('files', f))
         ticket = await api.post<TicketCriado>('/api/v1/tickets/', form)
       }

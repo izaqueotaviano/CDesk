@@ -1,0 +1,74 @@
+/*
+ * Telas sem sessão (entrar, pedir o link de senha, criar a senha nova) —
+ * o que não cabe em utilitário do Tailwind.
+ *
+ * A paleta, a tipografia e o raio saem dos tokens (styles/tokens.css). O que
+ * mora aqui é só a COMPOSIÇÃO destas telas: o cartão do formulário sobre o
+ * plano, o foco dos campos e o painel da marca.
+ *
+ * REGRA DE CASCATA, porque isto já mordeu mais de uma vez: as utilitárias do
+ * Tailwind entram DEPOIS deste arquivo no bundle e têm a mesma
+ * especificidade de uma classe. Qualquer propriedade que o JSX também
+ * declare (altura, cor de fundo, tamanho de fonte) é resolvida LÁ, onde o
+ * `tailwind-merge` do `cn` faz a última palavra ser a certa. Aqui só entra o
+ * que nenhuma utilitária escreve. (O título de 33px que morava aqui nunca
+ * chegou à tela por esse motivo: o `text-titulo` do JSX vencia.)
+ */
+
+/* ------------------------------------------------------------------ formulário
+   Branco só para o que é superfície: o cartão e os campos. O resto é o
+   plano (`bg-canvas`), com uma linha de 1px separando os dois. */
+.login-cartao {
+  padding: 32px 28px 28px;
+  background: var(--superficie);
+  border: 1px solid var(--divisoria);
+  border-radius: var(--r-md);
+}
+
+@media (max-width: 380px) {
+  .login-cartao {
+    padding: 24px 20px 20px;
+  }
+}
+
+/* ------------------------------------------------------------------ foco
+   O foco global (tokens.css) é o contorno de 2px na cor do acento. Num campo
+   ele somava com a borda, que também escurece no foco: carvão, folga,
+   carvão — um anel duplo pesado, e o primeiro campo da tela nasce focado
+   (autoFocus). Aqui o campo fica com a própria borda e ganha UM anel de 2px,
+   afastado 2px, no degrau de tinta mais leve que ainda passa AA como
+   contorno de controle: `--tinta-terciaria` dá 4,5:1 sobre o branco do
+   cartão e 4,2:1 sobre o plano no claro, e ~5,6:1 sobre a superfície escura
+   no escuro (a norma, 1.4.11, pede 3:1). A borda não muda de cor no foco —
+   o JSX troca o `focus-visible:border-acento` do kit por
+   `focus-visible:border-borda-campo`. */
+.login-campo:focus-visible {
+  outline: 2px solid var(--tinta-terciaria);
+  outline-offset: 2px;
+}
+
+/* Links de texto (Esqueci minha senha, Voltar para o login): sublinhado é o
+   sinal de link, já que o acento não é uma cor à parte. */
+.login-link {
+  color: var(--tinta);
+  text-decoration: underline;
+  text-decoration-color: var(--borda-campo);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.login-link:hover {
+  text-decoration-color: currentColor;
+}
+
+/* ---------------------------------------------------------- painel da marca
+   O campo escuro da direita, escuro nos DOIS temas (`--login-painel`): o
+   texto em cima dele é claro e fixo. Sólido e liso — a grade laranja que já
+   morou aqui era cor de marca usada como decoração. */
+.login-painel {
+  background-color: var(--login-painel);
+}
+
+/* A pergunta do canto ("É cliente?") cai SOBRE o painel escuro no desktop:
+   a cor dela é resolvida no JSX (`lg:text-[#c9c7c2]`), e não aqui — a regra
+   que morava aqui perdia para o `text-tinta-secundaria` da utilitária e
+   deixava o texto a 2,6:1 sobre o carvão. */

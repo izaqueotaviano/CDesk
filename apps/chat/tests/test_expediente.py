@@ -139,6 +139,9 @@ class TestConfigParaOCliente:
         assert set(resp.data) == {
             "welcome_message", "score_min", "score_max", "low_score_threshold",
             "queue_open", "queue_opens_at",
+            # os limites de anexo que o servidor aplica: o portal confere antes
+            # de subir e anuncia o número certo (ver ClientChatConfigSerializer)
+            "attachment_limits",
         }
 
     def test_cliente_sabe_que_a_fila_esta_fechada_e_para_quando(self, api, ana):

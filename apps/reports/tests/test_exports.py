@@ -1,6 +1,9 @@
 """Exportação assíncrona: XLSX e o escopo reavaliado no momento da geração."""
 
+import io
+
 import pytest
+from openpyxl import load_workbook
 from rest_framework.test import APIClient
 
 from apps.accounts.models import AgentTeam, InternalRole, Team, TeamVisibility, User, UserKind
@@ -38,7 +41,10 @@ def cenario(db):
                                  subject="No suporte", body="b")
     ticket_service.create_ticket(requester=ana, team=financeiro,
                                  subject="No financeiro", body="b")
-    return {"admin": admin, "agente": agente, "ana": ana}
+    return {
+        "admin": admin, "agente": agente, "ana": ana,
+        "suporte": suporte, "financeiro": financeiro,
+    }
 
 
 @pytest.fixture
@@ -67,6 +73,33 @@ def test_xlsx_export_completes(api, cenario):
     assert download.status_code == 200
     content = b"".join(download.streaming_content)
     assert content[:2] == b"PK"                # xlsx é um zip
+
+
+def test_xlsx_export_respects_team_filter(api, cenario):
+    """Espelha `test_csv_respects_team_filter` (síncrono) para o canal
+    assíncrono: pedir XLSX com o painel filtrado por equipe não pode voltar
+    a baixar as demais equipes que o usuário enxerga — mesmo bug do CSV,
+    canal diferente (`build_report_export` monta seus próprios filtros a
+    partir de `export.params` e não lia `team`)."""
+    resp = api(cenario["admin"]).post(
+        "/api/v1/reports/exports/",
+        {
+            "report_key": "tickets", "format": "xlsx",
+            "params": {"team": cenario["suporte"].pk},
+        },
+        format="json",
+    )
+    assert resp.status_code == 201
+
+    export = ReportExport.objects.get(pk=resp.json()["id"])
+    assert export.status == ReportExport.Status.DONE, export.error
+    assert export.row_count == 1  # só o ticket de Suporte, não o do Financeiro
+
+    download = api(cenario["admin"]).get(f"/api/v1/reports/exports/{export.pk}/download/")
+    wb = load_workbook(io.BytesIO(b"".join(download.streaming_content)))
+    valores = [cell.value for row in wb["Tickets"].iter_rows(min_row=2) for cell in row]
+    assert "Suporte" in valores
+    assert "Financeiro" not in valores
 
 
 def test_scope_is_the_requesters(api, cenario):

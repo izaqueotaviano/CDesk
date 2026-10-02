@@ -15,7 +15,8 @@ de fechamento do ticket.
 
 from django.db import transaction
 
-from apps.kanban.models import Board, BoardLane, Card
+from apps.kanban.models import Board, BoardLane, BoardStageLimit, Card
+from apps.kanban.services.board_view import LANE
 from apps.tickets.models import TicketStage, TicketStatus
 from apps.tickets.services import ticket_service
 
@@ -26,6 +27,10 @@ class KanbanRuleViolation(Exception):
 
 class CloseDialogRequired(Exception):
     """Coluna de conclusão: o move só é aceito após o fechamento formal (D4)."""
+
+
+class ColunaInexistente(Exception):
+    """A chave não aponta para nenhuma coluna deste quadro."""
 
 
 def _card(board: Board, ticket):
@@ -95,3 +100,46 @@ def set_due(*, board: Board, ticket, due_at, actor) -> Card | None:
     card.due_at = due_at
     card.save(update_fields=["due_at", "updated_at"])
     return card
+
+
+@transaction.atomic
+def set_wip_limit(*, board: Board, column_key: str, wip_limit: int | None) -> None:
+    """Limite de WIP de uma coluna do quadro, pela MESMA chave que a tela usa.
+
+    A chave é a de `board_view.entries()` — `"<pk do stage>"` ou
+    `"lane-<pk>"` —, então a tela não precisa saber onde cada espécie de
+    coluna guarda o limite: a lane guarda nela mesma, o status guarda num
+    `BoardStageLimit` deste quadro (ver o docstring do model sobre por quê).
+
+    `None` tira o limite. Nunca bloqueia arraste: é só o número que o
+    cabeçalho da coluna compara com a contagem.
+    """
+    if column_key.startswith(LANE):
+        lane_id = column_key[len(LANE):]
+        lane = (
+            BoardLane.objects.filter(board=board, pk=lane_id).first()
+            if lane_id.isdigit() else None
+        )
+        if lane is None:
+            raise ColunaInexistente(column_key)
+        lane.wip_limit = wip_limit
+        lane.save(update_fields=["wip_limit"])
+        return
+
+    stage = (
+        TicketStage.objects.filter(pk=column_key, is_active=True).first()
+        if column_key.isdigit() else None
+    )
+    if stage is None:
+        raise ColunaInexistente(column_key)
+    if stage.category == TicketStatus.CLOSED:
+        # a coluna de conclusão é destino de arraste e fica sempre vazia
+        # (o chamado fechado sai do quadro): um limite ali nunca dispararia
+        raise KanbanRuleViolation("A coluna de conclusão fica sempre vazia e não aceita limite.")
+
+    if wip_limit is None:
+        BoardStageLimit.objects.filter(board=board, stage=stage).delete()
+        return
+    BoardStageLimit.objects.update_or_create(
+        board=board, stage=stage, defaults={"wip_limit": wip_limit}
+    )

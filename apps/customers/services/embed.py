@@ -49,8 +49,15 @@ SIGNATURE_WINDOW_SECONDS = 5 * 60
 # a conversa no meio por causa de um detalhe de implementação.
 ACCESS_TOKEN_MAX_AGE_SECONDS = 8 * 60 * 60
 
+# A "sessão do widget" do modo público: prova, para o POST de identificação,
+# que aquela janelinha foi mesmo aberta a partir de uma origem autorizada.
+# Dura pouco porque é só o tempo de alguém preencher nome e e-mail — e porque
+# ela é, por definição, emitida para qualquer visitante do site do cliente.
+VISITOR_SESSION_MAX_AGE_SECONDS = 30 * 60
+
 _IDENTITY_SALT = "customers.embed.identity"
 _ACCESS_TOKEN_SALT = "customers.embed.access-token"  # noqa: S105 — salt de assinatura, não senha
+_VISITOR_SESSION_SALT = "customers.embed.visitor-session"  # noqa: S105 — idem
 
 
 def compute_signature(*, secret: str, company_slug: str, email: str, ts: int) -> str:
@@ -100,6 +107,39 @@ def verify_access_token(token: str) -> int | None:
         return None
     uid = payload.get("uid")
     return uid if isinstance(uid, int) else None
+
+
+def issue_visitor_session(*, company_id: int, origin: str) -> str:
+    """Token do PASSO 1 do modo público (a moldura já foi aprovada), gasto no
+    PASSO 2 (a identificação).
+
+    Ele existe porque a origem só dá pra conferir no carregamento do iframe:
+    o `POST` que vem depois sai de dentro da nossa própria página, então o
+    `Origin` dele somos nós, não o site que hospeda. Sem carregar essa
+    confiança adiante, a rota de identificação aceitaria `curl` de qualquer
+    lugar — e ela cria usuário visitante e abre atendimento.
+
+    Guarda a origem junto do id da empresa por precisão de trilha: o que foi
+    aprovado foi "esta empresa NAQUELE site", não "esta empresa".
+    """
+    return signing.dumps(
+        {"cid": company_id, "org": origin}, salt=_VISITOR_SESSION_SALT
+    )
+
+
+def verify_visitor_session(token: str) -> tuple[int, str] | None:
+    """`(company_id, origem)` ou `None` — mesmo contrato mudo do
+    `verify_access_token`: quem chama não precisa saber por que falhou."""
+    try:
+        payload = signing.loads(
+            token, salt=_VISITOR_SESSION_SALT, max_age=VISITOR_SESSION_MAX_AGE_SECONDS
+        )
+    except signing.BadSignature:
+        return None
+    cid, origem = payload.get("cid"), payload.get("org")
+    if not isinstance(cid, int) or not isinstance(origem, str):
+        return None
+    return cid, origem
 
 
 def resolve_trusted_origin(request, *, company) -> str | None:

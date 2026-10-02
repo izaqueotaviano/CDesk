@@ -131,7 +131,7 @@ class TestServir:
         alice.refresh_from_db()
 
         anonimo = APIClient()
-        assert anonimo.get(alice.avatar_url).status_code == 403
+        assert anonimo.get(alice.avatar_url).status_code == 401
 
     def test_nome_fora_do_formato_nao_existe(self, api, settings, tmp_path):
         settings.MEDIA_ROOT = str(tmp_path)

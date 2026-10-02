@@ -57,21 +57,19 @@ class TestAutenticacaoPorToken:
     def test_token_forjado_e_recusado(self, ana):
         client = _bearer(APIClient(), "token.completamente.forjado")
         resp = client.get("/api/v1/chat/config/")
-        # 403, não 401: é como este app SEMPRE respondeu a "sem autenticar"
-        # (SessionAuthentication tampouco define WWW-Authenticate — ver
-        # embed_auth.py). Nada muda nisso com o token novo.
-        assert resp.status_code == 403
+        # 401, não 403: "sem autenticar" (apps.core.authentication).
+        assert resp.status_code == 401
 
-    def test_sem_header_nenhum_e_o_403_de_sempre(self):
+    def test_sem_header_nenhum_e_401(self):
         resp = APIClient().get("/api/v1/chat/config/")
-        assert resp.status_code == 403
+        assert resp.status_code == 401
 
     def test_token_de_usuario_desativado_e_recusado(self, ana):
         token = issue_access_token(ana.id)
         ana.is_active = False
         ana.save(update_fields=["is_active"])
         client = _bearer(APIClient(), token)
-        assert client.get("/api/v1/chat/config/").status_code == 403
+        assert client.get("/api/v1/chat/config/").status_code == 401
 
     def test_token_de_usuario_interno_e_recusado(self, db):
         """Este mecanismo é só do mini chat do CLIENTE — mesmo que alguém
@@ -82,7 +80,7 @@ class TestAutenticacaoPorToken:
             internal_role=InternalRole.AGENT,
         )
         client = _bearer(APIClient(), issue_access_token(agente.id))
-        assert client.get("/api/v1/chat/config/").status_code == 403
+        assert client.get("/api/v1/chat/config/").status_code == 401
 
     def test_sessao_de_cookie_continua_funcionando_do_lado_de_fora(self, ana):
         """A autenticadora nova entra DEPOIS da de sessão — confirma que o
@@ -105,10 +103,10 @@ class TestAutenticacaoPorToken:
     def test_token_nao_autentica_fora_das_views_do_widget(self, ana):
         """O token prova "esta aba é o mini chat" — não uma sessão geral do
         portal. Fora de `ChatViewSet`/`ChatConfigView`, ele nem é tentado: a
-        requisição segue anônima e cai no 403 padrão de `IsAuthenticated`,
+        requisição segue anônima e cai no 401 padrão de `IsAuthenticated`,
         do mesmo jeito que cairia sem header nenhum (docs/14-seguranca.md
         §10). Sem este teste, um token vazado abriria tickets, anexos,
         notificações — toda a API que aceita sessão de CLIENTE."""
         client = _bearer(APIClient(), issue_access_token(ana.id))
-        assert client.get("/api/v1/tickets/").status_code == 403
-        assert client.get("/api/v1/notifications/").status_code == 403
+        assert client.get("/api/v1/tickets/").status_code == 401
+        assert client.get("/api/v1/notifications/").status_code == 401

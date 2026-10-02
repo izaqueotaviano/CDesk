@@ -117,6 +117,24 @@ export const IconBell = (p: IconProps) =>
 
 export const IconMenu = (p: IconProps) => base(<path d="M4 6h16M4 12h16M4 18h16" />, p)
 
+export const IconMegaphone = (p: IconProps) =>
+  base(
+    <>
+      <path d="M3 11v2a2 2 0 0 0 2 2h1l1 5h2l-1-5h2l8 4V7l-8 4H6a2 2 0 0 0-2 2Z" />
+      <path d="M18 8a4 4 0 0 1 0 8" />
+    </>,
+    p,
+  )
+
+export const IconAudit = (p: IconProps) =>
+  base(
+    <>
+      <path d="M12 3 4 6v6c0 5 3.4 8 8 9 4.6-1 8-4 8-9V6l-8-3Z" />
+      <path d="m9 12 2 2 4-4" />
+    </>,
+    p,
+  )
+
 export const IconSun = (p: IconProps) =>
   base(
     <>
@@ -270,6 +288,15 @@ export const IconItalic = (p: IconProps) => base(<path d="M11 4h6M7 20h6M14 4l-4
 
 export const IconList = (p: IconProps) =>
   base(<path d="M8 6h13M8 12h13M8 18h13M4 6h.01M4 12h.01M4 18h.01" />, p)
+
+// Densidade de tabela: o mesmo pictograma do DataTable (linhas horizontais),
+// só que a distância ENTRE elas é o próprio ícone — junto (padrão, mais
+// linhas cabem) vs. espaçado (confortável).
+export const IconRowsCompact = (p: IconProps) =>
+  base(<path d="M4 4h16M4 9h16M4 14h16M4 19h16" />, p)
+
+export const IconRowsRelaxed = (p: IconProps) =>
+  base(<path d="M4 5h16M4 12h16M4 19h16" />, p)
 
 export const IconLink = (p: IconProps) =>
   base(

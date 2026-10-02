@@ -27,11 +27,14 @@ class AuditLogSerializer(serializers.ModelSerializer):
         source="actor.full_name", read_only=True, default="—"
     )
     target_type = serializers.CharField(source="content_type.model", read_only=True)
+    # O nome do modelo para gente ler ("trabalho de backup"), não o
+    # identificador ("trabalhobackup"): é o `verbose_name` de cada modelo.
+    target_label = serializers.CharField(source="content_type.name", read_only=True)
 
     class Meta:
         model = AuditLog
-        fields = ["id", "actor", "actor_name", "action", "target_type", "object_id",
-                  "changes", "summary", "ip_address", "created_at"]
+        fields = ["id", "actor", "actor_name", "action", "target_type", "target_label",
+                  "object_id", "changes", "summary", "ip_address", "created_at"]
 
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -123,8 +126,8 @@ class DataSubjectRequestSerializer(serializers.ModelSerializer):
             for campo in ("subject_user", "subject_company", "kind"):
                 if campo in data and data[campo] != getattr(self.instance, campo):
                     raise serializers.ValidationError({
-                        campo: "Não é possível mudar depois de criado — "
-                               "rejeite este pedido e abra um novo.",
+                        campo: "Não é possível mudar depois de criado. "
+                               "Rejeite este pedido e abra um novo.",
                     })
             return data
 
@@ -406,7 +409,7 @@ class MyDataRequestView(APIView):
         if kind != DataSubjectRequest.Kind.EXPORT:
             raise PermissionDenied(
                 "Apenas exportação é self-service. Para exclusão, abra um pedido "
-                "com o suporte — a anonimização é irreversível e passa por conferência."
+                "com o suporte, pois a anonimização é irreversível e passa por conferência."
             )
 
         pending = DataSubjectRequest.objects.filter(

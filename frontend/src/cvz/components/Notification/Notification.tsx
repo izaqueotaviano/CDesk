@@ -26,7 +26,10 @@ export function Notification({
     <div className={`notification notification--${tone}`} role="status">
       <div className="notification__body">
         <b className="notification__title">{title}</b>
-        {children && <p className="notification__text">{children}</p>}
+        {/* div, não p: o corpo do aviso às vezes é uma lista, e um <ul>
+            dentro de <p> é inválido — o navegador fecha o parágrafo sozinho
+            e o texto seguinte escapa do bloco. */}
+        {children && <div className="notification__text">{children}</div>}
       </div>
       {onDismiss && (
         <button

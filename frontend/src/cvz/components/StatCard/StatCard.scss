@@ -1,15 +1,21 @@
 @use '../../styles/tokens' as *;
 @use '../../styles/mixins' as *;
 
+// Cartão de número: superfície branca sobre o plano, sem moldura e sem
+// sombra — o tom já separa. O valor é o único elemento grande.
 .stat-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
   padding: $sp-4;
   border: $border;
-  border-radius: $radius;
+  border-radius: $radius-card;
   background-color: $raised;
 
   &__head {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: $sp-2;
   }
@@ -18,20 +24,34 @@
 
   &__icon { @include stroke-icon($icon); color: $text-muted; }
 
+  // Algarismos proporcionais: número grande sozinho não precisa alinhar com
+  // nada, e o tabular deixava "121" frouxo nesse tamanho.
+  // Logo abaixo do rótulo, na mesma altura em todos os cartões da linha —
+  // com ou sem variação embaixo.
   &__value {
-    margin-top: 6px;
-    font-family: $f-mono;
+    margin-top: $sp-2;
     @include type($fs-display, $w-medium, $lh-tight);
     color: $text;
+    overflow-wrap: anywhere;
+  }
+
+  &__hint {
+    margin-top: 2px;
+    @include type($fs-meta, $w-regular);
+    color: $text-muted;
   }
 
   &__delta {
     display: inline-block;
-    margin-top: 4px;
-    @include type($fs-caption, $w-regular);
+    margin-top: $sp-1;
+    @include type($fs-meta, $w-medium);
     color: $text-muted;
 
     &--positive { color: $success; }
     &--negative { color: $danger; }
+  }
+
+  @include mobile {
+    padding: $sp-3;
   }
 }

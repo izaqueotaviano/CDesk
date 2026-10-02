@@ -1,0 +1,22 @@
+# Dispara resolv-backup.service diariamente às 23h — fora do horário de
+# atendimento (docs/14-seguranca.md), mesmo horário que D21-B já documenta
+# como a política de backup diário.
+#
+# `Persistent=true`: se o servidor estava desligado (ou o timer só foi
+# ativado depois) na hora marcada, o systemd roda o backup atrasado assim
+# que o sistema volta, em vez de esperar até o dia seguinte — um servidor
+# que reinicia às 22h50 não pode ficar um dia inteiro sem backup por causa
+# de 10 minutos de coincidência.
+#
+# Instalar: ver o comentário de resolv-backup.service (mesmo par de comandos).
+
+[Unit]
+Description=Dispara o backup diário do resolv às 23h
+Documentation=file:///srv/resolv/docs/15-deploy-producao.md
+
+[Timer]
+OnCalendar=*-*-* 23:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

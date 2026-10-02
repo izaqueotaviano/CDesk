@@ -76,12 +76,15 @@ class TestSessions:
         from apps.accounts.models import LoginCode
 
         c = APIClient()
-        c.post("/api/v1/auth/login/",
-               {"email": user.email, "password": "x"}, format="json")
-        codigo = LoginCode.objects.filter(
-            user=user, purpose=LoginCode.Purpose.LOGIN, used_at__isnull=True,
-        ).latest("created_at").code
-        c.post("/api/v1/auth/2fa/", {"code": codigo}, format="json")
+        resp = c.post("/api/v1/auth/login/",
+                      {"email": user.email, "password": "x"}, format="json")
+        # a verificação em duas etapas é opcional: só há segunda etapa se a
+        # conta a tiver ligado (ou o admin a exigir de todos)
+        if resp.json().get("two_factor"):
+            codigo = LoginCode.objects.filter(
+                user=user, purpose=LoginCode.Purpose.LOGIN, used_at__isnull=True,
+            ).latest("created_at").code
+            c.post("/api/v1/auth/2fa/", {"code": codigo}, format="json")
         return c
 
     def test_lists_only_own_sessions(self, agente, client_for):

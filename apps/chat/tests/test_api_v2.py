@@ -4,8 +4,8 @@ config e relatórios."""
 import pytest
 
 from apps.chat.models import ChatMessage, ClientQuickReply
-from apps.tickets.models import TicketMacro
 from apps.chat.services import chat_service
+from apps.tickets.models import TicketMacro
 
 pytestmark = pytest.mark.django_db(transaction=True)
 

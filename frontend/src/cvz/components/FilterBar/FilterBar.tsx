@@ -14,6 +14,11 @@ export interface FilterBarProps {
   applied?: AppliedFilter[];
   onRemove?: (key: string) => void;
   onClearAll?: () => void;
+  /**
+   * Encostado à direita da linha de filtros — o lugar das ferramentas que
+   * não filtram (densidade da tabela, exportar). No mobile desce para o fim.
+   */
+  end?: ReactNode;
 }
 
 /**
@@ -26,10 +31,14 @@ export function FilterBar({
   applied = [],
   onRemove,
   onClearAll,
+  end,
 }: FilterBarProps) {
   return (
     <div className="filter-bar">
-      <div className="filter-bar__controls">{children}</div>
+      <div className="filter-bar__controls">
+        {children}
+        {end && <div className="filter-bar__end">{end}</div>}
+      </div>
 
       {applied.length > 0 && (
         <div className="filter-bar__applied">

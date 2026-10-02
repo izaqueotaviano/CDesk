@@ -1,10 +1,18 @@
-import type { ColunaOrdenavel, TicketLinha } from './tipos'
+import { useEffect, useRef, type CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
+import { usePrefs } from '@/stores/prefs'
+import type { ColunaOrdenavel, RelogioSla, TicketLinha } from './tipos'
 import {
   COR_PRIORIDADE,
+  ICONE_PRIORIDADE,
   ROTULO_PRIORIDADE,
   ROTULO_STATUS,
+  corEstadoSla,
   esperaEmFila,
   formatarDataHora,
+  prioridadeEmDestaque,
+  rotuloAbrirChamado,
+  textoEstadoSla,
 } from './format'
 
 interface Coluna {
@@ -20,11 +28,27 @@ const COLUNAS: Coluna[] = [
   { chave: 'cliente', rotulo: 'Cliente (Completo)', className: 'col-cliente' },
   { chave: 'responsavel', rotulo: 'Responsável', className: 'col-resp' },
   { chave: 'categoria', rotulo: 'Categoria', className: 'col-cat' },
-  { chave: 'urgencia', rotulo: 'Urgência', className: 'col-urg' },
+  // Rótulo "Prioridade", não "Urgência": o detalhe (CabecalhoTicket.tsx,
+  // PainelPropriedades.tsx) e o histórico do backend (ticket_service.py) já
+  // dizem "prioridade" para o mesmo campo — nome duplo pra mesma coisa é o
+  // achado transversal desta rodada. Chave/classe ficam "urgencia"/"col-urg":
+  // são nome interno, não o que a pessoa lê.
+  { chave: 'urgencia', rotulo: 'Prioridade', className: 'col-urg' },
   { chave: 'status', rotulo: 'Status', className: 'col-status' },
+  // O prazo já vinha em toda linha (`sla` no TicketListSerializer) e a fila
+  // era a única tela que não o mostrava — quem decide o que atender AGORA
+  // abria chamado a chamado pra achar o que está estourando.
+  { chave: 'sla', rotulo: 'SLA', className: 'col-sla' },
   { chave: 'justificativa', rotulo: 'Justificativa', className: 'col-just' },
   { chave: 'espera', rotulo: 'Tempo de espera em fila', className: 'col-espera' },
 ]
+
+/** Data cheia no `title` — a célula só cabe o estado ("2h restantes"), e o
+ *  instante do vencimento é o que a pessoa confere antes de prometer algo ao
+ *  cliente. Mesma frase do cabeçalho do detalhe (CabecalhoTicket.tsx). */
+function tituloPrazo(sla: RelogioSla): string {
+  return sla.due_at ? `Prazo: ${formatarDataHora(sla.due_at)}` : 'Sem prazo definido'
+}
 
 interface Props {
   linhas: TicketLinha[]
@@ -35,6 +59,9 @@ interface Props {
   onSelecionarTodos: (marcar: boolean) => void
   onAbrir: (id: number) => void
   agoraMs: number
+  /** Linha com o foco roving (`useTecladoDaLista`): a única com tabIndex=0. */
+  indiceFocado?: number
+  onFocarLinha?: (indice: number) => void
 }
 
 export function TicketsTable({
@@ -46,20 +73,48 @@ export function TicketsTable({
   onSelecionarTodos,
   onAbrir,
   agoraMs,
+  indiceFocado = 0,
+  onFocarLinha,
 }: Props) {
+  // Mesma preferência global do admin (stores/prefs.ts) — 'compacta' é o que
+  // esta tabela já renderizava antes de existir alternador nenhum, então
+  // ninguém vê a linha mudar de altura sem ter escolhido isso.
+  const confortavel = usePrefs((s) => s.densidade) === 'confortavel'
   const campoAtual = ordering.replace(/^-/, '')
   const desc = ordering.startsWith('-')
-  const todosMarcados = linhas.length > 0 && linhas.every((l) => selecionados.has(l.id))
+  // A caixa do cabeçalho age sobre a PÁGINA (as linhas renderizadas), nunca
+  // sobre os `count` do backend — por isso ela conta só o que está na tela e
+  // o rótulo diz o número. Com parte marcada, o estado é indeterminado: sem
+  // ele, "3 de 25 marcados" desenhava exatamente igual a "nada marcado".
+  const marcadasNaPagina = linhas.reduce((n, l) => (selecionados.has(l.id) ? n + 1 : n), 0)
+  const todosMarcados = linhas.length > 0 && marcadasNaPagina === linhas.length
+  const parcial = marcadasNaPagina > 0 && !todosMarcados
+  const refTodos = useRef<HTMLInputElement>(null)
+
+  // `indeterminate` só existe como propriedade do DOM, não como atributo —
+  // daí o ref. O Checkbox do cvz resolve isso pronto, mas pinta com `--cvz-*`,
+  // que não é garantido sob o shell Resolv (detalhe.scss registra a mesma
+  // pegadinha com o Modal): trocar o input nativo aqui apagaria a caixa.
+  useEffect(() => {
+    if (refTodos.current) refTodos.current.indeterminate = parcial
+  }, [parcial])
+
+  const rotuloTodos =
+    linhas.length === 1
+      ? 'Selecionar o ticket desta página'
+      : `Selecionar os ${linhas.length} tickets desta página`
 
   return (
     <div className="tickets-tabela__wrap">
-      <table className="tickets-tabela">
+      <table className={'tickets-tabela' + (confortavel ? ' tickets-tabela--confortavel' : '')}>
         <thead>
           <tr>
             <th className="col-check">
               <input
+                ref={refTodos}
                 type="checkbox"
-                aria-label="Selecionar todos"
+                aria-label={rotuloTodos}
+                title={rotuloTodos}
                 checked={todosMarcados}
                 onChange={(e) => onSelecionarTodos(e.target.checked)}
               />
@@ -79,9 +134,9 @@ export function TicketsTable({
                         className={
                           ativo
                             ? desc
-                              ? 'ri-arrow-down-line'
-                              : 'ri-arrow-up-line'
-                            : 'ri-arrow-up-down-line'
+                              ? 'ti ti-arrow-down'
+                              : 'ti ti-arrow-up'
+                            : 'ti ti-arrows-up-down'
                         }
                       />
                     </button>
@@ -94,23 +149,82 @@ export function TicketsTable({
           </tr>
         </thead>
         <tbody>
-          {linhas.map((t) => (
-            <tr key={t.id} onClick={() => onAbrir(t.id)}>
+          {linhas.map((t, i) => (
+            // Linha focável (foco roving, ver useTecladoDaLista): j/k andam,
+            // Enter/o abrem, x marca. `aria-selected` acompanha a caixa de
+            // seleção, para o leitor de tela dizer "selecionada" na linha.
+            <tr
+              key={t.id}
+              data-linha={i}
+              tabIndex={i === indiceFocado ? 0 : -1}
+              aria-selected={selecionados.has(t.id)}
+              className={selecionados.has(t.id) ? 'is-selecionada' : undefined}
+              onFocus={() => onFocarLinha?.(i)}
+              onClick={() => onAbrir(t.id)}
+            >
               <td className="col-check" onClick={(e) => e.stopPropagation()}>
-                <input
-                  type="checkbox"
-                  aria-label={`Selecionar ${t.reference}`}
-                  checked={selecionados.has(t.id)}
-                  onChange={() => onSelecionar(t.id)}
-                />
+                {/* O <label> em volta é o ALVO: a caixa continua com 16px de
+                    desenho, mas a área clicável passa a ter 24px (WCAG 2.5.8)
+                    sem depender da exceção de espaçamento — que aqui não valeria,
+                    porque a linha inteira também é clicável e envolve a caixa. */}
+                <label className="col-check__alvo">
+                  <input
+                    type="checkbox"
+                    aria-label={`Selecionar ${t.reference}`}
+                    checked={selecionados.has(t.id)}
+                    onChange={() => onSelecionar(t.id)}
+                  />
+                </label>
               </td>
-              <td className="col-protocolo">
-                <span className="tickets-tabela__ref">{t.reference}</span>
+              {/* Item 26: <tr onClick> sozinho não é alcançável por teclado (a
+                  linha não tem tabIndex/role, e as células são <span>) — quem
+                  tabula pelas 25 caixas de seleção nunca chega ao chamado.
+                  Um <Link> de verdade é ADICIONAL ao clique na linha (mouse
+                  continua indo em qualquer ponto dela): dá parada de Tab,
+                  Enter ativa, e o leitor de tela anuncia "link". Não é a
+                  linha inteira virando link (stretched link) — em <tr>/<td>
+                  essa técnica quebra de formas sutis (área clicável some
+                  atrás de outra célula, sobreposição com o próprio link),
+                  então só a célula do protocolo. `stopPropagation` no mesmo
+                  padrão da célula do checkbox logo acima: sem ele, clicar no
+                  link também dispararia o onClick da linha por baixo — dois
+                  disparos do mesmo destino em sequência. */}
+              <td className="col-protocolo" onClick={(e) => e.stopPropagation()}>
+                <Link
+                  to={`/tickets/${t.id}`}
+                  className="tickets-tabela__ref"
+                  aria-label={rotuloAbrirChamado(t)}
+                >
+                  {t.reference}
+                </Link>
               </td>
               <td className="col-assunto">
                 <span className="tickets-tabela__assunto" title={t.subject}>
-                  {t.is_restricted && <i className="ri-lock-line tickets-tabela__cadeado" />}
+                  {t.is_restricted && (
+                    <>
+                      {/* Ícone sozinho não tem nome: `<i>` sem role tem papel
+                          implícito "generic", que não recebe nome de autor
+                          (mesmo defeito do `aria-label` na barra de urgência
+                          logo abaixo) — daí o texto real ao lado, só recortado
+                          da tela. TEXTO FIXO, não `restriction_reason`: para
+                          usuário interno esse campo do backend chega sempre
+                          vazio (`is_content_visible_to` libera tudo que ele
+                          enxerga — a máscara é regra do portal, não daqui, ver
+                          `_busca_q` em apps/tickets/views.py), então declarar
+                          o campo prometeria um texto que esta tela nunca
+                          teria pra mostrar. */}
+                      <i className="ti ti-lock tickets-tabela__cadeado" aria-hidden="true" />
+                      <span className="tickets-tabela__sr">Equipe restrita: visível só para quem abriu. </span>
+                    </>
+                  )}
                   {t.subject}
+                </span>
+                {/* Linha de apoio da tabela COMPACTA (coluna da fila estreita,
+                    lista.scss): protocolo e cliente saem das colunas próprias
+                    e vêm para baixo do assunto. Um texto só (não três spans)
+                    para não duplicar o protocolo como nó de texto. */}
+                <span className="tickets-tabela__meta">
+                  {[t.reference, t.requester_display, t.company_name].filter(Boolean).join(' · ')}
                 </span>
               </td>
               <td className="col-data tickets-tabela__mono-muted">{formatarDataHora(t.created_at)}</td>
@@ -122,13 +236,24 @@ export function TicketsTable({
               </td>
               <td className="col-resp">{t.assignee_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
               <td className="col-cat">{t.category_name ?? <span className="tickets-tabela__vazio">—</span>}</td>
+              {/* Prioridade escrita, com ícone e cor: a barra de 4px de
+                  antes não se distinguia entre uma linha e outra — e cor
+                  sozinha nunca devia ser o único sinal (WCAG 1.4.1). */}
+              {/* Só Alta e Urgente ganham pílula com cor e ícone: cor é para
+                  o que pede atenção. Baixa e Normal são texto neutro — em
+                  verde, "Normal" gritava "tudo certo" na maioria das linhas. */}
               <td className="col-urg">
-                <span
-                  className="tickets-tabela__urg"
-                  style={{ background: COR_PRIORIDADE[t.priority] }}
-                  title={ROTULO_PRIORIDADE[t.priority]}
-                  aria-label={ROTULO_PRIORIDADE[t.priority]}
-                />
+                {prioridadeEmDestaque(t.priority) ? (
+                  <span
+                    className="tickets-tabela__prio"
+                    style={{ '--cor': COR_PRIORIDADE[t.priority] } as CSSProperties}
+                  >
+                    <i className={'ti ' + ICONE_PRIORIDADE[t.priority]} aria-hidden="true" />
+                    {ROTULO_PRIORIDADE[t.priority]}
+                  </span>
+                ) : (
+                  <span className="tickets-tabela__prio-neutra">{ROTULO_PRIORIDADE[t.priority]}</span>
+                )}
               </td>
               <td className="col-status">
                 <span className="tickets-tabela__status">
@@ -137,6 +262,19 @@ export function TicketsTable({
                     style={{ background: t.stage_color || 'var(--text-muted)' }}
                   />
                   {t.stage_name || ROTULO_STATUS[t.status]}
+                </span>
+              </td>
+              {/* Relógio de RESOLUÇÃO, não o de 1ª resposta: é por
+                  `sla_resolution_due_at` que `?ordering=sla` ordena
+                  (ALLOWED_ORDERING em apps/tickets/views.py) — coluna que
+                  mostra um prazo e ordena por outro mente no clique. */}
+              <td className="col-sla">
+                <span
+                  className="tickets-tabela__sla"
+                  style={{ color: corEstadoSla(t.sla.resolution) }}
+                  title={tituloPrazo(t.sla.resolution)}
+                >
+                  {textoEstadoSla(t.sla.resolution)}
                 </span>
               </td>
               <td className="col-just">

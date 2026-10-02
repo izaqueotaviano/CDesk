@@ -1,0 +1,33 @@
+// Cor de identidade nos avatares de iniciais do shell resolv.
+//
+// Quem pinta é o ATRIBUTO, não a classe do componente: `{...identidadeDe(nome)}`
+// (ui/identidade.ts) põe `data-identidade="1..6"` no span, e esta regra faz o
+// resto. É o que deixa cada tela manter a própria classe de avatar (tamanho,
+// fonte, posição) e ainda assim toda pessoa ter a mesma cor em toda tela —
+// fila de chat, "Equipe agora", conversa do ticket, cartão do quadro.
+//
+// Especificidade (0,3,0) de propósito: as classes de avatar de cada tela
+// pintam fundo/cor com (0,1,0) ou (0,2,0), e a ordem em que os SCSS de cada
+// tela carregam não é garantida — um empate resolvido por ordem de import
+// quebraria em silêncio na próxima rota nova.
+.resolv-scope.novo-shell [data-identidade] {
+  color: var(--texto-sobre-identidade);
+}
+
+@for $i from 1 through 6 {
+  .resolv-scope.novo-shell [data-identidade='#{$i}'] {
+    background: var(--identidade-#{$i});
+  }
+}
+
+// Tinta (selo de plano no painel do cliente): fundo a 14% + texto na cor —
+// o mesmo desenho do Tag `identity-*` do cvz, pra Black/Gold/Platinum serem
+// a mesma cor na lista de empresas e dentro do ticket. A linha estrutural do
+// chip some: a tinta já separa do fundo, e linha + tinta pesa.
+@for $i from 1 through 6 {
+  .resolv-scope.novo-shell [data-identidade-tinta='#{$i}'] {
+    background: color-mix(in srgb, var(--identidade-#{$i}) 14%, transparent);
+    border-color: transparent;
+    color: var(--identidade-#{$i}-texto);
+  }
+}

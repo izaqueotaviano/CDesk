@@ -1,0 +1,383 @@
+// Padrão visual do console. Escopo local: não altera o portal do cliente.
+.resolv-scope.novo-shell {
+  --acabamento-linha: light-dark(#d8dee4, #46515d);
+  --acabamento-painel: light-dark(#f7f9fb, #252d35);
+  --acabamento-azul: light-dark(#2563eb, #93baff);
+  --acabamento-selecao: light-dark(#eaf2ff, #233c56);
+
+  // Ponte para Clientes, Configurações, Relatórios, Auditoria e Avisos.
+  --cvz-stroke: var(--acabamento-linha);
+  --cvz-field-border: var(--controle-borda);
+  --cvz-canvas: var(--acabamento-painel);
+  --cvz-chrome: var(--acabamento-painel);
+  --cvz-primary: var(--controle-primario);
+  --cvz-on-primary: var(--controle-sobre);
+  --cvz-blue: var(--acabamento-azul);
+  --cvz-blue-active: var(--acabamento-azul);
+  --cvz-blue-hover: var(--acabamento-azul);
+  --cvz-blue-tint: var(--acabamento-selecao);
+  --cvz-focus-ring: var(--acabamento-selecao);
+
+  .cvz-superficie {
+    font-family: 'Segoe UI', Inter, system-ui, sans-serif;
+  }
+  .page-header {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .page-header__title {
+    font-size: 22px;
+    line-height: 1.3;
+    font-weight: 600;
+  }
+  .page-header__description,
+  .form-section__description {
+    font-weight: 400;
+  }
+  .filter-bar {
+    padding: 12px;
+    background: var(--cvz-surface);
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+  }
+  .data-table {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+  }
+  .data-table thead th {
+    background: var(--acabamento-painel);
+    font-weight: 600;
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .data-table tbody td {
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .data-table tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .tabs__list {
+    background: var(--cvz-surface);
+  }
+  .tabs__tab--active {
+    color: var(--acabamento-azul);
+    background: var(--acabamento-selecao);
+  }
+  .form-section + .form-section,
+  .form-actions,
+  .accordion__item {
+    border-top: 1px solid var(--acabamento-linha);
+  }
+  .form-section__title {
+    font-size: 16px;
+  }
+  .btn,
+  .icon-btn,
+  .control,
+  .combobox__trigger,
+  .cfg-inline-input,
+  .cfg-inline-select {
+    border-radius: 6px;
+  }
+  .btn:not(.btn--sm):not(.btn--lg),
+  .control:not(.control--area) {
+    height: 36px;
+  }
+  .btn {
+    font-size: 14px;
+  }
+  .btn--sm {
+    font-size: 12px;
+  }
+  .btn--secondary,
+  .btn--tertiary {
+    background: var(--cvz-surface);
+    border-color: var(--controle-borda);
+  }
+  .control:focus {
+    outline: 2px solid var(--acabamento-azul);
+    outline-offset: 1px;
+  }
+  .control--invalid:focus {
+    outline-color: var(--cvz-danger);
+  }
+  .modal,
+  .popover {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 8px;
+  }
+  .modal__head,
+  .modal__foot {
+    border-color: var(--acabamento-linha);
+    background: var(--acabamento-painel);
+  }
+  .stat-card,
+  .empresa-bloco,
+  .cfg-roster__equipe {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+  }
+  .empresa-bloco__cabeca,
+  .cfg-secao__topo {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .cfg-nav {
+    padding-right: 16px;
+    border-right: 1px solid var(--acabamento-linha);
+  }
+  .cfg-nav__item {
+    border-radius: 6px;
+    min-height: 36px;
+  }
+  .cfg-nav__item[aria-current='page'] {
+    color: var(--acabamento-azul);
+    background: var(--acabamento-selecao);
+  }
+
+  .busca-comando,
+  .painel-notif,
+  .menu-presenca,
+  .menu-flutuante {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 8px;
+  }
+  // Chat: separação entre navegação, lista, conversa e dados do cliente.
+  .chat-console {
+    --stroke: var(--acabamento-linha);
+    --sidebar-ativo: var(--acabamento-selecao);
+    padding: 0;
+    gap: 0;
+    background: var(--surface-card);
+    .cc-atalhos {
+      padding: 16px 8px;
+      background: var(--acabamento-painel);
+      border-right: 1px solid var(--stroke);
+    }
+    .cc-lista,
+    .cc-conversa,
+    .cc-painel {
+      border-radius: 0;
+    }
+    .cc-lista {
+      border-right: 1px solid var(--stroke);
+    }
+    .cc-atalhos__titulo {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .cc-lista__titulo {
+      font-size: 22px;
+      font-weight: 600;
+      padding: 20px 16px 12px;
+    }
+    .cc-lista__abas {
+      background: var(--acabamento-painel);
+      padding: 8px 12px;
+      border-top: 1px solid var(--stroke);
+    }
+    .cc-card {
+      border-bottom: 1px solid var(--stroke);
+      border-radius: 0;
+    }
+    .cc-card--ativo {
+      box-shadow: inset 3px 0 0 var(--acabamento-azul);
+    }
+    .cc-conversa__header {
+      min-height: 64px;
+      border-bottom: 1px solid var(--stroke);
+    }
+    .cc-conversa__dia::before,
+    .cc-conversa__dia::after {
+      display: block;
+    }
+    .cc-composer {
+      border-top: 1px solid var(--stroke);
+      background: var(--acabamento-painel);
+      padding: 12px 20px;
+    }
+    .cc-composer__rodape {
+      padding-top: 8px;
+    }
+    .cc-painel {
+      border-left: 1px solid var(--stroke);
+      background: var(--acabamento-painel);
+    }
+    .cc-painel__bloco + .cc-painel__bloco {
+      border-bottom: 1px solid var(--stroke);
+    }
+  }
+  .chat-console[data-modo='um'] {
+    .cc-atalhos {
+      padding: 8px 12px;
+      border-right: 0;
+      border-bottom: 1px solid var(--stroke);
+    }
+    .cc-composer {
+      padding: 8px 12px calc(12px + env(safe-area-inset-bottom));
+    }
+  }
+
+  // Início e notas: blocos com limites legíveis e controles comuns.
+  .inicio,
+  .notas-pg {
+    --stroke: var(--acabamento-linha);
+    --raio: 6px;
+    --raio-cartao: 6px;
+  }
+  .inicio__titulo,
+  .notas-pg__titulo {
+    font-size: 22px;
+    line-height: 1.3;
+  }
+  .inicio__cabecalho,
+  .notas-pg__topo {
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--stroke);
+  }
+  .inicio-lista,
+  .inicio__kpis {
+    border: 1px solid var(--stroke);
+    border-radius: 6px;
+  }
+  .inicio-lista__cabecalho {
+    background: var(--acabamento-painel);
+    border-bottom: 1px solid var(--stroke);
+  }
+  .inicio__botao,
+  .inicio-chat__pegar,
+  .notas-pg__nova {
+    border-radius: 6px;
+    background: var(--controle-primario);
+    color: var(--controle-sobre);
+  }
+
+  .cartao-nota {
+    border: 1px solid var(--acabamento-linha);
+  }
+  .relatorios-tabela,
+  .auditoria-tabela__wrap {
+    border: 1px solid var(--acabamento-linha);
+    border-radius: 6px;
+  }
+  .auditoria-tabela thead th,
+  .relatorios-tabela thead th {
+    background: var(--acabamento-painel);
+  }
+  .auditoria-tabela td,
+  .relatorios-tabela td {
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+
+  .notas-pg__busca input,
+  .notas-pg__select select,
+  .notas-pg__recorte {
+    border-radius: 6px;
+  }
+  .notas-pg__busca input,
+  .notas-pg__select select {
+    border-color: var(--controle-borda);
+  }
+  .notas-pg__recorte--ativo {
+    background: var(--acabamento-selecao);
+    color: var(--acabamento-azul);
+  }
+  .notas-pg__filtros {
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--acabamento-linha);
+  }
+  .minichat {
+    --stroke: var(--acabamento-linha);
+    --raio: 6px;
+    --raio-cartao: 8px;
+  }
+  // Minha conta usa os componentes compartilhados com o portal.
+  .conta-pagina {
+    h1 {
+      font-size: 22px;
+      line-height: 1.3;
+    }
+    > header {
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--acabamento-linha);
+    }
+    [role='region'] {
+      border: 1px solid var(--acabamento-linha);
+      border-radius: 6px;
+    }
+    [role='region'] > div:first-child {
+      border-bottom: 1px solid var(--acabamento-linha);
+      background: var(--acabamento-painel);
+      margin-bottom: 16px;
+    }
+    [role='region'] > div:last-child:not(:first-child) {
+      border-radius: 0 0 6px 6px;
+    }
+    button:not([role='switch']),
+    input:not([type='checkbox']):not([type='radio']),
+    select,
+    textarea {
+      border-radius: 6px;
+    }
+    nav a {
+      border-radius: 6px;
+    }
+  }
+
+  // Novo ticket: mesmas linhas do detalhe, sem alterar os campos.
+  .novo {
+    --stroke: var(--acabamento-linha);
+    --raio: 6px;
+    .compositor__botao,
+    .novo__cancelar {
+      height: 36px;
+      border-radius: 6px;
+      padding-inline: 12px;
+    }
+    .compositor__botao {
+      background: var(--controle-primario);
+      color: var(--controle-sobre);
+    }
+    .novo__input:focus,
+    .novo__assunto:focus,
+    .props__seletor:focus-within {
+      outline: 2px solid var(--acabamento-azul);
+      outline-offset: 1px;
+      box-shadow: none;
+    }
+    .ticket-cab {
+      border-bottom: 1px solid var(--stroke);
+    }
+    .ticket-cab__assunto {
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .props {
+      background: var(--acabamento-painel);
+    }
+    .props__titulo {
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--stroke);
+      color: var(--text-primary);
+    }
+    .novo__rodape {
+      padding-top: 12px;
+      border-top: 1px solid var(--stroke);
+    }
+    .novo__campo,
+    .novo__input,
+    .novo__assunto {
+      border-radius: 6px;
+    }
+  }
+  @media (max-width: 767px) {
+    .page-header__title,
+    .inicio__titulo,
+    .notas-pg__titulo,
+    .novo .ticket-cab__assunto {
+      font-size: 20px;
+    }
+    .cfg-nav {
+      border-right: 0;
+    }
+  }
+}

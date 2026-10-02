@@ -28,8 +28,9 @@ pytest.importorskip("pypdf", reason="ler o PDF de volta exige o extra 'dev'")
 
 
 def _texto(pdf_bytes: bytes) -> str:
-    from pypdf import PdfReader
     import io as _io
+
+    from pypdf import PdfReader
 
     return "\n".join(p.extract_text() for p in PdfReader(_io.BytesIO(pdf_bytes)).pages)
 

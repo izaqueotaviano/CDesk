@@ -37,7 +37,7 @@ DJANGO_APPS = [
     # Só pelo lookup `unaccent` da busca (extensão criada em
     # tickets/0024) — nenhum campo de modelo vem daqui.
     "django.contrib.postgres",
-    # "django.contrib.sites",  # só exigido pelo allauth — volta junto com ele
+    "django.contrib.sites",  # exigido pelo allauth
 ]
 
 THIRD_PARTY_APPS = [
@@ -48,15 +48,13 @@ THIRD_PARTY_APPS = [
     "drf_spectacular",
     "channels",
     "django_celery_beat",
-    # Login por Google Workspace (allauth) desativado por enquanto — os internos
-    # de demo entram por e-mail/senha em /login/cliente, igual ao cliente.
-    # Para religar: descomentar aqui, no MIDDLEWARE, em AUTHENTICATION_BACKENDS,
-    # no bloco "--- allauth ---" abaixo, em config/urls.py e em
-    # django.contrib.sites acima — e configurar GOOGLE_OAUTH_CLIENT_ID/SECRET.
-    # "allauth",
-    # "allauth.account",
-    # "allauth.socialaccount",
-    # "allauth.socialaccount.providers.google",
+    # Login por Google Workspace (allauth) — internos entram por aqui OU por
+    # e-mail/senha em /login/cliente (a allowlist de domínio decide quem passa,
+    # ver apps/accounts/adapters.py e GOOGLE_OAUTH_ALLOWED_DOMAINS abaixo).
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
 ]
 
 LOCAL_APPS = [
@@ -71,6 +69,8 @@ LOCAL_APPS = [
     "apps.audit",
     "apps.reports",
     "apps.knowledge",
+    "apps.notes",
+    "apps.ferramentas",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -90,13 +90,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    # "allauth.account.middleware.AccountMiddleware",  # volta junto com o allauth acima
+    "allauth.account.middleware.AccountMiddleware",
     # por último: só transforma a exceção de bloqueio do axes em resposta
     # (para o admin; na API quem faz isso é apps.core.exceptions)
     "axes.middleware.AxesMiddleware",
 ]
 
-# SITE_ID = 1  # só exigido pelo allauth — volta junto com ele
+SITE_ID = 1  # exigido pelo allauth
 
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
@@ -141,7 +141,7 @@ AUTHENTICATION_BACKENDS = [
     # a senha — é o que impede a enumeração por tempo de resposta
     "axes.backends.AxesStandaloneBackend",
     "django.contrib.auth.backends.ModelBackend",  # e-mail/senha — cliente e interno
-    # "allauth.account.auth_backends.AuthenticationBackend",  # Google — desativado por enquanto
+    "allauth.account.auth_backends.AuthenticationBackend",  # Google
 ]
 
 # 12 caracteres e três classes: é o que segura ataque de dicionário sem
@@ -189,39 +189,39 @@ AXES_LOCKOUT_CALLABLE = "apps.accounts.axes.bloqueado"
 AXES_CLIENT_IP_CALLABLE = "apps.accounts.sessions.client_ip"
 AXES_VERBOSE = False  # o histórico de tentativas fica em AccessEvent, não no log
 
-# --- allauth (Google OAuth) — desativado por enquanto, ver THIRD_PARTY_APPS ---
-# Clientes não se auto-cadastram (convite); a ideia é internos entrarem por
-# Google OAuth restrito à allowlist de domínios do Workspace (regras nos
-# adapters, apps/accounts/adapters.py) — por ora todo mundo entra por
-# e-mail/senha em /login/cliente (ver apps.accounts.views.LoginView).
-# ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
-# SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
-# ACCOUNT_LOGIN_METHODS = {"email"}
-# ACCOUNT_SIGNUP_FIELDS = ["email*"]
-# ACCOUNT_USER_MODEL_USERNAME_FIELD = None
-# ACCOUNT_EMAIL_VERIFICATION = "none"  # internos: verificado pelo Google; clientes: convite
-# SOCIALACCOUNT_AUTO_SIGNUP = True
+# --- allauth (Google OAuth) ---
+# Clientes não se auto-cadastram (convite); internos entram por Google OAuth
+# restrito à allowlist de domínios do Workspace (regras nos adapters,
+# apps/accounts/adapters.py) OU por e-mail/senha, igual ao cliente — as duas
+# portas ficam abertas (ver apps.accounts.views.LoginView).
+ACCOUNT_ADAPTER = "apps.accounts.adapters.AccountAdapter"
+SOCIALACCOUNT_ADAPTER = "apps.accounts.adapters.SocialAccountAdapter"
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*"]
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_EMAIL_VERIFICATION = "none"  # internos: verificado pelo Google; clientes: convite
+SOCIALACCOUNT_AUTO_SIGNUP = True
 # rotas da SPA — LOGIN_URL segue em uso pelo DRF (401 -> redireciona pra cá)
 LOGIN_URL = "/login"
-LOGIN_REDIRECT_URL = "/app"
-# ACCOUNT_LOGOUT_REDIRECT_URL = "/login"
+LOGIN_REDIRECT_URL = "/inicio"
+ACCOUNT_LOGOUT_REDIRECT_URL = "/login"
 
-# GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
-# GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+GOOGLE_OAUTH_CLIENT_ID = env("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = env("GOOGLE_OAUTH_CLIENT_SECRET", default="")
 # allowlist de domínios aceitos no SSO — vazia bloqueia o login interno
-# GOOGLE_OAUTH_ALLOWED_DOMAINS = env.list("GOOGLE_OAUTH_ALLOWED_DOMAINS", default=[])
+GOOGLE_OAUTH_ALLOWED_DOMAINS = env.list("GOOGLE_OAUTH_ALLOWED_DOMAINS", default=[])
 
-# SOCIALACCOUNT_PROVIDERS = {
-#     "google": {
-#         "APP": {
-#             "client_id": GOOGLE_OAUTH_CLIENT_ID,
-#             "secret": GOOGLE_OAUTH_CLIENT_SECRET,
-#             "key": "",
-#         },
-#         "SCOPE": ["profile", "email"],
-#         "AUTH_PARAMS": {"access_type": "online"},
-#     }
-# }
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": GOOGLE_OAUTH_CLIENT_ID,
+            "secret": GOOGLE_OAUTH_CLIENT_SECRET,
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+    }
+}
 
 
 # --------------------------------------------------------------------------- #
@@ -257,15 +257,20 @@ MEDIA_URL = None
 
 # Estes três são o PISO DE FALLBACK: o valor efetivo vem de `core.SystemConfig`,
 # editável no admin (o limite de anexo muda com o uso, não com a infraestrutura).
-ATTACHMENT_MAX_BYTES = env.int("ATTACHMENT_MAX_BYTES", 20 * 1024 * 1024)
+# Piso de fallback do `SystemConfig` (core): 10 MB por arquivo é regra de
+# produto, e o painel do cliente anuncia o mesmo número.
+ATTACHMENT_MAX_BYTES = env.int("ATTACHMENT_MAX_BYTES", 10 * 1024 * 1024)
 ATTACHMENT_MAX_BYTES_PER_MESSAGE = env.int(
-    "ATTACHMENT_MAX_BYTES_PER_MESSAGE", 200 * 1024 * 1024
+    "ATTACHMENT_MAX_BYTES_PER_MESSAGE", 100 * 1024 * 1024
 )
 ATTACHMENT_MAX_FILES_PER_MESSAGE = env.int("ATTACHMENT_MAX_FILES_PER_MESSAGE", 10)
 
-# 20 MB × 10 arquivos = 200 MB por requisição. Isso ultrapassa o default do
-# Django e do nginx — ambos precisam acompanhar, senão o upload morre com 413
-# antes de chegar na validação (ver docs/04 D13).
+# Folga acima do teto por mensagem (100 MB) para o corpo da requisição inteiro.
+# Isso ultrapassa o default do Django e do nginx — ambos precisam acompanhar,
+# senão o upload morre com 413 antes de chegar na validação (ver docs/04 D13).
+# O número velho aqui ("20 MB × 10 arquivos") ficou para trás quando o piso caiu
+# para 10 MB, e foi de um comentário desatualizado como este que a tela de
+# abertura tirou o 20 MB que prometia errado.
 DATA_UPLOAD_MAX_MEMORY_SIZE = env.int("DATA_UPLOAD_MAX_MEMORY_SIZE", 210 * 1024 * 1024)
 DATA_UPLOAD_MAX_NUMBER_FILES = env.int("DATA_UPLOAD_MAX_NUMBER_FILES", 20)
 # nenhum formulário do sistema chega perto disso; o teto é contra payload
@@ -320,7 +325,10 @@ WORDPRESS_KB_POST_TYPE = env("WORDPRESS_KB_POST_TYPE", default="suporte")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.SessionAuthentication",
+        # A de índice 0 é quem decide 401 vs 403 pro backend inteiro — ver o
+        # docstring de `SessionAuthenticationComCabecalho`. Trocar a ordem
+        # aqui muda esse comportamento global, não só para quem usa sessão.
+        "apps.core.authentication.SessionAuthenticationComCabecalho",
         # Só entra em jogo quando a requisição NÃO trouxe cookie de sessão —
         # é o caso do mini chat embutido em outra plataforma (docs/14 §10).
         # Depois da de sessão de propósito: o app autenticado de sempre nem
@@ -330,7 +338,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination",
+    # Com teto em `?limit=`: sem ele um inteiro maior que o bigint dá 500 em
+    # todo endpoint paginado — ver apps/core/pagination.py.
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.LimitOffsetComTeto",
     "PAGE_SIZE": 25,
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     # `Http404` do get_object_or_404 vaza uma frase em inglês; ver
@@ -340,8 +350,6 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
         "anon": "30/hour",
         "login": "20/hour",  # força bruta no login de sessão
-        # pesquisa de satisfação é pública: sem teto o link vira urna aberta.
-        # Folgado o bastante para quem erra e recarrega a página.
     },
 }
 
@@ -447,6 +455,19 @@ CELERY_BEAT_SCHEDULE = {
         "task": "apps.chat.tasks.convert_unattended_chats",
         "schedule": 60.0,
     },
+    # chat esquecido na fila (ninguém pegou ainda) → sino + e-mail pros
+    # agentes com vaga, sempre ANTES do timeout acima converter em ticket —
+    # frequente pelo mesmo motivo do timeout: janela curta de reação
+    "chat-incoming-notify": {
+        "task": "apps.chat.tasks.notify_queued_chats",
+        "schedule": 30.0,
+    },
+    # inatividade DURANTE o atendimento (avisa e depois encerra) — desligada
+    # por padrão no ChatConfig; a cada minuto porque os tempos são em minutos
+    "chat-inactivity": {
+        "task": "apps.chat.tasks.close_inactive_chats",
+        "schedule": 60.0,
+    },
     "sla-scan": {
         "task": "apps.notifications.tasks.sla_scan",
         "schedule": 300.0,  # docs/01 §5
@@ -461,6 +482,13 @@ CELERY_BEAT_SCHEDULE = {
     "auto-close-pending": {
         "task": "apps.tickets.tasks.auto_close_stale_pending",
         "schedule": crontab(minute=5),  # de hora em hora, 5min depois do aviso
+    },
+    # Resposta agendada: quem marcou "amanhã 8h" espera sair perto das 8h, não
+    # na próxima varredura de hora em hora — granularidade curta de propósito,
+    # comparável ao timeout de fila do chat acima.
+    "dispatch-scheduled-replies": {
+        "task": "apps.tickets.tasks.dispatch_scheduled_replies",
+        "schedule": 60.0,
     },
     # prazo interno do quadro: digitável desde sempre, agora também AVISA
     "warn-overdue-cards": {
@@ -485,6 +513,12 @@ CELERY_BEAT_SCHEDULE = {
     "sync-knowledge-base": {
         "task": "apps.knowledge.tasks.sync_knowledge_base",
         "schedule": crontab(minute=15),
+    },
+    # aviso do mural (docs/02 §announcements) → sino + e-mail pra audiência
+    # que ainda não sabe. Não precisa da cadência do chat: mural muda pouco.
+    "announcement-notify": {
+        "task": "apps.announcements.tasks.notify_announcements",
+        "schedule": 300.0,
     },
 }
 
@@ -525,8 +559,23 @@ RETENTION_REQUIRE_REVIEWED_DRY_RUN = env.bool(
 # do qual um restore pode ressuscitar dado já anonimizado (ver
 # `manage.py reapply_lgpd`).
 BACKUP_ROTATION_DAYS = env.int("BACKUP_ROTATION_DAYS", default=30)
+
+# Onde os backups ficam — o mesmo diretório que scripts/backup_postgres.sh e
+# o timer do systemd usam em produção (/var/backups/resolv), pra tela de
+# Configurações → Backup listar os dois na mesma lista. Em dev cai numa pasta
+# do projeto (ignorada pelo git).
+BACKUP_DIR = env("BACKUP_DIR", default=str(BASE_DIR / "backups"))
+
+# Token da API do Movidesk pra Configurações → Importar. Opcional: a tela
+# também aceita o token digitado na hora (que não é gravado em lugar nenhum).
+# Este é o "deixa fixo no servidor" de quem vai importar várias vezes.
+MOVIDESK_TOKEN = env("MOVIDESK_TOKEN", default="")
 RETENTION_DAYS = {
     "ticket_after_close": 365 * 5,
+    # Mesmo prazo do ticket: a conversa de chat é o mesmo tipo de registro de
+    # atendimento, e dois prazos diferentes para a mesma coisa seriam uma
+    # pergunta a mais para quem audita ("por que aquela sumiu e esta não?").
+    "chat_after_close": 365 * 5,
     "audit_log": 365 * 2,
     "ticket_access_log": 365,
     "notification_read": 90,
@@ -535,16 +584,9 @@ RETENTION_DAYS = {
     "outbound_email": 180,
 }
 
-# D3: período civil (semana ISO / mês calendário) no fuso da empresa.
-QUOTA_PERIOD_MODE = "calendar"
-
 # D12: prefixo da numeração interna (`TD-00001`). Configurável porque é rótulo
 # de negócio, não regra de código; a sequência atrás dele é a mesma.
 TICKET_REFERENCE_PREFIX = env("TICKET_REFERENCE_PREFIX", default="TD")
-
-# F-E: minutos sem sinal de vida do cliente para considerar a sessão abandonada
-# Piso de fallback; o valor efetivo vem de `core.SystemConfig`.
-CHAT_ABANDON_MINUTES = env.int("CHAT_ABANDON_MINUTES", 10)
 
 # Máximo de sessões (navegadores/dispositivos) vivas por usuário. Ao logar a
 # N+1, a mais antiga cai. Zero desliga o limite.
@@ -599,3 +641,37 @@ LOGGING = {
         "axes": {"handlers": ["console"], "level": "WARNING", "propagate": False},
     },
 }
+
+
+# --------------------------------------------------------------------------- #
+# Sentry (observabilidade de erro, opcional)
+# --------------------------------------------------------------------------- #
+# Hoje o único destino de um 500 é o `mail_admins` acima (ou quem estiver
+# olhando o stdout) — sem captura estruturada, sem stack trace agregado,
+# sem alerta fora do e-mail. Igual a CLAMAV_ENABLED/WORDPRESS_KB_ENABLED
+# acima: uma env var liga a integração, o código nunca assume que ela existe.
+# Sem SENTRY_DSN (o padrão), é no-op completo — nem o pacote precisa estar
+# instalado (extra `.[monitoring]`); com o pacote ausente e a env var vazia
+# também não faz nada, então o boot não quebra num ambiente que não o tem.
+# FALTA: setar SENTRY_DSN no ambiente real (produção/homologação) para ativar.
+SENTRY_DSN = env("SENTRY_DSN", default="")
+if SENTRY_DSN:
+    try:
+        import sentry_sdk
+    except ImportError:
+        pass
+    else:
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=env("SENTRY_ENVIRONMENT", default="production"),
+            # dado de cliente sob LGPD (ver docstring de prod.py): nada de PII
+            # nos eventos de erro — cookies e usuário autenticado ficam de fora.
+            send_default_pii=False,
+            # `send_default_pii` NÃO cobre o corpo da requisição: quem manda
+            # nele é este parâmetro, e o padrão do SDK ("medium") anexa até
+            # 10 KB do payload a cada evento de erro. Um 500 num PATCH de nota
+            # pessoal ou numa mensagem de chat mandaria o texto inteiro para o
+            # Sentry. "never" é o que o comentário acima sempre prometeu.
+            max_request_body_size="never",
+            traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.0),
+        )

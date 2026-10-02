@@ -28,7 +28,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.views import APIView
 
-from apps.accounts import avatars, twofactor
+from apps.accounts import assinatura, avatars, twofactor
 from apps.accounts.models import (
     AccessEventKind,
     InternalRole,
@@ -44,6 +44,14 @@ from apps.audit.models import AuditAction, AuditLog
 from apps.customers.services import quota as quota_service
 from apps.notifications.services import queue_email
 
+# Preferências de conforto (models.User, bloco "conforto de quem usa o produto
+# o dia inteiro"). Uma tupla só para leitura (`MeSerializer`) e escrita
+# (`ProfileUpdateSerializer`): as duas listas já divergiram antes com
+# `ui_density`, e um campo que se escreve mas não volta no `/auth/me/` faz a
+# tela "desfazer" a escolha no próximo carregamento. A validação vem das
+# `choices` do model — valor fora da lista é 400, sem código aqui.
+CAMPOS_DE_CONFORTO = ("ui_text_size", "notification_sound", "auto_away_minutes")
+
 
 class MeSerializer(serializers.ModelSerializer):
     company_name = serializers.CharField(source="company.name", read_only=True)
@@ -57,6 +65,7 @@ class MeSerializer(serializers.ModelSerializer):
     # evita só que a pessoa veja um botão que sempre daria 403.
     permissions = serializers.SerializerMethodField()
     ticket_scope = serializers.SerializerMethodField()
+    signature_render = serializers.SerializerMethodField()
     custom_role_name = serializers.CharField(
         source="custom_role.name", read_only=True, default=None
     )
@@ -69,8 +78,18 @@ class MeSerializer(serializers.ModelSerializer):
             "teams", "presence", "permissions", "ticket_scope", "custom_role_name",
             # preferências da própria conta
             "avatar_url", "job_title", "phone",
-            "signature", "ui_language", "ui_density", "personal_hours",
+            "signature", "signature_kind", "signature_html", "signature_image_url",
+            # a assinatura já montada (o mesmo HTML que o cliente vê): é o que
+            # a prévia da tela mostra, e ele vem do servidor de propósito —
+            # é o resultado DEPOIS da higienização, não o que foi digitado
+            "signature_render",
+            "ui_language", "ui_density", "personal_hours",
+            # conforto (Minha conta → Aparência / Notificações / Status)
+            *CAMPOS_DE_CONFORTO,
         ]
+
+    def get_signature_render(self, obj) -> str:
+        return assinatura.render_html(obj)
 
     def get_permissions(self, obj) -> list[str]:
         return sorted(obj.permissions)
@@ -128,12 +147,15 @@ class LoginView(APIView):
                 record_access_event(alvo, AccessEventKind.LOGIN_FAILED, request)
             return Response({"detail": "E-mail ou senha inválidos."}, status=400)
 
-        # 2FA é OBRIGATÓRIO para todo login (decisão do Izaque): senha certa
-        # NÃO basta. Quem configurou o aplicativo autenticador usa o TOTP;
-        # todo o resto recebe o código de 6 dígitos por e-mail. O pendente
-        # fica na sessão (server-side) e login() só acontece depois do código
-        # — ver TwoFactorVerifyView.
+        # Conta sem verificação em duas etapas (e sem o admin exigi-la de
+        # todos) entra aqui mesmo: a resposta já é o `Me`, como a do código.
+        # Com verificação, a senha certa NÃO basta: quem configurou o
+        # aplicativo usa o TOTP; e-mail recebe o código de 6 dígitos. O
+        # pendente fica na sessão (server-side) e login() só acontece depois
+        # do código — ver TwoFactorVerifyView.
         metodo = _metodo_efetivo(user)
+        if not metodo:
+            return _concluir_login(request, user)
         request.session[PENDING_2FA_KEY] = {
             "user": user.pk,
             "at": timezone.now().isoformat(),
@@ -222,9 +244,36 @@ PENDING_2FA_MINUTES = 5
 
 
 def _metodo_efetivo(user) -> str:
-    """O método que VALE no login. 2FA é obrigatório: sem nada configurado,
-    o e-mail é o método de todo mundo — a conta sempre tem e-mail."""
-    return user.two_factor_method or TwoFactorMethod.EMAIL
+    """O método que VALE no login — ou "" quando a conta entra só com senha.
+
+    A verificação é opcional por conta: cada pessoa liga a sua (e-mail ou
+    aplicativo). O admin pode exigi-la de todos em Configurações → Sistema;
+    aí quem não configurou nada cai no e-mail — a conta sempre tem e-mail.
+    """
+    from apps.core.models import SystemConfig
+
+    if user.two_factor_method:
+        return user.two_factor_method
+    return TwoFactorMethod.EMAIL if SystemConfig.load().two_factor_required else ""
+
+
+def _concluir_login(request, user):
+    """Cria a sessão de verdade — depois da senha (conta sem 2FA) ou depois
+    do código (conta com 2FA). Um lugar só, para as duas portas fazerem o
+    mesmo: limite de sessões, presença e o payload de `Me`."""
+    # o backend vai explícito: com o AxesStandaloneBackend na lista, o Django
+    # não sabe qual dos dois autenticou um usuário carregado da sessão
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    _limitar_sessoes(user, atual=request.session.session_key)
+    # de volta a "Disponível" a cada login — nunca herda o que ficou de
+    # uma sessão anterior (a sessão anterior, se existiu, já forçou
+    # OFFLINE no logout; isto cobre também quem nunca chegou a
+    # deslogar — sessão expirada, navegador fechado).
+    if user.is_internal:
+        user.presence = PresenceStatus.AVAILABLE
+        user.save(update_fields=["presence"])
+        _avisar_presenca(user)
+    return Response(MeSerializer(user).data)
 
 
 def _enviar_codigo(user, purpose) -> None:
@@ -337,21 +386,7 @@ class TwoFactorVerifyView(APIView):
             return Response({"detail": "Código inválido ou expirado."}, status=400)
 
         request.session.pop(PENDING_2FA_KEY, None)
-        # o backend vai explícito: com o AxesStandaloneBackend na lista, o Django
-
-        # não sabe qual dos dois autenticou um usuário carregado da sessão
-
-        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-        _limitar_sessoes(user, atual=request.session.session_key)
-        # de volta a "Disponível" a cada login — nunca herda o que ficou de
-        # uma sessão anterior (a sessão anterior, se existiu, já forçou
-        # OFFLINE no logout; isto cobre também quem nunca chegou a
-        # deslogar — sessão expirada, navegador fechado).
-        if user.is_internal:
-            user.presence = PresenceStatus.AVAILABLE
-            user.save(update_fields=["presence"])
-            _avisar_presenca(user)
-        return Response(MeSerializer(user).data)
+        return _concluir_login(request, user)
 
 
 class TwoFactorResendView(APIView):
@@ -377,10 +412,16 @@ class TwoFactorStatusView(APIView):
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
+        from apps.core.models import SystemConfig
+
         setup = request.session.get(SETUP_2FA_KEY) or {}
         return Response({
             "method": request.user.two_factor_method,
             "pending": setup.get("method", ""),
+            # o que VALE no login: a própria escolha, ou o e-mail imposto
+            # pelo admin ("required") a quem não configurou nada
+            "effective": _metodo_efetivo(request.user),
+            "required": SystemConfig.load().two_factor_required,
         })
 
 
@@ -495,13 +536,30 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["full_name", "avatar_url", "job_title", "phone",
-                  "signature", "ui_language", "ui_density", "personal_hours"]
+                  "signature", "signature_kind", "signature_html", "signature_image_url",
+                  "ui_language", "ui_density", "personal_hours", *CAMPOS_DE_CONFORTO]
         extra_kwargs = {"full_name": {"required": False}}
 
     def validate_avatar_url(self, value):
         if not avatars.aceitavel(value):
             raise serializers.ValidationError(
                 "Escolha um dos avatares, envie uma imagem ou informe um endereço https."
+            )
+        return value
+
+    def validate_signature_html(self, value):
+        """Guarda o HTML JÁ higienizado — não o que chegou.
+
+        Higienizar na leitura em vez de na escrita deixaria o payload
+        original no banco esperando o dia em que alguém o renderizasse por
+        outro caminho. Mesma duplicação de duas linhas do `avatar_url` acima,
+        pelo mesmo motivo (o outro lugar é `UserAdminSerializer`)."""
+        return assinatura.limpar_html(value or "")
+
+    def validate_signature_image_url(self, value):
+        if not assinatura.imagem_aceitavel(value or ""):
+            raise serializers.ValidationError(
+                "Envie a imagem pelo botão. Endereço de fora não é aceito aqui."
             )
         return value
 
@@ -553,6 +611,69 @@ class AvatarUploadView(APIView):
         request.user.avatar_url = ""
         request.user.save(update_fields=["avatar_url"])
         return Response(MeSerializer(request.user).data)
+
+
+class AssinaturaImagemView(APIView):
+    """POST: envia a imagem da assinatura. DELETE: remove.
+
+    Igual ao avatar (o arquivo é recodificado antes de ser gravado), com uma
+    diferença: mandar a imagem também LIGA a forma "imagem", porque enviar
+    uma assinatura e ela não aparecer seria o resultado mais surpreendente
+    possível de um botão chamado "Enviar imagem".
+    """
+
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(request=None, responses=MeSerializer)
+    def post(self, request):
+        enviado = request.FILES.get("file")
+        if enviado is None:
+            raise ValidationError({"file": "Nenhum arquivo enviado."})
+        try:
+            url = assinatura.guardar_imagem(request.user, enviado)
+        except assinatura.AssinaturaInvalida as exc:
+            raise ValidationError({"file": str(exc)}) from exc
+
+        request.user.signature_image_url = url
+        request.user.signature_kind = assinatura.IMAGEM
+        request.user.save(update_fields=["signature_image_url", "signature_kind"])
+        return Response(MeSerializer(request.user).data)
+
+    @extend_schema(request=None, responses=MeSerializer)
+    def delete(self, request):
+        assinatura.apagar_imagem(request.user)
+        request.user.signature_image_url = ""
+        campos = ["signature_image_url"]
+        if request.user.signature_kind == assinatura.IMAGEM:
+            # sem imagem, a forma "imagem" seria uma assinatura vazia
+            request.user.signature_kind = assinatura.NENHUMA
+            campos.append("signature_kind")
+        request.user.save(update_fields=campos)
+        return Response(MeSerializer(request.user).data)
+
+
+class AssinaturaFileView(APIView):
+    """Serve a imagem da assinatura. SEM sessão, ao contrário do avatar.
+
+    Ela vai dentro do e-mail que o cliente recebe, e caixa de entrada não
+    tem sessão nossa — exigir login aqui renderizaria um ícone de imagem
+    quebrada em toda resposta assinada. O que protege o arquivo é o nome:
+    32 bytes aleatórios em hexa, que não se adivinha nem se enumera. E o
+    conteúdo é o logotipo que a empresa põe no rodapé de e-mail — feito
+    para ser visto por quem recebe.
+    """
+
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(responses={(200, "image/png"): OpenApiTypes.BINARY})
+    def get(self, request, nome):
+        arquivo = assinatura.caminho_de(nome)
+        if arquivo is None:
+            raise NotFound
+        resposta = FileResponse(arquivo.open("rb"), content_type="image/png")
+        resposta["Cache-Control"] = "public, max-age=604800"
+        return resposta
 
 
 class AvatarFileView(APIView):
@@ -631,10 +752,9 @@ class TrocarSenhaSerializer(serializers.Serializer):
 class MyPasswordView(APIView):
     """Trocar a PRÓPRIA senha, provando a identidade com a senha atual.
 
-    Isto não contradiz a decisão de não existir "esqueci minha senha"
-    self-service (ver `DefinirSenhaView` e o cabeçalho de api/account.ts): a
-    recusa lá é sobre provar "sou eu" SEM a senha, que exige alguém
-    verificando por outro canal. Aqui a senha atual é a prova.
+    Quem NÃO tem a senha atual usa "Esqueci minha senha"
+    (apps/accounts/recuperacao.py), que prova a identidade pela caixa de
+    e-mail. Aqui a senha atual é a prova.
 
     As sessões abertas continuam abertas de propósito — trocar a senha por
     higiene não deveria derrubar a pessoa dos outros aparelhos dela. Quem
@@ -825,7 +945,8 @@ class DefinirSenhaView(APIView):
         record_access_event(user, AccessEventKind.PASSWORD_CHANGED, request)
         # NÃO cria sessão aqui: o 2FA é obrigatório para todo login (ver
         # LoginView), e entrar por este caminho seria uma porta que o pula.
-        return Response({"email": user.email})
+        # `kind` diz à tela para qual login mandar (portal ou painel).
+        return Response({"email": user.email, "kind": user.kind})
 
     @extend_schema(responses=OpenApiTypes.OBJECT)
     def get(self, request):
@@ -839,7 +960,10 @@ class DefinirSenhaView(APIView):
         )
         if user is None:
             return Response({"valid": False}, status=200)
-        return Response({"valid": True, "email": user.email, "full_name": user.full_name})
+        return Response({
+            "valid": True, "email": user.email, "full_name": user.full_name,
+            "kind": user.kind,
+        })
 
 
 def _usuario_do_convite(uid: str, token: str):

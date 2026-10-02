@@ -32,7 +32,11 @@ def quer_in_app(user, kind) -> bool:
 def quer_email(user, kind) -> bool:
     """Idem para o canal de e-mail — consultado por quem monta o e-mail de
     notificação (e-mails operacionais, como código de login, não passam
-    por aqui: não são notificação, são o próprio serviço)."""
+    por aqui: não são notificação, são o próprio serviço).
+
+    Default `True` precisa bater com `DEFAULT_EMAIL` em `notifications/views.py`
+    — é o que a tela de preferências mostra marcado para quem nunca configurou
+    nada. Já divergiram uma vez (`TestPreferenciaPadrao` trava a paridade)."""
     pref = _preferencias(user)
     if pref is None:
         return True
@@ -55,6 +59,20 @@ def notify(*, recipient, kind, title, body="", url="", ticket=None, actor=None):
         "ticket_id": ticket.pk if ticket else None,
     })
     return notification
+
+
+def ticket_url(ticket, recipient, *, anchor: str = "") -> str:
+    """Link do sino para um ticket — depende de QUEM vai clicar: agente cai
+    no painel interno, cliente cai no portal. As duas bases do frontend têm
+    rotas diferentes para o mesmo ticket (`/tickets/<id>` vs.
+    `/portal/tickets/<id>`); o antigo `/chamados/<id>` do painel só
+    sobrevive como redirecionamento no frontend, para os links já gravados.
+    Toda chamada a `notify()` sobre um ticket usa isto para montar
+    `url`, em vez de escrever o caminho na mão (foi assim que o caminho
+    errado se espalhou por 9 pontos antes de existir uma tela que clicasse
+    no link e revelasse o 404)."""
+    base = f"/tickets/{ticket.pk}" if recipient.is_internal else f"/portal/tickets/{ticket.pk}"
+    return f"{base}{anchor}"
 
 
 def already_notified(*, recipient, kind, ticket, since=None) -> bool:

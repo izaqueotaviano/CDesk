@@ -10,8 +10,10 @@ from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from apps.accounts import assinatura
 from apps.accounts.models import Team
 from apps.tickets.models import (
+    ScheduledReply,
     Service,
     Ticket,
     TicketAttachment,
@@ -63,7 +65,14 @@ class TeamSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Team
-        fields = ["id", "name", "slug", "visibility", "order"]
+        # `internal_only` entra porque o seletor de TRANSFERIR equipe (o painel
+        # do detalhe) precisa saber quais equipes podem receber chamado de
+        # cliente: sem isso a tela oferece a equipe interna, o agente confirma a
+        # transferência e só então toma 400 de
+        # `ticket_service` ("Equipe interna não pode receber chamado de
+        # cliente."). Não é dado sensível — `TeamViewSet.get_queryset` já
+        # esconde a equipe inteira de quem é cliente.
+        fields = ["id", "name", "slug", "visibility", "order", "internal_only"]
 
 
 class ServiceSerializer(serializers.ModelSerializer):
@@ -135,6 +144,7 @@ class TicketMessageSerializer(serializers.ModelSerializer):
     mentions = serializers.SerializerMethodField()
     is_deleted = serializers.BooleanField(read_only=True)
     can_edit = serializers.SerializerMethodField()
+    signature_html = serializers.SerializerMethodField()
 
     class Meta:
         model = TicketMessage
@@ -146,7 +156,23 @@ class TicketMessageSerializer(serializers.ModelSerializer):
             # correção silenciosa numa conversa que o cliente já leu não é
             # correção, é reescrita
             "edited_at", "is_deleted", "can_edit",
+            # rodapé desta mensagem, renderizado do perfil do autor
+            "signature_html",
         ]
+
+    def get_signature_html(self, obj) -> str:
+        """A assinatura do autor, ou vazio.
+
+        Vem montada do servidor porque é ela que carrega HTML: a tela só
+        precisa desenhar, e o que ela desenha já passou pelo higienizador
+        (`apps/accounts/assinatura.py`). Nota interna não leva assinatura —
+        ninguém assina um bilhete para a própria equipe.
+        """
+        if not obj.with_signature or not obj.is_public or obj.author_id is None:
+            return ""
+        if obj.deleted_at is not None:
+            return ""
+        return assinatura.render_html(obj.author)
 
     @extend_schema_field(MentionSerializer(many=True))
     def get_mentions(self, obj) -> list:
@@ -195,7 +221,7 @@ class _MaskingMixin:
     def get_subject(self, obj) -> str:
         if self._visible(obj) or not obj.team.mask_subject_for_others:
             return obj.subject
-        return f"Ticket de {obj.team.name} — acesso restrito"  # D6
+        return f"Ticket de {obj.team.name} (acesso restrito)"  # D6
 
     def get_requester_display(self, obj) -> str:
         return obj.requester.full_name if self._visible(obj) else MASKED_REQUESTER
@@ -394,6 +420,36 @@ class TicketEventSerializer(serializers.ModelSerializer):
         return obj.changed_by.full_name if obj.changed_by else None
 
 
+class ScheduledReplySerializer(serializers.ModelSerializer):
+    """Uma resposta agendada, para a lista no detalhe do ticket — só o que a
+    tela precisa mostrar/cancelar, não os campos de `add_reply` que só o
+    disparo usa (`with_signature`, `close_note`...)."""
+
+    author_name = serializers.CharField(source="author.full_name", read_only=True)
+
+    class Meta:
+        model = ScheduledReply
+        fields = [
+            "id", "body", "is_public", "new_status", "scheduled_at",
+            "status", "sent_at", "error", "author_name", "created_at",
+        ]
+
+
+class TicketScheduleReplySerializer(serializers.Serializer):
+    """Corpo de `POST /tickets/{id}/schedule-reply/` — mesmos campos de
+    `TicketReplySerializer` (ver ali) mais `scheduled_at`, sem anexo (a v1
+    do agendamento não segura upload por horas até o disparo)."""
+
+    body = serializers.CharField()
+    is_public = serializers.BooleanField(default=True)
+    new_status = serializers.ChoiceField(choices=TicketStatus.choices, required=False, allow_blank=True, default="")
+    resolution_started_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    resolution_ended_at = serializers.DateTimeField(required=False, allow_null=True, default=None)
+    close_note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+    with_signature = serializers.BooleanField(default=False)
+    scheduled_at = serializers.DateTimeField()
+
+
 class WatcherSerializer(serializers.Serializer):
     """Seguidor exposto na tela — nasce por @menção (`TicketWatcher`, ver
     `services/mentions.py`); a Fase 2 achou que não havia como sequer LER isso
@@ -410,8 +466,13 @@ class RequesterSerializer(serializers.Serializer):
     """Contato do solicitante para o painel do cliente no detalhe. Os campos
     já existiam (User.email, User.ui_language; o fuso vem da empresa do
     chamado) — só não havia exposição. Aparece SÓ quando o conteúdo é visível
-    a quem pede (mesma regra de `requester_display`); mascarado, vem null."""
+    a quem pede (mesma regra de `requester_display`); mascarado, vem null.
 
+    `id` existe para a tela perguntar "que outros chamados esta pessoa
+    abriu?" (`?requester=<id>` na listagem, painel do cliente no detalhe).
+    Não amplia nada: quem recebe o objeto já recebe nome e e-mail."""
+
+    id = serializers.IntegerField()
     name = serializers.CharField()
     email = serializers.EmailField()
     ui_language = serializers.CharField()
@@ -423,14 +484,26 @@ class TicketDetailSerializer(TicketListSerializer):
     events = serializers.SerializerMethodField()
     watchers = serializers.SerializerMethodField()
     requester = serializers.SerializerMethodField()
+    scheduled_replies = serializers.SerializerMethodField()
 
     # `satisfaction` e `closed_at` SUBIRAM para a lista (a tela de Avaliações
     # do portal precisa da nota sem abrir cada chamado) — herdados daqui.
     class Meta(TicketListSerializer.Meta):
         fields = TicketListSerializer.Meta.fields + [
             "messages", "events", "resolution_started_at", "resolution_ended_at",
-            "sla_cycle", "watchers", "requester",
+            "sla_cycle", "watchers", "requester", "scheduled_replies",
         ]
+
+    @extend_schema_field(ScheduledReplySerializer(many=True))
+    def get_scheduled_replies(self, obj):
+        """Só a equipe vê — é ferramenta de trabalho do agente, igual a
+        `events`; o cliente não sabe (nem precisa saber) que uma resposta
+        está programada antes dela chegar."""
+        user = self.context["request"].user
+        if not user.is_internal or not self._visible(obj):
+            return []
+        qs = obj.scheduled_replies.select_related("author").order_by("scheduled_at")
+        return ScheduledReplySerializer(qs, many=True).data
 
     @extend_schema_field(RequesterSerializer(allow_null=True))
     def get_requester(self, obj):
@@ -438,6 +511,7 @@ class TicketDetailSerializer(TicketListSerializer):
             return None
         u = obj.requester
         return {
+            "id": u.pk,
             "name": u.full_name,
             "email": u.email,
             "ui_language": u.ui_language,
@@ -505,6 +579,9 @@ class TicketCreateSerializer(serializers.Serializer):
     )
     # interno abrindo em nome de um cliente (source=INTERNAL, isento de cota — F-C)
     requester_id = serializers.IntegerField(required=False)
+    # "incluir minha assinatura" (só faz efeito para quem é interno; ver
+    # `TicketReplySerializer` para o porquê do default False)
+    with_signature = serializers.BooleanField(default=False)
 
 
 def _agentes_ativos():
@@ -537,6 +614,10 @@ class TicketReclassifySerializer(serializers.Serializer):
 class TicketReplySerializer(serializers.Serializer):
     body = serializers.CharField()
     is_public = serializers.BooleanField(default=True)
+    # "incluir minha assinatura" do compositor. Default False: quem chama a
+    # API sem dizer nada (integração, script) não passa a assinar em nome de
+    # ninguém sem pedir.
+    with_signature = serializers.BooleanField(default=False)
     # obrigatório para resposta pública de agente; proibido para cliente
     new_status = serializers.ChoiceField(
         choices=TicketStatus.choices, required=False, allow_null=True
@@ -569,6 +650,49 @@ class MentionTargetSerializer(serializers.Serializer):
     group = serializers.ChoiceField(choices=["ticket", "equipe", "outros", "equipes"])
 
 
+class AssignableAgentSerializer(serializers.Serializer):
+    """Um item do seletor de Responsável/Dono técnico.
+
+    Mesmos 4 campos de `MentionTargetSerializer` (id/name/email/avatar_url) —
+    de propósito, para o front consumir as duas listas com o mesmo tipo
+    TypeScript. Sem `type` nem `group`: esta lista é só de gente (nunca
+    equipe), então não há o que discriminar nem agrupar
+    (apps/tickets/services/atribuicao.py::agentes_atribuiveis).
+    """
+
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    email = serializers.CharField(allow_blank=True)
+    avatar_url = serializers.CharField(allow_blank=True)
+
+
+class PresencaBatimentoSerializer(serializers.Serializer):
+    """Corpo do `POST /tickets/{id}/presenca/` — o batimento de quem está com
+    o detalhe aberto (apps/tickets/services/presenca.py). `digitando` diz O QUE
+    a pessoa está escrevendo agora: resposta ao cliente ou nota interna. Nulo
+    (ou ausente) é "só vendo"."""
+
+    digitando = serializers.ChoiceField(
+        choices=["resposta", "nota"], required=False, allow_null=True, default=None,
+    )
+
+
+class PresenteSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    nome = serializers.CharField()
+    avatar_url = serializers.CharField(allow_null=True)
+    digitando = serializers.ChoiceField(choices=["resposta", "nota"], allow_null=True)
+
+
+class PresencaSerializer(serializers.Serializer):
+    """Resposta do batimento: todo mundo presente (inclusive quem pediu — a
+    tela filtra a si mesma) e o intervalo que o servidor espera entre
+    batimentos, para o front não ter um número próprio que divirja do TTL."""
+
+    presentes = PresenteSerializer(many=True)
+    batimento_segundos = serializers.IntegerField()
+
+
 class TicketMessageEditSerializer(serializers.Serializer):
     body = serializers.CharField()
 
@@ -576,6 +700,13 @@ class TicketMessageEditSerializer(serializers.Serializer):
 class TicketCloseSerializer(serializers.Serializer):
     resolution_started_at = serializers.DateTimeField()
     resolution_ended_at = serializers.DateTimeField()
+    note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class TicketCloseByRequesterSerializer(serializers.Serializer):
+    """Sem `resolution_started_at`/`resolution_ended_at` (D4) — esse registro
+    é do trabalho técnico de quem atende; o cliente só diz "pode fechar"."""
+
     note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
 
 
@@ -625,3 +756,14 @@ class BulkCloseSerializer(_BulkTicketIdsSerializer):
     resolution_started_at = serializers.DateTimeField()
     resolution_ended_at = serializers.DateTimeField()
     note = serializers.CharField(max_length=200, required=False, allow_blank=True, default="")
+
+
+class BulkStatusSerializer(_BulkTicketIdsSerializer):
+    """Ação "Mudar status" da barra de seleção da fila. É o STATUS (coluna do
+    quadro, `TicketStage`), não a categoria: a coluna "Status" da fila mostra
+    o nome do stage ("Em análise"), e escolher ali uma categoria crua
+    ("open") jogaria todo mundo no status de fábrica sem a pessoa pedir.
+    Quem resolve o id e recusa stage de conclusão é a view — a regra de
+    negócio mesmo mora em `ticket_service.mudar_status`."""
+
+    stage_id = serializers.IntegerField()

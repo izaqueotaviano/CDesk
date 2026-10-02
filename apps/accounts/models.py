@@ -23,7 +23,7 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
-from apps.accounts import rbac
+from apps.accounts import assinatura, rbac
 from apps.core.models import TimeStampedModel
 
 
@@ -298,12 +298,32 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     avatar_url = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
+    # Nasceu se identificando no chat público do site do cliente (modo
+    # público do embed, apps/customers/embed_views.py), não de um convite.
+    # Existe por dois motivos, os dois de honestidade da tela: a listagem de
+    # usuários da empresa precisa dizer que aquilo é um visitante e não um
+    # acesso ao portal que alguém cadastrou, e o status de convite ("pendente"
+    # = tem conta mas nunca definiu senha) seria mentira aqui — visitante NÃO
+    # tem convite nenhum em aberto. Sem senha utilizável e fora do
+    # "Esqueci minha senha" (apps/accounts/recuperacao.py recusa visitante),
+    # ele não entra no portal por caminho nenhum enquanto um admin ou o
+    # responsável da empresa não o convidar de verdade.
+    is_widget_visitor = models.BooleanField(default=False)
     last_seen_at = models.DateTimeField(null=True, blank=True)
     anonymized_at = models.DateTimeField(null=True, blank=True)  # LGPD (D11)
 
     # --- preferências da própria conta (Lacuna 5) ---
     # Editáveis pelo próprio usuário em "Minha conta", nunca pela admin global.
-    signature = models.TextField(blank=True)  # assinatura padrão de resposta
+    # Assinatura do rodapé das respostas, em uma de três formas — ver
+    # `apps/accounts/assinatura.py`, que é quem higieniza e renderiza. O campo
+    # `signature` (texto puro) é o mais antigo dos três e continua sendo o
+    # conteúdo da forma "texto"; `signature_kind` vazio = sem assinatura.
+    signature = models.TextField(blank=True)
+    signature_kind = models.CharField(
+        max_length=10, blank=True, default="", choices=assinatura.FORMAS
+    )
+    signature_html = models.TextField(blank=True)
+    signature_image_url = models.CharField(max_length=300, blank=True)
     ui_language = models.CharField(max_length=10, default="pt-br")
     # Altura da linha nas listagens. VAZIO É "automático", e não um esquecimento:
     # quem atende vive na fila e precisa comparar vários chamados de uma vez
@@ -318,6 +338,34 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     # "disponível para chat". Vazio/desabilitado = segue o calendário da empresa.
     # Forma: {"enabled": bool, "start": "09:00", "end": "18:00", "days": [1..7]}
     personal_hours = models.JSONField(default=dict, blank=True)
+
+    # --- conforto de quem usa o produto o dia inteiro ---
+    # Moram na conta, e não só no navegador, pelo mesmo motivo de
+    # `ui_density`: quem precisa de texto maior precisa dele no notebook de
+    # casa também, e quem silenciou o bipe não quer ouvi-lo de novo porque
+    # trocou de computador. O navegador guarda uma cópia (stores/prefs.ts)
+    # só para a primeira pintura não sair no tamanho errado.
+    #
+    # Tamanho do texto: VAZIO é o padrão do produto (a escala 12/14/16/28);
+    # os outros dois multiplicam essa escala no front (ver
+    # frontend/postcss-escala-texto.js). O fator mora lá, não aqui: é
+    # decisão de desenho, e o servidor só precisa lembrar a escolha.
+    ui_text_size = models.CharField(
+        max_length=10, blank=True, default="",
+        choices=[("", "Padrão"), ("large", "Grande"), ("larger", "Maior")],
+    )
+    # Bipe dos avisos (frontend/src/realtime/avisos.ts). Só o SOM: o título
+    # da aba e a notificação do sistema continuam valendo com ele desligado.
+    notification_sound = models.BooleanField(default=True)
+    # Minutos sem mexer no Resolv até o status virar "Ausente" sozinho — só
+    # para quem estava "Disponível", e só o próprio front desfaz (na próxima
+    # atividade). 0 = nunca. Os valores são fechados porque a tela é um
+    # seletor, e um número livre ("7 minutos") não ajuda ninguém a decidir.
+    auto_away_minutes = models.PositiveSmallIntegerField(
+        default=15,
+        choices=[(0, "Nunca"), (5, "5 minutos"), (10, "10 minutos"),
+                 (15, "15 minutos"), (30, "30 minutos")],
+    )
 
     # --- verificação em duas etapas ---
     # Vazio = desligada. O método só é gravado depois que o usuário confirma
@@ -531,4 +579,4 @@ class AccessEvent(models.Model):
         indexes = [models.Index(fields=["user", "-created_at"])]
 
     def __str__(self):
-        return f"{self.kind} — {self.user_id}"
+        return f"{self.kind} · {self.user_id}"

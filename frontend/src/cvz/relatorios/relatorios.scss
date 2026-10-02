@@ -1,0 +1,655 @@
+@use '../styles/tokens' as *;
+@use '../styles/mixins' as *;
+
+.relatorios-painel {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+  transition: opacity $dur $ease;
+
+  // Trocando o recorte: o painel anterior fica, esmaecido, até o novo
+  // chegar — sem salto de layout nem esqueleto a cada clique.
+  &--atualizando { opacity: 0.55; }
+}
+
+// Título de seção + conteúdo. Também é a raiz da aba Desfechos.
+.relatorios-secao {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+  min-width: 0;
+}
+
+.relatorios-secao__titulo {
+  @include type($fs-title, $w-semibold);
+  color: $text;
+  margin: 0;
+}
+
+// --- esqueleto (a forma do conteúdo, antes dele) ------------------------------
+
+.relatorios-esqueleto {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-6;
+
+  .stat-card { gap: $sp-3; }
+
+  &__bloco {
+    padding: $sp-4;
+    border-radius: $radius-card;
+    background-color: $raised;
+  }
+}
+
+// --- filtros (período + equipe) ---------------------------------------------
+// Uma linha só, acima de tudo o que ela recorta — rótulos em cima, controles
+// alinhados pela base. O seletor de período é o `Segmented` do cvz.
+
+.relatorios-filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-3 $sp-4;
+  flex-wrap: wrap;
+
+  .field { min-width: 180px; }
+}
+
+// Intervalo livre: De/Até aparecem ao lado do seletor, só com "Personalizado".
+.relatorios-intervalo {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-2;
+
+  .field { min-width: 150px; }
+}
+
+.relatorios-periodo-legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: (-$sp-4) 0 0;
+}
+
+// --- KPIs --------------------------------------------------------------------
+// Seis cartões em 3 × 2 (não `auto-fit`: com 180px de mínimo eles quebravam em
+// 5 + 1 órfão). Dois por linha abaixo do desktop, inclusive no celular — um
+// por linha empilharia seis cartões altos antes do primeiro gráfico.
+
+.relatorios-kpis {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $sp-3;
+  margin: 0;
+
+  @include below-desktop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+// --- tabelas de resumo (aberto/pendente/resolvido) --------------------------
+// Um cartão por tabela. O que lê primeiro é o número; o zero recua para o
+// cinza (é o caso comum num período curto, e em negrito virava uma parede).
+
+.relatorios-resumos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $sp-3;
+  align-items: start;
+
+  @include below-desktop {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.relatorios-tabela__wrap {
+  overflow-x: auto;
+  border-radius: $radius-card;
+  background-color: $raised;
+}
+
+.relatorios-tabela {
+  width: 100%;
+  border-collapse: collapse;
+  @include type($fs-ui, $w-regular);
+
+  caption {
+    @include type($fs-ui, $w-semibold);
+    color: $text;
+    text-align: left;
+    padding: $sp-3 $sp-4 $sp-1;
+  }
+
+  th,
+  td {
+    padding: $sp-2 $sp-4;
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: $stroke-w solid $stroke;
+  }
+
+  thead th {
+    @include type($fs-label, $w-medium);
+    color: $text-secondary;
+  }
+
+  // Rótulo da linha (Meus / Equipe / Total, motivo, agente).
+  tbody th {
+    @include type($fs-ui, $w-regular);
+    color: $text;
+  }
+
+  td {
+    color: $text;
+  }
+
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  tbody tr:last-child th,
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  // "Total" fecha a tabela: o peso diz que é a soma, sem precisar de fundo.
+  &__total th,
+  &__total td {
+    font-weight: $w-semibold;
+  }
+}
+
+.relatorios-zero {
+  color: $text-muted;
+  font-weight: $w-regular;
+}
+
+// Variação ao lado do número. Neutra por padrão; só ganha cor quando a
+// métrica tem um lado bom (resolvido subir é bom, pendente subir é ruim).
+.relatorios-delta {
+  display: inline-block;
+  min-width: 4ch;
+  margin-left: $sp-1;
+  @include type($fs-label, $w-regular);
+  color: $text-muted;
+  text-align: right;
+
+  &--bom { color: $success; }
+  &--ruim { color: $danger; }
+}
+
+// --- distribuições (barras horizontais) -------------------------------------
+
+.relatorios-grade-distribuicoes,
+.relatorios-grade-sla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+  gap: $sp-3;
+}
+
+.relatorios-distribuicao__titulo {
+  @include type($fs-ui, $w-semibold);
+  color: $text;
+  margin: 0 0 $sp-3;
+}
+
+.relatorios-distribuicao__vazio {
+  @include type($fs-ui);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-distribuicao__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-distribuicao__linha {
+  display: grid;
+  // O rótulo leva um pouco mais que a barra: "Aguardando retorno" cortado
+  // no meio não se lê, e a barra só precisa mostrar proporção.
+  grid-template-columns: minmax(0, 1.25fr) minmax(48px, 1.25fr) auto;
+  align-items: center;
+  gap: $sp-3;
+}
+
+.relatorios-distribuicao__rotulo {
+  @include type($fs-ui);
+  @include truncate;
+  color: $text;
+}
+
+.relatorios-distribuicao__barra-trilho {
+  height: 8px;
+  border-radius: $radius-pill;
+  background-color: $blue-tint;
+  overflow: hidden;
+}
+
+// A cor da barra só existe quando QUER DIZER algo (Distribuicao.tsx escolhe o
+// modificador): estado de SLA, prioridade alta/urgente, aguardando retorno.
+// Todo o resto — categoria, empresa, pessoa, status comum — é o acento, uma
+// cor só: pintar cada categoria de um tom era decoração, e o rótulo ao lado
+// já diz qual barra é qual.
+.relatorios-distribuicao__barra {
+  // É um <span> dentro de outro <span>: o trilho vira bloco por ser filho
+  // do grid, mas a barra continuava inline — e inline ignora width/height.
+  // A cor estava lá; a caixa, não.
+  display: block;
+  height: 100%;
+  border-radius: $radius-pill;
+  background-color: $blue;
+
+  &--neutra  { background-color: $text-muted; }
+  &--sucesso { background-color: $success; }
+  &--atencao { background-color: $away; }
+  &--perigo  { background-color: $danger; }
+}
+
+.relatorios-distribuicao__valor {
+  @include type($fs-ui, $w-medium);
+  color: $text;
+  text-align: right;
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+}
+
+// Cada distribuição é um cartão, como as tabelas de resumo.
+.relatorios-distribuicao {
+  padding: $sp-4;
+  border-radius: $radius-card;
+  background-color: $raised;
+}
+
+// --- gráfico de colunas (GraficoColunas.tsx) --------------------------------
+// Marca no acento (a série principal) e num cinza de apoio (a segunda) — as
+// duas passam 3:1 sobre o cartão nos dois temas. Grade e eixo em fio sólido
+// de 1px; texto sempre na tinta, nunca na cor da série.
+
+.relatorios-linha-do-tempo {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-linha-do-tempo__resumo {
+  @include type($fs-meta);
+  color: $text-secondary;
+  margin: 0;
+}
+
+.grafico-colunas {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+  min-width: 0;
+  padding: $sp-4;
+  border-radius: $radius-card;
+  background-color: $raised;
+
+  &__legenda {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $sp-4;
+    min-height: 0;
+
+    &:empty { display: none; }
+  }
+
+  &__chave {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    @include type($fs-meta);
+    color: $text-secondary;
+  }
+
+  // Legenda espelha a marca: retângulo para coluna.
+  &__amostra {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+
+    &--acento { background-color: $blue; }
+    &--apoio { background-color: $field-border; }
+  }
+
+  &__area {
+    position: relative;
+    overflow: hidden;
+  }
+
+  &__svg {
+    display: block;
+    max-width: 100%;
+    border-radius: $radius;
+    @include focus-ring;
+  }
+
+  &__grade {
+    stroke: $stroke;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  &__eixo {
+    stroke: $field-border;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+  }
+
+  &__marca {
+    font-family: $f-ui;
+    font-size: $fs-label;
+    fill: $text-muted;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__coluna {
+    &--acento { fill: $blue; }
+    &--apoio { fill: $field-border; }
+  }
+
+  // Faixa do dia sob o ponteiro/foco: um véu, não uma cor.
+  &__foco {
+    fill: $hover-soft;
+  }
+
+  &__tooltip {
+    position: absolute;
+    top: $sp-2;
+    z-index: $z-popover;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 140px;
+    padding: $sp-2 $sp-3;
+    border-radius: $radius;
+    background-color: $raised;
+    box-shadow: $shadow-md;
+    pointer-events: none;
+
+    &--esquerda { transform: translateX(-100%); }
+  }
+
+  &__tooltip-titulo {
+    @include type($fs-meta, $w-medium);
+    color: $text-secondary;
+    margin-bottom: 2px;
+  }
+
+  // Valor primeiro e forte; o nome da série vem depois, em apoio.
+  &__tooltip-linha {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    @include type($fs-meta);
+    color: $text-secondary;
+
+    b {
+      @include type($fs-ui, $w-semibold);
+      color: $text;
+      font-variant-numeric: tabular-nums;
+    }
+
+    &--extra { padding-left: 16px; }
+  }
+
+  &__traco {
+    width: 10px;
+    height: 2px;
+    border-radius: 1px;
+
+    &--acento { background-color: $blue; }
+    &--apoio { background-color: $field-border; }
+  }
+
+  &__vazio {
+    @include type($fs-ui);
+    color: $text-secondary;
+    margin: 0;
+  }
+
+  // Tabela de apoio: todo número do gráfico, sem depender de ponteiro.
+  &__tabela {
+    summary {
+      width: fit-content;
+      @include type($fs-meta, $w-medium);
+      color: $text-secondary;
+      cursor: pointer;
+      border-radius: $radius;
+      @include focus-ring;
+
+      &:hover { color: $text; }
+    }
+
+    .relatorios-tabela__wrap {
+      margin-top: $sp-2;
+      max-height: 320px;
+      overflow: auto;
+    }
+  }
+}
+
+// --- satisfação ---------------------------------------------------------------
+
+.relatorios-satisfacao {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-6;
+  flex-wrap: wrap;
+  padding: $sp-4;
+  border-radius: $radius-card;
+  background-color: $raised;
+}
+
+.relatorios-satisfacao__resumo {
+  min-width: 180px;
+}
+
+.relatorios-satisfacao__nota {
+  @include type($fs-display, $w-semibold);
+  color: $text;
+}
+
+.relatorios-satisfacao__legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: $sp-1 0 0;
+}
+
+.relatorios-satisfacao__barras {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-2;
+  height: 96px;
+  flex: 1;
+  min-width: 240px;
+}
+
+.relatorios-satisfacao__coluna {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: $sp-1;
+  flex: 1;
+  height: 100%;
+}
+
+.relatorios-satisfacao__trilho {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 100%;
+}
+
+.relatorios-satisfacao__barra {
+  width: 100%;
+  max-width: 24px;
+  margin: 0 auto;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background-color: $blue;
+}
+
+.relatorios-satisfacao__rotulo {
+  @include type($fs-caption);
+  color: $text-muted;
+}
+
+// --- relatório detalhado -------------------------------------------------------
+
+.relatorios-detalhado {
+  display: flex;
+  flex-direction: column;
+  gap: $sp-4;
+}
+
+.relatorios-detalhado__intro {
+  @include type($fs-ui);
+  color: $text-secondary;
+  margin: 0;
+  max-width: 62ch;
+}
+
+.relatorios-detalhado__filtros {
+  display: flex;
+  align-items: flex-end;
+  gap: $sp-3;
+  flex-wrap: wrap;
+}
+
+.relatorios-detalhado__resumo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $sp-3;
+
+  @include below-desktop {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.relatorios-detalhado__espera {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-detalhado__csv {
+  width: fit-content;
+  text-decoration: none;
+}
+
+// --- exportação assíncrona (XLSX/PDF) -----------------------------------------
+
+.relatorios-exportacoes {
+  border-top: $stroke-w solid $stroke;
+  padding-top: $sp-4;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-3;
+}
+
+.relatorios-exportacoes__titulo {
+  @include type($fs-title, $w-semibold);
+  color: $text;
+  margin: 0;
+}
+
+.relatorios-exportacoes__legenda {
+  @include type($fs-meta);
+  color: $text-muted;
+  margin: 0;
+}
+
+.relatorios-exportacoes__acoes {
+  display: flex;
+  gap: $sp-2;
+  flex-wrap: wrap;
+}
+
+.relatorios-exportacoes__lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $sp-2;
+}
+
+.relatorios-exportacoes__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $sp-3;
+  padding: $sp-2 $sp-3;
+  border-radius: $radius;
+  background-color: $raised;
+}
+
+.relatorios-exportacoes__formato {
+  @include type($fs-ui, $w-medium);
+  color: $text;
+}
+
+.relatorios-exportacoes__quando {
+  @include type($fs-meta);
+  color: $text-muted;
+}
+
+.relatorios-exportacoes__erro {
+  @include type($fs-meta);
+  color: $danger;
+}
+
+.relatorios-exportacoes__baixar {
+  margin-left: auto;
+  text-decoration: none;
+}
+
+@include mobile {
+  .relatorios-satisfacao {
+    align-items: stretch;
+  }
+}
+
+// --- Desfechos ---------------------------------------------------------------
+// Os mesmos cartões de número dos Indicadores (superfície branca, sem
+// moldura), em 3 × 3: nove números com o mesmo desenho das outras abas.
+
+.relatorios-kpi {
+  padding: $sp-4;
+  border-radius: $radius-card;
+  background-color: $raised;
+
+  dt {
+    @include type($fs-label, $w-medium);
+    color: $text-secondary;
+  }
+
+  dd {
+    margin: $sp-1 0 0;
+    @include type($fs-display, $w-medium);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  // A mediana ao lado da média: é o par que denuncia o outlier — vê-las
+  // separadas, em telas diferentes, não conta a mesma história.
+  &__apoio {
+    @include type($fs-label, $w-regular);
+    color: $text-muted;
+  }
+}
+
+.relatorios-nota {
+  margin: 0;
+  @include type($fs-label, $w-regular);
+  color: $text-muted;
+}

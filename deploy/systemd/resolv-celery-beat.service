@@ -1,0 +1,44 @@
+# Beat Celery do resolv — o relógio que dispara as tarefas periódicas
+# (SLA vencendo, chat abandonado, expurgo de retenção às 03h30, backup
+# lógico do LGPD às 23h — ver docs/04-decisoes-tomadas.md D21). Mesmo
+# comando que o `beat` do docker-compose.yml roda em desenvolvimento, com o
+# scheduler do django-celery-beat (agenda guardada no Postgres, editável
+# pela tela, não só por código).
+#
+# Exatamente UMA instância deste processo por ambiente: duas rodando ao
+# mesmo tempo disparam cada tarefa periódica em dobro. Se um dia isto
+# escalar para mais de um host, o beat continua sendo singleton — não
+# replique esta unidade.
+#
+# Suposição documentada: mesmo usuário "resolv" sem privilégio do
+# resolv-web.service — ver o comentário no topo daquele arquivo.
+#
+# Instalar (uma vez, como root):
+#   cp deploy/systemd/resolv-celery-beat.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now resolv-celery-beat.service
+
+[Unit]
+Description=resolv — beat Celery (agendador de tarefas periódicas)
+Documentation=file:///srv/resolv/docs/15-deploy-producao.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=resolv
+Group=resolv
+WorkingDirectory=/srv/resolv
+EnvironmentFile=/etc/resolv/.env
+ExecStart=/srv/resolv/venv/bin/celery -A config beat -l info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/srv/resolv/staticfiles /var/lib/resolv/media
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

@@ -11,6 +11,9 @@
     padding: $sp-3;
 
     &--start { left: 0; }
-    &--end { right: 0; }
+    // `left: auto` é o que faz o `end` funcionar: o mixin `popover` já crava
+    // `left: 0`, e com os dois lados definidos e largura fixa o navegador
+    // ignora o `right` — o painel abria para a direita e saía da tela.
+    &--end { left: auto; right: 0; }
   }
 }

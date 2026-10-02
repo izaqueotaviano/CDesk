@@ -46,8 +46,15 @@ def build_report_export(self, export_id: int):
         user = export.requested_by
         params = export.params or {}
         # o escopo é o de QUEM PEDIU, reavaliado agora — não o do momento do pedido
+        queryset = selectors.visible_tickets(User.objects.get(pk=user.pk))
+        # mesmo `?team=` do painel/CSV síncrono: sem isto, pedir XLSX/PDF com o
+        # painel filtrado por equipe baixava tudo que o usuário enxerga, não só
+        # a equipe filtrada — a exportação síncrona (CSV) já corrige isso.
+        team_id = params.get("team")
+        if team_id:
+            queryset = queryset.filter(team_id=team_id)
         report = metrics.build_report(
-            selectors.visible_tickets(User.objects.get(pk=user.pk)),
+            queryset,
             date_from=_as_date(params.get("from")),
             date_to=_as_date(params.get("to")),
             agent_id=params.get("agent") or None,

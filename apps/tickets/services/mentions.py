@@ -20,9 +20,9 @@ Três responsabilidades, nesta ordem de importância:
 from __future__ import annotations
 
 import re
-import unicodedata
 
 from apps.accounts.models import Team, User, UserKind
+from apps.notifications import formatacao
 
 # A marcação: `@` + tipo + id entre colchetes. Deliberadamente feia de digitar
 # à mão — quem escreve é o editor, e o que um humano digita ("@iza") nunca casa
@@ -31,6 +31,11 @@ MARCACAO = re.compile(r"@\[(user|team):(\d+)\]")
 
 # limite de `TicketStatusEvent.note`, onde o rastro da menção é gravado
 _LIMITE_NOTA = 200
+
+# Quanto da nota vai no e-mail de menção. Mais que o sino (200) porque ali a
+# nota chega formatada e uma lista curta inteira cabe; menos que a nota toda
+# porque o e-mail convida a abrir o chamado, não o substitui.
+_LIMITE_NOTA_NO_EMAIL = 600
 
 
 def extrair_referencias(body: str) -> tuple[list[int], list[int]]:
@@ -61,7 +66,7 @@ def registrar_mencoes(*, message, author) -> list[User]:
     esta linha, não a tela.
     """
     from apps.notifications.models import NotificationKind
-    from apps.notifications.services import notify
+    from apps.notifications.services import notify, quer_email, queue_email, ticket_url
     from apps.tickets.models import TicketMention, TicketWatcher
 
     if message.is_public or author is None or not author.is_internal:
@@ -99,6 +104,14 @@ def registrar_mencoes(*, message, author) -> list[User]:
             destinatarios.setdefault(agente.pk, agente)
     destinatarios.pop(author.pk, None)
 
+    # A nota com os nomes no lugar da marcação. Continua com a formatação leve
+    # (`**`, listas, links): o sino recebe o texto sem marcador, e o e-mail
+    # recebe as duas versões — texto puro e HTML (`resumo_md`, convertido no
+    # envio por apps/notifications/formatacao.py).
+    nota = resumir(message.body)
+    resumo = formatacao.para_texto(nota)[:200]
+    nota_no_email = formatacao.recortar(nota, _LIMITE_NOTA_NO_EMAIL)
+
     for user in destinatarios.values():
         # Seguidor (CC) já existia como conceito: `TicketWatcher`. Ser citado
         # passa a criar o vínculo, porque quem foi chamado para o caso quer o
@@ -106,18 +119,40 @@ def registrar_mencoes(*, message, author) -> list[User]:
         # Vale lembrar o que o model avisa: seguir NÃO dá acesso a ticket
         # restrito; a leitura continua decidida por `is_content_visible_to`.
         TicketWatcher.objects.get_or_create(ticket=ticket, user=user)
+        titulo = f"{author.full_name} mencionou você em {ticket.reference}"
+        url = ticket_url(ticket, user, anchor=f"#mensagem-{message.pk}")
         notify(
             recipient=user,
             kind=NotificationKind.MENTION,
-            title=f"{author.full_name} mencionou você em {ticket.reference}",
-            # o corpo cru traria a marcação (`@[user:12]`) para dentro do sino;
-            # o resumo já sai com os nomes trocados, legível fora do ticket
-            body=resumir(message.body)[:200],
-            # âncora da nota: o sino leva à MENSAGEM, não ao topo do ticket
-            url=f"/tickets/{ticket.pk}#mensagem-{message.pk}",
+            title=titulo,
+            body=resumo,
+            url=url,
             ticket=ticket,
             actor=author,
         )
+        if user.email and quer_email(user, NotificationKind.MENTION):
+            from django.conf import settings
+
+            queue_email(
+                to=user.email,
+                subject=titulo,
+                template="mention",
+                context={
+                    "agent_name": user.full_name,
+                    "author_name": author.full_name,
+                    "reference": ticket.reference,
+                    # `resumo` sozinho é o que os e-mails antigos da fila
+                    # usam; com `resumo_md` presente, o envio o substitui
+                    "resumo": resumo,
+                    "resumo_md": nota_no_email,
+                    "link": f"{settings.SITE_URL}{url}",
+                },
+                ticket=ticket,
+                # a mensagem já dedupe por pessoa (get_or_create de menção não
+                # se aplica aqui, mas uma nota só gera uma notificação por
+                # destinatário — ver o teste de menção repetida)
+                dedupe_key=f"mention:{message.pk}:{user.pk}",
+            )
 
     _registrar_no_historico(ticket, author, usuarios, equipes)
     return list(destinatarios.values())
@@ -209,12 +244,6 @@ def resumir(body: str) -> str:
 
 # --------------------------------------------------------------------------- #
 # Autocomplete
-
-
-def normalizar(texto: str) -> str:
-    """Minúsculas e sem acento — `@iza` precisa achar "Izaque" e "Ízaque"."""
-    sem_acento = unicodedata.normalize("NFKD", texto or "")
-    return "".join(c for c in sem_acento if not unicodedata.combining(c)).casefold()
 
 
 def alvos_de_mencao(*, ticket, requester) -> list[dict]:

@@ -1,0 +1,52 @@
+# Processo web (ASGI) do resolv: HTTP + WebSocket no mesmo uvicorn, atrás do
+# nginx (deploy/nginx/resolv.conf, upstream `server 127.0.0.1:8000`) — mesmo
+# comando que o `web` do docker-compose.yml roda em desenvolvimento, sem o
+# `--reload`.
+#
+# Suposição documentada: existe um usuário/grupo de sistema "resolv" sem
+# privilégio, dono de /srv/resolv (código) e de MEDIA_ROOT
+# (/var/lib/resolv/media) — o mesmo raciocínio de segurança que o Dockerfile
+# já aplica na imagem de contêiner ("um RCE na aplicação não sai escrevendo
+# como root"), só que num host de verdade em vez de dentro de um contêiner.
+# Este arquivo não cria esse usuário — isso é provisionamento do servidor,
+# fora do que deploy.sh promete automatizar (ver docs/15-deploy-producao.md).
+#
+# Instalar (uma vez, como root):
+#   cp deploy/systemd/resolv-web.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now resolv-web.service
+# deploy.sh reinicia esta unidade a cada deploy — não precisa repetir os
+# passos acima depois da primeira vez.
+
+[Unit]
+Description=resolv — processo web (uvicorn: HTTP + WebSocket)
+Documentation=file:///srv/resolv/docs/15-deploy-producao.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=resolv
+Group=resolv
+WorkingDirectory=/srv/resolv
+EnvironmentFile=/etc/resolv/.env
+# 127.0.0.1, não 0.0.0.0: só o nginx local fala com este processo — a porta
+# 8000 nunca precisa sair para fora do host (docs/14-seguranca.md, checklist).
+ExecStart=/srv/resolv/venv/bin/uvicorn config.asgi:application --host 127.0.0.1 --port 8000
+Restart=on-failure
+RestartSec=5
+# Um worker recebendo SIGTERM no meio de um WebSocket de chat: dá tempo do
+# uvicorn fechar as conexões abertas antes do SIGKILL — mesma janela que o
+# proxy_read_timeout de 3600s do nginx já assume que o socket pode ficar vivo.
+TimeoutStopSec=30
+
+# Endurecimento: o processo não precisa de mais do que ler o código e a
+# configuração e escrever nos dois diretórios abaixo.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/srv/resolv/staticfiles /var/lib/resolv/media
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

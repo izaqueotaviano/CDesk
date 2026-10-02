@@ -30,6 +30,22 @@ const CATEGORIAS: { value: CategoriaStatus; label: string }[] = [
   { value: 'closed', label: 'Fechado' },
 ]
 
+// Mesma paleta que o backend aplica quando o status novo não vem com cor
+// explícita (`apps.tickets.models.COR_POR_CATEGORIA`, espelhando as cores
+// dos quatro status de fábrica em migrations/0016_status_de_fabrica.py) —
+// preview no formulário, não fonte de verdade: quem decide o valor final
+// salvo é sempre o backend. `resolved` fica de fora de propósito: não é uma
+// categoria real do backend (`TicketStatus`), então cai no fallback cinza
+// como qualquer categoria que o backend não reconheça.
+const PALETA_POR_CATEGORIA: Partial<Record<CategoriaStatus, string>> = {
+  new: '#6C4E9C',
+  open: '#5A87B8',
+  pending_customer: '#E9A23B',
+  closed: '#8A8A85',
+}
+const COR_PADRAO = '#8A8A85'
+const corDaCategoria = (categoria: CategoriaStatus) => PALETA_POR_CATEGORIA[categoria] ?? COR_PADRAO
+
 /**
  * Status = colunas do Kanban. O próprio backend documenta isso
  * (`TicketStageViewSet`: "criar um status aqui é criar uma coluna no
@@ -43,7 +59,17 @@ export function AbaStatus() {
 
   const [nomeNovo, setNomeNovo] = useState('')
   const [categoriaNova, setCategoriaNova] = useState<CategoriaStatus>('open')
-  const [corNova, setCorNova] = useState('#0275DE')
+  const [corNova, setCorNova] = useState(corDaCategoria('open'))
+
+  /** Troca a categoria e acompanha com a cor semântica dela — mas só
+   *  enquanto a pessoa não tiver escolhido uma cor própria: se o campo de
+   *  cor ainda mostra exatamente o valor sugerido para a categoria ANTERIOR,
+   *  ninguém mexeu nele, e é seguro atualizar. Uma escolha manual sobrevive
+   *  a idas e vindas no seletor de categoria. */
+  function trocarCategoria(categoria: CategoriaStatus) {
+    setCorNova((corAtual) => (corAtual === corDaCategoria(categoriaNova) ? corDaCategoria(categoria) : corAtual))
+    setCategoriaNova(categoria)
+  }
 
   async function adicionar() {
     if (!nomeNovo.trim()) return
@@ -61,7 +87,7 @@ export function AbaStatus() {
   }
 
   const colunas: Column<Status>[] = [
-    { key: 'color', header: '', width: '32px', render: (s) => <ChipCor cor={s.color} /> },
+    { key: 'color', header: '', width: '32px', render: (s) => <CampoCorStatus item={s} /> },
     {
       key: 'name',
       header: 'Nome',
@@ -114,7 +140,7 @@ export function AbaStatus() {
         <Select
           label="Categoria"
           value={categoriaNova}
-          onChange={(e) => setCategoriaNova(e.target.value as CategoriaStatus)}
+          onChange={(e) => trocarCategoria(e.target.value as CategoriaStatus)}
           options={CATEGORIAS}
         />
         <Field label="Cor">
@@ -143,8 +169,39 @@ export function AbaStatus() {
   )
 }
 
-function ChipCor({ cor }: { cor: string }) {
-  return <span className="cfg-chip-cor" style={{ backgroundColor: cor }} aria-hidden />
+/** A cor editável direto na linha: o chip É o seletor. Salva ao soltar o
+ *  seletor (`onBlur`/`change`), só se mudou — igual ao nome ao lado. */
+function CampoCorStatus({ item }: { item: Status }) {
+  const atualizar = useAtualizarStatus(item.id)
+  const { push } = useToast()
+  const [valor, setValor] = useState(item.color)
+  function salvar() {
+    if (valor.toLowerCase() === item.color.toLowerCase()) return
+    atualizar.mutate(
+      { color: valor },
+      {
+        onError: (e) => {
+          setValor(item.color)
+          push({
+            tone: 'danger',
+            title: 'Não foi possível trocar a cor',
+            description: e instanceof ApiError ? e.detail : undefined,
+          })
+        },
+      },
+    )
+  }
+  return (
+    <input
+      type="color"
+      className="cfg-chip-cor cfg-chip-cor--editavel"
+      value={valor}
+      aria-label={`Cor do status ${item.name}`}
+      title="Trocar a cor"
+      onChange={(e) => setValor(e.target.value)}
+      onBlur={salvar}
+    />
+  )
 }
 
 /** Nome editável direto na célula — salva ao sair do campo, só se mudou. */

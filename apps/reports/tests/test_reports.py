@@ -182,6 +182,18 @@ class TestReportApi:
         assert old.reference not in refs
         assert mine.reference in refs
 
+    def test_team_filter(self, api, admin, ana, suporte, agente):
+        """Mesmo `?team=` do painel de indicadores — a exportação usa o
+        mesmo recorte, não só a tela (achado: exportação ignorava o filtro)."""
+        financeiro = Team.objects.create(
+            name="Financeiro", slug="financeiro", visibility="requester_only"
+        )
+        _backdated_ticket(ana, suporte, hours_ago=2)
+        _backdated_ticket(ana, financeiro, hours_ago=2)
+        data = api(admin).get(f"/api/v1/reports/tickets/?team={suporte.pk}").json()
+        assert data["summary"]["total"] == 1
+        assert data["rows"][0]["team"] == suporte.name
+
     def test_agent_filter(self, api, admin, ana, suporte, agente):
         ticket = _backdated_ticket(ana, suporte, hours_ago=2)
         ticket_service.assign(ticket=ticket, assignee=agente, actor=admin)
@@ -237,6 +249,33 @@ class TestCsvExport:
         lines = resp.content.decode("utf-8-sig").strip().splitlines()
         assert len(lines) == 2
         assert "Bravo" in lines[1]
+
+    def test_csv_respects_team_filter(self, api, admin, ana, suporte):
+        """A exportação precisa do MESMO filtro de equipe que o painel — sem
+        ele o gestor baixava tudo que enxerga, não só a equipe filtrada."""
+        financeiro = Team.objects.create(
+            name="Financeiro", slug="financeiro", visibility="requester_only"
+        )
+        _backdated_ticket(ana, suporte, hours_ago=2)
+        _backdated_ticket(ana, financeiro, hours_ago=2)
+
+        resp = api(admin).get(f"/api/v1/reports/tickets/export/?team={suporte.pk}")
+        lines = resp.content.decode("utf-8-sig").strip().splitlines()
+        assert len(lines) == 2  # header + só o ticket de Suporte
+        assert "Financeiro" not in resp.content.decode("utf-8-sig")
+
+    def test_csv_without_team_filter_keeps_everything(self, api, admin, ana, suporte):
+        """Sem `?team=` a exportação continua trazendo tudo que o usuário
+        enxerga — o comportamento de hoje não muda para quem não filtra."""
+        financeiro = Team.objects.create(
+            name="Financeiro", slug="financeiro", visibility="requester_only"
+        )
+        _backdated_ticket(ana, suporte, hours_ago=2)
+        _backdated_ticket(ana, financeiro, hours_ago=2)
+
+        resp = api(admin).get("/api/v1/reports/tickets/export/")
+        lines = resp.content.decode("utf-8-sig").strip().splitlines()
+        assert len(lines) == 3  # header + os dois tickets
 
     def test_export_logs_access_per_restricted_ticket(self, api, admin, ana, suporte):
         """Exportar lê assunto e solicitante de tickets restritos em massa —

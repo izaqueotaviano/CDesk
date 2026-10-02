@@ -76,6 +76,20 @@ class TicketStatus(models.TextChoices):
     CLOSED = "closed", "Fechado"
 
 
+# Paleta semântica por categoria — os mesmos tons dos quatro status de
+# fábrica (migrations/0016_status_de_fabrica.py). Fonte única para o default
+# que `TicketStageViewSet.perform_create` aplica quando o status novo não
+# vem com cor explícita: sem isto, todo status customizado nascia cinza
+# (o default plano do campo `color` abaixo), sem relação nenhuma com a
+# categoria escolhida.
+COR_POR_CATEGORIA = {
+    TicketStatus.NEW: "#6C4E9C",
+    TicketStatus.OPEN: "#5A87B8",
+    TicketStatus.PENDING_CUSTOMER: "#E9A23B",
+    TicketStatus.CLOSED: "#8A8A85",
+}
+
+
 class TicketStage(models.Model):
     """A coluna do quadro — e o status que a pessoa lê na tela.
 
@@ -272,7 +286,7 @@ class Ticket(TimeStampedModel):
         on_delete=models.PROTECT,
         null=True, blank=True,
         related_name="tickets",
-        help_text="Coluna do quadro. Nulo só em chamado antigo, antes da migração.",
+        help_text="Coluna do quadro. Nulo só em ticket antigo, antes da migração.",
     )
     priority = models.CharField(
         max_length=10, choices=TicketPriority.choices, default=TicketPriority.NORMAL
@@ -396,7 +410,7 @@ class Ticket(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.reference} — {self.subject}"
+        return f"{self.reference} · {self.subject}"
 
     # ---- regras de visibilidade: fonte única da verdade ----
 
@@ -454,6 +468,16 @@ class Ticket(TimeStampedModel):
             return True
         return user.can(Perm.TICKET_REPLY_PUBLIC)
 
+    def can_close_as_requester(self, user) -> bool:
+        """O CLIENTE encerra o próprio chamado — mesma população de
+        `can_reply` (o solicitante, ou o OWNER da empresa), sem o registro de
+        trabalho técnico (D4) que só o suporte preenche. Fechamento do
+        agente continua pela outra porta (`Perm.TICKET_CLOSE` em
+        `ticket_service.close_ticket`), que É interna por definição."""
+        if user.is_internal:
+            return False
+        return self.status != TicketStatus.CLOSED and self.can_reply(user)
+
 
 class SatisfactionSurvey(TimeStampedModel):
     """Pesquisa de satisfação (CSAT 0–10) de um ticket fechado.
@@ -491,7 +515,7 @@ class SatisfactionSurvey(TimeStampedModel):
 
     def __str__(self):
         nota = "sem resposta" if self.score is None else f"nota {self.score}"
-        return f"{self.ticket_id} — {nota}"
+        return f"{self.ticket_id} · {nota}"
 
     @property
     def is_expired(self) -> bool:
@@ -519,6 +543,13 @@ class TicketMessage(TimeStampedModel):
     )
     body = models.TextField()
     is_public = models.BooleanField(default=True, help_text="Desmarcado = nota interna.")
+    # A assinatura do autor entra no rodapé desta mensagem? Decidido no envio
+    # (o compositor oferece "incluir minha assinatura") e guardado aqui; o
+    # conteúdo NÃO é copiado — é renderizado do perfil na hora de mostrar,
+    # ver `apps/accounts/assinatura.py`. Default False para que as mensagens
+    # anteriores a este campo, que já têm a assinatura antiga colada no
+    # corpo, não mostrem duas.
+    with_signature = models.BooleanField(default=False)
     source = models.CharField(
         max_length=10, choices=MessageSource.choices, default=MessageSource.WEB
     )
@@ -552,6 +583,63 @@ class TicketMessage(TimeStampedModel):
     @property
     def is_deleted(self) -> bool:
         return self.deleted_at is not None
+
+
+class ScheduledReplyStatus(models.TextChoices):
+    PENDING = "pending", "Pendente"
+    SENT = "sent", "Enviada"
+    FAILED = "failed", "Falhou"
+    CANCELLED = "cancelled", "Cancelada"
+
+
+class ScheduledReply(TimeStampedModel):
+    """Uma resposta escrita agora, para disparar sozinha na hora marcada —
+    o agente que quer responder logo cedo sem precisar estar na tela quando
+    o horário chegar.
+
+    Guarda os MESMOS parâmetros de `ticket_service.add_reply`: o disparo
+    (`apps.tickets.tasks.dispatch_scheduled_replies`) reusa essa função tal
+    como está, em vez de duplicar a máquina de estado do ticket (fechamento,
+    SLA, notificação do solicitante). `status` segue a mesma convenção de
+    `ReportExport`/`RetentionRun` (PENDING → SENT/FAILED); `CANCELLED` é o
+    extra que só este caso precisa — o agente pode desistir antes da hora.
+    """
+
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="scheduled_replies")
+    author = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="scheduled_replies",
+    )
+    body = models.TextField()
+    is_public = models.BooleanField(default=True)
+    # Só tem sentido (e só é exigido) quando `is_public` — nota interna não
+    # muda status. Vazio, não nulo: mesma convenção de `TicketMacro.priority`.
+    new_status = models.CharField(max_length=20, choices=TicketStatus.choices, blank=True)
+    resolution_started_at = models.DateTimeField(null=True, blank=True)
+    resolution_ended_at = models.DateTimeField(null=True, blank=True)
+    close_note = models.CharField(max_length=200, blank=True)
+    with_signature = models.BooleanField(default=False)
+    scheduled_at = models.DateTimeField(db_index=True)
+    status = models.CharField(
+        max_length=10, choices=ScheduledReplyStatus.choices, default=ScheduledReplyStatus.PENDING,
+    )
+    sent_at = models.DateTimeField(null=True, blank=True)
+    # A mensagem que o disparo produziu — rastreabilidade (paralelo a
+    # `RetentionRun.results`/`DataSubjectRequest.result`). Nula até enviar.
+    message = models.ForeignKey(
+        TicketMessage, on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    error = models.TextField(blank=True)
+
+    class Meta:
+        verbose_name = "resposta agendada"
+        verbose_name_plural = "respostas agendadas"
+        ordering = ["scheduled_at"]
+        indexes = [
+            models.Index(fields=["status", "scheduled_at"], name="idx_scheduled_reply_pendente"),
+        ]
+
+    def __str__(self):
+        return f"Resposta agendada #{self.pk} em {self.ticket_id} para {self.scheduled_at:%d/%m %H:%M}"
 
 
 class ScanStatus(models.TextChoices):
@@ -710,7 +798,7 @@ class TicketMacro(models.Model):
     #: chamado é ignorado. Veio do antigo `ChatMacro` na unificação.
     chat_name = models.CharField(
         max_length=200, blank=True, verbose_name="nome do chat",
-        help_text="Ao aplicar num chat, nomeia a conversa. Ignorado em chamado.",
+        help_text="Ao aplicar num chat, nomeia a conversa. Ignorado em ticket.",
     )
     category = models.ForeignKey(
         "tickets.TicketCategory",
@@ -895,6 +983,53 @@ class UserTicketTabs(TimeStampedModel):
 
     def __str__(self):
         return f"Abas de {self.user_id} ({len(self.tabs)})"
+
+
+class SavedTicketView(TimeStampedModel):
+    """Visualização PESSOAL da fila: um recorte que o agente monta com os
+    filtros da tela ("Acme, urgentes, sem responsável") e guarda com nome.
+
+    Diferente das visões do sistema (`SAVED_VIEWS` em views.py), que são
+    recortes nomeados definidos no servidor e iguais para todo mundo, esta é
+    só de quem criou — nunca aparece para outra pessoa, nem para admin pela
+    API. Guarda os PARÂMETROS da listagem (as mesmas chaves de `?status=`,
+    `?team=`...), não uma lista de ids: a visão é uma pergunta que se refaz a
+    cada abertura, e o escopo de visibilidade é reaplicado na hora
+    (`selectors.visible_tickets`) — perder acesso a uma equipe tira os
+    chamados dela da visão sem ninguém precisar editar nada.
+
+    `filters` passa por uma allowlist no serializer
+    (`SavedTicketViewSerializer`): chave desconhecida ou valor fora do
+    domínio é recusado na gravação, não ignorado na leitura — uma visão que
+    "filtra por algo que não existe" mostraria a fila inteira sem explicar.
+    """
+
+    owner = models.ForeignKey(
+        "accounts.User", on_delete=models.CASCADE, related_name="saved_ticket_views"
+    )
+    name = models.CharField(max_length=60)
+    # {"view": "nao-resolvidos", "priority": "high,urgent", "team": "suporte"}
+    filters = models.JSONField(default=dict, blank=True)
+    # ordem na barra lateral; reordenar reescreve 0..n-1 de uma vez
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "id"]
+        verbose_name = "visualização pessoal"
+        verbose_name_plural = "visualizações pessoais"
+        constraints = [
+            # Nome repetido na MESMA lista (ignorando maiúsculas) é duas
+            # linhas iguais na barra lateral sem jeito de saber qual é qual.
+            # O serializer já recusa com mensagem; isto é a trava contra
+            # corrida entre duas abas.
+            models.UniqueConstraint(
+                models.functions.Lower("name"), "owner",
+                name="visao_pessoal_nome_unico_por_dono",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.name} ({self.owner_id})"
 
 
 def ticket_is_overdue(ticket: Ticket) -> bool:
